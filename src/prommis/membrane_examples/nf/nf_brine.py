@@ -95,14 +95,20 @@ def main():
 def set_default_feed(m, solver):
     # fix the feed concentrations used in the initialization
     # approximate the kg/m3 = g/L conc of Salar de Atacama (Cl- gets overridden)
-    conc_mass_phase_comp = {"Li_+": 1.19, "Mg_2+": 7.31, "Cl_-": 143.72}
+    conc_mass_phase_comp1 = {"Li_+": 1.19, "Mg_2+": 7.31, "Cl_-": 143.72}
     set_NF_feed(
-        blk=m.fs,
+        blk=m.fs.feed,
         solver=solver,
         flow_mass_h2o=1,  # arbitraty for now
-        conc_mass_phase_comp=conc_mass_phase_comp,
+        conc_mass_phase_comp=conc_mass_phase_comp1,
     )
-
+    conc_mass_phase_comp2 = {"Li_+": 1.19, "Mg_2+": 7.31, "Cl_-": 143.72}
+    set_NF_feed(
+        blk=m.fs.permeate1,
+        solver=solver,
+        flow_mass_h2o=1,
+        conc_mass_phase_comp=conc_mass_phase_comp2,
+    )
 
 def define_feed_comp():
     default = {
@@ -302,39 +308,39 @@ def set_NF_feed(blk, solver, flow_mass_h2o, conc_mass_phase_comp):  # kg/m3
 
     # fix the inlet flow to the block as water flowrate
     mass_flow_in = flow_mass_h2o * pyunits.kg / pyunits.s
-    blk.feed.properties[0].flow_mass_phase_comp["Liq", "H2O"].fix(flow_mass_h2o)
+    blk.properties[0].flow_mass_phase_comp["Liq", "H2O"].fix(flow_mass_h2o)
 
     # fix the ion cncentrations and unfix ion flows
     for ion, x in conc_mass_phase_comp.items():
-        blk.feed.properties[0].conc_mass_phase_comp["Liq", ion].fix(x)
-        blk.feed.properties[0].flow_mol_phase_comp["Liq", ion].unfix()
+        blk.properties[0].conc_mass_phase_comp["Liq", ion].fix(x)
+        blk.properties[0].flow_mol_phase_comp["Liq", ion].unfix()
     # solve for the new flow rates
-    solver.solve(blk.feed)
+    solver.solve(blk)
     # fix new water concentration
-    blk.feed.properties[0].conc_mass_phase_comp["Liq", "H2O"].fix()
+    blk.properties[0].conc_mass_phase_comp["Liq", "H2O"].fix()
     # unfix ion concentrations and fix flows
     for ion, x in conc_mass_phase_comp.items():
-        blk.feed.properties[0].conc_mass_phase_comp["Liq", ion].unfix()
-        blk.feed.properties[0].flow_mol_phase_comp["Liq", ion].fix()
-        blk.feed.properties[0].flow_mass_phase_comp["Liq", ion].unfix()
-    blk.feed.properties[0].conc_mass_phase_comp["Liq", "H2O"].unfix()
-    blk.feed.properties[0].flow_mass_phase_comp["Liq", "H2O"].unfix()
-    blk.feed.properties[0].flow_mol_phase_comp["Liq", "H2O"].fix()
+        blk.properties[0].conc_mass_phase_comp["Liq", ion].unfix()
+        blk.properties[0].flow_mol_phase_comp["Liq", ion].fix()
+        blk.properties[0].flow_mass_phase_comp["Liq", ion].unfix()
+    blk.properties[0].conc_mass_phase_comp["Liq", "H2O"].unfix()
+    blk.properties[0].flow_mass_phase_comp["Liq", "H2O"].unfix()
+    blk.properties[0].flow_mol_phase_comp["Liq", "H2O"].fix()
 
     set_NF_feed_scaling(blk)
 
     # assert electroneutrality
-    blk.feed.properties[0].assert_electroneutrality(
+    blk.properties[0].assert_electroneutrality(
         defined_state=True, adjust_by_ion="Cl_-", get_property="flow_mol_phase_comp"
     )
 
     # over-specifies the problem:
-    # blk.feed.properties[0].temperature.fix(298.15)
+    # blk.properties[0].temperature.fix(298.15)
 
     # switching to concentration for ease of adjusting in UI -- addresses error in fixing flow_mol_phase_comp
     for ion, x in conc_mass_phase_comp.items():
-        blk.feed.properties[0].conc_mass_phase_comp["Liq", ion].unfix()
-        blk.feed.properties[0].flow_mol_phase_comp["Liq", ion].fix()
+        blk.properties[0].conc_mass_phase_comp["Liq", ion].unfix()
+        blk.properties[0].flow_mol_phase_comp["Liq", ion].fix()
 
 
 def calc_scale(value):
