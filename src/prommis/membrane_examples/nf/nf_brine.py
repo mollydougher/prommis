@@ -95,20 +95,24 @@ def main():
 def set_default_feed(m, solver):
     # fix the feed concentrations used in the initialization
     # approximate the kg/m3 = g/L conc of Salar de Atacama (Cl- gets overridden)
-    conc_mass_phase_comp1 = {"Li_+": 1.19, "Mg_2+": 7.31, "Cl_-": 143.72}
+    conc_mass_phase_comp = {"Li_+": 1.19, "Mg_2+": 7.31, "Cl_-": 143.72}
     set_NF_feed(
         blk=m.fs.feed,
         solver=solver,
         flow_mass_h2o=1,  # arbitraty for now
-        conc_mass_phase_comp=conc_mass_phase_comp1,
+        conc_mass_phase_comp=conc_mass_phase_comp,
     )
-    conc_mass_phase_comp2 = {"Li_+": 1.19, "Mg_2+": 7.31, "Cl_-": 143.72}
-    set_NF_feed(
-        blk=m.fs.permeate1,
-        solver=solver,
-        flow_mass_h2o=1,
-        conc_mass_phase_comp=conc_mass_phase_comp2,
+    # values come from initial solve of one-stage system
+    flow_mass_phase_comp = {"Li_+": 0.02, "Mg_2+":0.03, "Cl_-": 0.08}
+
+    for ion,x in flow_mass_phase_comp:
+        m.fs.permeate1.properties[0].flow_mass_phase_comp["Liq", ion].fix(x)
+
+    # assert electroneutrality
+    m.fs.permeate1.properties[0].assert_electroneutrality(
+        defined_state=True, adjust_by_ion="Cl_-", get_property="flow_mol_phase_comp"
     )
+
 
 def define_feed_comp():
     default = {
@@ -349,10 +353,10 @@ def calc_scale(value):
 
 def set_NF_feed_scaling(blk):
     _add = 0
-    for i in blk.feed.properties[0].flow_mol_phase_comp:
-        scale = calc_scale(blk.feed.properties[0].flow_mol_phase_comp[i].value)
+    for i in blk.properties[0].flow_mol_phase_comp:
+        scale = calc_scale(blk.properties[0].flow_mol_phase_comp[i].value)
         print(f"{i} flow_mol_phase_comp scaling factor = {10**(scale+_add)}")
-        blk.properties.set_default_scaling(
+        blk.properties.set_default_scaling(                                 # TODO: fix attribute error
             "flow_mol_phase_comp", 10 ** (scale + _add), index=i
         )
 
