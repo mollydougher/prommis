@@ -55,11 +55,11 @@ def main():
     print("solved box problem")
     m.fs.unit.report()
 
-    unfix_opt_vars(m)
-    add_obj(m)
+    # unfix_opt_vars(m)
+    # add_obj(m)
     # add_con(m)
-    optimize(m, solver)
-    m.fs.unit.report()
+    # optimize(m, solver)
+    # m.fs.unit.report()
     print("Optimal NF pressure (Bar)", m.fs.pump.outlet.pressure[0].value / 1e5)
     print("Optimal area (m2)", m.fs.unit.area.value)
     print(
@@ -85,9 +85,9 @@ def main():
         / (m.fs.permeate.flow_mol_phase_comp[0, "Liq", "Li_+"].value / 0.0069),
     )
 
-    dt = DiagnosticsToolbox(m)
-    dt.report_numerical_issues()
-    dt.report_structural_issues()
+    # dt = DiagnosticsToolbox(m)
+    # dt.report_numerical_issues()
+    # dt.report_structural_issues()
 
     return m
 
@@ -150,21 +150,33 @@ def build():
 
     # add the feed and product streams
     m.fs.feed = Feed(property_package=m.fs.properties)
-    m.fs.permeate = Product(property_package=m.fs.properties)
-    m.fs.retentate = Product(property_package=m.fs.properties)
+    m.fs.permeate1 = Product(property_package=m.fs.properties)
+    m.fs.retentate1 = Product(property_package=m.fs.properties)
+    m.fs.permeate2 = Product(property_package=m.fs.properties)
+    m.fs.retentate2 = Product(property_package=m.fs.properties)
 
     # define unit models
     m.fs.pump = Pump(property_package=m.fs.properties)
-    m.fs.unit = NanofiltrationDSPMDE0D(property_package=m.fs.properties)
+    m.fs.unit1 = NanofiltrationDSPMDE0D(property_package=m.fs.properties)
+    m.fs.unit2 = NanofiltrationDSPMDE0D(property_package=m.fs.properties)
 
     # connect the streams and blocks
     m.fs.feed_to_pump = Arc(source=m.fs.feed.outlet, destination=m.fs.pump.inlet)
-    m.fs.pump_to_nf = Arc(source=m.fs.pump.outlet, destination=m.fs.unit.inlet)
-    m.fs.nf_to_permeate = Arc(
-        source=m.fs.unit.permeate, destination=m.fs.permeate.inlet
+    m.fs.pump_to_nf1 = Arc(source=m.fs.pump.outlet, destination=m.fs.unit1.inlet)
+    m.fs.nf1_to_permeate1 = Arc(
+        source=m.fs.unit1.permeate, destination=m.fs.permeate1.inlet
     )
-    m.fs.nf_to_retentate = Arc(
-        source=m.fs.unit.retentate, destination=m.fs.retentate.inlet
+    m.fs.nf1_to_retentate1 = Arc(
+        source=m.fs.unit1.retentate, destination=m.fs.retentate1.inlet
+    )
+    m.fs.permeate1_to_nf2 = Arc(
+        source=m.fs.unit1.permeate, destination=m.fs.unit2.inlet
+    )
+    m.fs.nf2_to_permeate2 = Arc(
+        source=m.fs.unit2.permeate, destination=m.fs.permeate2.inlet
+    )
+    m.fs.nf2_to_retentate2 = Arc(
+        source=m.fs.unit2.retentate, destination=m.fs.retentate2.inlet
     )
     TransformationFactory("network.expand_arcs").apply_to(m)
     return m
@@ -172,8 +184,8 @@ def build():
 
 def fix_init_vars(m):
     # feed state variables
-    m.fs.unit.feed_side.properties_in[0].temperature.fix(298.15)
-    m.fs.unit.feed_side.properties_in[0].pressure.fix(2e5)
+    m.fs.unit1.feed_side.properties_in[0].temperature.fix(298.15)
+    m.fs.unit1.feed_side.properties_in[0].pressure.fix(2e5)
 
     # pump variables
     m.fs.pump.efficiency_pump[0].fix(0.75)
@@ -181,28 +193,45 @@ def fix_init_vars(m):
     iscale.set_scaling_factor(m.fs.pump.control_volume.work, 1e-4)
 
     # membrane operation
-    m.fs.unit.recovery_vol_phase[0, "Liq"].setub(0.95)
-    m.fs.unit.spacer_porosity.fix(0.85)
-    m.fs.unit.channel_height.fix(5e-4)
-    m.fs.unit.velocity[0, 0].fix(0.1)
-    m.fs.unit.area.fix(100)
-    m.fs.unit.mixed_permeate[0].pressure.fix(101325)
+    m.fs.unit1.recovery_vol_phase[0, "Liq"].setub(0.95)
+    m.fs.unit1.spacer_porosity.fix(0.85)
+    m.fs.unit1.channel_height.fix(5e-4)
+    m.fs.unit1.velocity[0, 0].fix(0.1)
+    m.fs.unit1.area.fix(50)
+    m.fs.unit1.mixed_permeate[0].pressure.fix(101325)
+    m.fs.unit2.recovery_vol_phase[0, "Liq"].setub(0.95)
+    m.fs.unit2.spacer_porosity.fix(0.85)
+    m.fs.unit2.channel_height.fix(5e-4)
+    m.fs.unit2.velocity[0, 0].fix(0.1)
+    m.fs.unit2.area.fix(50)
+    m.fs.unit2.mixed_permeate[0].pressure.fix(101325)
+
+    # add scaling for area
+    iscale.set_scaling_factor(m.fs.unit1.area, 1e-2)
+    iscale.set_scaling_factor(m.fs.unit2.area, 1e-2)
 
     # variables for calculating mass transfer coefficient with spiral wound correlation
-    m.fs.unit.spacer_mixing_efficiency.fix()
-    m.fs.unit.spacer_mixing_length.fix()
+    m.fs.unit1.spacer_mixing_efficiency.fix()
+    m.fs.unit1.spacer_mixing_length.fix()
+    m.fs.unit2.spacer_mixing_efficiency.fix()
+    m.fs.unit2.spacer_mixing_length.fix()
 
     # membrane properties
-    m.fs.unit.radius_pore.fix(0.5e-9)
-    m.fs.unit.membrane_thickness_effective.fix(1.33e-6)
-    m.fs.unit.membrane_charge_density.fix(-60)
-    m.fs.unit.dielectric_constant_pore.fix(41.3)
+    m.fs.unit1.radius_pore.fix(0.5e-9)
+    m.fs.unit1.membrane_thickness_effective.fix(1.33e-6)
+    m.fs.unit1.membrane_charge_density.fix(-60)
+    m.fs.unit1.dielectric_constant_pore.fix(41.3)
+    m.fs.unit2.radius_pore.fix(0.5e-9)
+    m.fs.unit2.membrane_thickness_effective.fix(1.33e-6)
+    m.fs.unit2.membrane_charge_density.fix(-60)
+    m.fs.unit2.dielectric_constant_pore.fix(41.3)
     iscale.calculate_scaling_factors(m)
 
 
 def unfix_opt_vars(m):
     m.fs.pump.outlet.pressure[0].unfix()
-    m.fs.unit.area.unfix()
+    m.fs.unit1.area.unfix()
+    m.fs.unit2.area.unfix()
 
 
 def add_obj(m):
@@ -220,8 +249,8 @@ def add_obj(m):
                 / (m.fs.feed.flow_mol_phase_comp[0, "Liq", "Li_+"].value / 0.0069)
             )
             - (
-                (m.fs.permeate.flow_mol_phase_comp[0, "Liq", "Mg_2+"].value / 0.024)
-                / (m.fs.permeate.flow_mol_phase_comp[0, "Liq", "Li_+"].value / 0.0069)
+                (m.fs.permeate2.flow_mol_phase_comp[0, "Liq", "Mg_2+"].value / 0.024)
+                / (m.fs.permeate2.flow_mol_phase_comp[0, "Liq", "Li_+"].value / 0.0069)
             )
         ),
         sense=maximize,
@@ -231,7 +260,7 @@ def add_obj(m):
 def add_con(m):
     # limit the Li rejection
     m.fs.li_rejection_con = Constraint(
-        expr=m.fs.unit.rejection_intrinsic_phase_comp[0, "Liq", "Li_+"] >= 0.2
+        expr=m.fs.unit1.rejection_intrinsic_phase_comp[0, "Liq", "Li_+"] >= 0.2
     )
 
 
@@ -250,14 +279,21 @@ def initialize(m, solver):
     propagate_state(m.fs.feed_to_pump)
 
     m.fs.pump.initialize(optarg=solver.options)
-    propagate_state(m.fs.pump_to_nf)
+    propagate_state(m.fs.pump_to_nf1)
 
-    m.fs.unit.initialize(optarg=solver.options)
-    propagate_state(m.fs.nf_to_permeate)
-    propagate_state(m.fs.nf_to_retentate)
+    m.fs.unit1.initialize(optarg=solver.options)
+    propagate_state(m.fs.nf1_to_permeate1)
+    propagate_state(m.fs.nf1_to_retentate1)
 
-    m.fs.permeate.initialize(optarg=solver.options)
-    m.fs.retentate.initialize(optarg=solver.options)
+    m.fs.permeate1.initialize(optarg=solver.options)
+    m.fs.retentate1.initialize(optarg=solver.options)
+
+    m.fs.unit2.initialize(optarg=solver.options)        # TODO: debug init error
+    propagate_state(m.fs.nf2_to_permeate2)
+    propagate_state(m.fs.nf2_to_retentate2)
+
+    m.fs.permeate2.initialize(optarg=solver.options)
+    m.fs.retentate2.initialize(optarg=solver.options)
 
 
 def set_NF_feed(blk, solver, flow_mass_h2o, conc_mass_phase_comp):  # kg/m3
