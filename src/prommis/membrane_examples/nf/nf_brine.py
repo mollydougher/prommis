@@ -54,47 +54,66 @@ def main():
 
     initialize(m, solver)
     print("init_okay")
-    m.fs.unit.report()
+    # m.fs.unit.report()
 
-    assert degrees_of_freedom(m) == 0
-    optimize(m, solver)
-    print("solved box problem")
-    m.fs.unit.report()
+    # assert degrees_of_freedom(m) == 0
+    # optimize(m, solver)
+    # print("solved box problem")
+    # m.fs.unit.report()
 
-    unfix_opt_vars(m)
-    add_obj(m)
-    # add_con(m)
-    optimize(m, solver)
-    m.fs.unit.report()
-    print("Optimal NF pressure (Bar)", m.fs.pump.outlet.pressure[0].value / 1e5)
-    print("Optimal area (m2)", m.fs.unit.area.value)
-    print(
-        "Optimal NF vol recovery (%)",
-        m.fs.unit.recovery_vol_phase[0.0, "Liq"].value * 100,
-    )
-    print(
-        "Optimal Li rejection (%)",
-        m.fs.unit.rejection_intrinsic_phase_comp[0, "Liq", "Li_+"].value * 100,
-    )
-    print(
-        "Optimal Mg rejection (%)",
-        m.fs.unit.rejection_intrinsic_phase_comp[0, "Liq", "Mg_2+"].value * 100,
-    )
-    print(
-        "Feed Mg:Li ratio (mass)",
-        (m.fs.feed.flow_mol_phase_comp[0, "Liq", "Mg_2+"].value / 0.024)
-        / (m.fs.feed.flow_mol_phase_comp[0, "Liq", "Li_+"].value / 0.0069),
-    )
-    print(
-        "Permeate Mg:Li ratio (mass)",
-        (m.fs.permeate.flow_mol_phase_comp[0, "Liq", "Mg_2+"].value / 0.024)
-        / (m.fs.permeate.flow_mol_phase_comp[0, "Liq", "Li_+"].value / 0.0069),
-    )
+    # unfix_opt_vars(m)
+    # add_obj(m)
+    # # add_con(m)
+    # optimize(m, solver)
+    # m.fs.unit.report()
+    # print("Optimal NF pressure (Bar)", m.fs.pump.outlet.pressure[0].value / 1e5)
+    # print("Optimal area (m2)", m.fs.unit.area.value)
+    # print(
+    #     "Optimal NF vol recovery (%)",
+    #     m.fs.unit.recovery_vol_phase[0.0, "Liq"].value * 100,
+    # )
+    # print(
+    #     "Optimal Li rejection (%)",
+    #     m.fs.unit.rejection_intrinsic_phase_comp[0, "Liq", "Li_+"].value * 100,
+    # )
+    # print(
+    #     "Optimal Mg rejection (%)",
+    #     m.fs.unit.rejection_intrinsic_phase_comp[0, "Liq", "Mg_2+"].value * 100,
+    # )
+    # print(
+    #     "Feed Mg:Li ratio (mass)",
+    #     (m.fs.feed.flow_mol_phase_comp[0, "Liq", "Mg_2+"].value / 0.024)
+    #     / (m.fs.feed.flow_mol_phase_comp[0, "Liq", "Li_+"].value / 0.0069),
+    # )
+    # print(
+    #     "Permeate Mg:Li ratio (mass)",
+    #     (m.fs.permeate.flow_mol_phase_comp[0, "Liq", "Mg_2+"].value / 0.024)
+    #     / (m.fs.permeate.flow_mol_phase_comp[0, "Liq", "Li_+"].value / 0.0069),
+    # )
 
-    dt = DiagnosticsToolbox(m)
-    dt.report_numerical_issues()
-    dt.report_structural_issues()
+    # dt = DiagnosticsToolbox(m)
+    # dt.report_numerical_issues()
+    # dt.report_structural_issues()
+    # dt.display_underconstrained_set()
+    # dt.display_overconstrained_set()
+    # dt.display_potential_evaluation_errors()
 
+    # print("Under-constrained Set")
+    # print(m.fs.pump.control_volume.pressure_balance[0.0].expr)
+    # print("\n")
+    # print(m.fs.pump.ratioP_calculation[0.0].expr)
+    # print("\n")
+    # print(m.fs.pump.fluid_work_calculation[0.0].expr)
+    # print("\n")
+    # print(m.fs.feed_to_pump_expanded.pressure_equality[0.0].expr)
+    # print("\n")
+    # print(m.fs.pump.actual_work[0.0].expr)
+    # print("\n")
+    # print("\n")
+    # print("Under-constrained Set")
+    # print(m.fs.pump_to_nf_expanded.pressure_equality[0.0].expr)
+
+    m.display()
     return m
 
 
@@ -207,8 +226,10 @@ def fix_init_vars(m):
 
     # pump variables
     m.fs.pump.efficiency_pump[0].fix(0.75)
+    # m.fs.pump.control_volume.properties_in[0].pressure.fix(101325)
     m.fs.pump.outlet.pressure[0].fix(2e5)
     iscale.set_scaling_factor(m.fs.pump.control_volume.work, 1e-4)
+    
 
     # membrane operation
     m.fs.unit.recovery_vol_phase[0, "Liq"].setub(0.95)
@@ -279,7 +300,7 @@ def optimize(m, solver):
     Optimizes the flowsheet
     """
     print(f"Optimizing with {format(degrees_of_freedom(m))} DOFs")
-    simulation_results = solver.solve(m, tee=True)
+    simulation_results = solver.solve(m)#, tee=True)
     assert_optimal_termination(simulation_results)
     return simulation_results
 
