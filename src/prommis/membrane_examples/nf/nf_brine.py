@@ -54,6 +54,7 @@ def main():
 
     initialize(m, solver)
     print("init_okay")
+    print(f"DOF = {degrees_of_freedom(m)}")
     # m.fs.unit.report()
 
     # assert degrees_of_freedom(m) == 0
@@ -91,9 +92,9 @@ def main():
     #     / (m.fs.permeate.flow_mol_phase_comp[0, "Liq", "Li_+"].value / 0.0069),
     # )
 
-    # dt = DiagnosticsToolbox(m)
+    dt = DiagnosticsToolbox(m)
     # dt.report_numerical_issues()
-    # dt.report_structural_issues()
+    dt.report_structural_issues()
     # dt.display_underconstrained_set()
     # dt.display_overconstrained_set()
     # dt.display_potential_evaluation_errors()
@@ -113,7 +114,7 @@ def main():
     # print("Under-constrained Set")
     # print(m.fs.pump_to_nf_expanded.pressure_equality[0.0].expr)
 
-    m.display()
+    # m.display()
     return m
 
 
@@ -221,12 +222,13 @@ def fix_init_vars(m):
     Fixes the initial variables needed to create 0 DOF
     """
     # feed state variables
-    m.fs.unit.feed_side.properties_in[0].temperature.fix(298.15)
-    m.fs.unit.feed_side.properties_in[0].pressure.fix(2e5)
+    # m.fs.unit.feed_side.properties_in[0].temperature.fix(298.15)
+    # m.fs.unit.feed_side.properties_in[0].pressure.fix(2e5)
 
     # pump variables
     m.fs.pump.efficiency_pump[0].fix(0.75)
-    # m.fs.pump.control_volume.properties_in[0].pressure.fix(101325)
+    m.fs.pump.control_volume.properties_in[0].temperature.fix(298.15)
+    m.fs.pump.control_volume.properties_in[0].pressure.fix(101325)
     m.fs.pump.outlet.pressure[0].fix(2e5)
     iscale.set_scaling_factor(m.fs.pump.control_volume.work, 1e-4)
     
