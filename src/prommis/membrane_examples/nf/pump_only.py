@@ -56,9 +56,10 @@ def main():
     print("init_okay")
     # m.fs.unit.report()
 
-    assert degrees_of_freedom(m) == 0
-    optimize(m, solver)
-    print("solved box problem")
+    print(f"DOF = {degrees_of_freedom(m)}")
+    # assert degrees_of_freedom(m) == 0
+    # optimize(m, solver)
+    # print("solved box problem")
     # m.fs.unit.report()
 
     # unfix_opt_vars(m)
@@ -94,7 +95,7 @@ def main():
     dt = DiagnosticsToolbox(m)
     # dt.report_numerical_issues()
     dt.report_structural_issues()
-    # dt.display_underconstrained_set()
+    dt.display_underconstrained_set()
     # dt.display_overconstrained_set()
     # dt.display_potential_evaluation_errors()
 
@@ -113,7 +114,7 @@ def main():
     # print("Under-constrained Set")
     # print(m.fs.pump_to_nf_expanded.pressure_equality[0.0].expr)
 
-    m.display()
+    # m.display()
     return m
 
 
@@ -226,7 +227,8 @@ def fix_init_vars(m):
 
     # pump variables
     m.fs.pump.efficiency_pump[0].fix(0.75)
-    # m.fs.pump.control_volume.properties_in[0].pressure.fix(101325)
+    m.fs.pump.control_volume.properties_in[0].temperature.fix(298.15)
+    m.fs.pump.control_volume.properties_in[0].pressure.fix(101325)
     m.fs.pump.outlet.pressure[0].fix(2e5)
     iscale.set_scaling_factor(m.fs.pump.control_volume.work, 1e-4)
     
