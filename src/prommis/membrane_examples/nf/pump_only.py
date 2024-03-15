@@ -57,10 +57,10 @@ def main():
     # m.fs.unit.report()
 
     print(f"DOF = {degrees_of_freedom(m)}")
-    # assert degrees_of_freedom(m) == 0
-    # optimize(m, solver)
-    # print("solved box problem")
-    # m.fs.unit.report()
+    assert degrees_of_freedom(m) == 0
+    optimize(m, solver)
+    print("solved box problem")
+    m.fs.pump.report()
 
     # unfix_opt_vars(m)
     # add_obj(m)
@@ -93,9 +93,9 @@ def main():
     # )
 
     dt = DiagnosticsToolbox(m)
-    # dt.report_numerical_issues()
-    dt.report_structural_issues()
-    dt.display_underconstrained_set()
+    dt.report_numerical_issues()
+    # dt.report_structural_issues()
+    # dt.display_underconstrained_set()
     # dt.display_overconstrained_set()
     # dt.display_potential_evaluation_errors()
 
