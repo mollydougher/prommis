@@ -54,47 +54,46 @@ def main():
 
     initialize(m, solver)
     print("init_okay")
-    print(f"DOF = {degrees_of_freedom(m)}")
     # m.fs.unit.report()
 
-    # assert degrees_of_freedom(m) == 0
-    # optimize(m, solver)
-    # print("solved box problem")
-    # m.fs.unit.report()
+    assert degrees_of_freedom(m) == 0
+    optimize(m, solver)
+    print("solved box problem")
+    m.fs.unit.report()
 
-    # unfix_opt_vars(m)
-    # add_obj(m)
-    # # add_con(m)
-    # optimize(m, solver)
-    # m.fs.unit.report()
-    # print("Optimal NF pressure (Bar)", m.fs.pump.outlet.pressure[0].value / 1e5)
-    # print("Optimal area (m2)", m.fs.unit.area.value)
-    # print(
-    #     "Optimal NF vol recovery (%)",
-    #     m.fs.unit.recovery_vol_phase[0.0, "Liq"].value * 100,
-    # )
-    # print(
-    #     "Optimal Li rejection (%)",
-    #     m.fs.unit.rejection_intrinsic_phase_comp[0, "Liq", "Li_+"].value * 100,
-    # )
-    # print(
-    #     "Optimal Mg rejection (%)",
-    #     m.fs.unit.rejection_intrinsic_phase_comp[0, "Liq", "Mg_2+"].value * 100,
-    # )
-    # print(
-    #     "Feed Mg:Li ratio (mass)",
-    #     (m.fs.feed.flow_mol_phase_comp[0, "Liq", "Mg_2+"].value / 0.024)
-    #     / (m.fs.feed.flow_mol_phase_comp[0, "Liq", "Li_+"].value / 0.0069),
-    # )
-    # print(
-    #     "Permeate Mg:Li ratio (mass)",
-    #     (m.fs.permeate.flow_mol_phase_comp[0, "Liq", "Mg_2+"].value / 0.024)
-    #     / (m.fs.permeate.flow_mol_phase_comp[0, "Liq", "Li_+"].value / 0.0069),
-    # )
+    unfix_opt_vars(m)
+    add_obj(m)
+    # add_con(m)
+    optimize(m, solver)
+    m.fs.unit.report()
+    print("Optimal NF pressure (Bar)", m.fs.pump.outlet.pressure[0].value / 1e5)
+    print("Optimal area (m2)", m.fs.unit.area.value)
+    print(
+        "Optimal NF vol recovery (%)",
+        m.fs.unit.recovery_vol_phase[0.0, "Liq"].value * 100,
+    )
+    print(
+        "Optimal Li rejection (%)",
+        m.fs.unit.rejection_intrinsic_phase_comp[0, "Liq", "Li_+"].value * 100,
+    )
+    print(
+        "Optimal Mg rejection (%)",
+        m.fs.unit.rejection_intrinsic_phase_comp[0, "Liq", "Mg_2+"].value * 100,
+    )
+    print(
+        "Feed Mg:Li ratio (mass)",
+        (m.fs.feed.flow_mol_phase_comp[0, "Liq", "Mg_2+"].value / 0.024)
+        / (m.fs.feed.flow_mol_phase_comp[0, "Liq", "Li_+"].value / 0.0069),
+    )
+    print(
+        "Permeate Mg:Li ratio (mass)",
+        (m.fs.permeate.flow_mol_phase_comp[0, "Liq", "Mg_2+"].value / 0.024)
+        / (m.fs.permeate.flow_mol_phase_comp[0, "Liq", "Li_+"].value / 0.0069),
+    )
 
-    dt = DiagnosticsToolbox(m)
+    # dt = DiagnosticsToolbox(m)
     # dt.report_numerical_issues()
-    dt.report_structural_issues()
+    # dt.report_structural_issues()
     # dt.display_underconstrained_set()
     # dt.display_overconstrained_set()
     # dt.display_potential_evaluation_errors()
@@ -257,7 +256,7 @@ def unfix_opt_vars(m):
     """
     Unfixes select variables to enable optimization with DOF>0
     """
-    m.fs.pump.outlet.pressure[0].unfix()
+    # m.fs.pump.outlet.pressure[0].unfix()
     m.fs.unit.area.unfix()
 
 
@@ -302,7 +301,7 @@ def optimize(m, solver):
     Optimizes the flowsheet
     """
     print(f"Optimizing with {format(degrees_of_freedom(m))} DOFs")
-    simulation_results = solver.solve(m)#, tee=True)
+    simulation_results = solver.solve(m, tee=True)
     assert_optimal_termination(simulation_results)
     return simulation_results
 
