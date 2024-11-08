@@ -120,6 +120,19 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
             doc="Total annualized cost of operation",
         )
 
+        self.total_sales_revenue = Var(
+            initialize=0,
+            domain=NonNegativeReals,
+            doc="Total sales revenue",
+            units=self.base_currency / self.base_period,
+        )
+        self.total_sales_revenue_constraint = Constraint(
+            expr=self.total_sales_revenue == (
+                # TODO: add expression to sum product sales
+            ),
+            doc="Calculation of total sales revenue",
+        )
+
     @staticmethod
     def initialize_build(self):
         calculate_variable_from_constraint(
