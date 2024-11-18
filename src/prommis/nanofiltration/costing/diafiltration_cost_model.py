@@ -32,6 +32,9 @@ from prommis.nanofiltration.costing.diafiltration_cost_block import (
 class DiafiltrationCostingData(DiafiltrationCostingBlockData):
     """
     Costing block for the diafiltration flowsheet
+
+    References for default market prices:
+        Na2CO3 and Li2CO3, 2021 data: https://pubs.usgs.gov/periodicals/mcs2024/mcs2024.pdf
     """
 
     def build_global_params(self):
@@ -120,6 +123,11 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
             doc="Total annualized cost of operation",
         )
 
+        default_market_prices = {
+            "Na2CO3": 0.13 * units.USD_2021 / units.kg,  # soda ash
+            "Li2CO3": 12 * units.USD_2021 / units.kg,  # lithium carbonate
+        }
+
         self.total_sales_revenue = Var(
             initialize=0,
             domain=NonNegativeReals,
@@ -127,7 +135,8 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
             units=self.base_currency / self.base_period,
         )
         self.total_sales_revenue_constraint = Constraint(
-            expr=self.total_sales_revenue == (
+            expr=self.total_sales_revenue
+            == (
                 # TODO: add expression to sum product sales
             ),
             doc="Calculation of total sales revenue",
