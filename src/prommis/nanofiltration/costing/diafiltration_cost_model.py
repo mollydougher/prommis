@@ -161,7 +161,8 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
         membrane_width,
     ):
         """
-        Costing method for membranes
+        Costing method for membranes.
+        Simple costing method is equivalent.
 
         References:
             https://doi.org/10.1016/j.ijggc.2019.03.018
@@ -236,7 +237,8 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
         vol_flow_perm,
     ):
         """
-        Costing method for membrane pressure drop
+        Costing method for membrane pressure drop.
+        Not intended to be called when using the simple costing option.
 
         Args:
             water_flux: water flux through membrane (m/h)
@@ -317,161 +319,243 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
                 / blk.costing_package.base_period,
             )
 
-    def cost_pump(blk, inlet_pressure, outlet_pressure, inlet_vol_flow):
+    def cost_pump(
+        blk,
+        inlet_pressure,
+        outlet_pressure,
+        inlet_vol_flow,
+        simple_costing=False,
+    ):
         """
-        Costing method for pumps.
+        Costing methods for pumps. The simple costing method only requires the inlet volume flow.
 
-        References:
+        References for default method:
             https://doi.org/10.1016/j.memsci.2015.04.065
             Volk, Michael. Pump characteristics and applications. CRC Press, 2013.
             Moran, Seán. "Pump Sizing: Bridging the Gap Between Theory and Practice."
                 The Best of Equipment Series (2016): 3.
             https://www.bls.gov/regions/midwest/data/averageenergyprices_selectedareas_table.htm
 
+        References for simple method:
+            pump capital cost factor: https://pubs.acs.org/doi/10.1021/acsestengg.3c00537
+            pump operating cost factor:
+            pump power calculation factor:
+
         Args:
             inlet_pressure: pressure of inlet stream to pump (Pa)
             outlet_pressure: pressure of outlet stream from pump (psi)
             inlet_vol_flow: volumetric flow rate of inlet stream to pump (m3/h)
+            simple_costing: Boolean to determine which costing method is implemented
         """
-        blk.density = Param(
-            initialize=1000,
-            doc="Operating fluid density",
-            units=units.kg / units.m**3,
-        )
-        blk.specific_gravity = Param(
-            initialize=1,
-            doc="Operating fluid specific gravity",
-            units=units.dimensionless,
-        )
-        blk.pump_correlation_factor = Param(
-            initialize=622.59,
-            doc="Pump correlation factor (constant)",
-            units=units.USD_1996 / (units.kPa * units.m**3 / units.hr) ** 0.39,
-        )
-        blk.pump_exponential_factor = Param(
-            initialize=0.39,
-            doc="Pump correlation factor (exponential)",
-            units=units.dimensionless,
-        )
-        blk.pump_head_factor = Param(
-            initialize=2.31,
-            doc="Pump head factor",
-            units=units.ft / units.psi,
-        )
-        blk.pump_power_factor = Param(
-            initialize=3.6 * 10 ** (6),
-            doc="Pump power factor",
-            units=units.dimensionless,
-        )
-        blk.pump_efficiency = Param(
-            initialize=0.7,
-            doc="Pump efficiency",
-            units=units.dimensionless,
-        )
-        if not (hasattr(blk.costing_package, "electricity_cost")):
-            blk.electricity_cost = Var(
-                initialize=0.141,
+
+        # default costing method
+        if simple_costing == False:
+            blk.density = Param(
+                initialize=1000,
+                doc="Operating fluid density",
+                units=units.kg / units.m**3,
+            )
+            blk.specific_gravity = Param(
+                initialize=1,
+                doc="Operating fluid specific gravity",
+                units=units.dimensionless,
+            )
+            blk.pump_correlation_factor = Param(
+                initialize=622.59,
+                doc="Pump correlation factor (constant)",
+                units=units.USD_1996 / (units.kPa * units.m**3 / units.hr) ** 0.39,
+            )
+            blk.pump_exponential_factor = Param(
+                initialize=0.39,
+                doc="Pump correlation factor (exponential)",
+                units=units.dimensionless,
+            )
+            blk.pump_head_factor = Param(
+                initialize=2.31,
+                doc="Pump head factor",
+                units=units.ft / units.psi,
+            )
+            blk.pump_power_factor = Param(
+                initialize=3.6 * 10 ** (6),
+                doc="Pump power factor",
+                units=units.dimensionless,
+            )
+            blk.pump_efficiency = Param(
+                initialize=0.7,
+                doc="Pump efficiency",
+                units=units.dimensionless,
+            )
+            if not (hasattr(blk.costing_package, "electricity_cost")):
+                blk.electricity_cost = Var(
+                    initialize=0.141,
+                    domain=NonNegativeReals,
+                    doc="Unit cost of electricity",
+                    units=units.USD_2021 / units.kWh,
+                )
+            else:
+                blk.electricity_cost = Var(
+                    initialize=value(blk.costing_package.electricity_cost),
+                    domain=NonNegativeReals,
+                    doc="Unit cost of electricity",
+                    units=blk.costing_package.electricity_cost.units,
+                )
+            blk.electricity_cost.fix()
+
+            # create the capital and operating cost variables
+            blk.capital_cost = Var(
+                initialize=1e5,
                 domain=NonNegativeReals,
-                doc="Unit cost of electricity",
-                units=units.USD_2021 / units.kWh,
+                units=blk.costing_package.base_currency,
+                doc="Unit capital cost",
             )
-
-        else:
-            blk.electricity_cost = Var(
-                initialize=value(blk.costing_package.electricity_cost),
+            blk.variable_operating_cost = Var(
+                initialize=1e5,
                 domain=NonNegativeReals,
-                doc="Unit cost of electricity",
-                units=blk.costing_package.electricity_cost.units,
-            )
-        blk.electricity_cost.fix()
-
-        # create the capital and operating cost variables
-        blk.capital_cost = Var(
-            initialize=1e5,
-            domain=NonNegativeReals,
-            units=blk.costing_package.base_currency,
-            doc="Unit capital cost",
-        )
-        blk.variable_operating_cost = Var(
-            initialize=1e5,
-            domain=NonNegativeReals,
-            units=blk.costing_package.base_currency / blk.costing_package.base_period,
-            doc="Unit variable operating cost",
-        )
-
-        @blk.Constraint()
-        def capital_cost_constraint(blk):
-            return blk.capital_cost == units.convert(
-                blk.pump_correlation_factor
-                * (inlet_vol_flow * inlet_pressure) ** blk.pump_exponential_factor,
-                to_units=blk.costing_package.base_currency,
-            )
-
-        # calculate the pump head: pump Ref [1] Eqn 1.1
-        blk.pump_head = Var(
-            initialize=10,
-            domain=NonNegativeReals,
-            doc="Pump head in meters",
-            units=units.m,
-        )
-
-        @blk.Constraint()
-        def pump_head_equation(blk):
-            return blk.pump_head == units.convert(
-                (outlet_pressure * blk.pump_head_factor / blk.specific_gravity),
-                to_units=units.m,
-            )
-
-        # calculate the pump power: pump Ref [2] Eqn 7
-        blk.pump_power = Var(
-            initialize=10,
-            domain=NonNegativeReals,
-            doc="Pump power in kWh required for the operational period",
-            units=units.kWh,
-        )
-
-        grav_constant = units.convert(
-            Constants.acceleration_gravity, to_units=units.m / units.hr**2
-        )
-
-        @blk.Constraint()
-        def pump_power_equation(blk):
-            return blk.pump_power == units.convert(
-                (
-                    units.convert(
-                        (
-                            inlet_vol_flow
-                            * blk.density
-                            * grav_constant
-                            * blk.pump_head
-                            / blk.pump_power_factor
-                            / blk.pump_efficiency
-                        ),
-                        to_units=units.kW,
-                    )
-                    * blk.costing_package.base_period  # per one year
-                ),
-                to_units=units.kWh,
-            )
-
-        @blk.Constraint()
-        def variable_operating_cost_constraint(blk):
-            return blk.variable_operating_cost == units.convert(
-                blk.pump_power
-                * blk.electricity_cost
-                / blk.costing_package.base_period,  # per one year
-                to_units=blk.costing_package.base_currency
+                units=blk.costing_package.base_currency
                 / blk.costing_package.base_period,
+                doc="Unit variable operating cost",
             )
+
+            @blk.Constraint()
+            def capital_cost_constraint(blk):
+                return blk.capital_cost == units.convert(
+                    blk.pump_correlation_factor
+                    * (inlet_vol_flow * inlet_pressure) ** blk.pump_exponential_factor,
+                    to_units=blk.costing_package.base_currency,
+                )
+
+            # calculate the pump head: pump Ref [1] Eqn 1.1
+            blk.pump_head = Var(
+                initialize=10,
+                domain=NonNegativeReals,
+                doc="Pump head in meters",
+                units=units.m,
+            )
+
+            @blk.Constraint()
+            def pump_head_equation(blk):
+                return blk.pump_head == units.convert(
+                    (outlet_pressure * blk.pump_head_factor / blk.specific_gravity),
+                    to_units=units.m,
+                )
+
+            # calculate the pump power: pump Ref [2] Eqn 7
+            blk.pump_power = Var(
+                initialize=10,
+                domain=NonNegativeReals,
+                doc="Pump power in kWh required for the operational period",
+                units=units.kWh,
+            )
+
+            grav_constant = units.convert(
+                Constants.acceleration_gravity, to_units=units.m / units.hr**2
+            )
+
+            @blk.Constraint()
+            def pump_power_equation(blk):
+                return blk.pump_power == units.convert(
+                    (
+                        units.convert(
+                            (
+                                inlet_vol_flow
+                                * blk.density
+                                * grav_constant
+                                * blk.pump_head
+                                / blk.pump_power_factor
+                                / blk.pump_efficiency
+                            ),
+                            to_units=units.kW,
+                        )
+                        * blk.costing_package.base_period  # per one year
+                    ),
+                    to_units=units.kWh,
+                )
+
+            @blk.Constraint()
+            def variable_operating_cost_constraint(blk):
+                return blk.variable_operating_cost == units.convert(
+                    blk.pump_power
+                    * blk.electricity_cost
+                    / blk.costing_package.base_period,  # per one year
+                    to_units=blk.costing_package.base_currency
+                    / blk.costing_package.base_period,
+                )
+
+        # simple costing method; does not use pressure arguments
+        if simple_costing == True:
+            blk.pump_factor_capital = Param(
+                initialize=700,
+                doc="Pump factor (capital) for simple costing",
+                units=units.USD_2018
+                / units.kW,  # USD reference year based on Amusat et al.'s SI
+            )
+            blk.pump_factor_operating = Param(
+                initialize=560,  # TODO: verify reference
+                doc="Pump factor (operating) for simple costing",
+                units=units.USD_2018  # TODO: verify the reference year for USD
+                / units.kW
+                / units.yr,
+            )
+            blk.pump_power_factor_simple = Param(
+                initialize=898.415,  # TODO: verify reference
+                doc="Pump factor for linear power calculation",
+                units=units.kJ / units.m**3,
+            )
+
+            blk.pump_power_simple = Var(
+                initialize=1e5,
+                domain=NonNegativeReals,
+                units=units.kW,
+                doc="Pump power for simple costing",
+            )
+
+            @blk.Constraint()
+            def pump_power_simple_equation(blk):
+                return blk.pump_power_simple == units.convert(
+                    blk.pump_power_factor_simple * inlet_vol_flow,
+                    to_units=units.kW,
+                )
+
+            # create the capital and operating cost variables
+            blk.capital_cost = Var(
+                initialize=1e5,
+                domain=NonNegativeReals,
+                units=blk.costing_package.base_currency,
+                doc="Unit capital cost",
+            )
+            blk.variable_operating_cost = Var(
+                initialize=1e5,
+                domain=NonNegativeReals,
+                units=blk.costing_package.base_currency
+                / blk.costing_package.base_period,
+                doc="Unit variable operating cost",
+            )
+
+            @blk.Constraint()
+            def capital_cost_constraint(blk):
+                return blk.capital_cost == units.convert(
+                    blk.pump_factor_capital * blk.pump_power_simple,
+                    to_units=blk.costing_package.base_currency,
+                )
+
+            @blk.Constraint()
+            def vaariable_operaitng_cost_constraint(blk):
+                return blk.variable_operating_cost == units.convert(
+                    blk.pump_factor_operating * blk.pump_power_simple,
+                    to_units=blk.costing_package.base_currency
+                    / blk.costing_package.base_period,
+                )
 
     def cost_precipitator(
         blk,
         precip_volume,
+        simple_costing=False,
     ):
         """
-        Costing method for precipitator unit. Assumes these are horizontal vessels
-        made from 1.25 in thick carbon steel, includes platforms and ladders, and each
-        instance is one unit (default args).
+        Costing method for precipitator unit. Default method assumes these are horizontal
+        vessels made from 1.25 in thick carbon steel, includes platforms and ladders, and
+        each instance is one unit (default args). The simple method uses a linear relationship
+        with volume to calculate capital costs and currently does not include operating costs.
 
         References:
             residence time:
@@ -484,38 +568,40 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
 
         Args:
             precip_volume: volume of the precipitator as calculated by the unit model (m3)
+            simple_costing: Boolean to determine which costing method is implemented
         """
 
-        # calculate the volume needed
-        blk.volume_capacity = Var(
-            initialize=120,
-            domain=NonNegativeReals,
-            doc="Volume requirement of precipitator vessel",
-            units=units.m**3,
-        )
-
-        # account for a 20% headspace
-        @blk.Constraint()
-        def volume_capacity_equation(blk):
-            return blk.volume_capacity == units.convert(
-                (1.2 * precip_volume), to_units=units.m**3
+        if simple_costing == False:
+            # calculate the volume needed
+            blk.volume_capacity = Var(
+                initialize=120,
+                domain=NonNegativeReals,
+                doc="Volume requirement of precipitator vessel",
+                units=units.m**3,
             )
 
-        # include a length and diameter constraint
-        # TODO: L and D should get bounded but gives init errors
-        blk.precipitator_diameter = Var(
-            initialize=6,
-            domain=NonNegativeReals,
-            doc="Diameter of the precipitator vessel",
-            units=units.ft,
-        )
-        blk.precipitator_diameter.fix()
-        blk.precipitator_length = Var(
-            initialize=8,
-            domain=NonNegativeReals,
-            doc="Length of the precipitator vessel",
-            units=units.ft,
-        )
+            # account for a 20% headspace
+            @blk.Constraint()
+            def volume_capacity_equation(blk):
+                return blk.volume_capacity == units.convert(
+                    (1.2 * precip_volume), to_units=units.m**3
+                )
+
+            # include a length and diameter constraint
+            # TODO: L and D should get bounded but gives init errors
+            blk.precipitator_diameter = Var(
+                initialize=6,
+                domain=NonNegativeReals,
+                doc="Diameter of the precipitator vessel",
+                units=units.ft,
+            )
+            blk.precipitator_diameter.fix()
+            blk.precipitator_length = Var(
+                initialize=8,
+                domain=NonNegativeReals,
+                doc="Length of the precipitator vessel",
+                units=units.ft,
+            )
 
         @blk.Constraint()
         def diameter_length_ratio_equation(blk):
@@ -555,9 +641,32 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
                 )
             )
 
-        SSLWCostingData.cost_vessel(
-            blk,
-            vertical=False,  # horizontal vessel
-            vessel_diameter=blk.precipitator_diameter,
-            vessel_length=blk.precipitator_length,
-        )
+            SSLWCostingData.cost_vessel(
+                blk,
+                vertical=False,  # horizontal vessel
+                vessel_diameter=blk.precipitator_diameter,
+                vessel_length=blk.precipitator_length,
+            )
+
+        if simple_costing == True:
+            blk.precipitator_factor_capital = Param(
+                initialize=500,  # TODO: determine the reference for this value
+                doc="Precipitator factor (capital) for simple costing",
+                units=units.USD_2018
+                / units.m**3,  # TODO: verify the reference year for USD
+            )
+
+            # create the capital cost variable
+            blk.capital_cost = Var(
+                initialize=1e5,
+                domain=NonNegativeReals,
+                units=blk.costing_package.base_currency,
+                doc="Unit capital cost",
+            )
+
+            @blk.Constraint()
+            def capital_cost_constraint(blk):
+                return blk.capital_cost == units.convert(
+                    blk.precipitator_factor_capital * precip_volume,
+                    to_units=blk.costing_package.base_currency,
+                )

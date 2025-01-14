@@ -6,18 +6,19 @@
 #####################################################################################################
 """Class for building the full IDAES diafiltration flowsheet."""
 
+
 # Pyomo imports
 from pyomo.environ import (
     ConcreteModel,
+    Constraint,
+    Objective,
+    Param,
     RangeSet,
     Set,
-    Var,
     TransformationFactory,
-    units,
-    Objective,
+    Var,
     maximize,
-    Param,
-    Constraint,
+    units,
 )
 from pyomo.network import Arc
 from pyomo.core.expr import identify_components
@@ -25,25 +26,34 @@ from pyomo.core.base.param import ScalarParam
 
 # IDAES imports
 from idaes.core.util.scaling import set_scaling_factor
-from idaes.core import FlowsheetBlock, MaterialBalanceType, MomentumBalanceType
-from idaes.models.unit_models import MSContactorInitializer
+from idaes.core.util.initialization import propagate_state
+from idaes.core import (
+    FlowsheetBlock,
+    MaterialBalanceType,
+    MomentumBalanceType,
+    UnitModelBlock,
+    UnitModelCostingBlock,
+)
 from idaes.models.unit_models import (
+    EnergySplittingType,
     Mixer,
+    MixerInitializer,
     MixingType,
     MomentumMixingType,
-    MixerInitializer,
+    MSContactorInitializer,
 )
-from idaes.models.unit_models import (
-    Separator as Splitter,
-    EnergySplittingType,
-    SeparatorInitializer,
-)
-from idaes.core.util.initialization import propagate_state
+from idaes.models.unit_models import Separator as Splitter
+from idaes.models.unit_models import SeparatorInitializer
 
 # Custom imports
 from solute_property import SoluteParameters
 from membrane import Membrane
 from precipitator import Precipitator
+
+from prommis.nanofiltration.costing.diafiltration_cost_model import (
+    DiafiltrationCosting,
+    DiafiltrationCostingData,
+)
 
 # other imports
 import idaes.logger as idaeslog
@@ -84,11 +94,13 @@ class DiafiltrationModel:
             "Li": 0.1 * 30,  # kg/hr
             "Co": 0.2 * 30,  # kg/hr
         },
-        precipitate=False,
+        precipitate=True,
         precipitate_yield={
             "permeate": {"Li": 0.81, "Co": 0.05},
             "retentate": {"Li": 0.05, "Co": 0.99},
         },
+        atmospheric_pressure=101325,  # ambient pressure, Pa
+        operating_pressure=145,  # nanofiltration operating pressure, psi
     ):
         """Store model parameters."""
         self.ns = NS
@@ -100,6 +112,8 @@ class DiafiltrationModel:
         self.diaf = diafiltrate
         self.precipitate = precipitate
         self.perc_precipitate = precipitate_yield
+        self.atmospheric_pressure = atmospheric_pressure
+        self.operating_pressure = operating_pressure
 
     def build_flowsheet(self, mixing="tube"):
         """Build the multi-stage diafiltration flowsheet."""
@@ -785,6 +799,11 @@ class DiafiltrationModel:
                 destination=m.fs.stage[i].retentate_inlet,
             )
 
+        # set initial values of exponent terms
+        for sol in m.fs.stage[i].LN_M_in:
+            m.fs.stage[i].LN_M_in[sol].set_value(5)
+            m.fs.stage[i].LN_M_out[sol].set_value(5)
+
         # initialize membrane unit and associated product splitters
         stage_initializer.initialize(m.fs.stage[i])
 
@@ -861,7 +880,7 @@ class DiafiltrationModel:
         split_initializer = SeparatorInitializer()
         split_initializer.initialize(m.fs.split_feed)
 
-    def initialize(self, m, mixing="tube", precipitate=False):
+    def initialize(self, m, mixing="tube", precipitate=True):
         """Initialize all IDAES unit models."""
         # initialize feed and diafiltrate splitters
         # 1. we put a bit of the feed streams into all inlet locations
@@ -981,7 +1000,7 @@ class DiafiltrationModel:
             inlets = self.ns
         return inlets
 
-    def unfix_dof(self, m, mixing="tube", precipitate=False):
+    def unfix_dof(self, m, mixing="tube", precipitate=True):
         """Unfix model DoF."""
         inlets = self.num_inlets(mixing)
         # go through all split feed/diafiltrate streams and unfix them
@@ -1045,3 +1064,91 @@ class DiafiltrationModel:
                 set_scaling_factor(con, 1 / 1000)
 
         TransformationFactory("core.scale_model").apply_to(m, rename=False)
+
+    def add_costing(self, m):
+        """
+        Adds custom costing block to the flowsheet
+        """
+        m.fs.costing = DiafiltrationCosting()
+
+        # Create dummy variables to store the UnitModelCostingBlocks
+        # These are needed because the sieving coefficient model does not account for pressure
+        m.fs.cascade = UnitModelBlock()  # to cost the pressure drop
+        m.fs.feed_pump = UnitModelBlock()  # to cost feed pump
+        m.fs.diafiltrate_pump = UnitModelBlock()  # to cost diafiltrate pump
+
+        m.fs.cascade.costing = UnitModelCostingBlock(
+            flowsheet_costing_block=m.fs.costing,
+            costing_method=DiafiltrationCostingData.cost_membrane_pressure_drop,
+            costing_method_arguments={
+                "water_flux": self.flux * units.m**3 / units.m**2 / units.h,
+                "vol_flow_feed": self.feed["solvent"]
+                * units.m**3
+                / units.h,  # cascade feed
+                "vol_flow_perm": sum(
+                    m.fs.split_permeate[i].product.flow_vol[0]
+                    for i in RangeSet(self.ns)
+                ),  # cascade permeate
+            },
+        )
+        m.fs.feed_pump.costing = UnitModelCostingBlock(
+            flowsheet_costing_block=m.fs.costing,
+            costing_method=DiafiltrationCostingData.cost_pump,
+            costing_method_arguments={
+                "inlet_pressure": self.atmospheric_pressure * units.Pa
+                + units.convert(m.fs.cascade.costing.pressure_drop, to_units=units.Pa),
+                "outlet_pressure": 1e-5  # assume numerically 0 since SEC accounts for feed pump OPEX
+                * units.psi,  # this should make m.fs.feed_pump.costing.fixed_operating_cost ~0
+                "inlet_vol_flow": self.feed["solvent"] * units.m**3 / units.h,  # feed
+            },
+        )
+        m.fs.diafiltrate_pump.costing = UnitModelCostingBlock(
+            flowsheet_costing_block=m.fs.costing,
+            costing_method=DiafiltrationCostingData.cost_pump,
+            costing_method_arguments={
+                "inlet_pressure": self.atmospheric_pressure * units.Pa,
+                "outlet_pressure": self.operating_pressure * units.psi,
+                "inlet_vol_flow": self.diaf["solvent"]
+                * units.m**3
+                / units.h,  # diafiltrate
+            },
+        )
+        # membrane stage cost blocks
+        for n in range(1, self.ns + 1):
+            m.fs.stage[n].costing = UnitModelCostingBlock(
+                flowsheet_costing_block=m.fs.costing,
+                costing_method=DiafiltrationCostingData.cost_membranes,
+                costing_method_arguments={
+                    "membrane_length": m.fs.stage[n].length,
+                    "membrane_width": m.fs.stage[n].width,
+                },
+            )
+
+        if self.precipitate:
+            for prod in ["retentate", "permeate"]:
+                m.fs.precipitator[prod].costing = UnitModelCostingBlock(
+                    flowsheet_costing_block=m.fs.costing,
+                    costing_method=DiafiltrationCostingData.cost_precipitator,
+                    costing_method_arguments={
+                        "precip_volume": m.fs.precipitator[prod].V,
+                    },
+                )
+
+        m.fs.costing.cost_process()
+
+    def add_costing_objectives(self, m):
+        """
+        Method to add cost objective to flowsheet for performing optimization
+
+        Args:
+            m: Pyomo model
+        """
+        m.co_obj.deactivate()
+        m.li_lb.deactivate()
+        m.prec_co_obj.deactivate()
+        m.prec_co_lb.activate()
+
+        def cost_obj(m):
+            return m.fs.costing.total_annualized_cost
+
+        m.cost_objecticve = Objective(rule=cost_obj)
