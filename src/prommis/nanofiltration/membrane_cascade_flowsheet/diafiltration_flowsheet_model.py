@@ -1134,21 +1134,40 @@ class DiafiltrationModel:
                     },
                 )
 
-        m.fs.costing.cost_process()
+        product_dict = {
+            "Li2CO3": m.prec_mass_li,
+        }
 
-    def add_costing_objectives(self, m):
+        m.fs.costing.aggregate_costs()
+        m.fs.costing.build_process_costs(
+            pure_product_output_rates=product_dict,
+        )
+
+    def add_costing_objectives(self, m, objective_type="cost"):
         """
         Method to add cost objective to flowsheet for performing optimization
 
         Args:
             m: Pyomo model
+            objective_type: string arg to choose cost or revenue objective
         """
+        # TODO: add checks to ensure string arg passed correctly
+
         m.co_obj.deactivate()
         m.li_lb.deactivate()
         m.prec_co_obj.deactivate()
         m.prec_co_lb.activate()
 
-        def cost_obj(m):
-            return m.fs.costing.total_annualized_cost
+        if objective_type == "cost":
 
-        m.cost_objecticve = Objective(rule=cost_obj)
+            def cost_obj(m):
+                return m.fs.costing.total_annualized_cost
+
+            m.cost_objecticve = Objective(rule=cost_obj)
+
+        if objective_type == "revenue":
+
+            def revenue_obj(m):
+                return m.fs.costing.total_sales_revenue()
+
+            m.revenue_objecticve = Objective(rule=revenue_obj)

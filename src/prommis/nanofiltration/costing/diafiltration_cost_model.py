@@ -49,10 +49,16 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
 
     def build_process_costs(
         self,
+        pure_product_output_rates=None,
     ):
         """
         Builds the process-wide costing
+
+        Arguments:
+            pure_product_output_rates: dictionary of flow rates for final flowrates
         """
+        # TODO: add checks to verify that the corrrect arguments were passed with proper keys
+
         # initialize the common global parameters
         self._build_common_global_params()
 
@@ -137,7 +143,11 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
         self.total_sales_revenue_constraint = Constraint(
             expr=self.total_sales_revenue
             == (
-                # TODO: add expression to sum product sales
+                sum(
+                    pure_product_output_rates[p] * default_market_prices[p]
+                    for p in pure_product_output_rates.keys()
+                )
+                # TODO: add expression to sum cobalt product sales
             ),
             doc="Calculation of total sales revenue",
         )
