@@ -50,6 +50,7 @@ from solute_property import SoluteParameters
 from membrane import Membrane
 from precipitator import Precipitator
 
+# from prommis.uky.costing.ree_plant_capcost import QGESSCostingData
 from prommis.nanofiltration.costing.diafiltration_cost_model import (
     DiafiltrationCosting,
     DiafiltrationCostingData,
@@ -1136,12 +1137,15 @@ class DiafiltrationModel:
 
         product_dict = {
             "Li2CO3": m.prec_mass_li,
+            # "cobalt": m.prec_mass_co,
         }
 
         m.fs.costing.aggregate_costs()
         m.fs.costing.build_process_costs(
             pure_product_output_rates=product_dict,
         )
+
+        # QGESSCostingData.calculate_NPV(m,fixed_OM=True, variable_OM=True)
 
     def add_costing_objectives(self, m, objective_type="cost"):
         """
@@ -1168,6 +1172,6 @@ class DiafiltrationModel:
         if objective_type == "revenue":
 
             def revenue_obj(m):
-                return m.fs.costing.total_sales_revenue()
+                return m.fs.costing.total_sales_revenue
 
-            m.revenue_objecticve = Objective(rule=revenue_obj)
+            m.revenue_objecticve = Objective(rule=revenue_obj, sense=maximize)

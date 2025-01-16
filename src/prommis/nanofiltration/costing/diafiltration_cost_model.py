@@ -134,20 +134,13 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
             "Li2CO3": 12 * units.USD_2021 / units.kg,  # lithium carbonate
         }
 
-        self.total_sales_revenue = Var(
-            initialize=0,
-            domain=NonNegativeReals,
-            doc="Total sales revenue",
-            units=self.base_currency / self.base_period,
-        )
-        self.total_sales_revenue_constraint = Constraint(
-            expr=self.total_sales_revenue
-            == (
+        self.total_sales_revenue = Expression(
+            expr=units.convert(
                 sum(
                     pure_product_output_rates[p] * default_market_prices[p]
                     for p in pure_product_output_rates.keys()
-                )
-                # TODO: add expression to sum cobalt product sales
+                ),
+                to_units=self.base_currency / self.base_period,
             ),
             doc="Calculation of total sales revenue",
         )

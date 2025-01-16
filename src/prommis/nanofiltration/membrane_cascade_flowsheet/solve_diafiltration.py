@@ -89,6 +89,8 @@ def main():
 
     # Print all relevant flow information
     vals = utils.report_values(m)
+    m.fs.costing.total_annualized_cost.display()
+    m.fs.costing.total_sales_revenue.display()
     utils.visualize_flows(
         num_boxes=num_s, num_sub_boxes=num_t, conf=mix_style, model=vals
     )
