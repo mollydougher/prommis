@@ -61,7 +61,7 @@ def main():
     report_statistics(m)
 
     df.add_costing(m)
-    df.add_costing_objectives(m, objective_type="revenue")
+    df.add_costing_objectives(m, objective_type="profit")
 
     report_statistics(m)
 

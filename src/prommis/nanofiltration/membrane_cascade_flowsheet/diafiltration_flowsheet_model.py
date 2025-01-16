@@ -1153,7 +1153,7 @@ class DiafiltrationModel:
 
         Args:
             m: Pyomo model
-            objective_type: string arg to choose cost or revenue objective
+            objective_type: string arg to choose cost, revenue, or profit objective
         """
         # TODO: add checks to ensure string arg passed correctly
 
@@ -1175,3 +1175,13 @@ class DiafiltrationModel:
                 return m.fs.costing.total_sales_revenue
 
             m.revenue_objecticve = Objective(rule=revenue_obj, sense=maximize)
+
+        if objective_type == "profit":
+
+            def profit_obj(m):
+                return (
+                    m.fs.costing.total_sales_revenue
+                    - m.fs.costing.total_annualized_cost
+                )
+
+            m.profit_objecticve = Objective(rule=profit_obj, sense=maximize)
