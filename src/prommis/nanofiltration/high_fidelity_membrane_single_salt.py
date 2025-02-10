@@ -24,22 +24,14 @@ def main():
 
     dt = DiagnosticsToolbox(m)
     dt.report_structural_issues()
-    # dt.display_underconstrained_set()
-    # dt.display_overconstrained_set()
-    # dt.display_unused_variables()
-    # dt.display_components_with_inconsistent_units()
 
     discretize_model(m)
     report_statistics(m)
 
     dt = DiagnosticsToolbox(m)
     dt.report_structural_issues()
-    dt.display_overconstrained_set()
-    dt.display_underconstrained_set()
-    dt.display_unused_variables()
-    # dt.display_components_with_inconsistent_units()
 
-    # m.pprint()
+    solve_model(m)
 
 
 def build_model():
@@ -244,11 +236,6 @@ def build_model():
         wrt=m.z,
         units=units.kg / units.m**3 / units.m,
     )
-    m.d_membrane_conc_mass_chlorine_dz = DerivativeVar(
-        m.membrane_conc_mass_chlorine,
-        wrt=m.z,
-        units=units.kg / units.m**3 / units.m,
-    )
 
     # define the constraints
     ## mass balance constraints
@@ -259,6 +246,7 @@ def build_model():
 
     m.overall_mass_balance = Constraint(m.x, rule=_overall_mass_balance)
 
+    # TODO: re-cast this constraint as a diff. eq.
     def _lithium_mass_balance(m, x):
         return (
             (m.feed_flow_volume * m.feed_conc_mass_lithium)
@@ -270,16 +258,7 @@ def build_model():
 
     m.lithium_mass_balance = Constraint(m.x, rule=_lithium_mass_balance)
 
-    def _chlorine_mass_balance(m, x):
-        return (
-            (m.feed_flow_volume * m.feed_conc_mass_chlorine)
-            + (m.diafiltrate_flow_volume * m.diafiltrate_conc_mass_chlorine)
-        ) == (
-            (m.retentate_flow_volume[x] * m.retentate_conc_mass_chlorine[x])
-            + (m.permeate_flow_volume[x] * m.permeate_conc_mass_chlorine[x])
-        )
-
-    m.chlorine_mass_balance = Constraint(m.x, rule=_chlorine_mass_balance)
+    # chlorine mass balance accounted for with electroneutrality
 
     ## transport constraints
     def _geometric_flux_equation(m, x):
@@ -287,23 +266,12 @@ def build_model():
 
     m.geometric_flux_equation = Constraint(m.x, rule=_geometric_flux_equation)
 
-    def _permeate_flux_equation(m,x):
-        if x == 0:  # get initial c_p from mass balances
-            return Constraint.Skip
-        return m.permeate_conc_mass_lithium[x] == m.mass_flux_lithium[x] / m.volume_flux_water[x]
-    
-    m.permeate_flux_equation = Constraint(m.x, rule=_permeate_flux_equation)
-
     def _lumped_water_flux(m, x):
         return m.volume_flux_water[x] == (m.Lp * (m.dP - m.osmotic_pressure[x]))
 
     m.lumped_water_flux = Constraint(m.x, rule=_lumped_water_flux)
 
     def _lithium_flux_membrane(m, x, z):
-        if x == 0:
-            return Constraint.Skip
-        if x == value(m.w):
-            return Constraint.Skip
         return m.mass_flux_lithium[x] == (
             m.membrane_conc_mass_lithium[x, z] * m.volume_flux_water[x]
             - (
@@ -317,23 +285,13 @@ def build_model():
 
     m.lithium_flux_membrane = Constraint(m.x, m.z, rule=_lithium_flux_membrane)
 
-    def _chlorine_flux_membrane(m, x, z):
-        if x == 0:
-            return Constraint.Skip
-        if x == value(m.w):
-            return Constraint.Skip
+    def _chlorine_flux_membrane(m, x):
         return m.mass_flux_chlorine[x] == (
-            m.membrane_conc_mass_chlorine[x, z] * m.volume_flux_water[x]
-            - (
-                m.D_lithium
-                * m.D_chlorine
-                * (m.z_lithium - m.z_chlorine)
-                / (m.D_lithium * m.z_lithium - m.D_chlorine * m.z_chlorine)
-            )
-            * m.d_membrane_conc_mass_chlorine_dz[x, z]
+            - m.z_lithium / m.z_chlorine
+            * m.mass_flux_lithium[x]
         )
 
-    m.chlorine_flux_membrane = Constraint(m.x, m.z, rule=_chlorine_flux_membrane)
+    m.chlorine_flux_membrane = Constraint(m.x, rule=_chlorine_flux_membrane)
 
     def _lithium_flux_bulk(m, x):
         return m.mass_flux_lithium[x] == (
@@ -341,13 +299,6 @@ def build_model():
         )
 
     m.lithium_flux_bulk = Constraint(m.x, rule=_lithium_flux_bulk)
-
-    def _chlorine_flux_bulk(m, x):
-        return m.mass_flux_chlorine[x] == (
-            m.retentate_conc_mass_chlorine[x] * m.volume_flux_water[x]
-        )
-
-    m.chlorine_flux_bulk = Constraint(m.x, rule=_chlorine_flux_bulk)
 
     ## other physical constaints
     def _osmotic_pressure_calculation(m, x):
@@ -413,143 +364,25 @@ def build_model():
 
     m._electroneutrality_retentate = Constraint(m.x, rule=_electroneutrality_retentate)
 
-    # def _initial_electroneutrality_retentate(m):
-    #     return 0 == (
-    #         m.z_lithium * m.retentate_conc_mass_lithium[0]
-    #         + m.z_chlorine * m.retentate_conc_mass_chlorine[0]
-    #     )
-
-    # m.initial_electroneutrality_retentate = Constraint(rule=_initial_electroneutrality_retentate)
-
-    # def _final_electroneutrality_retentate(m):
-    #     return 0 == (
-    #         m.z_lithium * m.retentate_conc_mass_lithium[1]
-    #         + m.z_chlorine * m.retentate_conc_mass_chlorine[1]
-    #     )
-
-    # m.final_electroneutrality_retentate = Constraint(rule=_final_electroneutrality_retentate)
-
-    # def _electroneutrality_membrane(m, x):
-    #     if x == 0:
-    #         return Constraint.Skip
-    #     return 0 == (
-    #         m.z_lithium * m.membrane_conc_mass_lithium[x,0]
-    #         + m.z_chlorine * m.membrane_conc_mass_chlorine[x,0]
-    #     )
-
-    # m.electroneutrality_membrane = Constraint(m.x, rule=_electroneutrality_membrane)
-
-    # def _electroneutrality_membrane_derivative(m, x, z):
-    #     if x == 0 or x == 1:
-    #         return Constraint.Skip
-    #     return 0 == (
-    #         m.z_lithium * m.d_membrane_conc_mass_lithium_dz[x, z]
-    #         + m.z_chlorine * m.d_membrane_conc_mass_chlorine_dz[x, z]
-    #     )
-
-    # m.electroneutrality_membrane_derivative = Constraint(m.x, m.z, rule=_electroneutrality_membrane_derivative)
-
-    # def _electroneutrality_permeate(m, x):
-    #     if x == 0:
-    #         return Constraint.Skip
-    #     return 0 == (
-    #         m.z_lithium * m.permeate_conc_mass_lithium[x]
-    #         + m.z_chlorine * m.permeate_conc_mass_chlorine[x]
-    #     )
-
-    # m.electroneutrality_permeate = Constraint(m.x, rule=_electroneutrality_permeate)
-
-    # initial conditions
-    def _lithium_derivative_x_min(m,z):
-        return m.d_membrane_conc_mass_lithium_dz[0, z] == 0
-
-    m.lithium_derivative_x_min = Constraint(
-        m.z,
-        rule=_lithium_derivative_x_min
-    )
-
-    def _lithium_derivative_x_max(m,z):
-        return m.d_membrane_conc_mass_lithium_dz[value(m.w), z] == 0
-
-    m.lithium_derivative_x_max = Constraint(
-        m.z,
-        rule=_lithium_derivative_x_max
-    )
-
-    def _chlorine_derivative_x_min(m,z):
-        return m.d_membrane_conc_mass_chlorine_dz[0, z] == 0
-
-    m.chlorine_derivative_x_min = Constraint(
-        m.z,
-        rule=_chlorine_derivative_x_min
-    )
-
-    def _chlorine_derivative_x_max(m,z):
-        return m.d_membrane_conc_mass_chlorine_dz[value(m.w), z] == 0
-
-    m.chlorine_derivative_x_max = Constraint(
-        m.z,
-        rule=_chlorine_derivative_x_max
-    )
-
-    # def _initial_retentate_flow_volume(m):
-    #     return (
-    #         m.retentate_flow_volume[0]
-    #         == (value(m.feed_flow_volume) + value(m.diafiltrate_flow_volume))
-    #         * units.m**3
-    #         / units.h
-    #     )
-    
-    # m.initial_retentate_flow_volume = Constraint(rule=_initial_retentate_flow_volume)
-
-    def _initial_retentate_conc_mass_lithium(m):
-        return m.retentate_conc_mass_lithium[0] == (
-            (
-                (value(m.feed_conc_mass_lithium) * units.kg / units.m**3)
-                * (value(m.feed_flow_volume) * units.m**3 / units.h)
-            )
-            + (
-                (value(m.diafiltrate_flow_volume) * units.kg / units.m**3)
-                * (value(m.diafiltrate_conc_mass_lithium) * units.m**3 / units.h)
-            )
-        ) / (
-            (value(m.feed_flow_volume) + value(m.diafiltrate_flow_volume))
-            * units.m**3
-            / units.h
+    def _electroneutrality_membrane(m, x, z):
+        return 0 == (
+            m.z_lithium * m.membrane_conc_mass_lithium[x,z]
+            + m.z_chlorine * m.membrane_conc_mass_chlorine[x,z]
         )
 
-    m.initial_retentate_conc_mass_lithium = Constraint(
-        rule=_initial_retentate_conc_mass_lithium
-    )
-
-    # def _initial_retentate_conc_mass_chlorine(m):
-    #     return m.retentate_conc_mass_chlorine[0] == value(m.feed_conc_mass_chlorine)*units.kg / units.m**3
-
-    # m.initial_retentate_conc_mass_chlorine = Constraint(
-    #     rule=_initial_retentate_conc_mass_chlorine
-    # )
-
-    # def _initial_permeate_conc_mass_lithium(m):
-    #     return 0 == m.permeate_conc_mass_lithium[0]
-
-    # m.initial_permeate_conc_mass_lithium = Constraint(rule=_initial_permeate_conc_mass_lithium)
-
-    # def _initial_permeate_conc_mass_chlorine(m):
-    #     return 0 == m.permeate_conc_mass_chlorine[0]
-
-    # m.initial_permeate_conc_mass_chlorine = Constraint(rule=_initial_permeate_conc_mass_chlorine)
+    m.electroneutrality_membrane = Constraint(m.x, m.z, rule=_electroneutrality_membrane)
 
     return m
 
 
 def discretize_model(m):
     discretizer_findif = TransformationFactory("dae.finite_difference")
-    discretizer_findif.apply_to(m, wrt=m.x, nfe=10, scheme="FORWARD")
+    discretizer_findif.apply_to(m, wrt=m.x, nfe=2, scheme="FORWARD")
     # discretizer_findif.apply_to(m, wrt=m.z, nfe=2, scheme="FORWARD")
 
     discretizer_col = TransformationFactory("dae.collocation")
     # discretizer_col.apply_to(m,wrt=m.x,nfe=2,ncp=2,scheme="LAGRANGE-RADAU")
-    discretizer_col.apply_to(m,wrt=m.z,nfe=10,ncp=3,scheme="LAGRANGE-RADAU")
+    discretizer_col.apply_to(m,wrt=m.z,nfe=2,ncp=3,scheme="LAGRANGE-RADAU")
 
 
 def solve_model(m):
