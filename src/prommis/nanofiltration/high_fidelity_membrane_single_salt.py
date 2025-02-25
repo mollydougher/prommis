@@ -5,6 +5,7 @@ from pyomo.dae import (
 from pyomo.environ import (
     ConcreteModel,
     Constraint,
+    Expression,
     maximize,
     NonNegativeReals,
     Objective,
@@ -28,39 +29,49 @@ def main():
     report_statistics(m)
 
     dt = DiagnosticsToolbox(m)
+    # dt.assert_no_structural_warnings()
     dt.report_structural_issues()
     dt.display_underconstrained_set()
     dt.display_overconstrained_set()
-    dt.display_potential_evaluation_errors()
-    dt.display_components_with_inconsistent_units()
 
-    # solve_model(m)
-    # dt.report_numerical_issues()
-    # dt.display_constraints_with_large_residuals()
-    # dt.display_variables_at_or_outside_bounds()
+    solve_model(m)
+    # dt.assert_no_numerical_warnings()
+    dt.report_numerical_issues()
+    dt.display_constraints_with_large_residuals()
+    dt.display_variables_at_or_outside_bounds()
     # dt.display_near_parallel_constraints()
+    # dt.display_unused_variables()
 
-    discretize_model(m, NFE=2)
+    # svd = dt.prepare_svd_toolbox()
+    # svd.display_rank_of_equality_constraints()
+
+    # dh = dt.prepare_degeneracy_hunter(solver="gurobi")
+    # dh.report_irreducible_degenerate_sets()
+
+    discretize_model(m, NFEx=15, NFEz=10)
     report_statistics(m)
-    # m.lithium_mass_balance[1].deactivate()
 
     dt = DiagnosticsToolbox(m)
     dt.report_structural_issues()
     # dt.display_underconstrained_set()
     # dt.display_overconstrained_set()
     # dt.display_components_with_inconsistent_units()
+    dt.display_unused_variables()
 
-    solve_model(m)
-    dt.report_numerical_issues()
+    # solve_model(m)
+    # dt.report_numerical_issues()
     # dt.display_constraints_with_large_residuals()
     # dt.display_variables_at_or_outside_bounds()
 
-    unfix_dof(m)
-    optimize(m)
+    # unfix_dof(m)
+    # optimize(m)
 
-    m.L.display()
+    # m.L.display()
 
     plot_results(m)
+
+
+# testing
 
 
 def build_model():
@@ -291,7 +302,8 @@ def build_model():
     # define the constraints
     ## mass balance constraints
     def _overall_mass_balance(m, x):
-        if x == 0 or x == value(m.w):
+        # if x == 0 or x == value(m.w):
+        if x == 0:
             return Constraint.Skip
         return m.d_retentate_flow_volume_dx[x] == (-m.volume_flux_water[x] * m.L)
 
@@ -311,18 +323,17 @@ def build_model():
     m.lithium_mass_balance = Constraint(m.x, rule=_lithium_mass_balance)
 
     ## transport constraints
-    def _geometric_flux_equation_overall(m):
-        return (
-            m.permeate_flow_volume[value(m.w)]
-            == m.volume_flux_water[value(m.w)] * m.w * m.L
-        )
+    def _geometric_flux_equation_overall(m, x):
+        if x == 0:
+            return Constraint.Skip
+        return m.permeate_flow_volume[x] == m.volume_flux_water[x] * x * units.m * m.L
 
     m.geometric_flux_equation_overall = Constraint(
-        rule=_geometric_flux_equation_overall
+        m.x, rule=_geometric_flux_equation_overall
     )
 
     def _geometric_flux_equation_lithium(m, x):
-        # if x != 0 and x != value(m.w):
+        # if x == 0:
         #     return Constraint.Skip
         return m.mass_flux_lithium[x] == (
             m.permeate_conc_mass_lithium[x] * m.volume_flux_water[x]
@@ -338,9 +349,11 @@ def build_model():
     m.lumped_water_flux = Constraint(m.x, rule=_lumped_water_flux)
 
     def _lithium_flux_membrane(m, x, z):
-        if x == 0:
+        if x == 0 and z == 0:
+            # if x == 0:
             return Constraint.Skip
         if x == value(m.w) and z == 0:
+            # if x == value(m.w):
             return Constraint.Skip
         return m.mass_flux_lithium[x] == (
             m.membrane_conc_mass_lithium[x, z] * m.volume_flux_water[x]
@@ -454,96 +467,81 @@ def build_model():
 
     ## initial/final conditions
     def _initial_retentate_flow_volume(m):
-        return m.retentate_flow_volume[0] == (
+        return (
             (value(m.feed_flow_volume) + value(m.diafiltrate_flow_volume))
             * units.m**3
             / units.h
         )
 
-    m.initial_retentate_flow_volume = Constraint(rule=_initial_retentate_flow_volume)
+    m.initial_retentate_flow_volume = Expression(rule=_initial_retentate_flow_volume)
+
+    m.retentate_flow_volume[0].fix(m.initial_retentate_flow_volume)
+
+    # m.permeate_flow_volume[0].fix(1e-4)
+    # m.permeate_conc_mass_lithium[0].fix(1e-4)
 
     def _general_flow_balance(m, x):
         if x != 0 and x != value(m.w):
-            # if x == value(m.w):
+        # if x != value(m.w):
             return Constraint.Skip
-        return m.retentate_flow_volume[x] == (
+        return m.permeate_flow_volume[x] == (
             (
                 (value(m.feed_flow_volume) + value(m.diafiltrate_flow_volume))
                 * units.m**3
                 / units.h
             )
-            - m.permeate_flow_volume[x]
+            - m.retentate_flow_volume[x]
         )
 
     m.general_flow_balance = Constraint(m.x, rule=_general_flow_balance)
 
+    # def _final_flow_balance(m):
+    #     return m.permeate_flow_volume[value(m.w)] == (
+    #         (
+    #             (value(m.feed_flow_volume) + value(m.diafiltrate_flow_volume))
+    #             * units.m**3
+    #             / units.h
+    #         )
+    #         - m.retentate_flow_volume[value(m.w)]
+    #     )
+
+    # m.final_flow_balance = Constraint(rule=_final_flow_balance)
+
     def _initial_retentate_conc_mass_lithium(m):
-        return m.retentate_conc_mass_lithium[0] == (
+        return (
             (
-                (
-                    value(m.feed_flow_volume)
-                    * units.m**3
-                    / units.h
-                    * value(m.feed_conc_mass_lithium)
-                    * units.kg
-                    / units.m**3
-                )
-                + (
-                    value(m.diafiltrate_flow_volume)
-                    * units.m**3
-                    / units.h
-                    * value(m.diafiltrate_conc_mass_lithium)
-                    * units.kg
-                    / units.m**3
-                )
-            )
-            / (
-                (value(m.feed_flow_volume) + value(m.diafiltrate_flow_volume))
+                value(m.feed_flow_volume)
                 * units.m**3
                 / units.h
+                * value(m.feed_conc_mass_lithium)
+                * units.kg
+                / units.m**3
             )
+            + (
+                value(m.diafiltrate_flow_volume)
+                * units.m**3
+                / units.h
+                * value(m.diafiltrate_conc_mass_lithium)
+                * units.kg
+                / units.m**3
+            )
+        ) / (
+            (value(m.feed_flow_volume) + value(m.diafiltrate_flow_volume))
+            * units.m**3
+            / units.h
         )
 
-    m.initial_retentate_conc_mass_lithium = Constraint(
+    m.initial_retentate_conc_mass_lithium = Expression(
         rule=_initial_retentate_conc_mass_lithium
     )
 
-    # def _general_mass_balance_lithium(m):
-    #     return m.retentate_conc_mass_lithium[value(m.w)] * m.retentate_flow_volume[value(m.w)] == (
-    #             (
-    #                 value(m.feed_flow_volume)
-    #                 * units.m**3
-    #                 / units.h
-    #                 * value(m.feed_conc_mass_lithium)
-    #                 * units.kg
-    #                 / units.m**3
-    #             )
-    #             + (
-    #                 value(m.diafiltrate_flow_volume)
-    #                 * units.m**3
-    #                 / units.h
-    #                 * value(m.diafiltrate_conc_mass_lithium)
-    #                 * units.kg
-    #                 / units.m**3
-    #             )
-    #             - m.permeate_flow_volume[value(m.w)] * m.permeate_conc_mass_lithium[value(m.w)]
-    #     )
+    m.retentate_conc_mass_lithium[0].fix(m.initial_retentate_conc_mass_lithium)
 
-    # m.general_mass_balance_lithium = Constraint(
-    #     rule=_general_mass_balance_lithium,
-    # )
-
-    # def _initial_membrane_conc_mass_lithium(m):
-    #     return m.membrane_conc_mass_lithium[0,value(m.l)] == 0 * units.kg / units.m**3
-
-    # m.initial_membrane_conc_mass_lithium = Constraint(rule=_initial_membrane_conc_mass_lithium)
-
-    def _final_membrane_conc_mass_lithium(m, x):
+    def _general_mass_balance_lithium(m, x):
         if x != 0 and x != value(m.w):
+        # if x != value(m.w):
             return Constraint.Skip
-        return m.membrane_conc_mass_lithium[x, value(m.l)] * m.permeate_flow_volume[
-            x
-        ] == (
+        return m.permeate_conc_mass_lithium[x] * m.permeate_flow_volume[x] == (
             (
                 value(m.feed_flow_volume)
                 * units.m**3
@@ -563,33 +561,46 @@ def build_model():
             - m.retentate_conc_mass_lithium[x] * m.retentate_flow_volume[x]
         )
 
-    m.final_membrane_conc_mass_lithium = Constraint(
-        m.x, rule=_final_membrane_conc_mass_lithium
-    )
+    m.general_mass_balance_lithium = Constraint(m.x, rule=_general_mass_balance_lithium)
 
-    def _final_d_retentate_conc_mass_lithium_dx(m):
-        return (
-            m.d_retentate_conc_mass_lithium_dx[value(m.w)]
-            == 0 * units.kg / units.m**3 / units.m
-        )
+    # def _final_mass_balance_lithium(m):
+    #     return m.permeate_conc_mass_lithium[value(m.w)] * m.permeate_flow_volume[value(m.w)] == (
+    #         (
+    #             value(m.feed_flow_volume)
+    #             * units.m**3
+    #             / units.h
+    #             * value(m.feed_conc_mass_lithium)
+    #             * units.kg
+    #             / units.m**3
+    #         )
+    #         + (
+    #             value(m.diafiltrate_flow_volume)
+    #             * units.m**3
+    #             / units.h
+    #             * value(m.diafiltrate_conc_mass_lithium)
+    #             * units.kg
+    #             / units.m**3
+    #         )
+    #         - m.retentate_conc_mass_lithium[value(m.w)] * m.retentate_flow_volume[value(m.w)]
+    #     )
 
-    m.final_d_retentate_conc_mass_lithium_dx = Constraint(
-        rule=_final_d_retentate_conc_mass_lithium_dx
-    )
+    # m.final_mass_balance_lithium = Constraint(
+    #     rule=_final_mass_balance_lithium
+    # )
+
+    m.d_retentate_conc_mass_lithium_dx[value(m.w)].fix(0)
 
     return m
 
 
-def discretize_model(m, NFE=2):
+def discretize_model(m, NFEx, NFEz):
     discretizer_findif = TransformationFactory("dae.finite_difference")
-    discretizer_findif.apply_to(m, wrt=m.x, nfe=NFE, scheme="FORWARD")
-    discretizer_findif.apply_to(m, wrt=m.z, nfe=NFE, scheme="FORWARD")
-    # discretizer_findif.apply_to(m, wrt=m.x, nfe=NFE, scheme="BACKWARD")
-    # discretizer_findif.apply_to(m, wrt=m.z, nfe=NFE, scheme="BACKWARD")
+    discretizer_findif.apply_to(m, wrt=m.x, nfe=NFEx, scheme="FORWARD")
+    discretizer_findif.apply_to(m, wrt=m.z, nfe=NFEz, scheme="FORWARD")
 
     # discretizer_col = TransformationFactory("dae.collocation")
-    # discretizer_col.apply_to(m, wrt=m.x, nfe=NFE, ncp=3, scheme="LAGRANGE-RADAU")
-    # discretizer_col.apply_to(m, wrt=m.z, nfe=NFE, ncp=3, scheme="LAGRANGE-RADAU")
+    # discretizer_col.apply_to(m, wrt=m.x, nfe=NFEx, ncp=3, scheme="LAGRANGE-RADAU")
+    # discretizer_col.apply_to(m, wrt=m.z, nfe=NFEz, ncp=3, scheme="LAGRANGE-RADAU")
 
 
 def solve_model(m):
