@@ -26,42 +26,27 @@ import matplotlib.pyplot as plt
 def main():
     m = build_model()
 
+    discretize_model(m, NFEx=6, NFEz=4)
     report_statistics(m)
 
     dt = DiagnosticsToolbox(m)
-    # dt.assert_no_structural_warnings()
     dt.report_structural_issues()
     dt.display_underconstrained_set()
     dt.display_overconstrained_set()
-
-    solve_model(m)
-    # dt.assert_no_numerical_warnings()
-    dt.report_numerical_issues()
-    dt.display_constraints_with_large_residuals()
-    dt.display_variables_at_or_outside_bounds()
-    # dt.display_near_parallel_constraints()
-    # dt.display_unused_variables()
-
-    # svd = dt.prepare_svd_toolbox()
-    # svd.display_rank_of_equality_constraints()
-
-    # dh = dt.prepare_degeneracy_hunter(solver="gurobi")
-    # dh.report_irreducible_degenerate_sets()
-
-    discretize_model(m, NFEx=15, NFEz=10)
-    report_statistics(m)
-
-    dt = DiagnosticsToolbox(m)
-    dt.report_structural_issues()
-    # dt.display_underconstrained_set()
-    # dt.display_overconstrained_set()
     # dt.display_components_with_inconsistent_units()
     dt.display_unused_variables()
 
-    # solve_model(m)
-    # dt.report_numerical_issues()
-    # dt.display_constraints_with_large_residuals()
-    # dt.display_variables_at_or_outside_bounds()
+    solve_model(m)
+    dt.report_numerical_issues()
+    dt.display_constraints_with_large_residuals()
+    dt.display_variables_at_or_outside_bounds()
+
+    # svd = dt.prepare_svd_toolbox()
+    # svd.display_rank_of_equality_constraints()
+    # svd.display_underdetermined_variables_and_constraints()
+
+    # dh = dt.prepare_degeneracy_hunter(solver="gurobi")
+    # dh.report_irreducible_degenerate_sets()
 
     # unfix_dof(m)
     # optimize(m)
@@ -69,6 +54,8 @@ def main():
     # m.L.display()
 
     plot_results(m)
+
+    # m.pprint()
 
 
 # testing
@@ -180,14 +167,16 @@ def build_model():
     # define remaining algebraic variables
     ## independent of x,z length scale
     m.L = Var(
-        initialize=500,
+        initialize=1000,
         units=units.m,
+        domain=NonNegativeReals,
         doc="Length of the membrane, wound radially",
     )
     m.L.fix()  # fix for simulation
     m.dP = Var(
         initialize=10,  # TODO: verify 10 bar reasoanable
         units=units.bar,
+        domain=NonNegativeReals,
         doc="Pressure applied to membrane",
     )
     m.dP.fix()  # fix for simulation
@@ -302,16 +291,15 @@ def build_model():
     # define the constraints
     ## mass balance constraints
     def _overall_mass_balance(m, x):
-        # if x == 0 or x == value(m.w):
-        if x == 0:
-            return Constraint.Skip
+        # if x == 0:
+        #     return Constraint.Skip
         return m.d_retentate_flow_volume_dx[x] == (-m.volume_flux_water[x] * m.L)
 
     m.overall_mass_balance = Constraint(m.x, rule=_overall_mass_balance)
 
     def _lithium_mass_balance(m, x):
-        if x == 0:
-            return Constraint.Skip
+        # if x == 0:
+        #     return Constraint.Skip
         return (m.retentate_flow_volume[x] * m.d_retentate_conc_mass_lithium_dx[x]) == (
             (
                 m.volume_flux_water[x] * m.retentate_conc_mass_lithium[x]
@@ -333,8 +321,8 @@ def build_model():
     )
 
     def _geometric_flux_equation_lithium(m, x):
-        # if x == 0:
-        #     return Constraint.Skip
+        if x == 0:
+            return Constraint.Skip
         return m.mass_flux_lithium[x] == (
             m.permeate_conc_mass_lithium[x] * m.volume_flux_water[x]
         )
@@ -344,16 +332,14 @@ def build_model():
     )
 
     def _lumped_water_flux(m, x):
+        if x == 0:
+            return Constraint.Skip
         return m.volume_flux_water[x] == (m.Lp * (m.dP - m.osmotic_pressure[x]))
 
     m.lumped_water_flux = Constraint(m.x, rule=_lumped_water_flux)
 
     def _lithium_flux_membrane(m, x, z):
-        if x == 0 and z == 0:
-            # if x == 0:
-            return Constraint.Skip
-        if x == value(m.w) and z == 0:
-            # if x == value(m.w):
+        if z == 0:
             return Constraint.Skip
         return m.mass_flux_lithium[x] == (
             m.membrane_conc_mass_lithium[x, z] * m.volume_flux_water[x]
@@ -380,6 +366,8 @@ def build_model():
 
     ## other physical constaints
     def _osmotic_pressure_calculation(m, x):
+        # if x == 0:
+        #     return Constraint.Skip
         return m.osmotic_pressure[x] == units.convert(
             (
                 (
@@ -467,48 +455,34 @@ def build_model():
 
     ## initial/final conditions
     def _initial_retentate_flow_volume(m):
-        return (
+        return m.retentate_flow_volume[0] == (
             (value(m.feed_flow_volume) + value(m.diafiltrate_flow_volume))
             * units.m**3
             / units.h
         )
 
-    m.initial_retentate_flow_volume = Expression(rule=_initial_retentate_flow_volume)
+    m.initial_retentate_flow_volume = Constraint(rule=_initial_retentate_flow_volume)
 
-    m.retentate_flow_volume[0].fix(m.initial_retentate_flow_volume)
+    def _initial_permeate_flow_volume(m):
+        return m.permeate_flow_volume[0] == (1e-4 * units.m**3 / units.h)
 
-    # m.permeate_flow_volume[0].fix(1e-4)
-    # m.permeate_conc_mass_lithium[0].fix(1e-4)
+    m.initial_permeate_flow_volume = Constraint(rule=_initial_permeate_flow_volume)
 
-    def _general_flow_balance(m, x):
-        if x != 0 and x != value(m.w):
-        # if x != value(m.w):
-            return Constraint.Skip
-        return m.permeate_flow_volume[x] == (
-            (
-                (value(m.feed_flow_volume) + value(m.diafiltrate_flow_volume))
-                * units.m**3
-                / units.h
-            )
-            - m.retentate_flow_volume[x]
-        )
-
-    m.general_flow_balance = Constraint(m.x, rule=_general_flow_balance)
-
-    # def _final_flow_balance(m):
-    #     return m.permeate_flow_volume[value(m.w)] == (
+    # def _general_flow_balance(m, x):
+    #     if x != 0 and x != value(m.w):
+    #         return Constraint.Skip
+    #     return m.retentate_flow_volume[x] + m.permeate_flow_volume[x] == (
     #         (
     #             (value(m.feed_flow_volume) + value(m.diafiltrate_flow_volume))
     #             * units.m**3
     #             / units.h
     #         )
-    #         - m.retentate_flow_volume[value(m.w)]
     #     )
 
-    # m.final_flow_balance = Constraint(rule=_final_flow_balance)
+    # m.general_flow_balance = Constraint(m.x, rule=_general_flow_balance)
 
     def _initial_retentate_conc_mass_lithium(m):
-        return (
+        return m.retentate_conc_mass_lithium[0] == (
             (
                 value(m.feed_flow_volume)
                 * units.m**3
@@ -531,17 +505,26 @@ def build_model():
             / units.h
         )
 
-    m.initial_retentate_conc_mass_lithium = Expression(
+    m.initial_retentate_conc_mass_lithium = Constraint(
         rule=_initial_retentate_conc_mass_lithium
     )
 
-    m.retentate_conc_mass_lithium[0].fix(m.initial_retentate_conc_mass_lithium)
+    def _initial_permeate_conc_mass_lithium(m):
+        return m.permeate_conc_mass_lithium[0] == (
+            1e-4 * units.kg/ units.m**3
+        )
+
+    m.initial_permeate_conc_mass_lithium = Constraint(
+        rule=_initial_permeate_conc_mass_lithium
+    )
 
     def _general_mass_balance_lithium(m, x):
-        if x != 0 and x != value(m.w):
-        # if x != value(m.w):
+        if x == 0:
             return Constraint.Skip
-        return m.permeate_conc_mass_lithium[x] * m.permeate_flow_volume[x] == (
+        return (
+            m.retentate_conc_mass_lithium[x] * m.retentate_flow_volume[x]
+            + m.permeate_conc_mass_lithium[x] * m.permeate_flow_volume[x]
+        ) == (
             (
                 value(m.feed_flow_volume)
                 * units.m**3
@@ -558,55 +541,57 @@ def build_model():
                 * units.kg
                 / units.m**3
             )
-            - m.retentate_conc_mass_lithium[x] * m.retentate_flow_volume[x]
         )
 
     m.general_mass_balance_lithium = Constraint(m.x, rule=_general_mass_balance_lithium)
 
-    # def _final_mass_balance_lithium(m):
-    #     return m.permeate_conc_mass_lithium[value(m.w)] * m.permeate_flow_volume[value(m.w)] == (
-    #         (
-    #             value(m.feed_flow_volume)
-    #             * units.m**3
-    #             / units.h
-    #             * value(m.feed_conc_mass_lithium)
-    #             * units.kg
-    #             / units.m**3
-    #         )
-    #         + (
-    #             value(m.diafiltrate_flow_volume)
-    #             * units.m**3
-    #             / units.h
-    #             * value(m.diafiltrate_conc_mass_lithium)
-    #             * units.kg
-    #             / units.m**3
-    #         )
-    #         - m.retentate_conc_mass_lithium[value(m.w)] * m.retentate_flow_volume[value(m.w)]
+    def _boundary_d_retentate_conc_mass_lithium_dx(m,x):
+        # if x != 0 and x != value(m.w):
+        if x != 0:
+            return Constraint.Skip
+        return m.d_retentate_conc_mass_lithium_dx[x] == (
+            0 * units.kg/ units.m**3 / units.m
+        )
+
+    m._boundary_d_retentate_conc_mass_lithium_dx = Constraint(
+        m.x,
+        rule=_boundary_d_retentate_conc_mass_lithium_dx
+    )
+
+    def _initial_d_retentate_flow_volume_dx(m):
+        return m.d_retentate_flow_volume_dx[0] == (
+            0 * units.m**3 / units.h / units.m
+        )
+
+    m._initial_d_retentate_flow_volume_dx = Constraint(
+        rule=_initial_d_retentate_flow_volume_dx
+    )
+
+    # def _initial_d_membrane_conc_mass_lithium_dz(m):
+    #     return m.d_membrane_conc_mass_lithium_dz[0,value(m.l)] == (
+    #         1e-4 * units.kg / units.m**3 / units.m
     #     )
 
-    # m.final_mass_balance_lithium = Constraint(
-    #     rule=_final_mass_balance_lithium
+    # m.initial_d_membrane_conc_mass_lithium_dz = Constraint(
+    #    rule=_initial_d_membrane_conc_mass_lithium_dz
     # )
-
-    m.d_retentate_conc_mass_lithium_dx[value(m.w)].fix(0)
 
     return m
 
 
 def discretize_model(m, NFEx, NFEz):
-    discretizer_findif = TransformationFactory("dae.finite_difference")
-    discretizer_findif.apply_to(m, wrt=m.x, nfe=NFEx, scheme="FORWARD")
-    discretizer_findif.apply_to(m, wrt=m.z, nfe=NFEz, scheme="FORWARD")
+    # discretizer_findif = TransformationFactory("dae.finite_difference")
+    # discretizer_findif.apply_to(m, wrt=m.x, nfe=NFEx, scheme="FORWARD")
+    # discretizer_findif.apply_to(m, wrt=m.z, nfe=NFEz, scheme="FORWARD")
 
-    # discretizer_col = TransformationFactory("dae.collocation")
-    # discretizer_col.apply_to(m, wrt=m.x, nfe=NFEx, ncp=3, scheme="LAGRANGE-RADAU")
-    # discretizer_col.apply_to(m, wrt=m.z, nfe=NFEz, ncp=3, scheme="LAGRANGE-RADAU")
+    discretizer_col = TransformationFactory("dae.collocation")
+    discretizer_col.apply_to(m, wrt=m.x, nfe=NFEx, ncp=3, scheme="LAGRANGE-RADAU")
+    discretizer_col.apply_to(m, wrt=m.z, nfe=NFEz, ncp=3, scheme="LAGRANGE-RADAU")
 
 
 def solve_model(m):
     solver = SolverFactory("ipopt")
     solver.solve(m, tee=True)
-
 
 def unfix_dof(m):
     m.L.unfix()
