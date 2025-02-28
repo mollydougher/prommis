@@ -31,17 +31,8 @@ def main():
     # dt.assert_no_numerical_warnings()
     dt.report_numerical_issues()
 
-    # svd = dt.prepare_svd_toolbox()
-    # svd.display_rank_of_equality_constraints()
-    # svd.display_underdetermined_variables_and_constraints()
-
-    # dh = dt.prepare_degeneracy_hunter(solver="gurobi")
-    # dh.report_irreducible_degenerate_sets()
-
     # unfix_dof(m)
     # optimize(m)
-
-    # m.pprint()
 
     plot_results(m)
 
@@ -98,6 +89,16 @@ def build_model():
         initialize=7.3e-6,
         units=units.m**2 / units.h,
         doc="Diffusion coefficient for chlorine ion in water",
+    )
+    m.H_lithium = Param(
+        initialize=100,
+        units=units.dimensionless,
+        doc="Partition coefficient for lithium",
+    )
+    m.H_chlorine = Param(
+        initialize=0.1,
+        units=units.dimensionless,
+        doc="Partition coefficient for chlorine",
     )
     m.Lp = Param(
         initialize=0.003,  # TODO: verify
@@ -381,14 +382,14 @@ def build_model():
 
     ## boundary conditions
     def _retentate_membrane_interface_lithium(m, x):
-        return m.retentate_conc_mass_lithium[x] == m.membrane_conc_mass_lithium[x, 0]
+        return m.H_lithium * m.retentate_conc_mass_lithium[x] == m.membrane_conc_mass_lithium[x, 0]
 
     m.retentate_membrane_interface_lithium = Constraint(
         m.x_bar, rule=_retentate_membrane_interface_lithium
     )
 
     def _retentate_membrane_interface_chlorine(m, x):
-        return m.retentate_conc_mass_chlorine[x] == m.membrane_conc_mass_chlorine[x, 0]
+        return m.H_chlorine * m.retentate_conc_mass_chlorine[x] == m.membrane_conc_mass_chlorine[x, 0]
 
     m.retentate_membrane_interface_chlorine = Constraint(
         m.x_bar, rule=_retentate_membrane_interface_chlorine
@@ -396,7 +397,7 @@ def build_model():
 
     def _membrane_permeate_interface_lithium(m, x):
         return (
-            m.permeate_conc_mass_lithium[x]
+            m.H_lithium * m.permeate_conc_mass_lithium[x]
             == m.membrane_conc_mass_lithium[x, 1]
         )
 
@@ -406,7 +407,7 @@ def build_model():
 
     def _membrane_permeate_interface_chlorine(m, x):
         return (
-            m.permeate_conc_mass_chlorine[x]
+            m.H_chlorine * m.permeate_conc_mass_chlorine[x]
             == m.membrane_conc_mass_chlorine[x, 1]
         )
 
@@ -567,6 +568,8 @@ def plot_results(m):
     x_plot = []
     conc_ret_lith = []
     conc_perm_lith = []
+    conc_ret_chlor = []
+    conc_perm_chlor = []
 
     water_flux = []
     lithium_flux = []
@@ -575,11 +578,13 @@ def plot_results(m):
         x_plot.append(x_val*value(m.w))
         conc_ret_lith.append(value(m.retentate_conc_mass_lithium[x_val]))
         conc_perm_lith.append(value(m.permeate_conc_mass_lithium[x_val]))
+        conc_ret_chlor.append(value(m.retentate_conc_mass_chlorine[x_val]))
+        conc_perm_chlor.append(value(m.permeate_conc_mass_chlorine[x_val]))
 
         water_flux.append(value(m.volume_flux_water[x_val]))
         lithium_flux.append(value(m.mass_flux_lithium[x_val]))
 
-    fig1, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+    fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2)
 
     ax1.plot(x_plot, conc_ret_lith)
     ax1.set_xlabel("Membrane Length (m)")
@@ -589,13 +594,21 @@ def plot_results(m):
     ax2.set_xlabel("Membrane Length (m)")
     ax2.set_ylabel("Permeate-side Lithium Concentration (kg/m3)")
 
-    ax3.plot(x_plot, water_flux)
+    ax3.plot(x_plot, conc_ret_chlor)
     ax3.set_xlabel("Membrane Length (m)")
-    ax3.set_ylabel("Water Flux (m3/m2/h)")
+    ax3.set_ylabel("Retentate-side Chlorine Concentration (kg/m3)")
 
-    ax4.plot(x_plot, lithium_flux)
+    ax4.plot(x_plot, conc_perm_chlor)
     ax4.set_xlabel("Membrane Length (m)")
-    ax4.set_ylabel("Mass Flux of Lithium (kg/m2/h)")
+    ax4.set_ylabel("Permeate-side Chlorine Concentration (kg/m3)")
+
+    ax5.plot(x_plot, water_flux)
+    ax5.set_xlabel("Membrane Length (m)")
+    ax5.set_ylabel("Water Flux (m3/m2/h)")
+
+    ax6.plot(x_plot, lithium_flux)
+    ax6.set_xlabel("Membrane Length (m)")
+    ax6.set_ylabel("Mass Flux of Lithium (kg/m2/h)")
 
     plt.show()
 
