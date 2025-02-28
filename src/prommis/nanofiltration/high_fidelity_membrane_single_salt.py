@@ -91,14 +91,19 @@ def build_model():
         doc="Diffusion coefficient for chlorine ion in water",
     )
     m.H_lithium = Param(
-        initialize=100,
+        initialize=100,  # TODO: verify
         units=units.dimensionless,
         doc="Partition coefficient for lithium",
     )
     m.H_chlorine = Param(
-        initialize=0.1,
+        initialize=0.1,  # TODO: verify
         units=units.dimensionless,
         doc="Partition coefficient for chlorine",
+    )
+    m.chi = Param(
+        initialize=-0.1,  # TODO: verify
+        units=units.mol / units.m**3,
+        doc="Fixed membrane charge"
     )
     m.Lp = Param(
         initialize=0.003,  # TODO: verify
@@ -429,6 +434,7 @@ def build_model():
         return 0 == (
             m.z_lithium * m.membrane_conc_mass_lithium[x, z] / m.molar_mass_lithium
             + m.z_chlorine * m.membrane_conc_mass_chlorine[x, z] / m.molar_mass_chlorine
+            + m.chi
         )
 
     m.electroneutrality_membrane = Constraint(
