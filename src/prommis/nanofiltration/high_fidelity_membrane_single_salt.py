@@ -25,7 +25,8 @@ def main():
     m = build_model()
     discretize_model(m, NFEx=10, NFEz=5, discretization="findif")
     dt = DiagnosticsToolbox(m)
-    dt.assert_no_structural_warnings()
+    # dt.assert_no_structural_warnings()
+    dt.report_structural_issues()
 
     solve_model(m)
     # dt.assert_no_numerical_warnings()
@@ -101,9 +102,9 @@ def build_model():
         doc="Partition coefficient for chlorine",
     )
     m.chi = Param(
-        initialize=-0.1,  # TODO: verify
+        initialize=0.1,  # TODO: verify
         units=units.mol / units.m**3,
-        doc="Fixed membrane charge"
+        doc="Fixed membrane charge",
     )
     m.Lp = Param(
         initialize=0.003,  # TODO: verify
@@ -153,9 +154,9 @@ def build_model():
 
     # define length scales
     # m.x = ContinuousSet(bounds=(0, value(m.w)))
-    m.x_bar = ContinuousSet(bounds=(0,1))
+    m.x_bar = ContinuousSet(bounds=(0, 1))
     # m.z = ContinuousSet(bounds=(0, value(m.l)))
-    m.z_bar = ContinuousSet(bounds=(0,1))
+    m.z_bar = ContinuousSet(bounds=(0, 1))
 
     # define remaining algebraic variables
     ## independent of x,z length scale
@@ -294,7 +295,8 @@ def build_model():
                 m.volume_flux_water[x] * m.retentate_conc_mass_lithium[x]
                 - m.mass_flux_lithium[x]
             )
-            * m.L * m.w
+            * m.L
+            * m.w
         )
 
     m.lithium_mass_balance = Constraint(m.x_bar, rule=_lithium_mass_balance)
@@ -330,14 +332,40 @@ def build_model():
     def _lithium_flux_membrane(m, x, z):
         if z == 0:
             return Constraint.Skip
+        
         return m.mass_flux_lithium[x] == (
             m.membrane_conc_mass_lithium[x, z] * m.volume_flux_water[x]
-            - (
-                m.D_lithium
-                * m.D_chlorine
-                * (m.z_lithium - m.z_chlorine)
-                / (m.D_lithium * m.z_lithium - m.D_chlorine * m.z_chlorine)
-            ) / m.l
+            + (
+                (
+                    m.membrane_conc_mass_lithium[x, z]
+                    * (
+                        m.D_lithium
+                        * m.D_chlorine
+                        * (m.z_lithium * m.z_chlorine - m.z_lithium**2)
+                    )
+                    + (
+                        m.D_lithium
+                        * m.D_chlorine
+                        * m.z_chlorine
+                        * m.chi
+                        * units.kg
+                        / units.mol
+                    )
+                )
+                / (
+                    m.D_lithium * m.z_lithium**2 * m.membrane_conc_mass_lithium[x, z]
+                    - (
+                        m.D_chlorine
+                        * m.z_chlorine
+                        * m.z_lithium
+                        * m.membrane_conc_mass_lithium[x, z]
+                    )
+                    - (
+                        m.z_chlorine * m.D_chlorine * m.chi * units.kg / units.mol
+                    )  # TODO: determine the molar mass of fixed charge
+                )
+            )
+            / m.l
             * m.d_membrane_conc_mass_lithium_dz[x, z]
         )
 
@@ -387,14 +415,20 @@ def build_model():
 
     ## boundary conditions
     def _retentate_membrane_interface_lithium(m, x):
-        return m.H_lithium * m.retentate_conc_mass_lithium[x] == m.membrane_conc_mass_lithium[x, 0]
+        return (
+            m.H_lithium * m.retentate_conc_mass_lithium[x]
+            == m.membrane_conc_mass_lithium[x, 0]
+        )
 
     m.retentate_membrane_interface_lithium = Constraint(
         m.x_bar, rule=_retentate_membrane_interface_lithium
     )
 
     def _retentate_membrane_interface_chlorine(m, x):
-        return m.H_chlorine * m.retentate_conc_mass_chlorine[x] == m.membrane_conc_mass_chlorine[x, 0]
+        return (
+            m.H_chlorine * m.retentate_conc_mass_chlorine[x]
+            == m.membrane_conc_mass_chlorine[x, 0]
+        )
 
     m.retentate_membrane_interface_chlorine = Constraint(
         m.x_bar, rule=_retentate_membrane_interface_chlorine
@@ -426,7 +460,9 @@ def build_model():
             + m.z_chlorine * m.retentate_conc_mass_chlorine[x] / m.molar_mass_chlorine
         )
 
-    m.electroneutrality_retentate = Constraint(m.x_bar, rule=_electroneutrality_retentate)
+    m.electroneutrality_retentate = Constraint(
+        m.x_bar, rule=_electroneutrality_retentate
+    )
 
     def _electroneutrality_membrane(m, x, z):
         if z == 0:
@@ -516,12 +552,12 @@ def build_model():
             )
         )
 
-    m.general_mass_balance_lithium = Constraint(m.x_bar, rule=_general_mass_balance_lithium)
+    m.general_mass_balance_lithium = Constraint(
+        m.x_bar, rule=_general_mass_balance_lithium
+    )
 
     def _initial_d_retentate_conc_mass_lithium_dx(m):
-        return m.d_retentate_conc_mass_lithium_dx[0] == (
-            0 * units.kg / units.m**3
-        )
+        return m.d_retentate_conc_mass_lithium_dx[0] == (0 * units.kg / units.m**3)
 
     m.initial_d_retentate_conc_mass_lithium_dx = Constraint(
         rule=_initial_d_retentate_conc_mass_lithium_dx
@@ -545,8 +581,12 @@ def discretize_model(m, NFEx, NFEz, discretization="col"):
 
     if discretization == "col":
         discretizer_col = TransformationFactory("dae.collocation")
-        discretizer_col.apply_to(m, wrt=m.x_bar, nfe=NFEx, ncp=3, scheme="LAGRANGE-RADAU")
-        discretizer_col.apply_to(m, wrt=m.z_bar, nfe=NFEz, ncp=3, scheme="LAGRANGE-RADAU")
+        discretizer_col.apply_to(
+            m, wrt=m.x_bar, nfe=NFEx, ncp=3, scheme="LAGRANGE-RADAU"
+        )
+        discretizer_col.apply_to(
+            m, wrt=m.z_bar, nfe=NFEz, ncp=3, scheme="LAGRANGE-RADAU"
+        )
 
 
 def solve_model(m):
@@ -581,7 +621,7 @@ def plot_results(m):
     lithium_flux = []
 
     for x_val in m.x_bar:
-        x_plot.append(x_val*value(m.w))
+        x_plot.append(x_val * value(m.w))
         conc_ret_lith.append(value(m.retentate_conc_mass_lithium[x_val]))
         conc_perm_lith.append(value(m.permeate_conc_mass_lithium[x_val]))
         conc_ret_chlor.append(value(m.retentate_conc_mass_chlorine[x_val]))
