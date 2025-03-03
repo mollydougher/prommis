@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 def main():
     m = build_model()
-    discretize_model(m, NFEx=10, NFEz=5, discretization="findif")
+    discretize_model(m, NFEx=8, NFEz=5, discretization="findif")
     dt = DiagnosticsToolbox(m)
     # dt.assert_no_structural_warnings()
     dt.report_structural_issues()
@@ -100,11 +100,6 @@ def build_model():
         initialize=0.1,  # TODO: verify
         units=units.dimensionless,
         doc="Partition coefficient for chlorine",
-    )
-    m.chi = Param(
-        initialize=0.1,  # TODO: verify
-        units=units.mol / units.m**3,
-        doc="Fixed membrane charge",
     )
     m.Lp = Param(
         initialize=0.003,  # TODO: verify
@@ -332,38 +327,12 @@ def build_model():
     def _lithium_flux_membrane(m, x, z):
         if z == 0:
             return Constraint.Skip
-        
+
         return m.mass_flux_lithium[x] == (
             m.membrane_conc_mass_lithium[x, z] * m.volume_flux_water[x]
             + (
-                (
-                    m.membrane_conc_mass_lithium[x, z]
-                    * (
-                        m.D_lithium
-                        * m.D_chlorine
-                        * (m.z_lithium * m.z_chlorine - m.z_lithium**2)
-                    )
-                    + (
-                        m.D_lithium
-                        * m.D_chlorine
-                        * m.z_chlorine
-                        * m.chi
-                        * units.kg
-                        / units.mol
-                    )
-                )
-                / (
-                    m.D_lithium * m.z_lithium**2 * m.membrane_conc_mass_lithium[x, z]
-                    - (
-                        m.D_chlorine
-                        * m.z_chlorine
-                        * m.z_lithium
-                        * m.membrane_conc_mass_lithium[x, z]
-                    )
-                    - (
-                        m.z_chlorine * m.D_chlorine * m.chi * units.kg / units.mol
-                    )  # TODO: determine the molar mass of fixed charge
-                )
+                (m.D_lithium * m.D_chlorine * (m.z_chlorine - m.z_lithium))
+                / (m.z_lithium * m.D_lithium - m.z_chlorine * m.D_chlorine)
             )
             / m.l
             * m.d_membrane_conc_mass_lithium_dz[x, z]
@@ -470,7 +439,6 @@ def build_model():
         return 0 == (
             m.z_lithium * m.membrane_conc_mass_lithium[x, z] / m.molar_mass_lithium
             + m.z_chlorine * m.membrane_conc_mass_chlorine[x, z] / m.molar_mass_chlorine
-            + m.chi
         )
 
     m.electroneutrality_membrane = Constraint(
