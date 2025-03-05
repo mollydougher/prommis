@@ -55,6 +55,11 @@ def build_model():
     m = ConcreteModel()
 
     # define the model parameters
+    m.n = Param(
+        initialize=2,
+        units=units.dimensionless,
+        doc="Number of dissociated ions in solution",
+    )
     m.l = Param(
         initialize=1e-7,  # TODO: verify 100nm reasonable
         units=units.m,
@@ -345,7 +350,7 @@ def build_model():
         return m.osmotic_pressure[x] == units.convert(
             (
                 (
-                    2  # two dissociated ions (Li+ and Cl-)
+                    m.n
                     * Constants.gas_constant  # J / mol / K
                     * 298
                     * units.K  # assume room temp
