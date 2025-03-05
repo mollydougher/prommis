@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 def main():
     m = build_model()
-    discretize_model(m, NFEx=8, NFEz=5, discretization="findif")
+    discretize_model(m, NFEx=8, NFEz=5)
     dt = DiagnosticsToolbox(m)
     # dt.assert_no_structural_warnings()
     dt.report_structural_issues()
@@ -91,18 +91,8 @@ def build_model():
         units=units.m**2 / units.h,
         doc="Diffusion coefficient for chlorine ion in water",
     )
-    m.H_lithium = Param(
-        initialize=100,  # TODO: verify
-        units=units.dimensionless,
-        doc="Partition coefficient for lithium",
-    )
-    m.H_chlorine = Param(
-        initialize=0.1,  # TODO: verify
-        units=units.dimensionless,
-        doc="Partition coefficient for chlorine",
-    )
     m.Lp = Param(
-        initialize=0.003,  # TODO: verify
+        initialize=0.01,  # TODO: verify
         units=units.m / units.h / units.bar,
         doc="Hydraulic permeability coefficient",
     )
@@ -385,7 +375,7 @@ def build_model():
     ## boundary conditions
     def _retentate_membrane_interface_lithium(m, x):
         return (
-            m.H_lithium * m.retentate_conc_mass_lithium[x]
+            m.retentate_conc_mass_lithium[x]
             == m.membrane_conc_mass_lithium[x, 0]
         )
 
@@ -395,7 +385,7 @@ def build_model():
 
     def _retentate_membrane_interface_chlorine(m, x):
         return (
-            m.H_chlorine * m.retentate_conc_mass_chlorine[x]
+            m.retentate_conc_mass_chlorine[x]
             == m.membrane_conc_mass_chlorine[x, 0]
         )
 
@@ -405,7 +395,7 @@ def build_model():
 
     def _membrane_permeate_interface_lithium(m, x):
         return (
-            m.H_lithium * m.permeate_conc_mass_lithium[x]
+            m.permeate_conc_mass_lithium[x]
             == m.membrane_conc_mass_lithium[x, 1]
         )
 
@@ -415,7 +405,7 @@ def build_model():
 
     def _membrane_permeate_interface_chlorine(m, x):
         return (
-            m.H_chlorine * m.permeate_conc_mass_chlorine[x]
+            m.permeate_conc_mass_chlorine[x]
             == m.membrane_conc_mass_chlorine[x, 1]
         )
 
@@ -541,20 +531,10 @@ def build_model():
     return m
 
 
-def discretize_model(m, NFEx, NFEz, discretization="col"):
-    if discretization == "findif":
-        discretizer_findif = TransformationFactory("dae.finite_difference")
-        discretizer_findif.apply_to(m, wrt=m.x_bar, nfe=NFEx, scheme="FORWARD")
-        discretizer_findif.apply_to(m, wrt=m.z_bar, nfe=NFEz, scheme="FORWARD")
-
-    if discretization == "col":
-        discretizer_col = TransformationFactory("dae.collocation")
-        discretizer_col.apply_to(
-            m, wrt=m.x_bar, nfe=NFEx, ncp=3, scheme="LAGRANGE-RADAU"
-        )
-        discretizer_col.apply_to(
-            m, wrt=m.z_bar, nfe=NFEz, ncp=3, scheme="LAGRANGE-RADAU"
-        )
+def discretize_model(m, NFEx, NFEz):
+    discretizer_findif = TransformationFactory("dae.finite_difference")
+    discretizer_findif.apply_to(m, wrt=m.x_bar, nfe=NFEx, scheme="FORWARD")
+    discretizer_findif.apply_to(m, wrt=m.z_bar, nfe=NFEz, scheme="FORWARD")
 
 
 def solve_model(m):
