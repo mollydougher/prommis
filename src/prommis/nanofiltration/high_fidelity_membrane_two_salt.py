@@ -10,6 +10,7 @@ from pyomo.environ import (
     Objective,
     Param,
     SolverFactory,
+    Suffix,
     TransformationFactory,
     units,
     value,
@@ -18,20 +19,47 @@ from pyomo.environ import (
 from idaes.core.util.constants import Constants
 from idaes.core.util.model_diagnostics import DiagnosticsToolbox
 
+from idaes.core.util.scaling import extreme_jacobian_columns, extreme_jacobian_rows, constraint_autoscale_large_jac
+
 import matplotlib.pyplot as plt
 
 
 def main():
     m = build_model()
-    discretize_model(m, NFEx=1, NFEz=1)
+    discretize_model(m, NFEx=2, NFEz=2)
     dt = DiagnosticsToolbox(m)
-    # dt.assert_no_structural_warnings()
-    dt.report_structural_issues()
-    dt.display_components_with_inconsistent_units()
+    dt.assert_no_structural_warnings()
+    # dt.report_structural_issues()
+
+    # Create a scaled version of the model to solve
+    set_scaling(m)
+    scaling = TransformationFactory("core.scale_model")
+    scaled_model = scaling.create_using(m, rename=False)
+    solve_model(scaled_model)
+    # Propagate results back to unscaled model
+    scaling.propagate_solution(scaled_model, m)
 
     # solve_model(m)
-    # # dt.assert_no_numerical_warnings()
-    # dt.report_numerical_issues()
+    # # # dt.assert_no_numerical_warnings()
+    dt.report_numerical_issues()
+    # dt.display_constraints_with_large_residuals()
+    dt.display_variables_with_extreme_jacobians()
+    dt.display_constraints_with_extreme_jacobians()
+    # dt.display_near_parallel_constraints()
+    # dt.display_near_parallel_variables()
+
+    # m.D_lithium_lithium.display()
+    # m.D_lithium_cobalt.display()
+    # m.D_cobalt_lithium.display()
+    # m.D_cobalt_cobalt.display()
+
+    # m.D_lithium_lithium_calculation.display()
+    # m.D_lithium_cobalt_calculation.display()
+    # m.D_cobalt_lithium_calculation.display()
+    # m.D_cobalt_cobalt_calculation.display()
+
+    # m.lithium_flux_membrane.display()
+    # m.cobalt_flux_membrane.display()
 
     # unfix_dof(m)
     # optimize(m)
@@ -319,7 +347,7 @@ def build_model():
     m.D_denominator = Var(
         m.x_bar,
         m.z_bar,
-        initialize=1e-6,  # TODO: verify good initial value
+        initialize=1e7,  # TODO: verify good initial value
         units=units.kg / units.m / units.h,
         domain=NonNegativeReals,
         doc="Denominator for cross diffusion coefficents",
@@ -327,33 +355,29 @@ def build_model():
     m.D_lithium_lithium = Var(
         m.x_bar,
         m.z_bar,
-        initialize=1e-6,  # TODO: verify good initial value
-        units=units.m * units.kg / units.h**2,
-        domain=NonNegativeReals,
+        initialize=-1e-9,  # TODO: verify good initial value
+        units=units.m**2 / units.h,
         doc="Cross diffusion coefficent for lithium-lithium",
     )
     m.D_lithium_cobalt = Var(
         m.x_bar,
         m.z_bar,
-        initialize=1e-6,  # TODO: verify good initial value
-        units=units.m * units.kg / units.h**2,
-        domain=NonNegativeReals,
+        initialize=-1e-11,  # TODO: verify good initial value
+        units=units.m**2 / units.h,
         doc="Cross diffusion coefficent for lithium-cobalt",
     )
     m.D_cobalt_lithium = Var(
         m.x_bar,
         m.z_bar,
-        initialize=1e-6,  # TODO: verify good initial value
-        units=units.m * units.kg / units.h**2,
-        domain=NonNegativeReals,
+        initialize=-1e-10,  # TODO: verify good initial value
+        units=units.m**2 / units.h,
         doc="Cross diffusion coefficent for cobalt-lithium",
     )
     m.D_cobalt_cobalt = Var(
         m.x_bar,
         m.z_bar,
-        initialize=1e-6,  # TODO: verify good initial value
-        units=units.m * units.kg / units.h**2,
-        domain=NonNegativeReals,
+        initialize=-1e-9,  # TODO: verify good initial value
+        units=units.m**2 / units.h,
         doc="Cross diffusion coefficent for cobalt-cobalt",
     )
 
@@ -473,23 +497,20 @@ def build_model():
     )
 
     def _D_lithium_lithium_calculation(m, x, z):
-        return m.D_lithium_lithium[x, z] == (
+        return (m.D_lithium_lithium[x, z] * m.D_denominator[x, z]) == (
             (
-                (
-                    m.z_lithium
-                    * m.D_lithium
-                    * m.D_chlorine
-                    * m.membrane_conc_mass_lithium[x, z]
-                    * (m.z_chlorine - m.z_lithium)
-                )
-                + (
-                    m.z_cobalt
-                    * m.D_lithium
-                    * m.membrane_conc_mass_cobalt[x, z]
-                    * ((m.z_chlorine * m.D_chlorine) - (m.z_cobalt * m.D_cobalt))
-                )
+                m.z_lithium
+                * m.D_lithium
+                * m.D_chlorine
+                * m.membrane_conc_mass_lithium[x, z]
+                * (m.z_chlorine - m.z_lithium)
             )
-            / m.D_denominator[x, z]
+            + (
+                m.z_cobalt
+                * m.D_lithium
+                * m.membrane_conc_mass_cobalt[x, z]
+                * ((m.z_chlorine * m.D_chlorine) - (m.z_cobalt * m.D_cobalt))
+            )
         )
 
     m.D_lithium_lithium_calculation = Constraint(
@@ -497,15 +518,12 @@ def build_model():
     )
 
     def _D_lithium_cobalt_calculation(m, x, z):
-        return m.D_lithium_cobalt[x, z] == (
-            (
-                m.z_lithium
-                * m.z_cobalt
-                * m.D_lithium
-                * m.membrane_conc_mass_lithium[x, z]
-                * (m.D_cobalt - m.D_chlorine)
-            )
-            / m.D_denominator[x, z]
+        return (m.D_lithium_cobalt[x, z] * m.D_denominator[x, z]) == (
+            m.z_lithium
+            * m.z_cobalt
+            * m.D_lithium
+            * m.membrane_conc_mass_lithium[x, z]
+            * (m.D_cobalt - m.D_chlorine)
         )
 
     m.D_lithium_cobalt_calculation = Constraint(
@@ -513,15 +531,12 @@ def build_model():
     )
 
     def _D_cobalt_lithium_calculation(m, x, z):
-        return m.D_cobalt_lithium[x, z] == (
-            (
-                m.z_lithium
-                * m.z_cobalt
-                * m.D_cobalt
-                * m.membrane_conc_mass_cobalt[x, z]
-                * (m.D_lithium - m.D_chlorine)
-            )
-            / m.D_denominator[x, z]
+        return (m.D_cobalt_lithium[x, z] * m.D_denominator[x, z]) == (
+            m.z_lithium
+            * m.z_cobalt
+            * m.D_cobalt
+            * m.membrane_conc_mass_cobalt[x, z]
+            * (m.D_lithium - m.D_chlorine)
         )
 
     m.D_cobalt_lithium_calculation = Constraint(
@@ -529,23 +544,20 @@ def build_model():
     )
 
     def _D_cobalt_cobalt_calculation(m, x, z):
-        return m.D_cobalt_cobalt[x, z] == (
+        return (m.D_cobalt_cobalt[x, z] * m.D_denominator[x, z]) == (
             (
-                (
-                    m.z_lithium
-                    * m.D_cobalt
-                    * m.membrane_conc_mass_lithium[x, z]
-                    * ((m.z_cobalt * m.D_chlorine) - (m.z_lithium * m.D_lithium))
-                )
-                + (
-                    m.z_cobalt
-                    * m.D_cobalt
-                    * m.D_chlorine
-                    * m.membrane_conc_mass_cobalt[x, z]
-                    * (m.z_chlorine - m.z_cobalt)
-                )
+                m.z_lithium
+                * m.D_cobalt
+                * m.membrane_conc_mass_lithium[x, z]
+                * ((m.z_cobalt * m.D_chlorine) - (m.z_lithium * m.D_lithium))
             )
-            / m.D_denominator[x, z]
+            + (
+                m.z_cobalt
+                * m.D_cobalt
+                * m.D_chlorine
+                * m.membrane_conc_mass_cobalt[x, z]
+                * (m.z_chlorine - m.z_cobalt)
+            )
         )
 
     m.D_cobalt_cobalt_calculation = Constraint(
@@ -698,9 +710,7 @@ def build_model():
     ## initial/final conditions
     def _initial_retentate_flow_volume(m):
         return m.retentate_flow_volume[0] == (
-            (value(m.feed_flow_volume) + value(m.diafiltrate_flow_volume))
-            * units.m**3
-            / units.h
+            m.feed_flow_volume + m.diafiltrate_flow_volume
         )
 
     m.initial_retentate_flow_volume = Constraint(rule=_initial_retentate_flow_volume)
@@ -713,25 +723,10 @@ def build_model():
     def _initial_retentate_conc_mass_lithium(m):
         return m.retentate_conc_mass_lithium[0] == (
             (
-                value(m.feed_flow_volume)
-                * units.m**3
-                / units.h
-                * value(m.feed_conc_mass_lithium)
-                * units.kg
-                / units.m**3
+                m.feed_flow_volume * m.feed_conc_mass_lithium
+                + m.diafiltrate_flow_volume * m.diafiltrate_conc_mass_lithium
             )
-            + (
-                value(m.diafiltrate_flow_volume)
-                * units.m**3
-                / units.h
-                * value(m.diafiltrate_conc_mass_lithium)
-                * units.kg
-                / units.m**3
-            )
-        ) / (
-            (value(m.feed_flow_volume) + value(m.diafiltrate_flow_volume))
-            * units.m**3
-            / units.h
+            / (m.feed_flow_volume + m.diafiltrate_flow_volume)
         )
 
     m.initial_retentate_conc_mass_lithium = Constraint(
@@ -741,25 +736,10 @@ def build_model():
     def _initial_retentate_conc_mass_cobalt(m):
         return m.retentate_conc_mass_cobalt[0] == (
             (
-                value(m.feed_flow_volume)
-                * units.m**3
-                / units.h
-                * value(m.feed_conc_mass_cobalt)
-                * units.kg
-                / units.m**3
+                m.feed_flow_volume * m.feed_conc_mass_cobalt
+                + m.diafiltrate_flow_volume * m.diafiltrate_conc_mass_cobalt
             )
-            + (
-                value(m.diafiltrate_flow_volume)
-                * units.m**3
-                / units.h
-                * value(m.diafiltrate_conc_mass_cobalt)
-                * units.kg
-                / units.m**3
-            )
-        ) / (
-            (value(m.feed_flow_volume) + value(m.diafiltrate_flow_volume))
-            * units.m**3
-            / units.h
+            / (m.feed_flow_volume + m.diafiltrate_flow_volume)
         )
 
     m.initial_retentate_conc_mass_cobalt = Constraint(
@@ -787,22 +767,8 @@ def build_model():
             m.retentate_conc_mass_lithium[x] * m.retentate_flow_volume[x]
             + m.permeate_conc_mass_lithium[x] * m.permeate_flow_volume[x]
         ) == (
-            (
-                value(m.feed_flow_volume)
-                * units.m**3
-                / units.h
-                * value(m.feed_conc_mass_lithium)
-                * units.kg
-                / units.m**3
-            )
-            + (
-                value(m.diafiltrate_flow_volume)
-                * units.m**3
-                / units.h
-                * value(m.diafiltrate_conc_mass_lithium)
-                * units.kg
-                / units.m**3
-            )
+            m.feed_flow_volume * m.feed_conc_mass_lithium
+            + m.diafiltrate_flow_volume * m.diafiltrate_conc_mass_lithium
         )
 
     m.general_mass_balance_lithium = Constraint(
@@ -816,22 +782,8 @@ def build_model():
             m.retentate_conc_mass_cobalt[x] * m.retentate_flow_volume[x]
             + m.permeate_conc_mass_cobalt[x] * m.permeate_flow_volume[x]
         ) == (
-            (
-                value(m.feed_flow_volume)
-                * units.m**3
-                / units.h
-                * value(m.feed_conc_mass_cobalt)
-                * units.kg
-                / units.m**3
-            )
-            + (
-                value(m.diafiltrate_flow_volume)
-                * units.m**3
-                / units.h
-                * value(m.diafiltrate_conc_mass_cobalt)
-                * units.kg
-                / units.m**3
-            )
+            m.feed_flow_volume * m.feed_conc_mass_cobalt
+            + m.diafiltrate_flow_volume * m.diafiltrate_conc_mass_cobalt
         )
 
     m.general_mass_balance_cobalt = Constraint(
@@ -870,7 +822,56 @@ def discretize_model(m, NFEx, NFEz):
 
 def solve_model(m):
     solver = SolverFactory("ipopt")
+    # solver.options = {"max_iter":5000}
     solver.solve(m, tee=True)
+
+
+def set_scaling(m):
+    """
+    Apply scaling factors to certain constraints to improve solver performance
+
+    Args:
+        m: Pyomo model
+    """
+    m.scaling_factor = Suffix(direction=Suffix.EXPORT)
+
+    # Add scaling factors for poorly scaled variables
+    for x in m.x_bar:
+        for z in m.z_bar:
+            if (x==0 and z==1):
+                m.scaling_factor[m.D_lithium_lithium[x,z]] = 1e10
+                m.scaling_factor[m.D_lithium_cobalt[x,z]] = 1e10
+                m.scaling_factor[m.D_cobalt_lithium[x,z]] = 1e11
+                m.scaling_factor[m.D_cobalt_cobalt[x,z]] = 1e12
+            else:
+                m.scaling_factor[m.D_lithium_lithium[x,z]] = 1e7
+                m.scaling_factor[m.D_lithium_cobalt[x,z]] = 1e8
+                m.scaling_factor[m.D_cobalt_lithium[x,z]] = 1e8
+                m.scaling_factor[m.D_cobalt_cobalt[x,z]] = 1e8
+
+    # Add scaling factors for poorly scaled constraints
+    for x in m.x_bar:
+        for z in m.z_bar:
+            if (x==0 and z==1):
+                m.scaling_factor[m.D_lithium_lithium_calculation[x,z]] = 1e21
+                m.scaling_factor[m.D_lithium_cobalt_calculation[x,z]] = 1e21
+                m.scaling_factor[m.D_cobalt_lithium_calculation[x,z]] = 1e22
+                m.scaling_factor[m.D_cobalt_cobalt_calculation[x,z]] = 1e22
+            else:
+                m.scaling_factor[m.D_lithium_lithium_calculation[x,z]] = 1e10
+                m.scaling_factor[m.D_lithium_cobalt_calculation[x,z]] = 1e11
+                m.scaling_factor[m.D_cobalt_lithium_calculation[x,z]] = 1e10
+                m.scaling_factor[m.D_cobalt_cobalt_calculation[x,z]] = 1e9
+
+
+    for x in m.x_bar:
+        for z in m.z_bar:
+            if z != 0:
+                m.scaling_factor[m.lithium_flux_membrane[x,z]] = 1e15
+                m.scaling_factor[m.cobalt_flux_membrane[x,z]] = 1e15
+            if (x==0 and z==1):
+                m.scaling_factor[m.lithium_flux_membrane[x,z]] = 1e20
+                m.scaling_factor[m.cobalt_flux_membrane[x,z]] = 1e21            
 
 
 def unfix_dof(m):
