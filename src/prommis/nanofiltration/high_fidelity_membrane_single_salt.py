@@ -37,7 +37,7 @@ def main():
     # unfix_dof(m)
     # optimize(m)
 
-    # plot_results(m)
+    plot_results(m)
     plot_membrane_results(m)
 
 
@@ -592,35 +592,47 @@ def plot_results(m):
         water_flux.append(value(m.volume_flux_water[x_val]))
         lithium_flux.append(value(m.mass_flux_lithium[x_val]))
 
-    fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, dpi =175, figsize =(10,7))
+    fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
+        3, 2, dpi=175, figsize=(10, 7)
+    )
 
     ax1.plot(x_plot, conc_ret_lith, linewidth=2)
-    ax1.set_ylim(1.3,1.4)
-    ax1.set_ylabel("Retentate-side Lithium\n Concentration (kg/m3)", fontsize = 10, fontweight = 'bold')
-    ax1.tick_params(direction="in",labelsize=10)
+    ax1.set_ylim(1.3, 1.4)
+    ax1.set_ylabel(
+        "Retentate-side Lithium\n Concentration (kg/m3)", fontsize=10, fontweight="bold"
+    )
+    ax1.tick_params(direction="in", labelsize=10)
 
     ax2.plot(x_plot, conc_perm_lith, linewidth=2)
-    ax2.set_ylabel("Permeate-side Lithium\n Concentration (kg/m3)", fontsize = 10, fontweight = 'bold')
-    ax2.tick_params(direction="in",labelsize=10)
+    ax2.set_ylabel(
+        "Permeate-side Lithium\n Concentration (kg/m3)", fontsize=10, fontweight="bold"
+    )
+    ax2.tick_params(direction="in", labelsize=10)
 
     ax3.plot(x_plot, conc_ret_chlor, linewidth=2)
-    ax3.set_ylim(6.75,6.85)
-    ax3.set_ylabel("Retentate-side Chlorine\n Concentration (kg/m3)", fontsize = 10, fontweight = 'bold')
-    ax3.tick_params(direction="in",labelsize=10)
+    ax3.set_ylim(6.75, 6.85)
+    ax3.set_ylabel(
+        "Retentate-side Chlorine\n Concentration (kg/m3)",
+        fontsize=10,
+        fontweight="bold",
+    )
+    ax3.tick_params(direction="in", labelsize=10)
 
     ax4.plot(x_plot, conc_perm_chlor, linewidth=2)
-    ax4.set_ylabel("Permeate-side Chlorine\n Concentration (kg/m3)", fontsize = 10, fontweight = 'bold')
-    ax4.tick_params(direction="in",labelsize=10)
+    ax4.set_ylabel(
+        "Permeate-side Chlorine\n Concentration (kg/m3)", fontsize=10, fontweight="bold"
+    )
+    ax4.tick_params(direction="in", labelsize=10)
 
     ax5.plot(x_plot, water_flux, linewidth=2)
-    ax5.set_xlabel("Membrane Length (m)", fontsize = 10, fontweight = 'bold')
-    ax5.set_ylabel("Water Flux (m3/m2/h)", fontsize = 10, fontweight = 'bold')
-    ax5.tick_params(direction="in",labelsize=10)
+    ax5.set_xlabel("Membrane Length (m)", fontsize=10, fontweight="bold")
+    ax5.set_ylabel("Water Flux (m3/m2/h)", fontsize=10, fontweight="bold")
+    ax5.tick_params(direction="in", labelsize=10)
 
     ax6.plot(x_plot, lithium_flux, linewidth=2)
-    ax6.set_xlabel("Membrane Length (m)", fontsize = 10, fontweight = 'bold')
-    ax6.set_ylabel("Mass Flux of Lithium\n (kg/m2/h)", fontsize = 10, fontweight = 'bold')
-    ax6.tick_params(direction="in",labelsize=10)
+    ax6.set_xlabel("Membrane Length (m)", fontsize=10, fontweight="bold")
+    ax6.set_ylabel("Mass Flux of Lithium\n (kg/m2/h)", fontsize=10, fontweight="bold")
+    ax6.tick_params(direction="in", labelsize=10)
 
     plt.show()
 
@@ -654,18 +666,20 @@ def plot_membrane_results(m):
     c_lith_mem_df = DataFrame(index=x_vals, data=c_lith_mem_dict)
     c_chlor_mem_df = DataFrame(index=x_vals, data=c_chlor_mem_dict)
 
-    figs, (ax1, ax2) = plt.subplots(1, 2, dpi =125, figsize =(10,7))
+    figs, (ax1, ax2) = plt.subplots(1, 2, dpi=125, figsize=(10, 7))
     sns.heatmap(
         ax=ax1,
         data=c_lith_mem_df,
         cmap="mako",
     )
     ax1.tick_params(axis="x", labelrotation=45)
-    ax1.set_xlabel("z (dimensionless)", fontsize = 10, fontweight = 'bold')
-    ax1.set_ylabel("x (dimensionless)", fontsize = 10, fontweight = 'bold')
+    ax1.set_xlabel("z (dimensionless)", fontsize=10, fontweight="bold")
+    ax1.set_ylabel("x (dimensionless)", fontsize=10, fontweight="bold")
     ax1.invert_yaxis()
-    ax1.set_title("Lithium Concentration\n in Membrane (kg/m3)", fontsize = 10, fontweight = 'bold')
-    ax1.tick_params(direction="in",labelsize=10)
+    ax1.set_title(
+        "Lithium Concentration\n in Membrane (kg/m3)", fontsize=10, fontweight="bold"
+    )
+    ax1.tick_params(direction="in", labelsize=10)
 
     sns.heatmap(
         ax=ax2,
@@ -673,11 +687,13 @@ def plot_membrane_results(m):
         cmap="mako",
     )
     ax2.tick_params(axis="x", labelrotation=45)
-    ax2.set_xlabel("z (dimensionless)", fontsize = 10, fontweight = 'bold')
-    ax2.set_ylabel("x (dimensionless)", fontsize = 10, fontweight = 'bold')
+    ax2.set_xlabel("z (dimensionless)", fontsize=10, fontweight="bold")
+    ax2.set_ylabel("x (dimensionless)", fontsize=10, fontweight="bold")
     ax2.invert_yaxis()
-    ax2.set_title("Chlorine Concentration\n in Membrane (kg/m3)", fontsize = 10, fontweight = 'bold')
-    ax2.tick_params(direction="in",labelsize=10)
+    ax2.set_title(
+        "Chlorine Concentration\n in Membrane (kg/m3)", fontsize=10, fontweight="bold"
+    )
+    ax2.tick_params(direction="in", labelsize=10)
 
     plt.show()
 

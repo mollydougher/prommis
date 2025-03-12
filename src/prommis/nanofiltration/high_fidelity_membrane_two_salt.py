@@ -51,7 +51,6 @@ def main():
     # dt.display_constraints_with_extreme_jacobians()
     # dt.display_variables_at_or_outside_bounds()
 
-
     # unfix_dof(m)
     # optimize(m)
 
@@ -462,12 +461,17 @@ def build_model():
 
     m.lumped_water_flux = Constraint(m.x_bar, rule=_lumped_water_flux)
 
-
     def _D_lithium_lithium_calculation(m, x, z):
         return m.D_lithium_lithium[x, z] == (
-            (-3.87e-6 * units.m**2/units.h)
-            + ((-6.56e-8*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_lithium[x,z]))
-            + ((2.58e-8*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_cobalt[x,z]))
+            (-3.87e-6 * units.m**2 / units.h)
+            + (
+                (-6.56e-8 * units.m**5 / units.kg / units.h)
+                * (m.membrane_conc_mass_lithium[x, z])
+            )
+            + (
+                (2.58e-8 * units.m**5 / units.kg / units.h)
+                * (m.membrane_conc_mass_cobalt[x, z])
+            )
         )
 
     m.D_lithium_lithium_calculation = Constraint(
@@ -475,10 +479,16 @@ def build_model():
     )
 
     def _D_lithium_cobalt_calculation(m, x, z):
-        return m.D_lithium_cobalt[x, z]  == (
-            (-4.50e-7 * units.m**2/units.h)
-            + ((-1.70e-7*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_lithium[x,z]))
-            + ((6.67e-8*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_cobalt[x,z]))
+        return m.D_lithium_cobalt[x, z] == (
+            (-4.50e-7 * units.m**2 / units.h)
+            + (
+                (-1.70e-7 * units.m**5 / units.kg / units.h)
+                * (m.membrane_conc_mass_lithium[x, z])
+            )
+            + (
+                (6.67e-8 * units.m**5 / units.kg / units.h)
+                * (m.membrane_conc_mass_cobalt[x, z])
+            )
         )
 
     m.D_lithium_cobalt_calculation = Constraint(
@@ -487,9 +497,15 @@ def build_model():
 
     def _D_cobalt_lithium_calculation(m, x, z):
         return m.D_cobalt_lithium[x, z] == (
-            (-6.47e-7 * units.m**2/units.h)
-            + ((4.10e-8*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_lithium[x,z]))
-            + ((-1.61e-8*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_cobalt[x,z]))
+            (-6.47e-7 * units.m**2 / units.h)
+            + (
+                (4.10e-8 * units.m**5 / units.kg / units.h)
+                * (m.membrane_conc_mass_lithium[x, z])
+            )
+            + (
+                (-1.61e-8 * units.m**5 / units.kg / units.h)
+                * (m.membrane_conc_mass_cobalt[x, z])
+            )
         )
 
     m.D_cobalt_lithium_calculation = Constraint(
@@ -498,9 +514,15 @@ def build_model():
 
     def _D_cobalt_cobalt_calculation(m, x, z):
         return m.D_cobalt_cobalt[x, z] == (
-            (-3.56e-6 * units.m**2/units.h)
-            + ((3.91e-7*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_lithium[x,z]))
-            + ((-1.53e-7*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_cobalt[x,z]))
+            (-3.56e-6 * units.m**2 / units.h)
+            + (
+                (3.91e-7 * units.m**5 / units.kg / units.h)
+                * (m.membrane_conc_mass_lithium[x, z])
+            )
+            + (
+                (-1.53e-7 * units.m**5 / units.kg / units.h)
+                * (m.membrane_conc_mass_cobalt[x, z])
+            )
         )
 
     m.D_cobalt_cobalt_calculation = Constraint(
@@ -867,35 +889,45 @@ def plot_results(m):
         water_flux.append(value(m.volume_flux_water[x_val]))
         lithium_flux.append(value(m.mass_flux_lithium[x_val]))
 
-    fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, dpi =175, figsize =(10,7))
+    fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
+        3, 2, dpi=175, figsize=(10, 7)
+    )
 
     ax1.plot(x_plot, conc_ret_lith, linewidth=2)
-    ax1.set_ylim(1.3,1.4)
-    ax1.set_ylabel("Retentate-side Lithium\n Concentration (kg/m3)", fontsize = 10, fontweight = 'bold')
-    ax1.tick_params(direction="in",labelsize=10)
+    ax1.set_ylim(1.3, 1.4)
+    ax1.set_ylabel(
+        "Retentate-side Lithium\n Concentration (kg/m3)", fontsize=10, fontweight="bold"
+    )
+    ax1.tick_params(direction="in", labelsize=10)
 
     ax2.plot(x_plot, conc_perm_lith, linewidth=2)
-    ax2.set_ylabel("Permeate-side Lithium\n Concentration (kg/m3)", fontsize = 10, fontweight = 'bold')
-    ax2.tick_params(direction="in",labelsize=10)
+    ax2.set_ylabel(
+        "Permeate-side Lithium\n Concentration (kg/m3)", fontsize=10, fontweight="bold"
+    )
+    ax2.tick_params(direction="in", labelsize=10)
 
     ax3.plot(x_plot, conc_ret_cob, linewidth=2)
-    ax3.set_ylim(13,13.5)
-    ax3.set_ylabel("Retentate-side Cobalt\n Concentration (kg/m3)", fontsize = 10, fontweight = 'bold')
-    ax3.tick_params(direction="in",labelsize=10)
+    ax3.set_ylim(13, 13.5)
+    ax3.set_ylabel(
+        "Retentate-side Cobalt\n Concentration (kg/m3)", fontsize=10, fontweight="bold"
+    )
+    ax3.tick_params(direction="in", labelsize=10)
 
     ax4.plot(x_plot, conc_perm_cob, linewidth=2)
-    ax4.set_ylabel("Permeate-side Cobalt\n Concentration (kg/m3)", fontsize = 10, fontweight = 'bold')
-    ax4.tick_params(direction="in",labelsize=10)
+    ax4.set_ylabel(
+        "Permeate-side Cobalt\n Concentration (kg/m3)", fontsize=10, fontweight="bold"
+    )
+    ax4.tick_params(direction="in", labelsize=10)
 
     ax5.plot(x_plot, water_flux, linewidth=2)
-    ax5.set_xlabel("Membrane Length (m)", fontsize = 10, fontweight = 'bold')
-    ax5.set_ylabel("Water Flux (m3/m2/h)", fontsize = 10, fontweight = 'bold')
-    ax5.tick_params(direction="in",labelsize=10)
+    ax5.set_xlabel("Membrane Length (m)", fontsize=10, fontweight="bold")
+    ax5.set_ylabel("Water Flux (m3/m2/h)", fontsize=10, fontweight="bold")
+    ax5.tick_params(direction="in", labelsize=10)
 
     ax6.plot(x_plot, lithium_flux, linewidth=2)
-    ax6.set_xlabel("Membrane Length (m)", fontsize = 10, fontweight = 'bold')
-    ax6.set_ylabel("Mass Flux of Lithium\n (kg/m2/h)", fontsize = 10, fontweight = 'bold')
-    ax6.tick_params(direction="in",labelsize=10)
+    ax6.set_xlabel("Membrane Length (m)", fontsize=10, fontweight="bold")
+    ax6.set_ylabel("Mass Flux of Lithium\n (kg/m2/h)", fontsize=10, fontweight="bold")
+    ax6.tick_params(direction="in", labelsize=10)
 
     plt.show()
 
@@ -934,18 +966,20 @@ def plot_membrane_results(m):
     c_cob_mem_df = DataFrame(index=x_vals, data=c_cob_mem_dict)
     c_chl_mem_df = DataFrame(index=x_vals, data=c_chl_mem_dict)
 
-    figs, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi =125, figsize =(15,7))
+    figs, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi=125, figsize=(15, 7))
     sns.heatmap(
         ax=ax1,
         data=c_lith_mem_df,
         cmap="mako",
     )
     ax1.tick_params(axis="x", labelrotation=45)
-    ax1.set_xlabel("z (dimensionless)", fontsize = 10, fontweight = 'bold')
-    ax1.set_ylabel("x (dimensionless)", fontsize = 10, fontweight = 'bold')
+    ax1.set_xlabel("z (dimensionless)", fontsize=10, fontweight="bold")
+    ax1.set_ylabel("x (dimensionless)", fontsize=10, fontweight="bold")
     ax1.invert_yaxis()
-    ax1.set_title("Lithium Concentration\n in Membrane (kg/m3)", fontsize = 10, fontweight = 'bold')
-    ax1.tick_params(direction="in",labelsize=10)
+    ax1.set_title(
+        "Lithium Concentration\n in Membrane (kg/m3)", fontsize=10, fontweight="bold"
+    )
+    ax1.tick_params(direction="in", labelsize=10)
 
     sns.heatmap(
         ax=ax2,
@@ -953,11 +987,13 @@ def plot_membrane_results(m):
         cmap="mako",
     )
     ax2.tick_params(axis="x", labelrotation=45)
-    ax2.set_xlabel("z (dimensionless)", fontsize = 10, fontweight = 'bold')
-    ax2.set_ylabel("x (dimensionless)", fontsize = 10, fontweight = 'bold')
+    ax2.set_xlabel("z (dimensionless)", fontsize=10, fontweight="bold")
+    ax2.set_ylabel("x (dimensionless)", fontsize=10, fontweight="bold")
     ax2.invert_yaxis()
-    ax2.set_title("Cobalt Concentration\n in Membrane (kg/m3)", fontsize = 10, fontweight = 'bold')
-    ax2.tick_params(direction="in",labelsize=10)
+    ax2.set_title(
+        "Cobalt Concentration\n in Membrane (kg/m3)", fontsize=10, fontweight="bold"
+    )
+    ax2.tick_params(direction="in", labelsize=10)
 
     sns.heatmap(
         ax=ax3,
@@ -965,11 +1001,13 @@ def plot_membrane_results(m):
         cmap="mako",
     )
     ax3.tick_params(axis="x", labelrotation=45)
-    ax3.set_xlabel("z (dimensionless)", fontsize = 10, fontweight = 'bold')
-    ax3.set_ylabel("x (dimensionless)", fontsize = 10, fontweight = 'bold')
+    ax3.set_xlabel("z (dimensionless)", fontsize=10, fontweight="bold")
+    ax3.set_ylabel("x (dimensionless)", fontsize=10, fontweight="bold")
     ax3.invert_yaxis()
-    ax3.set_title("Chlorine Concentration\n in Membrane (kg/m3)", fontsize = 10, fontweight = 'bold')
-    ax3.tick_params(direction="in",labelsize=10)
+    ax3.set_title(
+        "Chlorine Concentration\n in Membrane (kg/m3)", fontsize=10, fontweight="bold"
+    )
+    ax3.tick_params(direction="in", labelsize=10)
 
     plt.show()
 
