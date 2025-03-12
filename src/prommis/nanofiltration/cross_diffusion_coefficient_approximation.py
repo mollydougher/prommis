@@ -16,10 +16,12 @@ from pyomo.environ import (
 )
 
 def main():
-    (D_11_df, D_12_df, D_21_df, D_22_df, c1, c2) = calculate_diffusion_coefficients()
+    # (D_11_df, D_12_df, D_21_df, D_22_df, c1, c2) = calculate_diffusion_coefficients()
     # plot_2D_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_df)
-    plot_3D_diffusion_coefficients()
-    linear_regression(D_11_df)
+    # plot_3D_diffusion_coefficients()
+    # linear_regression(D_11_df)
+    # calculate_linearized_diffusion_coefficients(D_11_df)
+    plot_3D_with_regression()
 
 
 def calculate_D_11(z1,z2,z3,D1,D2,D3,c1,c2):
@@ -46,6 +48,12 @@ def calculate_D_22(z1,z2,z3,D1,D2,D3,c1,c2):
     )
     return D_22
 
+def set_concentration_ranges():
+    c1_vals = np.arange(0.1,10,0.1)
+    c2_vals = np.arange(0.1,10,0.1)
+
+    return (c1_vals, c2_vals)
+
 def calculate_diffusion_coefficients():
     z1 = 1
     z2 = 2
@@ -55,8 +63,7 @@ def calculate_diffusion_coefficients():
     D2 = 2.64e-6 # m2/h
     D3 = 7.3e-6 # m2/h
 
-    c1_vals = np.arange(0.1,10,0.1)
-    c2_vals = np.arange(5,15,0.1)
+    (c1_vals, c2_vals) = set_concentration_ranges()
 
     c2_list = []
 
@@ -92,8 +99,6 @@ def calculate_diffusion_coefficients():
     D_12_df = DataFrame(index=c2_list,data=d12)
     D_21_df = DataFrame(index=c2_list,data=d21)
     D_22_df = DataFrame(index=c2_list,data=d22)
-
-    print(D_11_df)
     
     return (D_11_df, D_12_df, D_21_df, D_22_df, c1_vals, c2_vals)
 
@@ -156,8 +161,7 @@ def plot_3D_diffusion_coefficients():
     D2 = 2.64e-6 # m2/h
     D3 = 7.3e-6 # m2/h
 
-    c1_vals = np.arange(0.1,10,0.1)
-    c2_vals = np.arange(5,15,0.1)
+    (c1_vals, c2_vals) = set_concentration_ranges()
 
     c1, c2 = np.meshgrid(c1_vals, c2_vals)
     D_11 = ((z1*z3*D1*D3 - (z1**2)*D1*D3)*c1 + (z2*z3*D1*D3 - (z2**2)*D1*D2)*c2) / (
@@ -205,7 +209,97 @@ def linear_regression(D_11_df):
     m.beta_0.display()
     m.beta_1.display()
     m.beta_2.display()
+
+    return (m.beta_0.value, m.beta_1.value, m.beta_2.value)
+
+def calculate_linearized_diffusion_coefficients(D_11_df):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+
+    D1 = 3.7e-6 # m2/h
+    D2 = 2.64e-6 # m2/h
+    D3 = 7.3e-6 # m2/h
+
+    (c1_vals, c2_vals) = set_concentration_ranges()
+
+    c2_list = []
+
+    D_11_vals = []
+    # D_12_vals = []
+    # D_21_vals = []
+    # D_22_vals = []
+
+    d11 = {}
+    # d12 = {}
+    # d21 = {}
+    # d22 = {}
+
+    for c2 in c2_vals:
+        c2_list.append(c2.round(1))
+
+    (beta_0, beta_1, beta_2) = linear_regression(D_11_df)
+
+    for c1 in c1_vals:
+        for c2 in c2_vals:
+            D_11_vals.append(beta_0 + beta_1*c1 + beta_2*c2)
+            # D_12_vals.append((calculate_D_12(z1,z2,z3,D1,D2,D3,c1,c2)))
+            # D_21_vals.append((calculate_D_21(z1,z2,z3,D1,D2,D3,c1,c2)))
+            # D_22_vals.append((calculate_D_22(z1,z2,z3,D1,D2,D3,c1,c2)))
+        d11[f"{c1.round(1)}"] = D_11_vals
+        # d12[f"{c1.round(1)}"] = D_12_vals
+        # d21[f"{c1.round(1)}"] = D_21_vals
+        # d22[f"{c1.round(1)}"] = D_22_vals
+        D_11_vals = []
+        # D_12_vals = []
+        # D_21_vals = []
+        # D_22_vals = []
+
+    D_11_df_linearized = DataFrame(index=c2_list,data=d11)
+    # D_12_df = DataFrame(index=c2_list,data=d12)
+    # D_21_df = DataFrame(index=c2_list,data=d21)
+    # D_22_df = DataFrame(index=c2_list,data=d22)
     
+    # return (D_11_df, D_12_df, D_21_df, D_22_df, c1_vals, c2_vals)
+    print(D_11_df_linearized)
+    return D_11_df_linearized
+
+def plot_3D_with_regression():
+    ax = plt.figure().add_subplot(projection='3d')
+
+    z1 = 1
+    z2 = 2
+    z3 = -1
+
+    D1 = 3.7e-6 # m2/h
+    D2 = 2.64e-6 # m2/h
+    D3 = 7.3e-6 # m2/h
+
+    (c1_vals, c2_vals) = set_concentration_ranges()
+
+    c1, c2 = np.meshgrid(c1_vals, c2_vals)
+    D_11 = ((z1*z3*D1*D3 - (z1**2)*D1*D3)*c1 + (z2*z3*D1*D3 - (z2**2)*D1*D2)*c2) / (
+        ((z1**2)*D1 - z1*z3*D3)*c1 + ((z2**2)*D2 - z2*z3*D3)*c2
+    )
+
+    ax.plot_surface(
+        c1,
+        c2,
+        D_11,
+        cmap='mako',
+    )
+    (D_11_df, D_12_df, D_21_df, D_22_df, c1_list, c2_list) = calculate_diffusion_coefficients()
+    linearized_D_11 = calculate_linearized_diffusion_coefficients(D_11_df)
+    ax.plot_surface(
+        c1,
+        c2,
+        linearized_D_11,
+    )
+
+    ax.set_xlabel("Lithium Concentration (kg/m3)")
+    ax.set_ylabel("Cobalt Concentration (kg/m3)")
+
+    plt.show()
 
 if __name__ == "__main__":
     main()
