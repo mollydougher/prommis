@@ -351,41 +351,33 @@ def build_model():
         domain=NonNegativeReals,
         doc="Mass concentration of chlorine in the membrane, x- and z-dependent",
     )
-    m.D_denominator = Var(
-        m.x_bar,
-        m.z_bar,
-        initialize=1e7,  # TODO: verify good initial value
-        units=units.kg / units.m / units.h,
-        domain=NonNegativeReals,
-        doc="Denominator for cross diffusion coefficents",
-    )
     m.D_lithium_lithium = Var(
         m.x_bar,
         m.z_bar,
         initialize=-1e-9,  # TODO: verify good initial value
         units=units.m**2 / units.h,
-        doc="Cross diffusion coefficent for lithium-lithium",
+        doc="Linearized cross diffusion coefficent for lithium-lithium",
     )
     m.D_lithium_cobalt = Var(
         m.x_bar,
         m.z_bar,
         initialize=-1e-11,  # TODO: verify good initial value
         units=units.m**2 / units.h,
-        doc="Cross diffusion coefficent for lithium-cobalt",
+        doc="Linearized cross diffusion coefficent for lithium-cobalt",
     )
     m.D_cobalt_lithium = Var(
         m.x_bar,
         m.z_bar,
         initialize=-1e-10,  # TODO: verify good initial value
         units=units.m**2 / units.h,
-        doc="Cross diffusion coefficent for cobalt-lithium",
+        doc="Linearized cross diffusion coefficent for cobalt-lithium",
     )
     m.D_cobalt_cobalt = Var(
         m.x_bar,
         m.z_bar,
         initialize=-1e-9,  # TODO: verify good initial value
         units=units.m**2 / units.h,
-        doc="Cross diffusion coefficent for cobalt-cobalt",
+        doc="Linearized cross diffusion coefficent for cobalt-cobalt",
     )
 
     # define the (partial) derivative variables
@@ -485,39 +477,12 @@ def build_model():
 
     m.lumped_water_flux = Constraint(m.x_bar, rule=_lumped_water_flux)
 
-    def _D_denominator_calculation(m, x, z):
-        return m.D_denominator[x, z] == (
-            (
-                m.z_lithium
-                * m.membrane_conc_mass_lithium[x, z]
-                * ((m.z_lithium * m.D_lithium) - (m.z_chlorine * m.D_chlorine))
-            )
-            + (
-                m.z_cobalt
-                * m.membrane_conc_mass_cobalt[x, z]
-                * ((m.z_cobalt * m.D_cobalt) - (m.z_chlorine * m.D_chlorine))
-            )
-        )
-
-    m.D_denominator_calculation = Constraint(
-        m.x_bar, m.z_bar, rule=_D_denominator_calculation
-    )
 
     def _D_lithium_lithium_calculation(m, x, z):
-        return (m.D_lithium_lithium[x, z] * m.D_denominator[x, z]) == (
-            (
-                m.z_lithium
-                * m.D_lithium
-                * m.D_chlorine
-                * m.membrane_conc_mass_lithium[x, z]
-                * (m.z_chlorine - m.z_lithium)
-            )
-            + (
-                m.z_cobalt
-                * m.D_lithium
-                * m.membrane_conc_mass_cobalt[x, z]
-                * ((m.z_chlorine * m.D_chlorine) - (m.z_cobalt * m.D_cobalt))
-            )
+        return m.D_lithium_lithium[x, z] == (
+            (-3.87e-6 * units.m**2/units.h)
+            + ((-6.56e-8*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_lithium[x,z]))
+            + ((2.58e-8*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_cobalt[x,z]))
         )
 
     m.D_lithium_lithium_calculation = Constraint(
@@ -525,12 +490,10 @@ def build_model():
     )
 
     def _D_lithium_cobalt_calculation(m, x, z):
-        return (m.D_lithium_cobalt[x, z] * m.D_denominator[x, z]) == (
-            m.z_lithium
-            * m.z_cobalt
-            * m.D_lithium
-            * m.membrane_conc_mass_lithium[x, z]
-            * (m.D_cobalt - m.D_chlorine)
+        return m.D_lithium_cobalt[x, z]  == (
+            (-4.50e-7 * units.m**2/units.h)
+            + ((-1.70e-7*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_lithium[x,z]))
+            + ((6.67e-8*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_cobalt[x,z]))
         )
 
     m.D_lithium_cobalt_calculation = Constraint(
@@ -538,12 +501,10 @@ def build_model():
     )
 
     def _D_cobalt_lithium_calculation(m, x, z):
-        return (m.D_cobalt_lithium[x, z] * m.D_denominator[x, z]) == (
-            m.z_lithium
-            * m.z_cobalt
-            * m.D_cobalt
-            * m.membrane_conc_mass_cobalt[x, z]
-            * (m.D_lithium - m.D_chlorine)
+        return m.D_cobalt_lithium[x, z] == (
+            (-6.47e-7 * units.m**2/units.h)
+            + ((4.10e-8*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_lithium[x,z]))
+            + ((-1.61e-8*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_cobalt[x,z]))
         )
 
     m.D_cobalt_lithium_calculation = Constraint(
@@ -551,20 +512,10 @@ def build_model():
     )
 
     def _D_cobalt_cobalt_calculation(m, x, z):
-        return (m.D_cobalt_cobalt[x, z] * m.D_denominator[x, z]) == (
-            (
-                m.z_lithium
-                * m.D_cobalt
-                * m.membrane_conc_mass_lithium[x, z]
-                * ((m.z_cobalt * m.D_chlorine) - (m.z_lithium * m.D_lithium))
-            )
-            + (
-                m.z_cobalt
-                * m.D_cobalt
-                * m.D_chlorine
-                * m.membrane_conc_mass_cobalt[x, z]
-                * (m.z_chlorine - m.z_cobalt)
-            )
+        return m.D_cobalt_cobalt[x, z] == (
+            (-3.56e-6 * units.m**2/units.h)
+            + ((3.91e-7*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_lithium[x,z]))
+            + ((-1.53e-7*units.m**5/units.kg/units.h)*(m.membrane_conc_mass_cobalt[x,z]))
         )
 
     m.D_cobalt_cobalt_calculation = Constraint(
