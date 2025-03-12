@@ -19,32 +19,38 @@ from pyomo.environ import (
 from idaes.core.util.constants import Constants
 from idaes.core.util.model_diagnostics import DiagnosticsToolbox
 
-from idaes.core.util.scaling import extreme_jacobian_columns, extreme_jacobian_rows, constraint_autoscale_large_jac
+from idaes.core.util.scaling import (
+    extreme_jacobian_columns,
+    extreme_jacobian_rows,
+    constraint_autoscale_large_jac,
+)
 
 import matplotlib.pyplot as plt
+import seaborn as sns
+from pandas import DataFrame
 
 
 def main():
     m = build_model()
-    discretize_model(m, NFEx=2, NFEz=2)
+    discretize_model(m, NFEx=3, NFEz=2)
     dt = DiagnosticsToolbox(m)
     dt.assert_no_structural_warnings()
     # dt.report_structural_issues()
 
     # Create a scaled version of the model to solve
-    set_scaling(m)
-    scaling = TransformationFactory("core.scale_model")
-    scaled_model = scaling.create_using(m, rename=False)
-    solve_model(scaled_model)
+    # set_scaling(m)
+    # scaling = TransformationFactory("core.scale_model")
+    # scaled_model = scaling.create_using(m, rename=False)
+    # solve_model(scaled_model)
     # Propagate results back to unscaled model
-    scaling.propagate_solution(scaled_model, m)
+    # scaling.propagate_solution(scaled_model, m)
 
-    # solve_model(m)
+    solve_model(m)
     # # # dt.assert_no_numerical_warnings()
     dt.report_numerical_issues()
     # dt.display_constraints_with_large_residuals()
-    dt.display_variables_with_extreme_jacobians()
-    dt.display_constraints_with_extreme_jacobians()
+    # dt.display_variables_with_extreme_jacobians()
+    # dt.display_constraints_with_extreme_jacobians()
     # dt.display_near_parallel_constraints()
     # dt.display_near_parallel_variables()
 
@@ -65,6 +71,7 @@ def main():
     # optimize(m)
 
     # plot_results(m)
+    plot_membrane_results(m)
 
 
 def build_model():
@@ -642,6 +649,8 @@ def build_model():
 
     ## boundary conditions
     def _retentate_membrane_interface_lithium(m, x):
+        if x == 0:
+            return Constraint.Skip
         return m.retentate_conc_mass_lithium[x] == m.membrane_conc_mass_lithium[x, 0]
 
     m.retentate_membrane_interface_lithium = Constraint(
@@ -649,6 +658,8 @@ def build_model():
     )
 
     def _retentate_membrane_interface_cobalt(m, x):
+        if x == 0:
+            return Constraint.Skip
         return m.retentate_conc_mass_cobalt[x] == m.membrane_conc_mass_cobalt[x, 0]
 
     m.retentate_membrane_interface_cobalt = Constraint(
@@ -656,6 +667,8 @@ def build_model():
     )
 
     def _retentate_membrane_interface_chlorine(m, x):
+        if x == 0:
+            return Constraint.Skip
         return m.retentate_conc_mass_chlorine[x] == m.membrane_conc_mass_chlorine[x, 0]
 
     m.retentate_membrane_interface_chlorine = Constraint(
@@ -744,6 +757,27 @@ def build_model():
 
     m.initial_retentate_conc_mass_cobalt = Constraint(
         rule=_initial_retentate_conc_mass_cobalt
+    )
+
+    def _initial_membrane_interface_lithium(m):
+        return m.membrane_conc_mass_lithium[0, 0] == (0 * units.kg / units.m**3)
+
+    m.initial_membrane_interface_lithium = Constraint(
+        rule=_initial_membrane_interface_lithium
+    )
+
+    def _initial_membrane_interface_cobalt(m):
+        return m.membrane_conc_mass_cobalt[0, 0] == (0 * units.kg / units.m**3)
+
+    m.initial_membrane_interface_cobalt = Constraint(
+        rule=_initial_membrane_interface_cobalt
+    )
+
+    def _initial_membrane_interface_chlorine(m):
+        return m.membrane_conc_mass_chlorine[0, 0] == (0 * units.kg / units.m**3)
+
+    m.initial_membrane_interface_chlorine = Constraint(
+        rule=_initial_membrane_interface_chlorine
     )
 
     def _initial_permeate_conc_mass_lithium(m):
@@ -838,40 +872,39 @@ def set_scaling(m):
     # Add scaling factors for poorly scaled variables
     for x in m.x_bar:
         for z in m.z_bar:
-            if (x==0 and z==1):
-                m.scaling_factor[m.D_lithium_lithium[x,z]] = 1e10
-                m.scaling_factor[m.D_lithium_cobalt[x,z]] = 1e10
-                m.scaling_factor[m.D_cobalt_lithium[x,z]] = 1e11
-                m.scaling_factor[m.D_cobalt_cobalt[x,z]] = 1e12
+            if x == 0 and z == 1:
+                m.scaling_factor[m.D_lithium_lithium[x, z]] = 1e10
+                m.scaling_factor[m.D_lithium_cobalt[x, z]] = 1e10
+                m.scaling_factor[m.D_cobalt_lithium[x, z]] = 1e11
+                m.scaling_factor[m.D_cobalt_cobalt[x, z]] = 1e12
             else:
-                m.scaling_factor[m.D_lithium_lithium[x,z]] = 1e7
-                m.scaling_factor[m.D_lithium_cobalt[x,z]] = 1e8
-                m.scaling_factor[m.D_cobalt_lithium[x,z]] = 1e8
-                m.scaling_factor[m.D_cobalt_cobalt[x,z]] = 1e8
+                m.scaling_factor[m.D_lithium_lithium[x, z]] = 1e7
+                m.scaling_factor[m.D_lithium_cobalt[x, z]] = 1e8
+                m.scaling_factor[m.D_cobalt_lithium[x, z]] = 1e8
+                m.scaling_factor[m.D_cobalt_cobalt[x, z]] = 1e8
 
     # Add scaling factors for poorly scaled constraints
     for x in m.x_bar:
         for z in m.z_bar:
-            if (x==0 and z==1):
-                m.scaling_factor[m.D_lithium_lithium_calculation[x,z]] = 1e21
-                m.scaling_factor[m.D_lithium_cobalt_calculation[x,z]] = 1e21
-                m.scaling_factor[m.D_cobalt_lithium_calculation[x,z]] = 1e22
-                m.scaling_factor[m.D_cobalt_cobalt_calculation[x,z]] = 1e22
+            if x == 0 and z == 1:
+                m.scaling_factor[m.D_lithium_lithium_calculation[x, z]] = 1e21
+                m.scaling_factor[m.D_lithium_cobalt_calculation[x, z]] = 1e21
+                m.scaling_factor[m.D_cobalt_lithium_calculation[x, z]] = 1e22
+                m.scaling_factor[m.D_cobalt_cobalt_calculation[x, z]] = 1e22
             else:
-                m.scaling_factor[m.D_lithium_lithium_calculation[x,z]] = 1e10
-                m.scaling_factor[m.D_lithium_cobalt_calculation[x,z]] = 1e11
-                m.scaling_factor[m.D_cobalt_lithium_calculation[x,z]] = 1e10
-                m.scaling_factor[m.D_cobalt_cobalt_calculation[x,z]] = 1e9
-
+                m.scaling_factor[m.D_lithium_lithium_calculation[x, z]] = 1e10
+                m.scaling_factor[m.D_lithium_cobalt_calculation[x, z]] = 1e11
+                m.scaling_factor[m.D_cobalt_lithium_calculation[x, z]] = 1e10
+                m.scaling_factor[m.D_cobalt_cobalt_calculation[x, z]] = 1e9
 
     for x in m.x_bar:
         for z in m.z_bar:
             if z != 0:
-                m.scaling_factor[m.lithium_flux_membrane[x,z]] = 1e15
-                m.scaling_factor[m.cobalt_flux_membrane[x,z]] = 1e15
-            if (x==0 and z==1):
-                m.scaling_factor[m.lithium_flux_membrane[x,z]] = 1e20
-                m.scaling_factor[m.cobalt_flux_membrane[x,z]] = 1e21            
+                m.scaling_factor[m.lithium_flux_membrane[x, z]] = 1e15
+                m.scaling_factor[m.cobalt_flux_membrane[x, z]] = 1e15
+            if x == 0 and z == 1:
+                m.scaling_factor[m.lithium_flux_membrane[x, z]] = 1e20
+                m.scaling_factor[m.cobalt_flux_membrane[x, z]] = 1e21
 
 
 def unfix_dof(m):
@@ -935,6 +968,61 @@ def plot_results(m):
     ax6.plot(x_plot, lithium_flux)
     ax6.set_xlabel("Membrane Length (m)")
     ax6.set_ylabel("Mass Flux of Lithium (kg/m2/h)")
+
+    plt.show()
+
+
+def plot_membrane_results(m):
+
+    x_vals = []
+    z_vals = []
+
+    for x_val in m.x_bar:
+        x_vals.append(x_val)
+    for z_val in m.z_bar:
+        z_vals.append(z_val)
+
+    c_lith_mem = []
+    c_cob_mem = []
+
+    c_lith_mem_dict = {}
+    c_cob_mem_dict = {}
+
+    for z_val in m.z_bar:
+        for x_val in m.x_bar:
+            c_lith_mem.append(value(m.membrane_conc_mass_lithium[x_val, z_val]))
+            c_cob_mem.append(value(m.membrane_conc_mass_cobalt[x_val, z_val]))
+
+        c_lith_mem_dict[f"{z_val}"] = c_lith_mem
+        c_cob_mem_dict[f"{z_val}"] = c_cob_mem
+        c_lith_mem = []
+        c_cob_mem = []
+
+    c_lith_mem_df = DataFrame(index=x_vals, data=c_lith_mem_dict)
+    c_cob_mem_df = DataFrame(index=x_vals, data=c_cob_mem_dict)
+
+    figs, (ax1, ax2) = plt.subplots(1, 2)
+    sns.heatmap(
+        ax=ax1,
+        data=c_lith_mem_df,
+        cmap="mako",
+    )
+    ax1.tick_params(axis="x", labelrotation=45)
+    ax1.set_xlabel("z_bar")
+    ax1.set_ylabel("x_bar")
+    ax1.invert_yaxis()
+    ax1.set_title("Lithium Concentration in Membrane (kg/m3)")
+
+    sns.heatmap(
+        ax=ax2,
+        data=c_cob_mem_df,
+        cmap="mako",
+    )
+    ax2.tick_params(axis="x", labelrotation=45)
+    ax2.set_xlabel("z_bar")
+    ax2.set_ylabel("x_bar")
+    ax2.invert_yaxis()
+    ax2.set_title("Cobalt Concentration in Membrane (kg/m3)")
 
     plt.show()
 

@@ -19,11 +19,13 @@ from idaes.core.util.constants import Constants
 from idaes.core.util.model_diagnostics import DiagnosticsToolbox
 
 import matplotlib.pyplot as plt
+import seaborn as sns
+from pandas import DataFrame
 
 
 def main():
     m = build_model()
-    discretize_model(m, NFEx=8, NFEz=5)
+    discretize_model(m, NFEx=10, NFEz=5)
     dt = DiagnosticsToolbox(m)
     # dt.assert_no_structural_warnings()
     dt.report_structural_issues()
@@ -36,6 +38,7 @@ def main():
     # optimize(m)
 
     plot_results(m)
+    plot_membrane_results(m)
 
 
 def build_model():
@@ -379,40 +382,32 @@ def build_model():
 
     ## boundary conditions
     def _retentate_membrane_interface_lithium(m, x):
-        return (
-            m.retentate_conc_mass_lithium[x]
-            == m.membrane_conc_mass_lithium[x, 0]
-        )
+        if x == 0:
+            return Constraint.Skip
+        return m.retentate_conc_mass_lithium[x] == m.membrane_conc_mass_lithium[x, 0]
 
     m.retentate_membrane_interface_lithium = Constraint(
         m.x_bar, rule=_retentate_membrane_interface_lithium
     )
 
     def _retentate_membrane_interface_chlorine(m, x):
-        return (
-            m.retentate_conc_mass_chlorine[x]
-            == m.membrane_conc_mass_chlorine[x, 0]
-        )
+        if x == 0:
+            return Constraint.Skip
+        return m.retentate_conc_mass_chlorine[x] == m.membrane_conc_mass_chlorine[x, 0]
 
     m.retentate_membrane_interface_chlorine = Constraint(
         m.x_bar, rule=_retentate_membrane_interface_chlorine
     )
 
     def _membrane_permeate_interface_lithium(m, x):
-        return (
-            m.permeate_conc_mass_lithium[x]
-            == m.membrane_conc_mass_lithium[x, 1]
-        )
+        return m.permeate_conc_mass_lithium[x] == m.membrane_conc_mass_lithium[x, 1]
 
     m.membrane_permeate_interface_lithium = Constraint(
         m.x_bar, rule=_membrane_permeate_interface_lithium
     )
 
     def _membrane_permeate_interface_chlorine(m, x):
-        return (
-            m.permeate_conc_mass_chlorine[x]
-            == m.membrane_conc_mass_chlorine[x, 1]
-        )
+        return m.permeate_conc_mass_chlorine[x] == m.membrane_conc_mass_chlorine[x, 1]
 
     m.membrane_permeate_interface_chlorine = Constraint(
         m.x_bar, rule=_membrane_permeate_interface_chlorine
@@ -481,6 +476,20 @@ def build_model():
 
     m.initial_retentate_conc_mass_lithium = Constraint(
         rule=_initial_retentate_conc_mass_lithium
+    )
+
+    def _initial_membrane_interface_lithium(m):
+        return m.membrane_conc_mass_lithium[0, 0] == (0 * units.kg / units.m**3)
+
+    m.initial_membrane_interface_lithium = Constraint(
+        rule=_initial_membrane_interface_lithium
+    )
+
+    def _initial_membrane_interface_chlorine(m):
+        return m.membrane_conc_mass_chlorine[0, 0] == (0 * units.kg / units.m**3)
+
+    m.initial_membrane_interface_chlorine = Constraint(
+        rule=_initial_membrane_interface_chlorine
     )
 
     def _initial_permeate_conc_mass_lithium(m):
@@ -608,6 +617,61 @@ def plot_results(m):
     ax6.plot(x_plot, lithium_flux)
     ax6.set_xlabel("Membrane Length (m)")
     ax6.set_ylabel("Mass Flux of Lithium (kg/m2/h)")
+
+    plt.show()
+
+
+def plot_membrane_results(m):
+
+    x_vals = []
+    z_vals = []
+
+    for x_val in m.x_bar:
+        x_vals.append(x_val)
+    for z_val in m.z_bar:
+        z_vals.append(z_val)
+
+    c_lith_mem = []
+    c_chlor_mem = []
+
+    c_lith_mem_dict = {}
+    c_chlor_mem_dict = {}
+
+    for z_val in m.z_bar:
+        for x_val in m.x_bar:
+            c_lith_mem.append(value(m.membrane_conc_mass_lithium[x_val, z_val]))
+            c_chlor_mem.append(value(m.membrane_conc_mass_chlorine[x_val, z_val]))
+
+        c_lith_mem_dict[f"{z_val}"] = c_lith_mem
+        c_chlor_mem_dict[f"{z_val}"] = c_chlor_mem
+        c_lith_mem = []
+        c_chlor_mem = []
+
+    c_lith_mem_df = DataFrame(index=x_vals, data=c_lith_mem_dict)
+    c_chlor_mem_df = DataFrame(index=x_vals, data=c_chlor_mem_dict)
+
+    figs, (ax1, ax2) = plt.subplots(1, 2)
+    sns.heatmap(
+        ax=ax1,
+        data=c_lith_mem_df,
+        cmap="mako",
+    )
+    ax1.tick_params(axis="x", labelrotation=45)
+    ax1.set_xlabel("z_bar")
+    ax1.set_ylabel("x_bar")
+    ax1.invert_yaxis()
+    ax1.set_title("Lithium Concentration in Membrane (kg/m3)")
+
+    sns.heatmap(
+        ax=ax2,
+        data=c_chlor_mem_df,
+        cmap="mako",
+    )
+    ax2.tick_params(axis="x", labelrotation=45)
+    ax2.set_xlabel("z_bar")
+    ax2.set_ylabel("x_bar")
+    ax2.invert_yaxis()
+    ax2.set_title("Chlorine Concentration in Membrane (kg/m3)")
 
     plt.show()
 
