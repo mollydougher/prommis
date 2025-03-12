@@ -851,8 +851,8 @@ def plot_results(m):
     x_plot = []
     conc_ret_lith = []
     conc_perm_lith = []
-    conc_ret_chlor = []
-    conc_perm_chlor = []
+    conc_ret_cob = []
+    conc_perm_cob = []
 
     water_flux = []
     lithium_flux = []
@@ -861,43 +861,46 @@ def plot_results(m):
         x_plot.append(x_val * value(m.w))
         conc_ret_lith.append(value(m.retentate_conc_mass_lithium[x_val]))
         conc_perm_lith.append(value(m.permeate_conc_mass_lithium[x_val]))
-        conc_ret_chlor.append(value(m.retentate_conc_mass_chlorine[x_val]))
-        conc_perm_chlor.append(value(m.permeate_conc_mass_chlorine[x_val]))
+        conc_ret_cob.append(value(m.retentate_conc_mass_cobalt[x_val]))
+        conc_perm_cob.append(value(m.permeate_conc_mass_cobalt[x_val]))
 
         water_flux.append(value(m.volume_flux_water[x_val]))
         lithium_flux.append(value(m.mass_flux_lithium[x_val]))
 
-    fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2)
+    fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, dpi =175, figsize =(10,7))
 
-    ax1.plot(x_plot, conc_ret_lith)
-    ax1.set_xlabel("Membrane Length (m)")
-    ax1.set_ylabel("Retentate-side Lithium Concentration (kg/m3)")
+    ax1.plot(x_plot, conc_ret_lith, linewidth=2)
+    ax1.set_ylim(1.3,1.4)
+    ax1.set_ylabel("Retentate-side Lithium\n Concentration (kg/m3)", fontsize = 10, fontweight = 'bold')
+    ax1.tick_params(direction="in",labelsize=10)
 
-    ax2.plot(x_plot, conc_perm_lith)
-    ax2.set_xlabel("Membrane Length (m)")
-    ax2.set_ylabel("Permeate-side Lithium Concentration (kg/m3)")
+    ax2.plot(x_plot, conc_perm_lith, linewidth=2)
+    ax2.set_ylabel("Permeate-side Lithium\n Concentration (kg/m3)", fontsize = 10, fontweight = 'bold')
+    ax2.tick_params(direction="in",labelsize=10)
 
-    ax3.plot(x_plot, conc_ret_chlor)
-    ax3.set_xlabel("Membrane Length (m)")
-    ax3.set_ylabel("Retentate-side Chlorine Concentration (kg/m3)")
+    ax3.plot(x_plot, conc_ret_cob, linewidth=2)
+    ax3.set_ylim(13,13.5)
+    ax3.set_ylabel("Retentate-side Cobalt\n Concentration (kg/m3)", fontsize = 10, fontweight = 'bold')
+    ax3.tick_params(direction="in",labelsize=10)
 
-    ax4.plot(x_plot, conc_perm_chlor)
-    ax4.set_xlabel("Membrane Length (m)")
-    ax4.set_ylabel("Permeate-side Chlorine Concentration (kg/m3)")
+    ax4.plot(x_plot, conc_perm_cob, linewidth=2)
+    ax4.set_ylabel("Permeate-side Cobalt\n Concentration (kg/m3)", fontsize = 10, fontweight = 'bold')
+    ax4.tick_params(direction="in",labelsize=10)
 
-    ax5.plot(x_plot, water_flux)
-    ax5.set_xlabel("Membrane Length (m)")
-    ax5.set_ylabel("Water Flux (m3/m2/h)")
+    ax5.plot(x_plot, water_flux, linewidth=2)
+    ax5.set_xlabel("Membrane Length (m)", fontsize = 10, fontweight = 'bold')
+    ax5.set_ylabel("Water Flux (m3/m2/h)", fontsize = 10, fontweight = 'bold')
+    ax5.tick_params(direction="in",labelsize=10)
 
-    ax6.plot(x_plot, lithium_flux)
-    ax6.set_xlabel("Membrane Length (m)")
-    ax6.set_ylabel("Mass Flux of Lithium (kg/m2/h)")
+    ax6.plot(x_plot, lithium_flux, linewidth=2)
+    ax6.set_xlabel("Membrane Length (m)", fontsize = 10, fontweight = 'bold')
+    ax6.set_ylabel("Mass Flux of Lithium\n (kg/m2/h)", fontsize = 10, fontweight = 'bold')
+    ax6.tick_params(direction="in",labelsize=10)
 
     plt.show()
 
 
 def plot_membrane_results(m):
-
     x_vals = []
     z_vals = []
 
@@ -908,34 +911,41 @@ def plot_membrane_results(m):
 
     c_lith_mem = []
     c_cob_mem = []
+    c_chl_mem = []
 
     c_lith_mem_dict = {}
     c_cob_mem_dict = {}
+    c_chl_mem_dict = {}
 
     for z_val in m.z_bar:
         for x_val in m.x_bar:
             c_lith_mem.append(value(m.membrane_conc_mass_lithium[x_val, z_val]))
             c_cob_mem.append(value(m.membrane_conc_mass_cobalt[x_val, z_val]))
+            c_chl_mem.append(value(m.membrane_conc_mass_chlorine[x_val, z_val]))
 
         c_lith_mem_dict[f"{z_val}"] = c_lith_mem
         c_cob_mem_dict[f"{z_val}"] = c_cob_mem
+        c_chl_mem_dict[f"{z_val}"] = c_chl_mem
         c_lith_mem = []
         c_cob_mem = []
+        c_chl_mem = []
 
     c_lith_mem_df = DataFrame(index=x_vals, data=c_lith_mem_dict)
     c_cob_mem_df = DataFrame(index=x_vals, data=c_cob_mem_dict)
+    c_chl_mem_df = DataFrame(index=x_vals, data=c_chl_mem_dict)
 
-    figs, (ax1, ax2) = plt.subplots(1, 2)
+    figs, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi =125, figsize =(15,7))
     sns.heatmap(
         ax=ax1,
         data=c_lith_mem_df,
         cmap="mako",
     )
     ax1.tick_params(axis="x", labelrotation=45)
-    ax1.set_xlabel("z_bar")
-    ax1.set_ylabel("x_bar")
+    ax1.set_xlabel("z (dimensionless)", fontsize = 10, fontweight = 'bold')
+    ax1.set_ylabel("x (dimensionless)", fontsize = 10, fontweight = 'bold')
     ax1.invert_yaxis()
-    ax1.set_title("Lithium Concentration in Membrane (kg/m3)")
+    ax1.set_title("Lithium Concentration\n in Membrane (kg/m3)", fontsize = 10, fontweight = 'bold')
+    ax1.tick_params(direction="in",labelsize=10)
 
     sns.heatmap(
         ax=ax2,
@@ -943,10 +953,23 @@ def plot_membrane_results(m):
         cmap="mako",
     )
     ax2.tick_params(axis="x", labelrotation=45)
-    ax2.set_xlabel("z_bar")
-    ax2.set_ylabel("x_bar")
+    ax2.set_xlabel("z (dimensionless)", fontsize = 10, fontweight = 'bold')
+    ax2.set_ylabel("x (dimensionless)", fontsize = 10, fontweight = 'bold')
     ax2.invert_yaxis()
-    ax2.set_title("Cobalt Concentration in Membrane (kg/m3)")
+    ax2.set_title("Cobalt Concentration\n in Membrane (kg/m3)", fontsize = 10, fontweight = 'bold')
+    ax2.tick_params(direction="in",labelsize=10)
+
+    sns.heatmap(
+        ax=ax3,
+        data=c_chl_mem_df,
+        cmap="mako",
+    )
+    ax3.tick_params(axis="x", labelrotation=45)
+    ax3.set_xlabel("z (dimensionless)", fontsize = 10, fontweight = 'bold')
+    ax3.set_ylabel("x (dimensionless)", fontsize = 10, fontweight = 'bold')
+    ax3.invert_yaxis()
+    ax3.set_title("Chlorine Concentration\n in Membrane (kg/m3)", fontsize = 10, fontweight = 'bold')
+    ax3.tick_params(direction="in",labelsize=10)
 
     plt.show()
 
