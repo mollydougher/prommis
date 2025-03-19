@@ -890,7 +890,7 @@ def plot_results(m):
         lithium_flux.append(value(m.mass_flux_lithium[x_val]))
 
     fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
-        3, 2, dpi=175, figsize=(10, 7)
+        3, 2, dpi=125, figsize=(10, 7)
     )
 
     ax1.plot(x_plot, conc_ret_lith, linewidth=2)
@@ -988,7 +988,7 @@ def plot_membrane_results(m):
     )
     ax2.tick_params(axis="x", labelrotation=45)
     ax2.set_xlabel("z (dimensionless)", fontsize=10, fontweight="bold")
-    ax2.set_ylabel("x (dimensionless)", fontsize=10, fontweight="bold")
+    # ax2.set_ylabel("x (dimensionless)", fontsize=10, fontweight="bold")
     ax2.invert_yaxis()
     ax2.set_title(
         "Cobalt Concentration\n in Membrane (kg/m3)", fontsize=10, fontweight="bold"
@@ -1002,7 +1002,7 @@ def plot_membrane_results(m):
     )
     ax3.tick_params(axis="x", labelrotation=45)
     ax3.set_xlabel("z (dimensionless)", fontsize=10, fontweight="bold")
-    ax3.set_ylabel("x (dimensionless)", fontsize=10, fontweight="bold")
+    # ax3.set_ylabel("x (dimensionless)", fontsize=10, fontweight="bold")
     ax3.invert_yaxis()
     ax3.set_title(
         "Chlorine Concentration\n in Membrane (kg/m3)", fontsize=10, fontweight="bold"

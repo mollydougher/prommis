@@ -113,17 +113,18 @@ def calculate_diffusion_coefficients():
 
 
 def plot_2D_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_df):
-    figs, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+    figs, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, dpi=125, figsize=(7, 2))
     sns.heatmap(
         ax=ax1,
         data=D_11_df,
         cmap="mako",
     )
     ax1.tick_params(axis="x", labelrotation=45)
-    ax1.set_xlabel("Lithium Concentration (kg/m3)")
-    ax1.set_ylabel("Cobalt Concentration (kg/m3)")
+    # ax1.set_xlabel("Lithium Concentration (kg/m3)", fontsize=14, fontweight="bold")
+    ax1.set_ylabel("Cobalt Concentration (kg/m3)", fontsize=13, fontweight="bold")
     ax1.invert_yaxis()
-    ax1.set_title("D_11 (m2/h)")
+    ax1.set_title("D_11 (m2/h)", fontsize=12, fontweight="bold")
+    ax1.tick_params(direction="in", labelsize=10)
 
     sns.heatmap(
         ax=ax2,
@@ -131,10 +132,11 @@ def plot_2D_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_df):
         cmap="mako",
     )
     ax2.tick_params(axis="x", labelrotation=45)
-    ax2.set_xlabel("Lithium Concentration (kg/m3)")
-    ax2.set_ylabel("Cobalt Concentration (kg/m3)")
+    # ax2.set_xlabel("Lithium Concentration (kg/m3)", fontsize=14, fontweight="bold")
+    # ax2.set_ylabel("Cobalt Concentration (kg/m3)", fontsize=14, fontweight="bold")
     ax2.invert_yaxis()
-    ax2.set_title("D_12 (m2/h)")
+    ax2.set_title("D_12 (m2/h)", fontsize=12, fontweight="bold")
+    ax2.tick_params(direction="in", labelsize=10)
 
     sns.heatmap(
         ax=ax3,
@@ -142,10 +144,11 @@ def plot_2D_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_df):
         cmap="mako",
     )
     ax3.tick_params(axis="x", labelrotation=45)
-    ax3.set_xlabel("Lithium Concentration (kg/m3)")
-    ax3.set_ylabel("Cobalt Concentration (kg/m3)")
+    ax3.set_xlabel("Lithium Concentration (kg/m3)", fontsize=14, fontweight="bold")
+    ax3.set_ylabel("Cobalt Concentration (kg/m3)", fontsize=13, fontweight="bold")
     ax3.invert_yaxis()
-    ax3.set_title("D_21 (m2/h)")
+    ax3.set_title("D_21 (m2/h)", fontsize=12, fontweight="bold")
+    ax3.tick_params(direction="in", labelsize=10)
 
     sns.heatmap(
         ax=ax4,
@@ -153,10 +156,11 @@ def plot_2D_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_df):
         cmap="mako",
     )
     ax4.tick_params(axis="x", labelrotation=45)
-    ax4.set_xlabel("Lithium Concentration (kg/m3)")
-    ax4.set_ylabel("Cobalt Concentration (kg/m3)")
+    ax4.set_xlabel("Lithium Concentration (kg/m3)", fontsize=14, fontweight="bold")
+    # ax4.set_ylabel("Cobalt Concentration (kg/m3)", fontsize=14, fontweight="bold")
     ax4.invert_yaxis()
-    ax4.set_title("D_22 (m2/h)")
+    ax4.set_title("D_22 (m2/h)", fontsize=12, fontweight="bold")
+    ax4.tick_params(direction="in", labelsize=10)
 
     plt.show()
 
@@ -313,9 +317,10 @@ def plot_3D_with_regression():
         c2,
         D_11_df_linearized,
     )
-    ax1.set_xlabel("Lithium Concentration (kg/m3)")
-    ax1.set_ylabel("Cobalt Concentration (kg/m3)")
-    ax1.set_title("D_11 (m2/h)")
+    ax1.set_xlabel("Lithium Concentration (kg/m3)", fontsize=14, fontweight="bold")
+    ax1.set_ylabel("Cobalt Concentration (kg/m3)", fontsize=14, fontweight="bold")
+    ax1.set_title("D_11 (m2/h)", fontsize=14, fontweight="bold")
+    ax1.tick_params(labelsize=12)
 
     ax2 = plt.figure().add_subplot(projection="3d")
     ax2.plot_surface(
@@ -328,9 +333,10 @@ def plot_3D_with_regression():
         c2,
         D_12_df_linearized,
     )
-    ax2.set_xlabel("Lithium Concentration (kg/m3)")
-    ax2.set_ylabel("Cobalt Concentration (kg/m3)")
-    ax2.set_title("D_12 (m2/h)")
+    ax2.set_xlabel("Lithium Concentration (kg/m3)", fontsize=14, fontweight="bold")
+    ax2.set_ylabel("Cobalt Concentration (kg/m3)", fontsize=14, fontweight="bold")
+    ax2.set_title("D_12 (m2/h)", fontsize=14, fontweight="bold")
+    ax2.tick_params(labelsize=12)
 
     ax3 = plt.figure().add_subplot(projection="3d")
     ax3.plot_surface(
@@ -343,9 +349,10 @@ def plot_3D_with_regression():
         c2,
         D_21_df_linearized,
     )
-    ax3.set_xlabel("Lithium Concentration (kg/m3)")
-    ax3.set_ylabel("Cobalt Concentration (kg/m3)")
-    ax3.set_title("D_21 (m2/h)")
+    ax3.set_xlabel("Lithium Concentration (kg/m3)", fontsize=14, fontweight="bold")
+    ax3.set_ylabel("Cobalt Concentration (kg/m3)", fontsize=14, fontweight="bold")
+    ax3.set_title("D_21 (m2/h)", fontsize=14, fontweight="bold")
+    ax3.tick_params(labelsize=12)
 
     ax4 = plt.figure().add_subplot(projection="3d")
     ax4.plot_surface(
@@ -358,9 +365,10 @@ def plot_3D_with_regression():
         c2,
         D_22_df_linearized,
     )
-    ax4.set_xlabel("Lithium Concentration (kg/m3)")
-    ax4.set_ylabel("Cobalt Concentration (kg/m3)")
-    ax4.set_title("D_22 (m2/h)")
+    ax4.set_xlabel("Lithium Concentration (kg/m3)", fontsize=14, fontweight="bold")
+    ax4.set_ylabel("Cobalt Concentration (kg/m3)", fontsize=14, fontweight="bold")
+    ax4.set_title("D_22 (m2/h)", fontsize=14, fontweight="bold")
+    ax4.tick_params(labelsize=12)
 
     plt.show()
 
