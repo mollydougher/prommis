@@ -21,54 +21,81 @@ def main():
     cobalt_H = 0.5
     chlorine_H = 1
 
-    lithium_dict = {"z": 1, "H": lithium_H, "conc_sol": 20}
-    cobalt_dict = {"z": 2, "H": cobalt_H, "conc_sol": 20}
-    chlorine_dict = {"z": -1, "H": chlorine_H, "conc_sol": 20}
-    m_general_lithium = single_salt_partitioning_model(lithium_dict, chlorine_dict)
+    lithium_dict = {"num": 1, "z": 1, "H": lithium_H, "conc_sol": 20}
+    cobalt_dict = {"num": 2, "z": 2, "H": cobalt_H, "conc_sol": 20}
+    chlorine_dict = {"num": 3, "z": -1, "H": chlorine_H, "conc_sol": 20}
+
+    ion_dict_LiCl = {
+        "lithium": lithium_dict,
+        "chlorine": chlorine_dict,
+    }
+    m_general_lithium = single_salt_partitioning_model(ion_dict_LiCl)
     solve_model(m_general_lithium)
-    m_general_cobalt = single_salt_partitioning_model(cobalt_dict, chlorine_dict)
+
+    ion_dict_CoCl2 = {
+        "cobalt": cobalt_dict,
+        "chlorine": chlorine_dict,
+    }
+    m_general_cobalt = single_salt_partitioning_model(ion_dict_CoCl2)
     solve_model(m_general_cobalt)
 
+    ion_dict_LiCoCl = {
+        "lithium": lithium_dict,
+        "cobalt": cobalt_dict,
+        "chlorine": chlorine_dict,
+    }
     m_double_salt_independent = double_salt_independent_partitioning_model(
-        h1=lithium_H, h2=cobalt_H, h3=chlorine_H
+        ion_dict_LiCoCl
     )
     solve_model(m_double_salt_independent)
 
     print("Lithium Chloride")
-    print_info_general(m_general_lithium)
+    print_info(m_general_lithium)
     print("\n")
 
     print("Cobalt Chloride")
-    print_info_general(m_general_cobalt)
+    print_info(m_general_cobalt)
     print("\n")
 
-    print("Double Salt, Independent")
+    print("Double Salt, General")
     print_info(m_double_salt_independent)
     print("\n")
 
-    plot_partitioning_behavior(single=True, double=False)
+    plot_partitioning_behavior(single=True, double=True)
 
 
-def single_salt_partitioning_model(cation_info, anion_info):
+def add_model_sets(m, ion_info):
     """
-    Generalized model equations for the partitioning of ions in
-    a single salt aqueous solution.
-    1 - cation
-    2 - anion
-
     Args:
-        cation_info: dict of z, H, conc_sol
-        anion_info: dict of z, H, conc_sol
-
-    Returns:
-        m: the Pyomo model
+        ion_info: {
+            ion: {
+                "num": int value
+                "z": int val,
+                "H": float val,
+                "conc_sol": float val,
+            },
+            ...
+        }
     """
-    m = ConcreteModel()
+    m.solutes = Set(initialize=[dict["num"] for dict in ion_info.values()])
 
-    m.solutes = Set(initialize=["1", "2"])
+
+def add_model_params(m, ion_info):
+    """
+    Args:
+        ion_info: {
+            ion: {
+                "num": int value
+                "z": int val,
+                "H": float val,
+                "conc_sol": float val,
+            },
+            ...
+        }
+    """
 
     def initialize_z_params(m, j):
-        vals = {"1": cation_info["z"], "2": anion_info["z"]}
+        vals = {dict["num"]: dict["z"] for dict in ion_info.values()}
         return vals[j]
 
     m.z = Param(
@@ -77,7 +104,7 @@ def single_salt_partitioning_model(cation_info, anion_info):
     )
 
     def initialize_H_params(m, j):
-        vals = {"1": cation_info["H"], "2": anion_info["H"]}
+        vals = {dict["num"]: dict["H"] for dict in ion_info.values()}
         return vals[j]
 
     m.H = Param(
@@ -85,8 +112,23 @@ def single_salt_partitioning_model(cation_info, anion_info):
         initialize=initialize_H_params,
     )
 
+
+def add_model_vars(m, ion_info):
+    """
+    Args:
+        ion_info: {
+            ion: {
+                "num": int value
+                "z": int val,
+                "H": float val,
+                "conc_sol": float val,
+            },
+            ...
+        }
+    """
+
     def initialize_conc_sol(m, j):
-        vals = {"1": cation_info["conc_sol"], "2": anion_info["conc_sol"]}
+        vals = {dict["num"]: dict["conc_sol"] for dict in ion_info.values()}
         return vals[j]
 
     m.conc_sol = Var(
@@ -94,11 +136,13 @@ def single_salt_partitioning_model(cation_info, anion_info):
         initialize=initialize_conc_sol,
         bounds=[0, None],
     )
-    m.conc_sol["1"].fix()
-    # concentration of anion gets verified with electoneutrality constraint
+    for i in m.solutes:
+        if i != m.solutes.at(-1):
+            m.conc_sol[i].fix()
+    # assuming final ion is anion; concentration of anion gets verified with electoneutrality constraint
 
     def initialize_conc_mem(m, j):
-        vals = {"1": 10, "2": 10}
+        vals = {dict["num"]: 10 for dict in ion_info.values()}
         return vals[j]
 
     m.conc_mem = Var(
@@ -107,56 +151,106 @@ def single_salt_partitioning_model(cation_info, anion_info):
         bounds=[0, None],
     )
 
+
+# TODO: add generalized function for adding constraints; combiine into build_model
+
+
+def single_salt_partitioning_model(ion_info):
+    """
+    Generalized model equations for the partitioning of ions in
+    a single salt aqueous solution.
+
+    Assumes 1 is cation, 2 is anion
+
+    Args:
+        ion_info: {
+            ion: {
+                "num": int value
+                "z": int val,
+                "H": float val,
+                "conc_sol": float val,
+            },
+            ...
+        }
+
+    Returns:
+        m: the Pyomo model
+    """
+    m = ConcreteModel()
+
+    add_model_sets(m, ion_info)
+    add_model_params(m, ion_info)
+    add_model_vars(m, ion_info)
+
     # electroneutrality in the solution phase: z1c1+z2c2=0
     def _electoneutrality_solution(m):
-        return m.conc_sol["2"] == -(m.z["1"] / m.z["2"]) * m.conc_sol["1"]
+        return (
+            m.conc_sol[m.solutes.at(2)]
+            == -(m.z[m.solutes.at(1)] / m.z[m.solutes.at(2)])
+            * m.conc_sol[m.solutes.at(1)]
+        )
 
     m.electroneutrality_solution = Constraint(rule=_electoneutrality_solution)
 
     # electroneutrality in the membrane phase: z1c1+z2c2=0
     def _electoneutrality_membrane(m):
-        return m.conc_mem["2"] == -(m.z["1"] / m.z["2"]) * m.conc_mem["1"]
+        return (
+            m.conc_mem[m.solutes.at(2)]
+            == -(m.z[m.solutes.at(1)] / m.z[m.solutes.at(2)])
+            * m.conc_mem[m.solutes.at(1)]
+        )
 
     m.electoneutrality_membrane = Constraint(rule=_electoneutrality_membrane)
 
     # generalized single salt partitioning
     def _single_salt_partitioning(m):
-        return m.H["1"] * m.H["2"] == (m.conc_mem["2"] / m.conc_sol["2"]) * (
-            m.conc_mem["1"] / m.conc_sol["1"]
-        ) ** (-m.z["2"] / m.z["1"])
+        return m.H[m.solutes.at(1)] * m.H[m.solutes.at(2)] == (
+            m.conc_mem[m.solutes.at(2)] / m.conc_sol[m.solutes.at(2)]
+        ) * (m.conc_mem[m.solutes.at(1)] / m.conc_sol[m.solutes.at(1)]) ** (
+            -m.z[m.solutes.at(2)] / m.z[m.solutes.at(1)]
+        )
 
     m.single_salt_partitioning = Constraint(rule=_single_salt_partitioning)
 
     return m
 
 
-def double_salt_independent_partitioning_model(h1=1, h2=1, h3=1):
+def double_salt_independent_partitioning_model(ion_info):
+    """
+    Generalized model equations for the partitioning of ions in
+    a two salt (common anion) aqueous solution, assuming no cation
+    interactions.
+
+    Assumes 1 and 2 are cations, 3 is anion
+
+    Args:
+        ion_info: {
+            ion: {
+                "num": int value
+                "z": int val,
+                "H": float val,
+                "conc_sol": float val,
+            },
+            ...
+        }
+
+    Returns:
+        m: the Pyomo model
+    """
     m = ConcreteModel()
 
-    m.solutes = Set(initialize=["Li", "Co", "Cl"])
-
-    m.H_1 = Param(initialize=h1)
-    m.H_2 = Param(initialize=h2)
-    m.H_3 = Param(initialize=h3)
-    m.z_1 = Param(initialize=1)  # monovalent cation
-    m.z_2 = Param(initialize=2)  # divalent cation
-    m.z_3 = Param(initialize=-1)  # monovalent anion
-
-    m.conc_1_sol = Var(initialize=20, bounds=[0, None])  # mM
-    m.conc_1_sol.fix()
-    m.conc_2_sol = Var(initialize=20, bounds=[0, None])  # mM
-    m.conc_2_sol.fix()
-    m.conc_3_sol = Var(initialize=20, bounds=[0, None])  # mM
-
-    m.conc_1_mem = Var(initialize=10, bounds=[0, None])
-    m.conc_2_mem = Var(initialize=10, bounds=[0, None])
-    m.conc_3_mem = Var(initialize=10, bounds=[0, None])
+    add_model_sets(m, ion_info)
+    add_model_params(m, ion_info)
+    add_model_vars(m, ion_info)
 
     # electroneutrality in the solution phase: z1c1+z2c2+z3c3=0
     def _electoneutrality_solution(m):
         return (
-            m.conc_3_sol
-            == -(m.z_1 / m.z_3) * m.conc_1_sol - (m.z_2 / m.z_3) * m.conc_2_sol
+            m.conc_sol[m.solutes.at(3)]
+            == -(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
+            * m.conc_sol[m.solutes.at(1)]
+            - (m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
+            * m.conc_sol[m.solutes.at(2)]
         )
 
     m.electroneutrality_solution = Constraint(rule=_electoneutrality_solution)
@@ -164,26 +258,35 @@ def double_salt_independent_partitioning_model(h1=1, h2=1, h3=1):
     # electroneutrality in the membrane phase: z1c1+z2c2+z3c3=0
     def _electoneutrality_membrane(m):
         return (
-            m.conc_3_mem
-            == -(m.z_1 / m.z_3) * m.conc_1_mem - (m.z_2 / m.z_3) * m.conc_2_mem
+            m.conc_mem[m.solutes.at(3)]
+            == -(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
+            * m.conc_mem[m.solutes.at(1)]
+            - (m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
+            * m.conc_mem[m.solutes.at(2)]
         )
 
     m.electoneutrality_membrane = Constraint(rule=_electoneutrality_membrane)
 
-    # partitioning
-    def _single_symmetric_partitioning(m):
-        return m.H_1 * m.H_3 == (m.conc_1_mem * m.conc_3_mem) / (
-            m.conc_1_sol * m.conc_3_sol
+    # generalized single salt partitioning
+    # lithium chloride
+    def _lithium_chloride_partitioning(m):
+        return m.H[m.solutes.at(1)] * m.H[m.solutes.at(3)] == (
+            m.conc_mem[m.solutes.at(3)] / m.conc_sol[m.solutes.at(3)]
+        ) * (m.conc_mem[m.solutes.at(1)] / m.conc_sol[m.solutes.at(1)]) ** (
+            -m.z[m.solutes.at(3)] / m.z[m.solutes.at(1)]
         )
 
-    m.single_symmetric_partitioning = Constraint(rule=_single_symmetric_partitioning)
+    m.lithium_chloride_partitioning = Constraint(rule=_lithium_chloride_partitioning)
 
-    def _single_asymmetric_partitioning(m):
-        return m.H_2 * m.H_3 == ((m.conc_2_mem) ** (1 / 2) * m.conc_3_mem) / (
-            (m.conc_2_sol) ** (1 / 2) * m.conc_3_sol
+    # cobalt chloride
+    def _cobalt_chloride_partitioning(m):
+        return m.H[m.solutes.at(2)] * m.H[m.solutes.at(3)] == (
+            m.conc_mem[m.solutes.at(3)] / m.conc_sol[m.solutes.at(3)]
+        ) * (m.conc_mem[m.solutes.at(2)] / m.conc_sol[m.solutes.at(2)]) ** (
+            -m.z[m.solutes.at(3)] / m.z[m.solutes.at(2)]
         )
 
-    m.single_asymmetric_partitioning = Constraint(rule=_single_asymmetric_partitioning)
+    m.cobalt_chloride_partitioning = Constraint(rule=_cobalt_chloride_partitioning)
 
     return m
 
@@ -198,40 +301,28 @@ def print_info(m):
     print(
         " \t valence \t partition coefficient \t solution concentration (mM) \t membrane concentration (mM)"
     )
-    print(
-        f"ion 1 \t {value(m.z_1)} \t\t {value(m.H_1)} \t\t\t {value(m.conc_1_sol)} \t\t\t\t {value(m.conc_1_mem)}"
-    )
-    print(
-        f"ion 2 \t {value(m.z_2)} \t\t {value(m.H_2)} \t\t\t {value(m.conc_2_sol)} \t\t\t\t {value(m.conc_2_mem)}"
-    )
-    if len(m.solutes) == 3:
+    for i in m.solutes:
         print(
-            f"ion 3 \t {value(m.z_3)} \t\t {value(m.H_3)} \t\t\t {value(m.conc_3_sol)} \t\t\t\t {value(m.conc_3_mem)}"
+            f"ion {i} \t {value(m.z[i])} \t\t {value(m.H[i])} \t\t\t {value(m.conc_sol[i])} \t\t\t\t {value(m.conc_mem[i])}"
         )
 
 
-def print_info_general(m):
-    print(
-        " \t valence \t partition coefficient \t solution concentration (mM) \t membrane concentration (mM)"
-    )
-    for i in range(len(m.solutes)):
-        print(
-            f"ion {i+1} \t {value(m.z[str(i+1)])} \t\t {value(m.H[str(i+1)])} \t\t\t {value(m.conc_sol[str(i+1)])} \t\t\t\t {value(m.conc_mem[str(i+1)])}"
-        )
-
-
-def single_salt_sensitivity(c_1_sol_vals, h_1_vals, h_2_vals, ax):
+def single_salt_sensitivity(cation_num, cation_z, c_1_sol_vals, h_1_vals, h_2_vals, ax):
     c_1_mem_vals = []
 
     for h1 in h_1_vals:
         for h2 in h_2_vals:
-            lithium_dict = {"z": 1, "H": h1, "conc_sol": 20}
-            chlorine_dict = {"z": -1, "H": h2, "conc_sol": 20}
-            m = single_salt_partitioning_model(lithium_dict, chlorine_dict)
+            cation_dict = {"num": cation_num, "z": cation_z, "H": h1, "conc_sol": 20}
+            chlorine_dict = {"num": 3, "z": -1, "H": h2, "conc_sol": 20}
+            ion_dict = {
+                "cation": cation_dict,
+                "chlorine": chlorine_dict,
+            }
+            m = single_salt_partitioning_model(ion_dict)
             for c1 in c_1_sol_vals:
-                m.conc_sol["1"].fix(c1)
+                m.conc_sol[cation_dict["num"]].fix(c1)
                 solve_model(m)
-                c_1_mem_vals.append(value(m.conc_mem["1"]))
+                c_1_mem_vals.append(value(m.conc_mem[cation_dict["num"]]))
             if (
                 (h1 == 1 and h2 == 0.5)
                 or (h1 == 1.5 and h2 == 0.5)
@@ -259,6 +350,44 @@ def single_salt_sensitivity(c_1_sol_vals, h_1_vals, h_2_vals, ax):
     ax.legend(title="", loc="best", ncol=2)
 
 
+def double_salt_sensitivity(
+    c_primary_sol_vals, primary_cation, secondary_cation, h_1_vals, h_2_vals, ax
+):
+    c_primary_mem_vals = []
+    h3 = 1
+
+    for h1 in h_1_vals:
+        for h2 in h_2_vals:
+            lithium_dict = {"num": 1, "z": 1, "H": h1, "conc_sol": 20}
+            cobalt_dict = {"num": 2, "z": 2, "H": h2, "conc_sol": 20}
+            chlorine_dict = {"num": 3, "z": -1, "H": h3, "conc_sol": 20}
+            ion_dict = {
+                "lithium": lithium_dict,
+                "cobalt": cobalt_dict,
+                "chlorine": chlorine_dict,
+            }
+            m = double_salt_independent_partitioning_model(ion_dict)
+            for c1 in c_primary_sol_vals:
+                m.conc_sol[primary_cation].fix(c1)
+                m.conc_sol[secondary_cation].fix(50)
+                solve_model(m)
+                c_primary_mem_vals.append(value(m.conc_mem[primary_cation]))
+            ax.plot(
+                c_primary_sol_vals, c_primary_mem_vals, linewidth=2, label=f"{h1},{h2}"
+            )
+            c_primary_mem_vals = []
+
+    ax.plot([0, 300], [0, 300], "k--")
+
+    ax.set_xlim(left=0, right=110)
+    ax.set_ylim(bottom=0, top=180)
+    ax.tick_params(direction="in", right=True, labelsize=10)
+    ax.set_title(label="", fontweight="bold")
+    ax.set_xlabel(xlabel="", fontsize=10, fontweight="bold")
+    ax.set_ylabel(ylabel="", fontsize=10, fontweight="bold")
+    ax.legend(title="", loc="best", ncol=2)
+
+
 def plot_partitioning_behavior(single=True, double=True):
     # plot membrane concentration versus solution for different H's
 
@@ -270,13 +399,13 @@ def plot_partitioning_behavior(single=True, double=True):
 
         fig1, (ax1, ax2) = plt.subplots(1, 2, dpi=125, figsize=(10, 5))
 
-        single_salt_sensitivity(c_1_sol_vals, h_1_vals, h_2_vals, ax1)
+        single_salt_sensitivity(1, 1, c_1_sol_vals, h_1_vals, h_2_vals, ax1)
         ax1.set_title(label="Lithium Chloride Only")
         ax1.set_xlabel(xlabel="Lithium Concentration, Solution (mM)")
         ax1.set_ylabel(ylabel="Lithium Concentration, \nMembrane (mM)")
         ax1.legend(title="$H_{Li},H_{Cl}$")
 
-        single_salt_sensitivity(c_1_sol_vals, h_1_vals, h_2_vals, ax2)
+        single_salt_sensitivity(2, 2, c_1_sol_vals, h_1_vals, h_2_vals, ax2)
         ax2.set_title(label="Cobalt Chloride Only")
         ax2.set_xlabel(xlabel="Cobalt Concentration, Solution (mM)")
         ax2.set_ylabel(ylabel="Cobalt Concentration, \nMembrane (mM)")
@@ -290,73 +419,23 @@ def plot_partitioning_behavior(single=True, double=True):
         c_2_sol_vals = np.arange(5, 105, 5)  # mM
         h_1_vals = np.arange(0.5, 2, 0.5)
         h_2_vals = np.arange(0.5, 2, 0.5)
-        # h_3_vals = np.arange(0.5,2,0.5)
-
-        c_1_mem_vals = []
-        c_2_mem_vals = []
 
         fig2, (ax3, ax4) = plt.subplots(1, 2, dpi=125, figsize=(10, 5))
         fig2.suptitle("Lithium Chloride, Cobalt Chloride System", fontweight="bold")
 
-        for h1 in h_1_vals:
-            for h2 in h_2_vals:
-                m = double_salt_independent_partitioning_model(h1=h1, h2=h2, h3=1)
-                for c1 in c_1_sol_vals:
-                    m.conc_1_sol.fix(c1)
-                    m.conc_2_sol.fix(50)
-                    solve_model(m)
-                    c_1_mem_vals.append(value(m.conc_1_mem))
-                ax3.plot(c_1_sol_vals, c_1_mem_vals, linewidth=2, label=f"{h1},{h2}")
-                c_1_mem_vals = []
-        ax3.plot([0, 300], [0, 300], "k--")
+        double_salt_sensitivity(c_1_sol_vals, 1, 2, h_1_vals, h_2_vals, ax3)
 
-        ax3.set_title(
-            "Cobalt Chloride Concentration = 50 mM \n $H_{Cl}$ = 1", fontweight="bold"
-        )
-        ax3.set_xlabel(
-            "Lithium Concentration, Solution (mM)",
-            fontsize=10,
-            fontweight="bold",
-        )
-        ax3.set_ylabel(
-            "Lithium Concentration, \nMembrane (mM)",
-            fontsize=10,
-            fontweight="bold",
-        )
-        ax3.set_xlim(left=0, right=110)
-        ax3.set_ylim(bottom=0, top=180)
-        ax3.tick_params(direction="in", right=True, labelsize=10)
-        ax3.legend(loc="best", ncol=2, title="$H_{Li},H_{Co}$")
+        ax3.set_title("Cobalt Chloride Concentration = 50 mM \n $H_{Cl}$ = 1")
+        ax3.set_xlabel("Lithium Concentration, Solution (mM)")
+        ax3.set_ylabel("Lithium Concentration, \nMembrane (mM)")
+        ax3.legend(title="$H_{Li},H_{Co}$")
 
-        for h1 in h_1_vals:
-            for h2 in h_2_vals:
-                m = double_salt_independent_partitioning_model(h1=h1, h2=h2, h3=1)
-                for c2 in c_2_sol_vals:
-                    m.conc_1_sol.fix(50)
-                    m.conc_2_sol.fix(c2)
-                    solve_model(m)
-                    c_2_mem_vals.append(value(m.conc_2_mem))
-                ax4.plot(c_2_sol_vals, c_2_mem_vals, linewidth=2, label=f"{h1},{h2}")
-                c_2_mem_vals = []
-        ax4.plot([0, 300], [0, 300], "k--")
+        double_salt_sensitivity(c_2_sol_vals, 2, 1, h_1_vals, h_2_vals, ax4)
 
-        ax4.set_title(
-            "Lithium Chloride Concentration = 50 mM \n $H_{Cl}$ = 1", fontweight="bold"
-        )
-        ax4.set_xlabel(
-            "Cobalt Concentration, Solution (mM)",
-            fontsize=10,
-            fontweight="bold",
-        )
-        ax4.set_ylabel(
-            "Cobalt Concentration, \nMembrane (mM)",
-            fontsize=10,
-            fontweight="bold",
-        )
-        ax4.set_xlim(left=0, right=110)
-        ax4.set_ylim(bottom=0, top=180)
-        ax4.tick_params(direction="in", right=True, labelsize=10)
-        ax4.legend(loc="best", ncol=2, title="$H_{Li},H_{Co}$")
+        ax4.set_title("Lithium Chloride Concentration = 50 mM \n $H_{Cl}$ = 1")
+        ax4.set_xlabel("Cobalt Concentration, Solution (mM)")
+        ax4.set_ylabel("Cobalt Concentration, \nMembrane (mM)")
+        ax4.legend(title="$H_{Li},H_{Co}$")
 
         plt.show()
 
