@@ -17,8 +17,8 @@ from pyomo.environ import (
 
 
 def main():
-    lithium_H = 1
-    cobalt_H = 1
+    lithium_H = 1.5
+    cobalt_H = 0.5
     chlorine_H = 1
 
     lithium_dict = {"num": 1, "z": 1, "H": lithium_H, "conc_sol": 20}
@@ -68,7 +68,7 @@ def main():
     print_info(m_double_salt)
     print("\n")
 
-    # plot_partitioning_behavior(single=True, double=True)
+    plot_partitioning_behavior(single=True, double=True)
 
 
 def add_model_sets(m, ion_info):
@@ -348,54 +348,82 @@ def double_salt_partitioning_model(ion_info):
     m.electoneutrality_membrane = Constraint(rule=_electoneutrality_membrane)
 
     # partitioning rules
-    # TODO generalize by adding z parameters
-    # lithium concentration in the membrane
-    def _lithium_chloride_partitioning(m):
-        return m.H[m.solutes.at(1)] * m.conc_sol[m.solutes.at(1)] * (
-            m.conc_sol[m.solutes.at(1)] + 2 * m.conc_sol[m.solutes.at(2)]
+    # cation 1 concentration in the membrane
+    def _cation_1_partitioning(m):
+        return (m.H[m.solutes.at(1)]) ** (1 / abs(m.z[m.solutes.at(1)])) * (
+            m.conc_sol[m.solutes.at(1)]
+        ) ** (1 / abs(m.z[m.solutes.at(1)])) * (
+            (
+                abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
+                * m.conc_sol[m.solutes.at(1)]
+                + abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
+                * m.conc_sol[m.solutes.at(2)]
+            )
+            ** (1 / abs(m.z[m.solutes.at(3)]))
         ) == (
-            m.H[m.solutes.at(3)]
-            * m.conc_mem[m.solutes.at(1)]
+            (m.H[m.solutes.at(3)]) ** (1 / abs(m.z[m.solutes.at(3)]))
+            * (m.conc_mem[m.solutes.at(1)]) ** (1 / abs(m.z[m.solutes.at(1)]))
             * (
-                m.conc_mem[m.solutes.at(1)]
+                abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
+                * m.conc_mem[m.solutes.at(1)]
                 + (
                     (
-                        2
+                        abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
                         * m.H[m.solutes.at(2)]
                         * m.conc_sol[m.solutes.at(2)]
-                        * (m.conc_mem[m.solutes.at(1)]) ** 2
-                    )
-                    / ((m.H[m.solutes.at(1)]) ** 2 * (m.conc_sol[m.solutes.at(1)]) ** 2)
-                )
-            )
-        )
-
-    m.lithium_chloride_partitioning = Constraint(rule=_lithium_chloride_partitioning)
-
-    # cobalt concentration in the membrane
-    def _cobalt_chloride_partitioning(m):
-        return (m.H[m.solutes.at(2)]) ** (1 / 2) * (m.conc_sol[m.solutes.at(2)]) ** (
-            1 / 2
-        ) * (m.conc_sol[m.solutes.at(1)] + 2 * m.conc_sol[m.solutes.at(2)]) == (
-            m.H[m.solutes.at(3)]
-            * (m.conc_mem[m.solutes.at(2)]) ** (1 / 2)
-            * (
-                2 * m.conc_mem[m.solutes.at(2)]
-                + (
-                    (
-                        m.H[m.solutes.at(1)]
-                        * m.conc_sol[m.solutes.at(1)]
-                        * (m.conc_mem[m.solutes.at(2)]) ** (1 / 2)
+                        * (m.conc_mem[m.solutes.at(1)])
+                        ** abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(1)])
                     )
                     / (
-                        (m.H[m.solutes.at(2)]) ** (1 / 2)
-                        * (m.conc_sol[m.solutes.at(2)]) ** (1 / 2)
+                        (m.H[m.solutes.at(1)])
+                        ** abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(1)])
+                        * (m.conc_sol[m.solutes.at(1)])
+                        ** abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(1)])
                     )
                 )
             )
+            ** (1 / abs(m.z[m.solutes.at(3)]))
         )
 
-    m.cobalt_chloride_partitioning = Constraint(rule=_cobalt_chloride_partitioning)
+    m.cation_1_partitioning = Constraint(rule=_cation_1_partitioning)
+
+    # cation 2 concentration in the membrane
+    def _cation_2_partitioning(m):
+        return (m.H[m.solutes.at(2)]) ** (1 / abs(m.z[m.solutes.at(2)])) * (
+            m.conc_sol[m.solutes.at(2)]
+        ) ** (1 / abs(m.z[m.solutes.at(2)])) * (
+            abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
+            * m.conc_sol[m.solutes.at(1)]
+            + abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
+            * m.conc_sol[m.solutes.at(2)]
+        ) ** (
+            1 / abs(m.z[m.solutes.at(3)])
+        ) == (
+            (m.H[m.solutes.at(3)]) ** (1 / abs(m.z[m.solutes.at(3)]))
+            * (m.conc_mem[m.solutes.at(2)]) ** (1 / m.z[m.solutes.at(2)])
+            * (
+                abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
+                * m.conc_mem[m.solutes.at(2)]
+                + (
+                    (
+                        abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
+                        * m.H[m.solutes.at(1)]
+                        * m.conc_sol[m.solutes.at(1)]
+                        * (m.conc_mem[m.solutes.at(2)])
+                        ** abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(2)])
+                    )
+                    / (
+                        (m.H[m.solutes.at(2)])
+                        ** abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(2)])
+                        * (m.conc_sol[m.solutes.at(2)])
+                        ** abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(2)])
+                    )
+                )
+            )
+            ** (1 / abs(m.z[m.solutes.at(3)]))
+        )
+
+    m.cation_2_partitioning = Constraint(rule=_cation_2_partitioning)
 
     return m
 
