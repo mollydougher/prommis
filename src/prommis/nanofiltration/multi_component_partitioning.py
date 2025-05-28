@@ -68,7 +68,8 @@ def main():
     print_info(m_double_salt)
     print("\n")
 
-    plot_partitioning_behavior(single=True, double=True)
+    plot_partitioning_behavior(single=True, double=True, independent=True)
+    plot_partitioning_behavior(single=False, double=True, independent=False)
 
 
 def add_model_sets(m, ion_info):
@@ -488,7 +489,13 @@ def single_salt_sensitivity(cation_num, cation_z, c_1_sol_vals, h_1_vals, h_2_va
 
 
 def double_salt_sensitivity(
-    c_primary_sol_vals, primary_cation, secondary_cation, h_1_vals, h_2_vals, ax
+    c_primary_sol_vals,
+    primary_cation,
+    secondary_cation,
+    h_1_vals,
+    h_2_vals,
+    ax,
+    independent=False,
 ):
     c_primary_mem_vals = []
     h3 = 1
@@ -503,7 +510,10 @@ def double_salt_sensitivity(
                 "cobalt": cobalt_dict,
                 "chlorine": chlorine_dict,
             }
-            m = double_salt_independent_partitioning_model(ion_dict)
+            if independent:
+                m = double_salt_independent_partitioning_model(ion_dict)
+            else:
+                m = double_salt_partitioning_model(ion_dict)
             for c1 in c_primary_sol_vals:
                 m.conc_sol[primary_cation].fix(c1)
                 m.conc_sol[secondary_cation].fix(50)
@@ -525,7 +535,7 @@ def double_salt_sensitivity(
     ax.legend(title="", loc="best", ncol=2)
 
 
-def plot_partitioning_behavior(single=True, double=True):
+def plot_partitioning_behavior(single=True, double=True, independent=False):
     # plot membrane concentration versus solution for different H's
 
     if single:
@@ -560,14 +570,18 @@ def plot_partitioning_behavior(single=True, double=True):
         fig2, (ax3, ax4) = plt.subplots(1, 2, dpi=125, figsize=(10, 5))
         fig2.suptitle("Lithium Chloride, Cobalt Chloride System", fontweight="bold")
 
-        double_salt_sensitivity(c_1_sol_vals, 1, 2, h_1_vals, h_2_vals, ax3)
+        double_salt_sensitivity(
+            c_1_sol_vals, 1, 2, h_1_vals, h_2_vals, ax3, independent=independent
+        )
 
         ax3.set_title("Cobalt Chloride Concentration = 50 mM \n $H_{Cl}$ = 1")
         ax3.set_xlabel("Lithium Concentration, Solution (mM)")
         ax3.set_ylabel("Lithium Concentration, \nMembrane (mM)")
         ax3.legend(title="$H_{Li},H_{Co}$")
 
-        double_salt_sensitivity(c_2_sol_vals, 2, 1, h_1_vals, h_2_vals, ax4)
+        double_salt_sensitivity(
+            c_2_sol_vals, 2, 1, h_1_vals, h_2_vals, ax4, independent=independent
+        )
 
         ax4.set_title("Lithium Chloride Concentration = 50 mM \n $H_{Cl}$ = 1")
         ax4.set_xlabel("Cobalt Concentration, Solution (mM)")
