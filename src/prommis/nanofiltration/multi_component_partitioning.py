@@ -17,8 +17,8 @@ from pyomo.environ import (
 
 
 def main():
-    lithium_H = 1.5
-    cobalt_H = 0.5
+    lithium_H = 1
+    cobalt_H = 1
     chlorine_H = 1
 
     lithium_dict = {"num": 1, "z": 1, "H": lithium_H, "conc_sol": 20}
@@ -49,6 +49,9 @@ def main():
     )
     solve_model(m_double_salt_independent)
 
+    m_double_salt = double_salt_partitioning_model(ion_dict_LiCoCl)
+    solve_model(m_double_salt)
+
     print("Lithium Chloride")
     print_info(m_general_lithium)
     print("\n")
@@ -57,11 +60,15 @@ def main():
     print_info(m_general_cobalt)
     print("\n")
 
-    print("Double Salt, General")
+    print("Double Salt, No Interaction")
     print_info(m_double_salt_independent)
     print("\n")
 
-    plot_partitioning_behavior(single=True, double=True)
+    print("Double Salt")
+    print_info(m_double_salt)
+    print("\n")
+
+    # plot_partitioning_behavior(single=True, double=True)
 
 
 def add_model_sets(m, ion_info):
@@ -136,10 +143,11 @@ def add_model_vars(m, ion_info):
         initialize=initialize_conc_sol,
         bounds=[0, None],
     )
+    # fix solution concentrations for cations assuming final ion is anion
+    # concentration of anion gets verified later with electoneutrality constraint
     for i in m.solutes:
         if i != m.solutes.at(-1):
             m.conc_sol[i].fix()
-    # assuming final ion is anion; concentration of anion gets verified with electoneutrality constraint
 
     def initialize_conc_mem(m, j):
         vals = {dict["num"]: 10 for dict in ion_info.values()}
@@ -157,8 +165,8 @@ def add_model_vars(m, ion_info):
 
 def single_salt_partitioning_model(ion_info):
     """
-    Generalized model equations for the partitioning of ions in
-    a single salt aqueous solution.
+    Generalized model equations for the partitioning of ions in a single
+    salt aqueous solution.
 
     Assumes 1 is cation, 2 is anion
 
@@ -217,9 +225,8 @@ def single_salt_partitioning_model(ion_info):
 
 def double_salt_independent_partitioning_model(ion_info):
     """
-    Generalized model equations for the partitioning of ions in
-    a two salt (common anion) aqueous solution, assuming no cation
-    interactions.
+    Generalized model equations for the partitioning of ions in a two salt
+    (common anion) aqueous solution, assuming no cation interactions.
 
     Assumes 1 and 2 are cations, 3 is anion
 
@@ -268,22 +275,124 @@ def double_salt_independent_partitioning_model(ion_info):
     m.electoneutrality_membrane = Constraint(rule=_electoneutrality_membrane)
 
     # generalized single salt partitioning
-    # lithium chloride
-    def _lithium_chloride_partitioning(m):
+    def _salt_1_partitioning(m):
         return m.H[m.solutes.at(1)] * m.H[m.solutes.at(3)] == (
             m.conc_mem[m.solutes.at(3)] / m.conc_sol[m.solutes.at(3)]
         ) * (m.conc_mem[m.solutes.at(1)] / m.conc_sol[m.solutes.at(1)]) ** (
             -m.z[m.solutes.at(3)] / m.z[m.solutes.at(1)]
         )
 
-    m.lithium_chloride_partitioning = Constraint(rule=_lithium_chloride_partitioning)
+    m.salt_1_partitioning = Constraint(rule=_salt_1_partitioning)
 
-    # cobalt chloride
-    def _cobalt_chloride_partitioning(m):
+    def _salt_2_partitioning(m):
         return m.H[m.solutes.at(2)] * m.H[m.solutes.at(3)] == (
             m.conc_mem[m.solutes.at(3)] / m.conc_sol[m.solutes.at(3)]
         ) * (m.conc_mem[m.solutes.at(2)] / m.conc_sol[m.solutes.at(2)]) ** (
             -m.z[m.solutes.at(3)] / m.z[m.solutes.at(2)]
+        )
+
+    m.salt_2_partitioning = Constraint(rule=_salt_2_partitioning)
+
+    return m
+
+
+def double_salt_partitioning_model(ion_info):
+    """
+    Generalized model equations for the partitioning of ions in a two salt
+    (common anion) aqueous solution, assuming there are ion interactions.
+
+    Assumes 1 and 2 are cations, 3 is anion
+
+    Args:
+        ion_info: {
+            ion: {
+                "num": int value
+                "z": int val,
+                "H": float val,
+                "conc_sol": float val,
+            },
+            ...
+        }
+
+    Returns:
+        m: the Pyomo model
+    """
+    m = ConcreteModel()
+
+    add_model_sets(m, ion_info)
+    add_model_params(m, ion_info)
+    add_model_vars(m, ion_info)
+
+    # electroneutrality in the solution phase: z1c1+z2c2+z3c3=0
+    def _electoneutrality_solution(m):
+        return (
+            m.conc_sol[m.solutes.at(3)]
+            == -(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
+            * m.conc_sol[m.solutes.at(1)]
+            - (m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
+            * m.conc_sol[m.solutes.at(2)]
+        )
+
+    m.electroneutrality_solution = Constraint(rule=_electoneutrality_solution)
+
+    # electroneutrality in the membrane phase: z1c1+z2c2+z3c3=0
+    def _electoneutrality_membrane(m):
+        return (
+            m.conc_mem[m.solutes.at(3)]
+            == -(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
+            * m.conc_mem[m.solutes.at(1)]
+            - (m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
+            * m.conc_mem[m.solutes.at(2)]
+        )
+
+    m.electoneutrality_membrane = Constraint(rule=_electoneutrality_membrane)
+
+    # partitioning rules
+    # TODO generalize by adding z parameters
+    # lithium concentration in the membrane
+    def _lithium_chloride_partitioning(m):
+        return m.H[m.solutes.at(1)] * m.conc_sol[m.solutes.at(1)] * (
+            m.conc_sol[m.solutes.at(1)] + 2 * m.conc_sol[m.solutes.at(2)]
+        ) == (
+            m.H[m.solutes.at(3)]
+            * m.conc_mem[m.solutes.at(1)]
+            * (
+                m.conc_mem[m.solutes.at(1)]
+                + (
+                    (
+                        2
+                        * m.H[m.solutes.at(2)]
+                        * m.conc_sol[m.solutes.at(2)]
+                        * (m.conc_mem[m.solutes.at(1)]) ** 2
+                    )
+                    / ((m.H[m.solutes.at(1)]) ** 2 * (m.conc_sol[m.solutes.at(1)]) ** 2)
+                )
+            )
+        )
+
+    m.lithium_chloride_partitioning = Constraint(rule=_lithium_chloride_partitioning)
+
+    # cobalt concentration in the membrane
+    def _cobalt_chloride_partitioning(m):
+        return (m.H[m.solutes.at(2)]) ** (1 / 2) * (m.conc_sol[m.solutes.at(2)]) ** (
+            1 / 2
+        ) * (m.conc_sol[m.solutes.at(1)] + 2 * m.conc_sol[m.solutes.at(2)]) == (
+            m.H[m.solutes.at(3)]
+            * (m.conc_mem[m.solutes.at(2)]) ** (1 / 2)
+            * (
+                2 * m.conc_mem[m.solutes.at(2)]
+                + (
+                    (
+                        m.H[m.solutes.at(1)]
+                        * m.conc_sol[m.solutes.at(1)]
+                        * (m.conc_mem[m.solutes.at(2)]) ** (1 / 2)
+                    )
+                    / (
+                        (m.H[m.solutes.at(2)]) ** (1 / 2)
+                        * (m.conc_sol[m.solutes.at(2)]) ** (1 / 2)
+                    )
+                )
+            )
         )
 
     m.cobalt_chloride_partitioning = Constraint(rule=_cobalt_chloride_partitioning)
