@@ -47,9 +47,11 @@ def main():
     m_double_salt_independent = double_salt_independent_partitioning_model(
         ion_dict_LiCoCl
     )
+    m_double_salt_independent.chi = -5
     solve_model(m_double_salt_independent)
 
     m_double_salt = double_salt_partitioning_model(ion_dict_LiCoCl)
+    m_double_salt.chi = -5
     solve_model(m_double_salt)
 
     print("Lithium Chloride")
@@ -101,6 +103,11 @@ def add_model_params(m, ion_info):
             ...
         }
     """
+
+    m.chi = Param(
+        initialize=0,
+        mutable=True,
+    )
 
     def initialize_z_params(m, j):
         vals = {dict["num"]: dict["z"] for dict in ion_info.values()}
@@ -201,12 +208,13 @@ def single_salt_partitioning_model(ion_info):
 
     m.electroneutrality_solution = Constraint(rule=_electoneutrality_solution)
 
-    # electroneutrality in the membrane phase: z1c1+z2c2=0
+    # electroneutrality in the membrane phase: z1c1+z2c2+chi=0
     def _electoneutrality_membrane(m):
         return (
             m.conc_mem[m.solutes.at(2)]
             == -(m.z[m.solutes.at(1)] / m.z[m.solutes.at(2)])
             * m.conc_mem[m.solutes.at(1)]
+            - m.chi / m.z[m.solutes.at(2)]
         )
 
     m.electoneutrality_membrane = Constraint(rule=_electoneutrality_membrane)
@@ -263,7 +271,7 @@ def double_salt_independent_partitioning_model(ion_info):
 
     m.electroneutrality_solution = Constraint(rule=_electoneutrality_solution)
 
-    # electroneutrality in the membrane phase: z1c1+z2c2+z3c3=0
+    # electroneutrality in the membrane phase: z1c1+z2c2+z3c3+chi=0
     def _electoneutrality_membrane(m):
         return (
             m.conc_mem[m.solutes.at(3)]
@@ -271,6 +279,7 @@ def double_salt_independent_partitioning_model(ion_info):
             * m.conc_mem[m.solutes.at(1)]
             - (m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
             * m.conc_mem[m.solutes.at(2)]
+            - m.chi / m.z[m.solutes.at(3)]
         )
 
     m.electoneutrality_membrane = Constraint(rule=_electoneutrality_membrane)
@@ -336,7 +345,7 @@ def double_salt_partitioning_model(ion_info):
 
     m.electroneutrality_solution = Constraint(rule=_electoneutrality_solution)
 
-    # electroneutrality in the membrane phase: z1c1+z2c2+z3c3=0
+    # electroneutrality in the membrane phase: z1c1+z2c2+z3c3+chi=0
     def _electoneutrality_membrane(m):
         return (
             m.conc_mem[m.solutes.at(3)]
@@ -344,6 +353,7 @@ def double_salt_partitioning_model(ion_info):
             * m.conc_mem[m.solutes.at(1)]
             - (m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
             * m.conc_mem[m.solutes.at(2)]
+            - m.chi / m.z[m.solutes.at(3)]
         )
 
     m.electoneutrality_membrane = Constraint(rule=_electoneutrality_membrane)
@@ -382,6 +392,7 @@ def double_salt_partitioning_model(ion_info):
                         ** abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(1)])
                     )
                 )
+                + (m.chi / abs(m.z[m.solutes.at(3)]))
             )
             ** (1 / abs(m.z[m.solutes.at(3)]))
         )
@@ -420,6 +431,7 @@ def double_salt_partitioning_model(ion_info):
                         ** abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(2)])
                     )
                 )
+                + (m.chi / abs(m.z[m.solutes.at(3)]))
             )
             ** (1 / abs(m.z[m.solutes.at(3)]))
         )
@@ -437,11 +449,11 @@ def solve_model(m):
 
 def print_info(m):
     print(
-        " \t valence \t partition coefficient \t solution concentration (mM) \t membrane concentration (mM)"
+        " \t valence \t partition coefficient \t fixed membrane charge (mM) \t solution concentration (mM) \t membrane concentration (mM)"
     )
     for i in m.solutes:
         print(
-            f"ion {i} \t {value(m.z[i])} \t\t {value(m.H[i])} \t\t\t {value(m.conc_sol[i])} \t\t\t\t {value(m.conc_mem[i])}"
+            f"ion {i} \t {value(m.z[i])} \t\t {value(m.H[i])} \t\t\t {value(m.chi)} \t\t\t\t {value(m.conc_sol[i])} \t\t\t\t {value(m.conc_mem[i])}"
         )
 
 
