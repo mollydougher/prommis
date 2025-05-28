@@ -70,8 +70,10 @@ def main():
     print_info(m_double_salt)
     print("\n")
 
-    plot_partitioning_behavior(single=True, double=True, independent=True)
-    plot_partitioning_behavior(single=False, double=True, independent=False)
+    # plot_partitioning_behavior(single=True, double=True, independent=True)
+    # plot_partitioning_behavior(single=False, double=True, independent=False)
+
+    plot_chi_sensitivity()
 
 
 def add_model_sets(m, ion_info):
@@ -601,6 +603,70 @@ def plot_partitioning_behavior(single=True, double=True, independent=False):
         ax4.legend(title="$H_{Li},H_{Co}$")
 
         plt.show()
+
+
+def plot_chi_sensitivity():
+    # TODO: add options for single salts and independent double salt models
+    # TODO: generalize code
+
+    fig1, (ax1, ax2) = plt.subplots(1, 2, dpi=125, figsize=(10, 5))
+
+    c_1_sol_vals = np.arange(5, 105, 5)  # mM
+    c_2_sol_vals = np.arange(5, 105, 5)  # mM
+    chi_vals = np.arange(-10, 12, 2)  # mM
+
+    c_1_mem_vals = []
+    c_2_mem_vals = []
+
+    lithium_dict = {"num": 1, "z": 1, "H": 1.5, "conc_sol": 20}
+    cobalt_dict = {"num": 2, "z": 2, "H": 0.5, "conc_sol": 20}
+    chlorine_dict = {"num": 3, "z": -1, "H": 1, "conc_sol": 20}
+    ion_dict = {
+        "lithium": lithium_dict,
+        "cobalt": cobalt_dict,
+        "chlorine": chlorine_dict,
+    }
+
+    for chi in chi_vals:
+        m = double_salt_partitioning_model(ion_dict)
+        m.chi = chi
+        for c1 in c_1_sol_vals:
+            m.conc_sol[1].fix(c1)
+            m.conc_sol[2].fix(50)
+            solve_model(m)
+            c_1_mem_vals.append(value(m.conc_mem[1]))
+        ax1.plot(c_1_sol_vals, c_1_mem_vals, linewidth=2, label=f"{chi}")
+        c_1_mem_vals = []
+
+    ax1.plot([0, 300], [0, 300], "k--")
+
+    ax1.set_title(
+        label="Cobalt Chloride Concentration = 50 mM \n $H_{Li}$ = 1.5, $H_{Co}$ = 0.5, $H_{Cl}$ = 1",
+        fontweight="bold",
+    )
+    ax1.set_xlabel(
+        xlabel="Lithium Concentration, Solution (mM)", fontsize=10, fontweight="bold"
+    )
+    ax1.set_ylabel(
+        ylabel="Lithium Concentration, \nMembrane (mM)", fontsize=10, fontweight="bold"
+    )
+    ax1.legend(title="$\chi$")
+    ax1.set_xlim(left=0, right=110)
+    ax1.set_ylim(bottom=0, top=180)
+    ax1.tick_params(direction="in", right=True, labelsize=10)
+
+    ax2.set_title(
+        label="Lithium Chloride Concentration = 50 mM \n $H_{Li}$ = 1.5, $H_{Co}$ = 0.5, $H_{Cl}$ = 1"
+    )
+    ax2.set_xlabel(
+        xlabel="Cobalt Concentration, Solution (mM)", fontsize=10, fontweight="bold"
+    )
+    ax2.set_ylabel(
+        ylabel="Cobalt Concentration, \nMembrane (mM)", fontsize=10, fontweight="bold"
+    )
+    ax2.legend(title="$\chi$", loc="best", ncol=2)
+
+    plt.show()
 
 
 if __name__ == "__main__":
