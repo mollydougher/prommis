@@ -76,6 +76,9 @@ def main():
     plot_chi_sensitivity(independent=True)
     plot_chi_sensitivity(independent=False)
 
+    visualize_3d_trends(independent=True)
+    visualize_3d_trends(independent=False)
+
 
 def add_model_sets(m, ion_info):
     """
@@ -783,9 +786,9 @@ def plot_chi_sensitivity(independent=False):
         ax.plot(
             [], [], "k:", linewidth=2, label="($H_{Li}$,$H_{Co}$,$H_{Cl}$)=(0.5,1.5,1)"
         )
-        ax.plot([], [], "c", linewidth=2, label="$\chi$=-10")
-        ax.plot([], [], "m", linewidth=2, label="$\chi$=0")
-        ax.plot([], [], "y", linewidth=2, label="$\chi$=10")
+        ax.plot([], [], "c", linewidth=2, label="$\chi$=-10 mM")
+        ax.plot([], [], "m", linewidth=2, label="$\chi$=0 mM")
+        ax.plot([], [], "y", linewidth=2, label="$\chi$=10 mM")
 
         ax.legend(loc="best")
         ax.set_xlim(left=0, right=110)
@@ -812,6 +815,58 @@ def plot_chi_sensitivity(independent=False):
     ax2.set_ylabel(
         ylabel="Cobalt Concentration, \nMembrane (mM)", fontsize=10, fontweight="bold"
     )
+
+    plt.show()
+
+
+def visualize_3d_trends(independent=False):
+    c_1_sol_vals = np.arange(5, 105, 5)  # mM
+    c_2_sol_vals = np.arange(5, 105, 5)  # mM
+    c1_s, c2_s = np.meshgrid(c_1_sol_vals, c_2_sol_vals)
+    c1_m = []
+    c1m_list = []
+    c2_m = []
+    c2m_list = []
+
+    ax = plt.figure().add_subplot(projection="3d")
+
+    lithium_dict = {"num": 1, "z": 1, "H": 1.5, "conc_sol": 20}
+    cobalt_dict = {"num": 2, "z": 2, "H": 0.5, "conc_sol": 20}
+    chlorine_dict = {"num": 3, "z": -1, "H": 1, "conc_sol": 20}
+    ion_dict = {
+        "lithium": lithium_dict,
+        "cobalt": cobalt_dict,
+        "chlorine": chlorine_dict,
+    }
+    if independent:
+        m = double_salt_independent_partitioning_model(ion_dict)
+    else:
+        m = double_salt_partitioning_model(ion_dict)
+    m.chi = 0
+
+    for c2 in c_2_sol_vals:
+        for c1 in c_1_sol_vals:
+            m.conc_sol[1].fix(c1)
+            m.conc_sol[2].fix(c2)
+            solve_model(m)
+            c1m_list.append(value(m.conc_mem[1]))
+            c2m_list.append(value(m.conc_mem[2]))
+        c1_m.append(c1m_list)
+        c1m_list = []
+        c2_m.append(c2m_list)
+        c2m_list = []
+
+    ax.plot_surface(c1_s, c2_s, np.array(c1_m), label="lithium")
+    ax.plot_surface(c1_s, c2_s, np.array(c2_m), label="cobalt")
+
+    ax.set_xlabel(
+        xlabel="Lithium Concentration, Solution (mM)", fontsize=10, fontweight="bold"
+    )
+    ax.set_ylabel(
+        ylabel="Cobalt Concentration, Solution (mM)", fontsize=10, fontweight="bold"
+    )
+    ax.set_title("Membrane Concentration (mM)", fontsize=10, fontweight="bold")
+    ax.legend()
 
     plt.show()
 
