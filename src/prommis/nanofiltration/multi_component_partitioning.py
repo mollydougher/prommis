@@ -47,11 +47,11 @@ def main():
     m_double_salt_independent = double_salt_independent_partitioning_model(
         ion_dict_LiCoCl
     )
-    m_double_salt_independent.chi = -5
+    m_double_salt_independent.chi = -20
     solve_model(m_double_salt_independent)
 
     m_double_salt = double_salt_partitioning_model(ion_dict_LiCoCl)
-    m_double_salt.chi = -5
+    m_double_salt.chi = -20
     solve_model(m_double_salt)
 
     print("Lithium Chloride")
@@ -70,7 +70,8 @@ def main():
     print_info(m_double_salt)
     print("\n")
 
-    plot_partitioning_behavior(single=True, double=True, independent=True)
+    plot_partitioning_behavior(single=True, double=False)
+    plot_partitioning_behavior(single=False, double=True, independent=True)
     plot_partitioning_behavior(single=False, double=True, independent=False)
 
     plot_chi_sensitivity(independent=True)
@@ -204,7 +205,7 @@ def single_salt_partitioning_model(ion_info):
     add_model_params(m, ion_info)
     add_model_vars(m, ion_info)
 
-    # electroneutrality in the solution phase: z1c1+z2c2=0
+    # electroneutrality in the solution phase: z1c1+z2c2=0 --> c2=-(z1/z2)c1
     def _electoneutrality_solution(m):
         return (
             m.conc_sol[m.solutes.at(2)]
@@ -214,7 +215,7 @@ def single_salt_partitioning_model(ion_info):
 
     m.electroneutrality_solution = Constraint(rule=_electoneutrality_solution)
 
-    # electroneutrality in the membrane phase: z1c1+z2c2+chi=0
+    # electroneutrality in the membrane phase: z1c1+z2c2+chi=0 --> c2=-(z1/z2)c1-(1/z2)chi
     def _electoneutrality_membrane(m):
         return (
             m.conc_mem[m.solutes.at(2)]
@@ -227,10 +228,16 @@ def single_salt_partitioning_model(ion_info):
 
     # generalized single salt partitioning
     def _single_salt_partitioning(m):
-        return m.H[m.solutes.at(1)] * m.H[m.solutes.at(2)] == (
-            m.conc_mem[m.solutes.at(2)] / m.conc_sol[m.solutes.at(2)]
-        ) * (m.conc_mem[m.solutes.at(1)] / m.conc_sol[m.solutes.at(1)]) ** (
-            -m.z[m.solutes.at(2)] / m.z[m.solutes.at(1)]
+        return m.H[m.solutes.at(1)] ** (1 / m.z[m.solutes.at(1)]) * m.H[
+            m.solutes.at(2)
+        ] ** (-1 / m.z[m.solutes.at(2)]) == (
+            m.conc_sol[m.solutes.at(2)] / m.conc_mem[m.solutes.at(2)]
+        ) ** (
+            1 / m.z[m.solutes.at(2)]
+        ) * (
+            m.conc_mem[m.solutes.at(1)] / m.conc_sol[m.solutes.at(1)]
+        ) ** (
+            1 / m.z[m.solutes.at(1)]
         )
 
     m.single_salt_partitioning = Constraint(rule=_single_salt_partitioning)
@@ -447,9 +454,9 @@ def double_salt_partitioning_model(ion_info):
     return m
 
 
-def solve_model(m):
+def solve_model(m, tee=False):
     solver = SolverFactory("ipopt")
-    result = solver.solve(m, tee=True)
+    result = solver.solve(m, tee=tee)
     assert_optimal_termination(result)
 
 
@@ -842,7 +849,7 @@ def visualize_3d_trends(independent=False):
         m = double_salt_independent_partitioning_model(ion_dict)
     else:
         m = double_salt_partitioning_model(ion_dict)
-    m.chi = 0
+    m.chi = -5
 
     for c2 in c_2_sol_vals:
         for c1 in c_1_sol_vals:
