@@ -47,12 +47,12 @@ def main():
     m_double_salt_independent = double_salt_independent_partitioning_model(
         ion_dict_LiCoCl
     )
-    m_double_salt_independent.chi = -20
+    m_double_salt_independent.chi = -150
     solve_model(m_double_salt_independent)
 
-    m_double_salt = double_salt_partitioning_model(ion_dict_LiCoCl)
-    m_double_salt.chi = -20
-    solve_model(m_double_salt)
+    # m_double_salt = double_salt_partitioning_model(ion_dict_LiCoCl)
+    # # m_double_salt.chi = -20
+    # solve_model(m_double_salt)
 
     print("Lithium Chloride")
     print_info(m_general_lithium)
@@ -66,19 +66,19 @@ def main():
     print_info(m_double_salt_independent)
     print("\n")
 
-    print("Double Salt")
-    print_info(m_double_salt)
-    print("\n")
+    # print("Double Salt")
+    # print_info(m_double_salt)
+    # print("\n")
 
-    plot_partitioning_behavior(single=True, double=False)
-    plot_partitioning_behavior(single=False, double=True, independent=True)
-    plot_partitioning_behavior(single=False, double=True, independent=False)
+    # plot_partitioning_behavior(single=True, double=False)
+    # plot_partitioning_behavior(single=False, double=True, independent=True)
+    # plot_partitioning_behavior(single=False, double=True, independent=False)
 
     plot_chi_sensitivity(independent=True)
-    plot_chi_sensitivity(independent=False)
+    # plot_chi_sensitivity(independent=False)
 
-    visualize_3d_trends(independent=True)
-    visualize_3d_trends(independent=False)
+    # visualize_3d_trends(independent=True)
+    # visualize_3d_trends(independent=False)
 
 
 def add_model_sets(m, ion_info):
@@ -231,9 +231,9 @@ def single_salt_partitioning_model(ion_info):
         return m.H[m.solutes.at(1)] ** (1 / m.z[m.solutes.at(1)]) * m.H[
             m.solutes.at(2)
         ] ** (-1 / m.z[m.solutes.at(2)]) == (
-            m.conc_sol[m.solutes.at(2)] / m.conc_mem[m.solutes.at(2)]
+            m.conc_mem[m.solutes.at(2)] / m.conc_sol[m.solutes.at(2)]
         ) ** (
-            1 / m.z[m.solutes.at(2)]
+            -1 / m.z[m.solutes.at(2)]
         ) * (
             m.conc_mem[m.solutes.at(1)] / m.conc_sol[m.solutes.at(1)]
         ) ** (
@@ -272,7 +272,7 @@ def double_salt_independent_partitioning_model(ion_info):
     add_model_params(m, ion_info)
     add_model_vars(m, ion_info)
 
-    # electroneutrality in the solution phase: z1c1+z2c2+z3c3=0
+    # electroneutrality in the solution phase: z1c1+z2c2+z3c3=0 --> c3=-(z1/z3)c1-(z2/z3)c2
     def _electoneutrality_solution(m):
         return (
             m.conc_sol[m.solutes.at(3)]
@@ -284,7 +284,7 @@ def double_salt_independent_partitioning_model(ion_info):
 
     m.electroneutrality_solution = Constraint(rule=_electoneutrality_solution)
 
-    # electroneutrality in the membrane phase: z1c1+z2c2+z3c3+chi=0
+    # electroneutrality in the membrane phase: z1c1+z2c2+z3c3+chi=0 --> c3=-(z1/z3)c1-(c2/c3)c2-(1/z3)chi
     def _electoneutrality_membrane(m):
         return (
             m.conc_mem[m.solutes.at(3)]
@@ -299,19 +299,31 @@ def double_salt_independent_partitioning_model(ion_info):
 
     # generalized single salt partitioning
     def _salt_1_partitioning(m):
-        return m.H[m.solutes.at(1)] * m.H[m.solutes.at(3)] == (
+        return m.H[m.solutes.at(1)] ** (1 / m.z[m.solutes.at(1)]) * m.H[
+            m.solutes.at(3)
+        ] ** (-1 / m.z[m.solutes.at(3)]) == (
             m.conc_mem[m.solutes.at(3)] / m.conc_sol[m.solutes.at(3)]
-        ) * (m.conc_mem[m.solutes.at(1)] / m.conc_sol[m.solutes.at(1)]) ** (
-            -m.z[m.solutes.at(3)] / m.z[m.solutes.at(1)]
+        ) ** (
+            -1 / m.z[m.solutes.at(3)]
+        ) * (
+            m.conc_mem[m.solutes.at(1)] / m.conc_sol[m.solutes.at(1)]
+        ) ** (
+            1 / m.z[m.solutes.at(1)]
         )
 
     m.salt_1_partitioning = Constraint(rule=_salt_1_partitioning)
 
     def _salt_2_partitioning(m):
-        return m.H[m.solutes.at(2)] * m.H[m.solutes.at(3)] == (
+        return m.H[m.solutes.at(2)] ** (1 / m.z[m.solutes.at(2)]) * m.H[
+            m.solutes.at(3)
+        ] ** (-1 / m.z[m.solutes.at(3)]) == (
             m.conc_mem[m.solutes.at(3)] / m.conc_sol[m.solutes.at(3)]
-        ) * (m.conc_mem[m.solutes.at(2)] / m.conc_sol[m.solutes.at(2)]) ** (
-            -m.z[m.solutes.at(3)] / m.z[m.solutes.at(2)]
+        ) ** (
+            -1 / m.z[m.solutes.at(3)]
+        ) * (
+            m.conc_mem[m.solutes.at(2)] / m.conc_sol[m.solutes.at(2)]
+        ) ** (
+            1 / m.z[m.solutes.at(2)]
         )
 
     m.salt_2_partitioning = Constraint(rule=_salt_2_partitioning)
@@ -374,79 +386,81 @@ def double_salt_partitioning_model(ion_info):
     # partitioning rules
     # cation 1 concentration in the membrane
     def _cation_1_partitioning(m):
-        return (m.H[m.solutes.at(1)]) ** (1 / abs(m.z[m.solutes.at(1)])) * (
-            m.conc_sol[m.solutes.at(1)]
-        ) ** (1 / abs(m.z[m.solutes.at(1)])) * (
+        return (m.H[m.solutes.at(1)] * m.conc_sol[m.solutes.at(1)]) ** (
+            1 / m.z[m.solutes.at(1)]
+        ) * (
             (
-                abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
+                -m.z[m.solutes.at(1)]
+                / m.z[m.solutes.at(3)]
                 * m.conc_sol[m.solutes.at(1)]
-                + abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
+                - m.z[m.solutes.at(2)]
+                / m.z[m.solutes.at(3)]
                 * m.conc_sol[m.solutes.at(2)]
             )
-            ** (1 / abs(m.z[m.solutes.at(3)]))
+            ** (-1 / m.z[m.solutes.at(3)])
         ) == (
-            (m.H[m.solutes.at(3)]) ** (1 / abs(m.z[m.solutes.at(3)]))
-            * (m.conc_mem[m.solutes.at(1)]) ** (1 / abs(m.z[m.solutes.at(1)]))
+            (m.H[m.solutes.at(3)]) ** (1 / m.z[m.solutes.at(3)])
+            * (m.conc_mem[m.solutes.at(1)]) ** (1 / m.z[m.solutes.at(1)])
             * (
-                abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
+                -m.z[m.solutes.at(1)]
+                / m.z[m.solutes.at(3)]
                 * m.conc_mem[m.solutes.at(1)]
-                + (
+                - (
                     (
-                        abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
-                        * m.H[m.solutes.at(2)]
-                        * m.conc_sol[m.solutes.at(2)]
-                        * (m.conc_mem[m.solutes.at(1)])
-                        ** abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(1)])
+                        (
+                            m.z[m.solutes.at(2)]
+                            * m.H[m.solutes.at(2)]
+                            * m.conc_sol[m.solutes.at(2)]
+                        )
+                        / (m.z[m.solutes.at(3)])
                     )
-                    / (
-                        (m.H[m.solutes.at(1)])
-                        ** abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(1)])
-                        * (m.conc_sol[m.solutes.at(1)])
-                        ** abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(1)])
+                    * (
+                        (m.conc_mem[m.solutes.at(1)])
+                        / (m.H[m.solutes.at(1)] * m.conc_sol[m.solutes.at(1)])
                     )
+                    ** (m.z[m.solutes.at(2)] / m.z[m.solutes.at(1)])
                 )
-                + (m.chi / abs(m.z[m.solutes.at(3)]))
+                - (m.chi / m.z[m.solutes.at(3)])
             )
-            ** (1 / abs(m.z[m.solutes.at(3)]))
+            ** (-1 / m.z[m.solutes.at(3)])
         )
 
     m.cation_1_partitioning = Constraint(rule=_cation_1_partitioning)
 
     # cation 2 concentration in the membrane
     def _cation_2_partitioning(m):
-        return (m.H[m.solutes.at(2)]) ** (1 / abs(m.z[m.solutes.at(2)])) * (
-            m.conc_sol[m.solutes.at(2)]
-        ) ** (1 / abs(m.z[m.solutes.at(2)])) * (
-            abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
-            * m.conc_sol[m.solutes.at(1)]
-            + abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
-            * m.conc_sol[m.solutes.at(2)]
+        return (m.H[m.solutes.at(2)] * m.conc_sol[m.solutes.at(2)]) ** (
+            1 / m.z[m.solutes.at(2)]
+        ) * (
+            -m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)] * m.conc_sol[m.solutes.at(1)]
+            - m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)] * m.conc_sol[m.solutes.at(2)]
         ) ** (
-            1 / abs(m.z[m.solutes.at(3)])
+            -1 / m.z[m.solutes.at(3)]
         ) == (
-            (m.H[m.solutes.at(3)]) ** (1 / abs(m.z[m.solutes.at(3)]))
+            (m.H[m.solutes.at(3)]) ** (1 / m.z[m.solutes.at(3)])
             * (m.conc_mem[m.solutes.at(2)]) ** (1 / m.z[m.solutes.at(2)])
             * (
-                abs(m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
+                -m.z[m.solutes.at(2)]
+                / m.z[m.solutes.at(3)]
                 * m.conc_mem[m.solutes.at(2)]
-                + (
+                - (
                     (
-                        abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
-                        * m.H[m.solutes.at(1)]
-                        * m.conc_sol[m.solutes.at(1)]
-                        * (m.conc_mem[m.solutes.at(2)])
-                        ** abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(2)])
+                        (
+                            m.z[m.solutes.at(1)]
+                            * m.H[m.solutes.at(1)]
+                            * m.conc_sol[m.solutes.at(1)]
+                        )
+                        / (m.z[m.solutes.at(3)])
                     )
-                    / (
-                        (m.H[m.solutes.at(2)])
-                        ** abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(2)])
-                        * (m.conc_sol[m.solutes.at(2)])
-                        ** abs(m.z[m.solutes.at(1)] / m.z[m.solutes.at(2)])
+                    * (
+                        (m.conc_mem[m.solutes.at(2)])
+                        / (m.H[m.solutes.at(2)] * m.conc_sol[m.solutes.at(2)])
                     )
+                    ** (m.z[m.solutes.at(1)] / m.z[m.solutes.at(2)])
                 )
-                + (m.chi / abs(m.z[m.solutes.at(3)]))
+                - (m.chi / m.z[m.solutes.at(3)])
             )
-            ** (1 / abs(m.z[m.solutes.at(3)]))
+            ** (-1 / m.z[m.solutes.at(3)])
         )
 
     m.cation_2_partitioning = Constraint(rule=_cation_2_partitioning)
@@ -624,11 +638,14 @@ def plot_chi_sensitivity(independent=False):
     # TODO: add option for single salt models
     # TODO: generalize code
 
-    fig1, (ax1, ax2) = plt.subplots(1, 2, dpi=125, figsize=(10, 5))
+    fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
+        3, 2, dpi=125, figsize=(12.5, 10)
+    )
 
     c_1_sol_vals = np.arange(5, 105, 5)  # mM
     c_2_sol_vals = np.arange(5, 105, 5)  # mM
-    chi_vals = np.arange(-10, 20, 10)  # mM
+    # chi_vals = np.arange(-10, 20, 10)  # mM
+    chi_vals = [-200, -20, 0, 20, 200]  # mM
 
     c_1_mem_vals = []
     c_2_mem_vals = []
@@ -654,12 +671,17 @@ def plot_chi_sensitivity(independent=False):
             solve_model(m)
             c_1_mem_vals.append(value(m.conc_mem[1]))
 
-        if chi == -10:
+        if chi == -200:
             ax1.plot(c_1_sol_vals, c_1_mem_vals, "c-.", linewidth=2)
+        if chi == -20:
+            ax1.plot(c_1_sol_vals, c_1_mem_vals, "g-.", linewidth=2)
         if chi == 0:
             ax1.plot(c_1_sol_vals, c_1_mem_vals, "m-.", linewidth=2)
-        if chi == 10:
-            ax1.plot(c_1_sol_vals, c_1_mem_vals, "y-.", linewidth=2)
+        if chi == 20:
+            ax1.plot(c_1_sol_vals, c_1_mem_vals, "b-.", linewidth=2)
+        if chi == 200:
+            ax1.plot(c_1_sol_vals, c_1_mem_vals, "r-.", linewidth=2)
+
         c_1_mem_vals = []
 
     for chi in chi_vals:
@@ -674,12 +696,16 @@ def plot_chi_sensitivity(independent=False):
             solve_model(m)
             c_2_mem_vals.append(value(m.conc_mem[2]))
 
-        if chi == -10:
+        if chi == -200:
             ax2.plot(c_2_sol_vals, c_2_mem_vals, "c-.", linewidth=2)
+        if chi == -20:
+            ax2.plot(c_2_sol_vals, c_2_mem_vals, "g-.", linewidth=2)
         if chi == 0:
             ax2.plot(c_2_sol_vals, c_2_mem_vals, "m-.", linewidth=2)
-        if chi == 10:
-            ax2.plot(c_2_sol_vals, c_2_mem_vals, "y-.", linewidth=2)
+        if chi == 20:
+            ax2.plot(c_2_sol_vals, c_2_mem_vals, "b-.", linewidth=2)
+        if chi == 200:
+            ax2.plot(c_2_sol_vals, c_2_mem_vals, "r-.", linewidth=2)
 
         c_2_mem_vals = []
 
@@ -703,12 +729,18 @@ def plot_chi_sensitivity(independent=False):
             m.conc_sol[2].fix(50)
             solve_model(m)
             c_1_mem_vals.append(value(m.conc_mem[1]))
-        if chi == -10:
-            ax1.plot(c_1_sol_vals, c_1_mem_vals, "c-", linewidth=2)
+
+        if chi == -200:
+            ax3.plot(c_1_sol_vals, c_1_mem_vals, "c-", linewidth=2)
+        if chi == -20:
+            ax3.plot(c_1_sol_vals, c_1_mem_vals, "g-", linewidth=2)
         if chi == 0:
-            ax1.plot(c_1_sol_vals, c_1_mem_vals, "m-", linewidth=2)
-        if chi == 10:
-            ax1.plot(c_1_sol_vals, c_1_mem_vals, "y-", linewidth=2)
+            ax3.plot(c_1_sol_vals, c_1_mem_vals, "m-", linewidth=2)
+        if chi == 20:
+            ax3.plot(c_1_sol_vals, c_1_mem_vals, "b-", linewidth=2)
+        if chi == 200:
+            ax3.plot(c_1_sol_vals, c_1_mem_vals, "r-", linewidth=2)
+
         c_1_mem_vals = []
 
     for chi in chi_vals:
@@ -723,12 +755,16 @@ def plot_chi_sensitivity(independent=False):
             solve_model(m)
             c_2_mem_vals.append(value(m.conc_mem[2]))
 
-        if chi == -10:
-            ax2.plot(c_2_sol_vals, c_2_mem_vals, "c-", linewidth=2)
+        if chi == -200:
+            ax4.plot(c_2_sol_vals, c_2_mem_vals, "c-", linewidth=2)
+        if chi == -20:
+            ax4.plot(c_2_sol_vals, c_2_mem_vals, "g-", linewidth=2)
         if chi == 0:
-            ax2.plot(c_2_sol_vals, c_2_mem_vals, "m-", linewidth=2)
-        if chi == 10:
-            ax2.plot(c_2_sol_vals, c_2_mem_vals, "y-", linewidth=2)
+            ax4.plot(c_2_sol_vals, c_2_mem_vals, "m-", linewidth=2)
+        if chi == 20:
+            ax4.plot(c_2_sol_vals, c_2_mem_vals, "b-", linewidth=2)
+        if chi == 200:
+            ax4.plot(c_2_sol_vals, c_2_mem_vals, "r-", linewidth=2)
 
         c_2_mem_vals = []
 
@@ -752,12 +788,18 @@ def plot_chi_sensitivity(independent=False):
             m.conc_sol[2].fix(50)
             solve_model(m)
             c_1_mem_vals.append(value(m.conc_mem[1]))
-        if chi == -10:
-            ax1.plot(c_1_sol_vals, c_1_mem_vals, "c:", linewidth=2)
+
+        if chi == -200:
+            ax5.plot(c_1_sol_vals, c_1_mem_vals, "c:", linewidth=2)
+        if chi == -20:
+            ax5.plot(c_1_sol_vals, c_1_mem_vals, "g:", linewidth=2)
         if chi == 0:
-            ax1.plot(c_1_sol_vals, c_1_mem_vals, "m:", linewidth=2)
-        if chi == 10:
-            ax1.plot(c_1_sol_vals, c_1_mem_vals, "y:", linewidth=2)
+            ax5.plot(c_1_sol_vals, c_1_mem_vals, "m:", linewidth=2)
+        if chi == 20:
+            ax5.plot(c_1_sol_vals, c_1_mem_vals, "b:", linewidth=2)
+        if chi == 200:
+            ax5.plot(c_1_sol_vals, c_1_mem_vals, "r:", linewidth=2)
+
         c_1_mem_vals = []
 
     for chi in chi_vals:
@@ -772,56 +814,68 @@ def plot_chi_sensitivity(independent=False):
             solve_model(m)
             c_2_mem_vals.append(value(m.conc_mem[2]))
 
-        if chi == -10:
-            ax2.plot(c_2_sol_vals, c_2_mem_vals, "c:", linewidth=2)
+        if chi == -200:
+            ax6.plot(c_2_sol_vals, c_2_mem_vals, "c:", linewidth=2)
+        if chi == -20:
+            ax6.plot(c_2_sol_vals, c_2_mem_vals, "g:", linewidth=2)
         if chi == 0:
-            ax2.plot(c_2_sol_vals, c_2_mem_vals, "m:", linewidth=2)
-        if chi == 10:
-            ax2.plot(c_2_sol_vals, c_2_mem_vals, "y:", linewidth=2)
+            ax6.plot(c_2_sol_vals, c_2_mem_vals, "m:", linewidth=2)
+        if chi == 20:
+            ax6.plot(c_2_sol_vals, c_2_mem_vals, "b:", linewidth=2)
+        if chi == 200:
+            ax6.plot(c_2_sol_vals, c_2_mem_vals, "r:", linewidth=2)
 
         c_2_mem_vals = []
 
-    for ax in (ax1, ax2):
-        ax.plot([0, 300], [0, 300], "k--")
-        ax.plot([0, 300], [0, 300], "k--")
+    # ghost points for legends
+    ax3.plot(
+        [], [], "k-.", linewidth=2, label="($H_{Li}$,$H_{Co}$,$H_{Cl}$)=(1.5,0.5,1)"
+    )
+    ax3.plot([], [], "k-", linewidth=2, label="($H_{Li}$,$H_{Co}$,$H_{Cl}$)=(1,1,1)")
+    ax3.plot(
+        [], [], "k:", linewidth=2, label="($H_{Li}$,$H_{Co}$,$H_{Cl}$)=(0.5,1.5,1)"
+    )
+    ax3.legend(loc="best")
+    ax5.plot([], [], "c", linewidth=2, label="$\chi$=-200 mM")
+    ax5.plot([], [], "g", linewidth=2, label="$\chi$=-20 mM")
+    ax5.plot([], [], "m", linewidth=2, label="$\chi$=0 mM")
+    ax5.plot([], [], "b", linewidth=2, label="$\chi$=20 mM")
+    ax5.plot([], [], "r", linewidth=2, label="$\chi$=200 mM")
+    ax5.legend(loc="best")
 
-        # ghost points for legends
-        ax.plot(
-            [], [], "k-.", linewidth=2, label="($H_{Li}$,$H_{Co}$,$H_{Cl}$)=(1.5,0.5,1)"
-        )
-        ax.plot([], [], "k-", linewidth=2, label="($H_{Li}$,$H_{Co}$,$H_{Cl}$)=(1,1,1)")
-        ax.plot(
-            [], [], "k:", linewidth=2, label="($H_{Li}$,$H_{Co}$,$H_{Cl}$)=(0.5,1.5,1)"
-        )
-        ax.plot([], [], "c", linewidth=2, label="$\chi$=-10 mM")
-        ax.plot([], [], "m", linewidth=2, label="$\chi$=0 mM")
-        ax.plot([], [], "y", linewidth=2, label="$\chi$=10 mM")
-
-        ax.legend(loc="best")
+    for ax in (ax1, ax2, ax3, ax4, ax5, ax6):
+        ax.plot([0, 300], [0, 300], "k--")
         ax.set_xlim(left=0, right=110)
         ax.set_ylim(bottom=0, top=180)
-        ax.tick_params(direction="in", right=True, labelsize=10)
+        ax.tick_params(direction="in", right=True, labelsize=12)
 
     ax1.set_title(
         label="Cobalt Concentration = 50 mM",
         fontweight="bold",
     )
-    ax1.set_xlabel(
-        xlabel="Lithium Concentration, Solution (mM)", fontsize=10, fontweight="bold"
+    ax5.set_xlabel(
+        xlabel="Lithium Concentration, Solution (mM)", fontsize=12, fontweight="bold"
     )
-    ax1.set_ylabel(
-        ylabel="Lithium Concentration, \nMembrane (mM)", fontsize=10, fontweight="bold"
-    )
+    for ax in (ax1, ax3, ax5):
+        ax.set_ylabel(
+            ylabel="Lithium Concentration, \nMembrane (mM)",
+            fontsize=12,
+            fontweight="bold",
+        )
+
     ax2.set_title(
         label="Lithium Concentration = 50 mM",
         fontweight="bold",
     )
-    ax2.set_xlabel(
-        xlabel="Cobalt Concentration, Solution (mM)", fontsize=10, fontweight="bold"
+    ax6.set_xlabel(
+        xlabel="Cobalt Concentration, Solution (mM)", fontsize=12, fontweight="bold"
     )
-    ax2.set_ylabel(
-        ylabel="Cobalt Concentration, \nMembrane (mM)", fontsize=10, fontweight="bold"
-    )
+    for ax in (ax2, ax4, ax6):
+        ax.set_ylabel(
+            ylabel="Cobalt Concentration, \nMembrane (mM)",
+            fontsize=12,
+            fontweight="bold",
+        )
 
     plt.show()
 
