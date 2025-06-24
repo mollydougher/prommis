@@ -44,15 +44,9 @@ def main():
         "cobalt": cobalt_dict,
         "chlorine": chlorine_dict,
     }
-    m_double_salt_independent = double_salt_independent_partitioning_model(
-        ion_dict_LiCoCl
-    )
-    m_double_salt_independent.chi = -150
-    solve_model(m_double_salt_independent)
-
-    # m_double_salt = double_salt_partitioning_model(ion_dict_LiCoCl)
-    # # m_double_salt.chi = -20
-    # solve_model(m_double_salt)
+    m_double_salt = double_salt_partitioning_model(ion_dict_LiCoCl)
+    m_double_salt.chi = -150
+    solve_model(m_double_salt)
 
     print("Lithium Chloride")
     print_info(m_general_lithium)
@@ -62,23 +56,18 @@ def main():
     print_info(m_general_cobalt)
     print("\n")
 
-    print("Double Salt, No Interaction")
-    print_info(m_double_salt_independent)
+    print("Double Salt")
+    print_info(m_double_salt)
     print("\n")
 
-    # print("Double Salt")
-    # print_info(m_double_salt)
-    # print("\n")
+    plot_partitioning_behavior(single=True, double=False)
+    plot_partitioning_behavior(single=False, double=True)
 
-    # plot_partitioning_behavior(single=True, double=False)
-    # plot_partitioning_behavior(single=False, double=True, independent=True)
-    # plot_partitioning_behavior(single=False, double=True, independent=False)
+    plot_chi_sensitivity(chlorine_H=0.5)
+    plot_chi_sensitivity(chlorine_H=1)
+    plot_chi_sensitivity(chlorine_H=1.5)
 
-    plot_chi_sensitivity(independent=True)
-    # plot_chi_sensitivity(independent=False)
-
-    # visualize_3d_trends(independent=True)
-    # visualize_3d_trends(independent=False)
+    visualize_3d_trends()
 
 
 def add_model_sets(m, ion_info):
@@ -245,10 +234,10 @@ def single_salt_partitioning_model(ion_info):
     return m
 
 
-def double_salt_independent_partitioning_model(ion_info):
+def double_salt_partitioning_model(ion_info):
     """
     Generalized model equations for the partitioning of ions in a two salt
-    (common anion) aqueous solution, assuming no cation interactions.
+    (common anion) aqueous solution.
 
     Assumes 1 and 2 are cations, 3 is anion
 
@@ -331,143 +320,6 @@ def double_salt_independent_partitioning_model(ion_info):
     return m
 
 
-def double_salt_partitioning_model(ion_info):
-    """
-    Generalized model equations for the partitioning of ions in a two salt
-    (common anion) aqueous solution, assuming there are ion interactions.
-
-    Assumes 1 and 2 are cations, 3 is anion
-
-    Args:
-        ion_info: {
-            ion: {
-                "num": int value
-                "z": int val,
-                "H": float val,
-                "conc_sol": float val,
-            },
-            ...
-        }
-
-    Returns:
-        m: the Pyomo model
-    """
-    m = ConcreteModel()
-
-    add_model_sets(m, ion_info)
-    add_model_params(m, ion_info)
-    add_model_vars(m, ion_info)
-
-    # electroneutrality in the solution phase: z1c1+z2c2+z3c3=0
-    def _electoneutrality_solution(m):
-        return (
-            m.conc_sol[m.solutes.at(3)]
-            == -(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
-            * m.conc_sol[m.solutes.at(1)]
-            - (m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
-            * m.conc_sol[m.solutes.at(2)]
-        )
-
-    m.electroneutrality_solution = Constraint(rule=_electoneutrality_solution)
-
-    # electroneutrality in the membrane phase: z1c1+z2c2+z3c3+chi=0
-    def _electoneutrality_membrane(m):
-        return (
-            m.conc_mem[m.solutes.at(3)]
-            == -(m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)])
-            * m.conc_mem[m.solutes.at(1)]
-            - (m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)])
-            * m.conc_mem[m.solutes.at(2)]
-            - m.chi / m.z[m.solutes.at(3)]
-        )
-
-    m.electoneutrality_membrane = Constraint(rule=_electoneutrality_membrane)
-
-    # partitioning rules
-    # cation 1 concentration in the membrane
-    def _cation_1_partitioning(m):
-        return (m.H[m.solutes.at(1)] * m.conc_sol[m.solutes.at(1)]) ** (
-            1 / m.z[m.solutes.at(1)]
-        ) * (
-            (
-                -m.z[m.solutes.at(1)]
-                / m.z[m.solutes.at(3)]
-                * m.conc_sol[m.solutes.at(1)]
-                - m.z[m.solutes.at(2)]
-                / m.z[m.solutes.at(3)]
-                * m.conc_sol[m.solutes.at(2)]
-            )
-            ** (-1 / m.z[m.solutes.at(3)])
-        ) == (
-            (m.H[m.solutes.at(3)]) ** (1 / m.z[m.solutes.at(3)])
-            * (m.conc_mem[m.solutes.at(1)]) ** (1 / m.z[m.solutes.at(1)])
-            * (
-                -m.z[m.solutes.at(1)]
-                / m.z[m.solutes.at(3)]
-                * m.conc_mem[m.solutes.at(1)]
-                - (
-                    (
-                        (
-                            m.z[m.solutes.at(2)]
-                            * m.H[m.solutes.at(2)]
-                            * m.conc_sol[m.solutes.at(2)]
-                        )
-                        / (m.z[m.solutes.at(3)])
-                    )
-                    * (
-                        (m.conc_mem[m.solutes.at(1)])
-                        / (m.H[m.solutes.at(1)] * m.conc_sol[m.solutes.at(1)])
-                    )
-                    ** (m.z[m.solutes.at(2)] / m.z[m.solutes.at(1)])
-                )
-                - (m.chi / m.z[m.solutes.at(3)])
-            )
-            ** (-1 / m.z[m.solutes.at(3)])
-        )
-
-    m.cation_1_partitioning = Constraint(rule=_cation_1_partitioning)
-
-    # cation 2 concentration in the membrane
-    def _cation_2_partitioning(m):
-        return (m.H[m.solutes.at(2)] * m.conc_sol[m.solutes.at(2)]) ** (
-            1 / m.z[m.solutes.at(2)]
-        ) * (
-            -m.z[m.solutes.at(1)] / m.z[m.solutes.at(3)] * m.conc_sol[m.solutes.at(1)]
-            - m.z[m.solutes.at(2)] / m.z[m.solutes.at(3)] * m.conc_sol[m.solutes.at(2)]
-        ) ** (
-            -1 / m.z[m.solutes.at(3)]
-        ) == (
-            (m.H[m.solutes.at(3)]) ** (1 / m.z[m.solutes.at(3)])
-            * (m.conc_mem[m.solutes.at(2)]) ** (1 / m.z[m.solutes.at(2)])
-            * (
-                -m.z[m.solutes.at(2)]
-                / m.z[m.solutes.at(3)]
-                * m.conc_mem[m.solutes.at(2)]
-                - (
-                    (
-                        (
-                            m.z[m.solutes.at(1)]
-                            * m.H[m.solutes.at(1)]
-                            * m.conc_sol[m.solutes.at(1)]
-                        )
-                        / (m.z[m.solutes.at(3)])
-                    )
-                    * (
-                        (m.conc_mem[m.solutes.at(2)])
-                        / (m.H[m.solutes.at(2)] * m.conc_sol[m.solutes.at(2)])
-                    )
-                    ** (m.z[m.solutes.at(1)] / m.z[m.solutes.at(2)])
-                )
-                - (m.chi / m.z[m.solutes.at(3)])
-            )
-            ** (-1 / m.z[m.solutes.at(3)])
-        )
-
-    m.cation_2_partitioning = Constraint(rule=_cation_2_partitioning)
-
-    return m
-
-
 def solve_model(m, tee=False):
     solver = SolverFactory("ipopt")
     result = solver.solve(m, tee=tee)
@@ -516,7 +368,7 @@ def single_salt_sensitivity(cation_num, cation_z, c_1_sol_vals, h_1_vals, h_2_va
                 ax.plot(c_1_sol_vals, c_1_mem_vals, linewidth=2, label=f"{h1},{h2}")
             c_1_mem_vals = []
 
-    ax.plot([0, 300], [0, 300], "k--")
+    ax.plot([0, 300], [0, 300], "k--", linewidth=1)
 
     ax.set_xlim(left=0, right=110)
     ax.set_ylim(bottom=0, top=180)
@@ -534,7 +386,6 @@ def double_salt_sensitivity(
     h_1_vals,
     h_2_vals,
     ax,
-    independent=False,
 ):
     c_primary_mem_vals = []
     h3 = 1
@@ -549,10 +400,7 @@ def double_salt_sensitivity(
                 "cobalt": cobalt_dict,
                 "chlorine": chlorine_dict,
             }
-            if independent:
-                m = double_salt_independent_partitioning_model(ion_dict)
-            else:
-                m = double_salt_partitioning_model(ion_dict)
+            m = double_salt_partitioning_model(ion_dict)
             for c1 in c_primary_sol_vals:
                 m.conc_sol[primary_cation].fix(c1)
                 m.conc_sol[secondary_cation].fix(50)
@@ -563,7 +411,7 @@ def double_salt_sensitivity(
             )
             c_primary_mem_vals = []
 
-    ax.plot([0, 300], [0, 300], "k--")
+    ax.plot([0, 300], [0, 300], "k--", linewidth=1)
 
     ax.set_xlim(left=0, right=110)
     ax.set_ylim(bottom=0, top=180)
@@ -574,7 +422,7 @@ def double_salt_sensitivity(
     ax.legend(title="", loc="best", ncol=2)
 
 
-def plot_partitioning_behavior(single=True, double=True, independent=False):
+def plot_partitioning_behavior(single=True, double=True):
     # plot membrane concentration versus solution for different H's
 
     if single:
@@ -609,9 +457,7 @@ def plot_partitioning_behavior(single=True, double=True, independent=False):
         fig2, (ax3, ax4) = plt.subplots(1, 2, dpi=125, figsize=(10, 5))
         fig2.suptitle("Lithium Chloride, Cobalt Chloride System", fontweight="bold")
 
-        double_salt_sensitivity(
-            c_1_sol_vals, 1, 2, h_1_vals, h_2_vals, ax3, independent=independent
-        )
+        double_salt_sensitivity(c_1_sol_vals, 1, 2, h_1_vals, h_2_vals, ax3)
 
         ax3.set_title(
             "Cobalt Chloride Concentration = 50 mM \n $H_{Cl}$ = 1, $\chi$=0 mM"
@@ -620,9 +466,7 @@ def plot_partitioning_behavior(single=True, double=True, independent=False):
         ax3.set_ylabel("Lithium Concentration, \nMembrane (mM)")
         ax3.legend(title="$H_{Li},H_{Co}$")
 
-        double_salt_sensitivity(
-            c_2_sol_vals, 2, 1, h_1_vals, h_2_vals, ax4, independent=independent
-        )
+        double_salt_sensitivity(c_2_sol_vals, 2, 1, h_1_vals, h_2_vals, ax4)
 
         ax4.set_title(
             "Lithium Chloride Concentration = 50 mM \n $H_{Cl}$ = 1, $\chi$=0 mM"
@@ -634,7 +478,7 @@ def plot_partitioning_behavior(single=True, double=True, independent=False):
         plt.show()
 
 
-def plot_chi_sensitivity(independent=False):
+def plot_chi_sensitivity(chlorine_H=1):
     # TODO: add option for single salt models
     # TODO: generalize code
 
@@ -644,7 +488,6 @@ def plot_chi_sensitivity(independent=False):
 
     c_1_sol_vals = np.arange(5, 105, 5)  # mM
     c_2_sol_vals = np.arange(5, 105, 5)  # mM
-    # chi_vals = np.arange(-10, 20, 10)  # mM
     chi_vals = [-200, -20, 0, 20, 200]  # mM
 
     c_1_mem_vals = []
@@ -652,7 +495,7 @@ def plot_chi_sensitivity(independent=False):
 
     lithium_dict = {"num": 1, "z": 1, "H": 1.5, "conc_sol": 20}
     cobalt_dict = {"num": 2, "z": 2, "H": 0.5, "conc_sol": 20}
-    chlorine_dict = {"num": 3, "z": -1, "H": 1, "conc_sol": 20}
+    chlorine_dict = {"num": 3, "z": -1, "H": chlorine_H, "conc_sol": 20}
     ion_dict = {
         "lithium": lithium_dict,
         "cobalt": cobalt_dict,
@@ -660,10 +503,7 @@ def plot_chi_sensitivity(independent=False):
     }
 
     for chi in chi_vals:
-        if independent:
-            m = double_salt_independent_partitioning_model(ion_dict)
-        else:
-            m = double_salt_partitioning_model(ion_dict)
+        m = double_salt_partitioning_model(ion_dict)
         m.chi = chi
         for c1 in c_1_sol_vals:
             m.conc_sol[1].fix(c1)
@@ -685,10 +525,7 @@ def plot_chi_sensitivity(independent=False):
         c_1_mem_vals = []
 
     for chi in chi_vals:
-        if independent:
-            m = double_salt_independent_partitioning_model(ion_dict)
-        else:
-            m = double_salt_partitioning_model(ion_dict)
+        m = double_salt_partitioning_model(ion_dict)
         m.chi = chi
         for c2 in c_2_sol_vals:
             m.conc_sol[2].fix(c2)
@@ -711,7 +548,7 @@ def plot_chi_sensitivity(independent=False):
 
     lithium_dict = {"num": 1, "z": 1, "H": 1, "conc_sol": 20}
     cobalt_dict = {"num": 2, "z": 2, "H": 1, "conc_sol": 20}
-    chlorine_dict = {"num": 3, "z": -1, "H": 1, "conc_sol": 20}
+    chlorine_dict = {"num": 3, "z": -1, "H": chlorine_H, "conc_sol": 20}
     ion_dict = {
         "lithium": lithium_dict,
         "cobalt": cobalt_dict,
@@ -719,10 +556,7 @@ def plot_chi_sensitivity(independent=False):
     }
 
     for chi in chi_vals:
-        if independent:
-            m = double_salt_independent_partitioning_model(ion_dict)
-        else:
-            m = double_salt_partitioning_model(ion_dict)
+        m = double_salt_partitioning_model(ion_dict)
         m.chi = chi
         for c1 in c_1_sol_vals:
             m.conc_sol[1].fix(c1)
@@ -744,10 +578,7 @@ def plot_chi_sensitivity(independent=False):
         c_1_mem_vals = []
 
     for chi in chi_vals:
-        if independent:
-            m = double_salt_independent_partitioning_model(ion_dict)
-        else:
-            m = double_salt_partitioning_model(ion_dict)
+        m = double_salt_partitioning_model(ion_dict)
         m.chi = chi
         for c2 in c_2_sol_vals:
             m.conc_sol[2].fix(c2)
@@ -770,7 +601,7 @@ def plot_chi_sensitivity(independent=False):
 
     lithium_dict = {"num": 1, "z": 1, "H": 0.5, "conc_sol": 20}
     cobalt_dict = {"num": 2, "z": 2, "H": 1.5, "conc_sol": 20}
-    chlorine_dict = {"num": 3, "z": -1, "H": 1, "conc_sol": 20}
+    chlorine_dict = {"num": 3, "z": -1, "H": chlorine_H, "conc_sol": 20}
     ion_dict = {
         "lithium": lithium_dict,
         "cobalt": cobalt_dict,
@@ -778,10 +609,7 @@ def plot_chi_sensitivity(independent=False):
     }
 
     for chi in chi_vals:
-        if independent:
-            m = double_salt_independent_partitioning_model(ion_dict)
-        else:
-            m = double_salt_partitioning_model(ion_dict)
+        m = double_salt_partitioning_model(ion_dict)
         m.chi = chi
         for c1 in c_1_sol_vals:
             m.conc_sol[1].fix(c1)
@@ -803,10 +631,7 @@ def plot_chi_sensitivity(independent=False):
         c_1_mem_vals = []
 
     for chi in chi_vals:
-        if independent:
-            m = double_salt_independent_partitioning_model(ion_dict)
-        else:
-            m = double_salt_partitioning_model(ion_dict)
+        m = double_salt_partitioning_model(ion_dict)
         m.chi = chi
         for c2 in c_2_sol_vals:
             m.conc_sol[2].fix(c2)
@@ -828,29 +653,27 @@ def plot_chi_sensitivity(independent=False):
         c_2_mem_vals = []
 
     # ghost points for legends
-    ax3.plot(
-        [], [], "k-.", linewidth=2, label="($H_{Li}$,$H_{Co}$,$H_{Cl}$)=(1.5,0.5,1)"
-    )
-    ax3.plot([], [], "k-", linewidth=2, label="($H_{Li}$,$H_{Co}$,$H_{Cl}$)=(1,1,1)")
-    ax3.plot(
-        [], [], "k:", linewidth=2, label="($H_{Li}$,$H_{Co}$,$H_{Cl}$)=(0.5,1.5,1)"
-    )
-    ax3.legend(loc="best")
-    ax5.plot([], [], "c", linewidth=2, label="$\chi$=-200 mM")
-    ax5.plot([], [], "g", linewidth=2, label="$\chi$=-20 mM")
-    ax5.plot([], [], "m", linewidth=2, label="$\chi$=0 mM")
-    ax5.plot([], [], "b", linewidth=2, label="$\chi$=20 mM")
-    ax5.plot([], [], "r", linewidth=2, label="$\chi$=200 mM")
-    ax5.legend(loc="best")
+    ax1.plot([], [], "k-.", linewidth=2, label="($H_{Li}$,$H_{Co}$)=(1.5,0.5)")
+    ax1.legend(loc="upper left")
+    ax3.plot([], [], "k-", linewidth=2, label="($H_{Li}$,$H_{Co}$)=(1,1)")
+    ax3.legend(loc="upper left")
+    ax5.plot([], [], "k:", linewidth=2, label="($H_{Li}$,$H_{Co}$)=(0.5,1.5)")
+    ax5.legend(loc="upper left")
+    ax2.plot([], [], "c", linewidth=2, label="$\chi$=-200 mM")
+    ax2.plot([], [], "g", linewidth=2, label="$\chi$=-20 mM")
+    ax2.plot([], [], "m", linewidth=2, label="$\chi$=0 mM")
+    ax2.plot([], [], "b", linewidth=2, label="$\chi$=20 mM")
+    ax2.plot([], [], "r", linewidth=2, label="$\chi$=200 mM")
+    ax2.legend(loc="best")
 
     for ax in (ax1, ax2, ax3, ax4, ax5, ax6):
-        ax.plot([0, 300], [0, 300], "k--")
+        ax.plot([0, 300], [0, 300], "k--", linewidth=1)
         ax.set_xlim(left=0, right=110)
         ax.set_ylim(bottom=0, top=180)
         ax.tick_params(direction="in", right=True, labelsize=12)
 
     ax1.set_title(
-        label="Cobalt Concentration = 50 mM",
+        label=f"Cobalt Concentration = 50 mM\n$H_{{Cl}}$={chlorine_H}",
         fontweight="bold",
     )
     ax5.set_xlabel(
@@ -864,7 +687,7 @@ def plot_chi_sensitivity(independent=False):
         )
 
     ax2.set_title(
-        label="Lithium Concentration = 50 mM",
+        label=f"Lithium Concentration = 50 mM\n$H_{{Cl}}$={chlorine_H}",
         fontweight="bold",
     )
     ax6.set_xlabel(
@@ -880,7 +703,7 @@ def plot_chi_sensitivity(independent=False):
     plt.show()
 
 
-def visualize_3d_trends(independent=False):
+def visualize_3d_trends():
     c_1_sol_vals = np.arange(5, 105, 5)  # mM
     c_2_sol_vals = np.arange(5, 105, 5)  # mM
     c1_s, c2_s = np.meshgrid(c_1_sol_vals, c_2_sol_vals)
@@ -899,10 +722,7 @@ def visualize_3d_trends(independent=False):
         "cobalt": cobalt_dict,
         "chlorine": chlorine_dict,
     }
-    if independent:
-        m = double_salt_independent_partitioning_model(ion_dict)
-    else:
-        m = double_salt_partitioning_model(ion_dict)
+    m = double_salt_partitioning_model(ion_dict)
     m.chi = -5
 
     for c2 in c_2_sol_vals:
