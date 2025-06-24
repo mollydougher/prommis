@@ -1,6 +1,6 @@
 #####################################################################################################
 # “PrOMMiS” was produced under the DOE Process Optimization and Modeling for Minerals Sustainability
-# (“PrOMMiS”) initiative, and is copyright (c) 2023-2024 by the software owners: The Regents of the
+# (“PrOMMiS”) initiative, and is copyright (c) 2023-2025 by the software owners: The Regents of the
 # University of California, through Lawrence Berkeley National Laboratory, et al. All rights reserved.
 # Please see the files COPYRIGHT.md and LICENSE.md for full copyright and license information.
 #####################################################################################################
@@ -157,6 +157,10 @@ class TestPrec(object):
         solver = get_solver()
         results = solver.solve(prec)
         assert_optimal_termination(results)
+
+        dt = DiagnosticsToolbox(prec)
+        dt.assert_no_numerical_warnings()
+        dt.assert_no_structural_warnings()
 
     @pytest.mark.solver
     @pytest.mark.skipif(solver is None, reason="Solver not available")
