@@ -28,35 +28,43 @@ def main():
     # plot_3D_without_regression()
 
 
-def calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2):
-    D_denom = ((z1**2) * D1 - z1 * z3 * D3) * c1 + ((z2**2) * D2 - z2 * z3 * D3) * c2
+def calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2, chi):
+    D_denom = (
+        (((z1**2) * D1 - z1 * z3 * D3) * c1)
+        + (((z2**2) * D2 - z2 * z3 * D3) * c2)
+        - (z3 * D3 * chi)
+    )
     return D_denom
 
 
-def calculate_D_11(z1, z2, z3, D1, D2, D3, c1, c2):
-    D_denom = calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2)
-    D_11 = ((z1 * z3 * D1 * D3 - (z1**2) * D1 * D3) * c1
-        + (z2 * z3 * D1 * D3 - (z2**2) * D1 * D2) * c2) / D_denom
+def calculate_D_11(z1, z2, z3, D1, D2, D3, c1, c2, chi):
+    D_denom = calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2, chi)
+    D_11 = (
+        (z1 * z3 * D1 * D3 - (z1**2) * D1 * D3) * c1
+        + (z2 * z3 * D1 * D3 - (z2**2) * D1 * D2) * c2
+        + (z3 * D1 * D3 * chi)
+    ) / D_denom
     return D_11
 
 
-def calculate_D_12(z1, z2, z3, D1, D2, D3, c1, c2):
-    D_denom = calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2)
+def calculate_D_12(z1, z2, z3, D1, D2, D3, c1, c2, chi):
+    D_denom = calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2, chi)
     D_12 = ((z1 * z2 * D1 * D2 - z1 * z2 * D1 * D3) * c1) / D_denom
     return D_12
 
 
-def calculate_D_21(z1, z2, z3, D1, D2, D3, c1, c2):
-    D_denom = calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2)
+def calculate_D_21(z1, z2, z3, D1, D2, D3, c1, c2, chi):
+    D_denom = calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2, chi)
     D_21 = ((z1 * z2 * D1 * D2 - z1 * z2 * D2 * D3) * c2) / D_denom
     return D_21
 
 
-def calculate_D_22(z1, z2, z3, D1, D2, D3, c1, c2):
-    D_denom = calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2)
+def calculate_D_22(z1, z2, z3, D1, D2, D3, c1, c2, chi):
+    D_denom = calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2, chi)
     D_22 = (
         (z1 * z3 * D2 * D3 - (z1**2) * D1 * D2) * c1
         + (z2 * z3 * D2 * D3 - (z2**2) * D2 * D3) * c2
+        + (z3 * D2 * D3 * chi)
     ) / D_denom
     return D_22
 
@@ -70,7 +78,9 @@ def set_parameter_values():
     D2 = 2.64e-6  # m2/h
     D3 = 7.3e-6  # m2/h
 
-    return (z1, z2, z3, D1, D2, D3)
+    chi = 0
+
+    return (z1, z2, z3, D1, D2, D3, chi)
 
 
 def set_concentration_ranges():
@@ -81,7 +91,7 @@ def set_concentration_ranges():
 
 
 def calculate_diffusion_coefficients():
-    (z1, z2, z3, D1, D2, D3) = set_parameter_values()
+    (z1, z2, z3, D1, D2, D3, chi) = set_parameter_values()
     (c1_vals, c2_vals) = set_concentration_ranges()
 
     c2_list = []
@@ -99,10 +109,10 @@ def calculate_diffusion_coefficients():
 
     for c1 in c1_vals:
         for c2 in c2_vals:
-            D_11_vals.append((calculate_D_11(z1, z2, z3, D1, D2, D3, c1, c2)))
-            D_12_vals.append((calculate_D_12(z1, z2, z3, D1, D2, D3, c1, c2)))
-            D_21_vals.append((calculate_D_21(z1, z2, z3, D1, D2, D3, c1, c2)))
-            D_22_vals.append((calculate_D_22(z1, z2, z3, D1, D2, D3, c1, c2)))
+            D_11_vals.append((calculate_D_11(z1, z2, z3, D1, D2, D3, c1, c2, chi)))
+            D_12_vals.append((calculate_D_12(z1, z2, z3, D1, D2, D3, c1, c2, chi)))
+            D_21_vals.append((calculate_D_21(z1, z2, z3, D1, D2, D3, c1, c2, chi)))
+            D_22_vals.append((calculate_D_22(z1, z2, z3, D1, D2, D3, c1, c2, chi)))
         d11[f"{c1.round(1)}"] = D_11_vals
         d12[f"{c1.round(1)}"] = D_12_vals
         d21[f"{c1.round(1)}"] = D_21_vals
@@ -176,7 +186,7 @@ def plot_2D_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_df):
 def plot_3D_diffusion_coefficients():
     ax = plt.figure().add_subplot(projection="3d")
 
-    (z1, z2, z3, D1, D2, D3) = set_parameter_values()
+    (z1, z2, z3, D1, D2, D3, chi) = set_parameter_values()
     (c1_vals, c2_vals) = set_concentration_ranges()
 
     c1, c2 = np.meshgrid(c1_vals, c2_vals)
@@ -300,14 +310,14 @@ def calculate_linearized_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_
 
 
 def plot_3D_with_regression():
-    (z1, z2, z3, D1, D2, D3) = set_parameter_values()
+    (z1, z2, z3, D1, D2, D3, chi) = set_parameter_values()
     (c1_vals, c2_vals) = set_concentration_ranges()
 
     c1, c2 = np.meshgrid(c1_vals, c2_vals)
-    D_11 = calculate_D_11(z1, z2, z3, D1, D2, D3, c1, c2)
-    D_12 = calculate_D_12(z1, z2, z3, D1, D2, D3, c1, c2)
-    D_21 = calculate_D_21(z1, z2, z3, D1, D2, D3, c1, c2)
-    D_22 = calculate_D_22(z1, z2, z3, D1, D2, D3, c1, c2)
+    D_11 = calculate_D_11(z1, z2, z3, D1, D2, D3, c1, c2, chi)
+    D_12 = calculate_D_12(z1, z2, z3, D1, D2, D3, c1, c2, chi)
+    D_21 = calculate_D_21(z1, z2, z3, D1, D2, D3, c1, c2, chi)
+    D_22 = calculate_D_22(z1, z2, z3, D1, D2, D3, c1, c2, chi)
 
     (D_11_df, D_12_df, D_21_df, D_22_df) = calculate_diffusion_coefficients()
     (D_11_df_linearized, D_12_df_linearized, D_21_df_linearized, D_22_df_linearized) = (
@@ -382,14 +392,14 @@ def plot_3D_with_regression():
 
 
 def plot_3D_without_regression():
-    (z1, z2, z3, D1, D2, D3) = set_parameter_values()
+    (z1, z2, z3, D1, D2, D3, chi) = set_parameter_values()
     (c1_vals, c2_vals) = set_concentration_ranges()
 
     c1, c2 = np.meshgrid(c1_vals, c2_vals)
-    D_11 = -calculate_D_11(z1, z2, z3, D1, D2, D3, c1, c2)
-    D_12 = -calculate_D_12(z1, z2, z3, D1, D2, D3, c1, c2)
-    D_21 = -calculate_D_21(z1, z2, z3, D1, D2, D3, c1, c2)
-    D_22 = -calculate_D_22(z1, z2, z3, D1, D2, D3, c1, c2)
+    D_11 = -calculate_D_11(z1, z2, z3, D1, D2, D3, c1, c2, chi)
+    D_12 = -calculate_D_12(z1, z2, z3, D1, D2, D3, c1, c2, chi)
+    D_21 = -calculate_D_21(z1, z2, z3, D1, D2, D3, c1, c2, chi)
+    D_22 = -calculate_D_22(z1, z2, z3, D1, D2, D3, c1, c2, chi)
 
     ax1 = plt.figure().add_subplot(projection="3d")
     ax1.plot_surface(
