@@ -18,39 +18,46 @@ from pyomo.environ import (
 
 def main():
     (D_11_df, D_12_df, D_21_df, D_22_df) = calculate_diffusion_coefficients()
+    print(D_11_df.head())
+    print(D_12_df.head())
+    print(D_21_df.head())
+    print(D_22_df.head())
     calculate_linearized_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_df)
-    plot_2D_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_df)
-    plot_3D_with_regression()
+    # plot_2D_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_df)
+    # plot_3D_with_regression()
     # plot_3D_without_regression()
 
 
+def calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2):
+    D_denom = ((z1**2) * D1 - z1 * z3 * D3) * c1 + ((z2**2) * D2 - z2 * z3 * D3) * c2
+    return D_denom
+
+
 def calculate_D_11(z1, z2, z3, D1, D2, D3, c1, c2):
-    D_11 = (
-        (z1 * z3 * D1 * D3 - (z1**2) * D1 * D3) * c1
-        + (z2 * z3 * D1 * D3 - (z2**2) * D1 * D2) * c2
-    ) / (((z1**2) * D1 - z1 * z3 * D3) * c1 + ((z2**2) * D2 - z2 * z3 * D3) * c2)
+    D_denom = calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2)
+    D_11 = ((z1 * z3 * D1 * D3 - (z1**2) * D1 * D3) * c1
+        + (z2 * z3 * D1 * D3 - (z2**2) * D1 * D2) * c2) / D_denom
     return D_11
 
 
 def calculate_D_12(z1, z2, z3, D1, D2, D3, c1, c2):
-    D_12 = ((z1 * z2 * D1 * D2 - z1 * z2 * D1 * D3) * c1) / (
-        ((z1**2) * D1 - z1 * z3 * D3) * c1 + ((z2**2) * D2 - z2 * z3 * D3) * c2
-    )
+    D_denom = calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2)
+    D_12 = ((z1 * z2 * D1 * D2 - z1 * z2 * D1 * D3) * c1) / D_denom
     return D_12
 
 
 def calculate_D_21(z1, z2, z3, D1, D2, D3, c1, c2):
-    D_21 = ((z1 * z2 * D1 * D2 - z1 * z2 * D2 * D3) * c2) / (
-        ((z1**2) * D1 - z1 * z3 * D3) * c1 + ((z2**2) * D2 - z2 * z3 * D3) * c2
-    )
+    D_denom = calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2)
+    D_21 = ((z1 * z2 * D1 * D2 - z1 * z2 * D2 * D3) * c2) / D_denom
     return D_21
 
 
 def calculate_D_22(z1, z2, z3, D1, D2, D3, c1, c2):
+    D_denom = calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2)
     D_22 = (
-        (z1 * z2 * D2 * D3 - (z1**2) * D1 * D2) * c1
+        (z1 * z3 * D2 * D3 - (z1**2) * D1 * D2) * c1
         + (z2 * z3 * D2 * D3 - (z2**2) * D2 * D3) * c2
-    ) / (((z1**2) * D1 - z1 * z3 * D3) * c1 + ((z2**2) * D2 - z2 * z3 * D3) * c2)
+    ) / D_denom
     return D_22
 
 
@@ -252,16 +259,16 @@ def calculate_linearized_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_
 
     print(" \t beta_0 (m2/h) \t beta_1 (m5/kg/h) \t beta_2 (m5/kg/h)")
     print(
-        f"D_11 \t {round(beta_0_D_11,8)} \t {round(beta_1_D_11,10)} \t\t {round(beta_2_D_11,10)}"
+        f"D_11 \t {round(beta_0_D_11,8)} \t {round(beta_1_D_11,10)} \t\t {round(beta_2_D_11,11)}"
     )
     print(
-        f"D_12 \t {round(beta_0_D_12,9)} \t {round(beta_1_D_12,9)} \t\t {round(beta_2_D_12,10)}"
+        f"D_12 \t {round(beta_0_D_12,9)} \t {round(beta_1_D_12,10)} \t\t {round(beta_2_D_12,10)}"
     )
     print(
-        f"D_21 \t {round(beta_0_D_21,9)} \t {round(beta_1_D_21,10)} \t\t {round(beta_2_D_21,10)}"
+        f"D_21 \t {round(beta_0_D_21,9)} \t {round(beta_1_D_21,10)} \t\t {round(beta_2_D_21,11)}"
     )
     print(
-        f"D_22 \t {round(beta_0_D_22,8)} \t {round(beta_1_D_22,9)} \t\t {round(beta_2_D_22,9)}"
+        f"D_22 \t {round(beta_0_D_22,8)} \t {round(beta_1_D_22,10)} \t\t {round(beta_2_D_22,10)}"
     )
 
     for c1 in c1_vals:
