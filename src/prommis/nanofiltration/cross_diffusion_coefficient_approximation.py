@@ -17,10 +17,10 @@ from pyomo.environ import (
 
 
 def main():
-    (D_11_df, D_12_df, D_21_df, D_22_df) = calculate_diffusion_coefficients(chi=0)
+    (D_11_df, D_12_df, D_21_df, D_22_df) = calculate_diffusion_coefficients(chi=-140)
     calculate_linearized_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_df)
-    # plot_2D_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_df)
-    # plot_3D_with_regression()
+    plot_2D_diffusion_coefficients(D_11_df, D_12_df, D_21_df, D_22_df)
+    plot_3D_with_regression()
     # plot_3D_without_regression()
 
 
@@ -83,8 +83,8 @@ def set_concentration_ranges():
     # c1_vals = np.arange(0.1, 5, 0.1) # kg/m3
     # c2_vals = np.arange(10, 15, 0.1) # kg/m3
 
-    c1_vals = np.arange(10, 700, 10)  # mol/m3
-    c2_vals = np.arange(170, 250, 10)  # mol/m3
+    c1_vals = np.arange(40, 80, 1)  # mol/m3
+    c2_vals = np.arange(40, 80, 1)  # mol/m3
 
     return (c1_vals, c2_vals)
 
