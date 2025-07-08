@@ -372,6 +372,8 @@ def plot_3D_diffusion_coefficients(chi=-140):
     D_12 = calculate_D_12(z1, z2, z3, D1, D2, D3, c1, c2, chi)
     D_21 = calculate_D_21(z1, z2, z3, D1, D2, D3, c1, c2, chi)
     D_22 = calculate_D_22(z1, z2, z3, D1, D2, D3, c1, c2, chi)
+    alpha_1 = calculate_alpha_1(z1, z2, z3, D1, D2, D3, c1, c2, chi)
+    alpha_2 = calculate_alpha_2(z1, z2, z3, D1, D2, D3, c1, c2, chi)
 
     (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df) = (
         calculate_diffusion_coefficients(chi=chi)
@@ -381,8 +383,8 @@ def plot_3D_diffusion_coefficients(chi=-140):
         D_12_df_linearized,
         D_21_df_linearized,
         D_22_df_linearized,
-        alpha_1_linearized,
-        alpha_2_linearized,
+        alpha_1_df_linearized,
+        alpha_2_df_linearized,
     ) = calculate_linearized_diffusion_coefficients(
         D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df
     )
@@ -450,6 +452,38 @@ def plot_3D_diffusion_coefficients(chi=-140):
     ax4.set_ylabel("Cobalt Concentration (mM)", fontsize=14, fontweight="bold")
     ax4.set_title("D_22 (m2/h)", fontsize=14, fontweight="bold")
     ax4.tick_params(labelsize=12)
+
+    ax5 = plt.figure().add_subplot(projection="3d")
+    ax5.plot_surface(
+        c1,
+        c2,
+        alpha_1,
+    )
+    ax5.plot_surface(
+        c1,
+        c2,
+        alpha_1_df_linearized,
+    )
+    ax5.set_xlabel("Lithium Concentration (mM)", fontsize=14, fontweight="bold")
+    ax5.set_ylabel("Cobalt Concentration (mM)", fontsize=14, fontweight="bold")
+    ax5.set_title("alpha_1", fontsize=14, fontweight="bold")
+    ax5.tick_params(labelsize=12)
+
+    ax6 = plt.figure().add_subplot(projection="3d")
+    ax6.plot_surface(
+        c1,
+        c2,
+        alpha_2,
+    )
+    ax6.plot_surface(
+        c1,
+        c2,
+        alpha_2_df_linearized,
+    )
+    ax6.set_xlabel("Lithium Concentration (mM)", fontsize=14, fontweight="bold")
+    ax6.set_ylabel("Cobalt Concentration (mM)", fontsize=14, fontweight="bold")
+    ax6.set_title("alpha_2", fontsize=14, fontweight="bold")
+    ax6.tick_params(labelsize=12)
 
     plt.show()
 
