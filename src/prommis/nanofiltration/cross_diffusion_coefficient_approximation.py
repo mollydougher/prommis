@@ -17,9 +17,7 @@ from pyomo.environ import (
 
 
 def main():
-    (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df) = (
-        calculate_diffusion_coefficients(chi=-140)
-    )
+    (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df) = calculate_diffusion_coefficients()
     calculate_linearized_diffusion_coefficients(
         D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df
     )
@@ -101,13 +99,13 @@ def set_concentration_ranges():
     # c2_vals = np.arange(10, 15, 0.1) # kg/m3
 
     c1_vals = np.arange(50, 80, 1)  # mol/m3 = mM
-    c2_vals = np.arange(50, 80, 1)  # mol/m3 = mM
+    c2_vals = np.arange(80, 110, 1)  # mol/m3 = mM
 
     return (c1_vals, c2_vals)
 
 
-def calculate_diffusion_coefficients(chi=-140):
-    (z1, z2, z3, D1, D2, D3, chi) = set_parameter_values(chi=chi)
+def calculate_diffusion_coefficients():
+    (z1, z2, z3, D1, D2, D3, chi) = set_parameter_values()
     (c1_vals, c2_vals) = set_concentration_ranges()
 
     c2_list = []
@@ -363,7 +361,7 @@ def calculate_linearized_diffusion_coefficients(
     )
 
 
-def plot_3D_diffusion_coefficients(chi=-140):
+def plot_3D_diffusion_coefficients():
     (z1, z2, z3, D1, D2, D3, chi) = set_parameter_values()
     (c1_vals, c2_vals) = set_concentration_ranges()
 
@@ -376,7 +374,7 @@ def plot_3D_diffusion_coefficients(chi=-140):
     alpha_2 = calculate_alpha_2(z1, z2, z3, D1, D2, D3, c1, c2, chi)
 
     (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df) = (
-        calculate_diffusion_coefficients(chi=chi)
+        calculate_diffusion_coefficients()
     )
     (
         D_11_df_linearized,
