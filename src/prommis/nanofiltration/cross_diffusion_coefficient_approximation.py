@@ -13,18 +13,24 @@ from pyomo.environ import (
     Set,
     SolverFactory,
     Var,
+    assert_optimal_termination,
 )
 
 
-def main():
-    (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df) = calculate_diffusion_coefficients()
-    calculate_linearized_diffusion_coefficients(
-        D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df
-    )
-    plot_2D_diffusion_coefficients(
-        D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df
-    )
-    plot_3D_diffusion_coefficients()
+def main(plot=False):
+    for chi_val in [0, -140]:
+        (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df) = (
+            calculate_diffusion_coefficients(chi=chi_val)
+        )
+        calculate_linearized_diffusion_coefficients(
+            D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df, chi_val
+        )
+
+        if plot:
+            plot_2D_diffusion_coefficients(
+                D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df
+            )
+            plot_3D_diffusion_coefficients(chi=chi_val)
 
 
 def calculate_D_denominator(z1, z2, z3, D1, D2, D3, c1, c2, chi):
@@ -80,7 +86,7 @@ def calculate_alpha_2(z1, z2, z3, D1, D2, D3, c1, c2, chi):
     return alpha_2
 
 
-def set_parameter_values(chi=-140):
+def set_parameter_values_and_concentration_ranges(chi):
     z1 = 1
     z2 = 2
     z3 = -1
@@ -91,22 +97,20 @@ def set_parameter_values(chi=-140):
 
     chi = chi
 
-    return (z1, z2, z3, D1, D2, D3, chi)
+    if chi == 0:
+        c1_vals = np.arange(50, 81, 1)  # mol/m3 = mM
+        c2_vals = np.arange(50, 81, 1)  # mol/m3 = mM
+    elif chi == -140:
+        c1_vals = np.arange(50, 81, 1)  # mol/m3 = mM
+        c2_vals = np.arange(80, 111, 1)  # mol/m3 = mM
+
+    return (z1, z2, z3, D1, D2, D3, chi, c1_vals, c2_vals)
 
 
-def set_concentration_ranges():
-    # c1_vals = np.arange(0.1, 5, 0.1) # kg/m3
-    # c2_vals = np.arange(10, 15, 0.1) # kg/m3
-
-    c1_vals = np.arange(50, 80, 1)  # mol/m3 = mM
-    c2_vals = np.arange(80, 110, 1)  # mol/m3 = mM
-
-    return (c1_vals, c2_vals)
-
-
-def calculate_diffusion_coefficients():
-    (z1, z2, z3, D1, D2, D3, chi) = set_parameter_values()
-    (c1_vals, c2_vals) = set_concentration_ranges()
+def calculate_diffusion_coefficients(chi):
+    (z1, z2, z3, D1, D2, D3, chi, c1_vals, c2_vals) = (
+        set_parameter_values_and_concentration_ranges(chi=chi)
+    )
 
     c2_list = []
     D_11_vals = []
@@ -234,7 +238,7 @@ def plot_2D_diffusion_coefficients(
     plt.show()
 
 
-def linear_regression(dataframe):
+def linear_regression(dataframe, tee=False):
     """
     y = beta_0 + beta_1*c1 + beta_2*c2
     """
@@ -266,17 +270,21 @@ def linear_regression(dataframe):
     m.objective = Objective(expr=residual)
 
     solver = SolverFactory("ipopt")
-    solver.solve(m, tee=True)
+    results = solver.solve(m, tee=tee)
+    assert_optimal_termination(results)
 
     return (m.beta_0.value, m.beta_1.value, m.beta_2.value)
 
 
 def calculate_linearized_diffusion_coefficients(
-    D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df
+    D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df, chi
 ):
 
-    (c1_vals, c2_vals) = set_concentration_ranges()
+    (z1, z2, z3, D1, D2, D3, chi, c1_vals, c2_vals) = (
+        set_parameter_values_and_concentration_ranges(chi=chi)
+    )
 
+    c1_list = []
     c2_list = []
 
     D_11_vals = []
@@ -293,6 +301,8 @@ def calculate_linearized_diffusion_coefficients(
     alpha1 = {}
     alpha2 = {}
 
+    for c1 in c1_vals:
+        c1_list.append(c1.round(1))
     for c2 in c2_vals:
         c2_list.append(c2.round(1))
 
@@ -303,7 +313,13 @@ def calculate_linearized_diffusion_coefficients(
     (beta_0_alpha_1, beta_1_alpha_1, beta_2_alpha_1) = linear_regression(alpha_1_df)
     (beta_0_alpha_2, beta_1_alpha_2, beta_2_alpha_2) = linear_regression(alpha_2_df)
 
+    print("==================================================================")
+    print(f"chi = {chi} mM")
+    print(f"lithium conc range = {c1_list[0]} to {c1_list[-1]} mM")
+    print(f"cobalt conc range = {c2_list[0]} to {c2_list[-1]} mM")
+    print("------------------------------------------------------------------")
     print(" \t beta_0 (m2/h) \t beta_1 (m5/mol/h) \t beta_2 (m5/mol/h)")
+    print("------------------------------------------------------------------")
     print(
         f"D_11 \t {round(beta_0_D_11,12)} \t {round(beta_1_D_11,12)} \t\t {round(beta_2_D_11,12)}"
     )
@@ -316,8 +332,16 @@ def calculate_linearized_diffusion_coefficients(
     print(
         f"D_22 \t {round(beta_0_D_22,12)} \t {round(beta_1_D_22,12)} \t\t {round(beta_2_D_22,12)}"
     )
-    print(f"alpha_1 \t {beta_0_alpha_1} \t {beta_1_alpha_1} \t\t {beta_2_alpha_1}")
-    print(f"alpha_2 \t {beta_0_alpha_2} \t {beta_1_alpha_2} \t\t {beta_2_alpha_2}")
+    print("------------------------------------------------------------------")
+    print(" \t omega_0 \t omega_1 (m3/mol) \t omega_2 (m3/mol)")
+    print("------------------------------------------------------------------")
+    print(
+        f"alpha_1 \t {round(beta_0_alpha_1, 6)} \t {round(beta_1_alpha_1, 6)} \t\t {round(beta_2_alpha_1, 6)}"
+    )
+    print(
+        f"alpha_2 \t {round(beta_0_alpha_2, 6)} \t {round(beta_1_alpha_2, 6)} \t\t {round(beta_2_alpha_2, 6)}"
+    )
+    print("==================================================================")
 
     for c1 in c1_vals:
         for c2 in c2_vals:
@@ -361,9 +385,10 @@ def calculate_linearized_diffusion_coefficients(
     )
 
 
-def plot_3D_diffusion_coefficients():
-    (z1, z2, z3, D1, D2, D3, chi) = set_parameter_values()
-    (c1_vals, c2_vals) = set_concentration_ranges()
+def plot_3D_diffusion_coefficients(chi):
+    (z1, z2, z3, D1, D2, D3, chi, c1_vals, c2_vals) = (
+        set_parameter_values_and_concentration_ranges(chi=chi)
+    )
 
     c1, c2 = np.meshgrid(c1_vals, c2_vals)
     D_11 = calculate_D_11(z1, z2, z3, D1, D2, D3, c1, c2, chi)
@@ -374,7 +399,7 @@ def plot_3D_diffusion_coefficients():
     alpha_2 = calculate_alpha_2(z1, z2, z3, D1, D2, D3, c1, c2, chi)
 
     (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df) = (
-        calculate_diffusion_coefficients()
+        calculate_diffusion_coefficients(chi=chi)
     )
     (
         D_11_df_linearized,
@@ -384,7 +409,7 @@ def plot_3D_diffusion_coefficients():
         alpha_1_df_linearized,
         alpha_2_df_linearized,
     ) = calculate_linearized_diffusion_coefficients(
-        D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df
+        D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df, chi
     )
 
     ax1 = plt.figure().add_subplot(projection="3d")
