@@ -91,7 +91,7 @@ def calculate_D_22(z1, z2, z3, z4, D1, D2, D3, D4, c1, c2, c3, chi):
     D_22 = (
         (((z1 * z4 * D2 * D4) - ((z1**2) * D1 * D2)) * c1)
         + (((z2 * z4 * D2 * D4) - ((z2**2) * D2 * D4)) * c2)
-        + (((z3 * z4 * D2 * D3) - ((z3**2) * D2 * D3)) * c3)
+        + (((z3 * z4 * D2 * D4) - ((z3**2) * D2 * D3)) * c3)
         + (z4 * D2 * D4 * chi)
     ) / D_denom
     return D_22
