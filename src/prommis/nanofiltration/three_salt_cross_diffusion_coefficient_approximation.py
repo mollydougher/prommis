@@ -17,28 +17,30 @@ from pyomo.environ import (
 )
 
 
-def main(plot=True):
-    # for chi_val in [0, -140]:
-    for chi_val in [-140]:
-        (
-            D_11_df,
-            D_12_df,
-            D_13_df,
-            D_21_df,
-            D_22_df,
-            D_23_df,
-            D_31_df,
-            D_32_df,
-            D_33_df,
-            alpha_1_df,
-            alpha_2_df,
-            alpha_3_df,
-        ) = calculate_diffusion_coefficients(chi=chi_val)
-        # calculate_linearized_diffusion_coefficients(
-        #     D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df, chi_val
-        # )
+def main(plot=False):
+    for chi_val in [0, -140]:
+        report_linear_regression(chi_val)
 
         if plot:
+            (
+                D_11_df,
+                D_12_df,
+                D_13_df,
+                D_21_df,
+                D_22_df,
+                D_23_df,
+                D_31_df,
+                D_32_df,
+                D_33_df,
+                alpha_1_df,
+                alpha_2_df,
+                alpha_3_df,
+            ) = calculate_diffusion_coefficients(chi=chi_val)
+
+            # calculate_linearized_diffusion_coefficients(
+            #     D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df, chi_val
+            # )
+
             plot_2D_diffusion_coefficients(
                 D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df
             )
@@ -138,7 +140,7 @@ def calculate_alpha_2(z1, z2, z3, z4, D1, D2, D3, D4, c1, c2, c3, chi):
 
 def calculate_alpha_3(z1, z2, z3, z4, D1, D2, D3, D4, c1, c2, c3, chi):
     D_denom = calculate_D_denominator(z1, z2, z3, z4, D1, D2, D3, D4, c1, c2, c3, chi)
-    alpha_3 = 1 + (z2 * D2 * chi) / D_denom
+    alpha_3 = 1 + (z3 * D3 * chi) / D_denom
     return alpha_3
 
 
@@ -159,11 +161,13 @@ def set_parameter_values_and_concentration_ranges(chi):
     if chi == 0:
         c1_vals = np.arange(50, 81, 1)  # mol/m3 = mM
         c2_vals = np.arange(50, 81, 1)  # mol/m3 = mM
-        c3_vals = [50]  # mol/m3 = mM
+        c3_vals = np.arange(50, 81, 1)  # mol/m3 = mM
+        # c3_vals = [50]  # mol/m3 = mM
     elif chi == -140:
         c1_vals = np.arange(50, 81, 1)  # mol/m3 = mM
         c2_vals = np.arange(80, 111, 1)  # mol/m3 = mM
-        c3_vals = [50]  # mol/m3 = mM
+        c3_vals = np.arange(80, 111, 1)  # mol/m3 = mM
+        # c3_vals = [50]  # mol/m3 = mM
 
     return (z1, z2, z3, z4, D1, D2, D3, D4, chi, c1_vals, c2_vals, c3_vals)
 
@@ -370,42 +374,183 @@ def plot_2D_diffusion_coefficients(
     plt.show()
 
 
-# def linear_regression(dataframe, tee=False):
-#     """
-#     y = beta_0 + beta_1*c1 + beta_2*c2
-#     """
-#     m = ConcreteModel()
+def linear_regression(coeff_function_calc, chi, tee=False):
+    """
+    D_pred = beta_0 + beta_1*c1 + beta_2*c2 + beta_3*c3
+    """
+    (z1, z2, z3, z4, D1, D2, D3, D4, chi, c1_vals, c2_vals, c3_vals) = (
+        set_parameter_values_and_concentration_ranges(chi)
+    )
 
-#     m.beta_0 = Var(initialize=0)
-#     m.beta_1 = Var(initialize=1)
-#     m.beta_2 = Var(initialize=1)
+    m = ConcreteModel()
 
-#     m.c1_data = Set(initialize=[float(c1) for c1 in dataframe.columns])
-#     m.c2_data = Set(initialize=[float(c2) for c2 in dataframe.index])
+    m.beta_0 = Var(initialize=0)
+    m.beta_1 = Var(initialize=1)
+    m.beta_2 = Var(initialize=1)
+    m.beta_3 = Var(initialize=1)
 
-#     m.diffusion_prediction = Var(m.c1_data, m.c2_data, initialize=1e-6)
+    m.c1_data = Set(initialize=[c1_val for c1_val in c1_vals])
+    m.c2_data = Set(initialize=[c2_val for c2_val in c2_vals])
+    m.c3_data = Set(initialize=[c3_val for c3_val in c3_vals])
 
-#     def diffusion_calculation(m, c1, c2):
-#         return m.diffusion_prediction[c1, c2] == (
-#             m.beta_0 + m.beta_1 * c1 + m.beta_2 * c2
-#         )
+    m.diffusion_prediction = Var(m.c1_data, m.c2_data, m.c3_data, initialize=1e-6)
 
-#     m.model_eqn = Constraint(m.c1_data, m.c2_data, rule=diffusion_calculation)
+    def diffusion_calculation(m, c1, c2, c3):
+        return m.diffusion_prediction[c1, c2, c3] == (
+            m.beta_0 + (m.beta_1 * c1) + (m.beta_2 * c2) + (m.beta_3 * c3)
+        )
 
-#     residual = 0
-#     for c1 in dataframe.columns:
-#         for c2 in dataframe.index:
-#             residual += (
-#                 m.diffusion_prediction[float(c1), float(c2)] - dataframe.loc[c2][c1]
-#             ) ** 2
+    m.model_eqn = Constraint(
+        m.c1_data, m.c2_data, m.c3_data, rule=diffusion_calculation
+    )
 
-#     m.objective = Objective(expr=residual)
+    m.diffusion_actual = Var(m.c1_data, m.c2_data, m.c3_data, initialize=1e-6)
 
-#     solver = SolverFactory("ipopt")
-#     results = solver.solve(m, tee=tee)
-#     assert_optimal_termination(results)
+    def diffusion_calculation_actual(m, c1, c2, c3):
+        return m.diffusion_actual[c1, c2, c3] == coeff_function_calc(
+            z1, z2, z3, z4, D1, D2, D3, D4, c1, c2, c3, chi
+        )
 
-#     return (m.beta_0.value, m.beta_1.value, m.beta_2.value)
+    m.model_eqn_actual = Constraint(
+        m.c1_data, m.c2_data, m.c3_data, rule=diffusion_calculation_actual
+    )
+
+    residual = 0
+    for c1 in m.c1_data:
+        for c2 in m.c2_data:
+            for c3 in m.c3_data:
+                residual += (
+                    m.diffusion_prediction[c1, c2, c3] - m.diffusion_actual[c1, c2, c3]
+                ) ** 2
+
+    m.objective = Objective(expr=residual)
+
+    solver = SolverFactory("ipopt")
+    results = solver.solve(m, tee=tee)
+    assert_optimal_termination(results)
+
+    return (m.beta_0.value, m.beta_1.value, m.beta_2.value, m.beta_3.value)
+
+
+def report_linear_regression(chi):
+
+    (z1, z2, z3, z4, D1, D2, D3, D4, chi, c1_vals, c2_vals, c3_vals) = (
+        set_parameter_values_and_concentration_ranges(chi)
+    )
+
+    c1_list = []
+    c2_list = []
+    c3_list = []
+
+    for c1 in c1_vals:
+        c1_list.append(c1.round(1))
+    for c2 in c2_vals:
+        c2_list.append(c2.round(1))
+    for c3 in c3_vals:
+        c3_list.append(c3.round(1))
+
+    (beta_0_D_11, beta_1_D_11, beta_2_D_11, beta_3_D_11) = linear_regression(
+        calculate_D_11, chi
+    )
+    (beta_0_D_12, beta_1_D_12, beta_2_D_12, beta_3_D_12) = linear_regression(
+        calculate_D_12, chi
+    )
+    (beta_0_D_13, beta_1_D_13, beta_2_D_13, beta_3_D_13) = linear_regression(
+        calculate_D_13, chi
+    )
+
+    (beta_0_D_21, beta_1_D_21, beta_2_D_21, beta_3_D_21) = linear_regression(
+        calculate_D_21, chi
+    )
+    (beta_0_D_22, beta_1_D_22, beta_2_D_22, beta_3_D_22) = linear_regression(
+        calculate_D_22, chi
+    )
+    (beta_0_D_23, beta_1_D_23, beta_2_D_23, beta_3_D_23) = linear_regression(
+        calculate_D_23, chi
+    )
+
+    (beta_0_D_31, beta_1_D_31, beta_2_D_31, beta_3_D_31) = linear_regression(
+        calculate_D_31, chi
+    )
+    (beta_0_D_32, beta_1_D_32, beta_2_D_32, beta_3_D_32) = linear_regression(
+        calculate_D_32, chi
+    )
+    (beta_0_D_33, beta_1_D_33, beta_2_D_33, beta_3_D_33) = linear_regression(
+        calculate_D_33, chi
+    )
+
+    (beta_0_alpha_1, beta_1_alpha_1, beta_2_alpha_1, beta_3_alpha_1) = (
+        linear_regression(calculate_alpha_1, chi)
+    )
+    (beta_0_alpha_2, beta_1_alpha_2, beta_2_alpha_2, beta_3_alpha_2) = (
+        linear_regression(calculate_alpha_2, chi)
+    )
+    (beta_0_alpha_3, beta_1_alpha_3, beta_2_alpha_3, beta_3_alpha_3) = (
+        linear_regression(calculate_alpha_3, chi)
+    )
+
+    print(
+        "=========================================================================================="
+    )
+    print(f"chi = {chi} mM")
+    print(f"lithium conc range = {c1_list[0]} to {c1_list[-1]} mM")
+    print(f"cobalt conc range = {c2_list[0]} to {c2_list[-1]} mM")
+    print(f"aluminum conc range = {c3_list[0]} to {c3_list[-1]} mM")
+    print(
+        "------------------------------------------------------------------------------------------"
+    )
+    print(
+        " \t beta_0 (m2/h) \t beta_1 (m5/mol/h) \t beta_2 (m5/mol/h) \t beta_3 (m5/mol/h)"
+    )
+    print(
+        "------------------------------------------------------------------------------------------"
+    )
+    print(
+        f"D_11 \t {round(beta_0_D_11,12)} \t {round(beta_1_D_11,12)} \t\t {round(beta_2_D_11,12)} \t\t {round(beta_3_D_11,12)}"
+    )
+    print(
+        f"D_12 \t {round(beta_0_D_12,12)} \t {round(beta_1_D_12,12)} \t\t {round(beta_2_D_12,12)} \t\t {round(beta_3_D_12,12)}"
+    )
+    print(
+        f"D_13 \t {round(beta_0_D_13,12)} \t {round(beta_1_D_13,12)} \t\t {round(beta_2_D_13,12)} \t\t {round(beta_3_D_13,12)}"
+    )
+    print(
+        f"D_21 \t {round(beta_0_D_21,12)} \t {round(beta_1_D_21,12)} \t\t {round(beta_2_D_21,12)} \t\t {round(beta_3_D_21,12)}"
+    )
+    print(
+        f"D_22 \t {round(beta_0_D_22,12)} \t {round(beta_1_D_22,12)} \t\t {round(beta_2_D_22,12)} \t\t {round(beta_3_D_22,12)}"
+    )
+    print(
+        f"D_23 \t {round(beta_0_D_23,12)} \t {round(beta_1_D_23,12)} \t\t {round(beta_2_D_23,12)} \t\t {round(beta_3_D_23,12)}"
+    )
+    print(
+        f"D_31 \t {round(beta_0_D_31,12)} \t {round(beta_1_D_31,12)} \t\t {round(beta_2_D_31,12)} \t\t {round(beta_3_D_31,12)}"
+    )
+    print(
+        f"D_32 \t {round(beta_0_D_32,12)} \t {round(beta_1_D_32,12)} \t\t {round(beta_2_D_32,12)} \t\t {round(beta_3_D_32,12)}"
+    )
+    print(
+        f"D_33 \t {round(beta_0_D_33,12)} \t {round(beta_1_D_33,12)} \t\t {round(beta_2_D_33,12)} \t\t {round(beta_3_D_33,12)}"
+    )
+    print(
+        "------------------------------------------------------------------------------------------"
+    )
+    print(" \t omega_0 \t omega_1 (m3/mol) \t omega_2 (m3/mol) \t omega_3 (m3/mol)")
+    print(
+        "------------------------------------------------------------------------------------------"
+    )
+    print(
+        f"alpha_1 \t {round(beta_0_alpha_1, 6)} \t {round(beta_1_alpha_1, 6)} \t\t {round(beta_2_alpha_1, 6)} \t\t {round(beta_3_alpha_1, 6)}"
+    )
+    print(
+        f"alpha_2 \t {round(beta_0_alpha_2, 6)} \t {round(beta_1_alpha_2, 6)} \t\t {round(beta_2_alpha_2, 6)} \t\t {round(beta_3_alpha_2, 6)}"
+    )
+    print(
+        f"alpha_3 \t {round(beta_0_alpha_3, 6)} \t {round(beta_1_alpha_3, 6)} \t\t {round(beta_2_alpha_3, 6)} \t\t {round(beta_3_alpha_3, 6)}"
+    )
+    print(
+        "=========================================================================================="
+    )
 
 
 # def calculate_linearized_diffusion_coefficients(
