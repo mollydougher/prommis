@@ -479,43 +479,41 @@ and used when constructing these,
         # add parameters for the linearized relationships to calculate the diffusion and convection coefficients
         def initialize_diffusion_params(m, i, j, k):
             if self.config.charged_membrane:
-                # these params assume chi=-140 mM and lithium mem_conc range 50-80 mM & cobalt mem_conc range 80-110 mM
-                # current aluminum mem_conc range of 80-110 mM TODO: validate this range
+                # these params assume chi=-140 mM and lithium mem_conc range 50-80 mM & cobalt mem_conc range 80-110 mM & aluminum mem_conc range of 2-32 mM
                 vals = {
                     "Li": {
-                        "Li": {0: -3.87e-06, 1: -2.00e-09, 2: 6.36e-10, 3: 1.01e-09},
-                        "Co": {0: -4.50e-07, 1: -5.17e-09, 2: 1.65e-09, 3: 2.61e-09},
-                        "Al": {0: -7.67e-07, 1: -8.81e-09, 2: 2.80e-09, 3: 4.44e-09},
+                        "Li": {0: -4.15e-06, 1: -3.61e-09, 2: 3.03e-09, 3: 4.75e-09},
+                        "Co": {0: -1.18e-06, 1: -9.33e-09, 2: 7.84e-09, 3: 1.23e-08},
+                        "Al": {0: -2.00e-06, 1: -1.59e-08, 2: 1.33e-08, 3: 2.09e-08},
                     },
                     "Co": {
-                        "Li": {0: -3.62e-07, 1: 5.79e-10, 2: -1.92e-09, 3: 2.10e-09},
-                        "Co": {0: -3.58e-06, 1: 1.50e-09, 2: -4.97e-09, 3: 5.43e-09},
-                        "Al": {0: -1.60e-06, 1: 2.55e-09, 2: -8.47e-09, 3: 9.24e-09},
+                        "Li": {0: -9.44e-07, 1: 2.76e-09, 2: -7.21e-10, 3: 9.85e-09},
+                        "Co": {0: -5.08e-06, 1: 7.16e-09, 2: -1.87e-09, 3: 2.55e-08},
+                        "Al": {0: -4.16e-06, 1: 1.22e-08, 2: -3.18e-09, 3: 4.34e-08},
                     },
                     "Al": {
-                        "Li": {0: -4.12e-07, 1: 6.59e-10, 2: 1.50e-09, 3: -1.31e-09},
-                        "Co": {0: -1.07e-06, 1: 1.71e-09, 2: 3.89e-09, 3: -3.39e-09},
-                        "Al": {0: -3.83e-06, 1: 2.90e-09, 2: 6.63e-09, 3: -5.77e-09},
+                        "Li": {0: -1.62e-07, 1: 4.93e-10, 2: 1.12e-09, 3: -6.13e-09},
+                        "Co": {0: -4.19e-07, 1: 1.28e-09, 2: 2.90e-09, 3: -1.59e-08},
+                        "Al": {0: -2.72e-06, 1: 2.18e-09, 2: 4.94e-09, 3: -2.70e-08},
                     },
                 }
             else:
-                # these params assume chi=0 mM and lithium & cobalt mem_conc range 50-80 mM
-                # current aluminum mem_conc range of 50-80 mM TODO: validate this range
+                # these params assume chi=0 mM and lithium & cobalt mem_conc range 50-80 mM & aluminum mem_conc range of 2-32 mM
                 vals = {
                     "Li": {
-                        "Li": {0: -3.88e-06, 1: -2.32e-09, 2: 9.03e-10, 3: 1.43e-09},
-                        "Co": {0: -4.58e-07, 1: -5.99e-09, 2: 2.34e-09, 3: 3.70e-09},
-                        "Al": {0: -7.80e-07, 1: -1.02e-08, 2: 3.98e-09, 3: 6.30e-09},
+                        "Li": {0: -4.00e-06, 1: -3.39e-09, 2: 2.49e-09, 3: 3.91e-09},
+                        "Co": {0: -7.73e-07, 1: -8.78e-09, 2: 6.44e-09, 3: 1.01e-08},
+                        "Al": {0: -1.32e-06, 1: -1.49e-08, 2: 1.10e-08, 3: 1.73e-08},
                     },
                     "Co": {
-                        "Li": {0: -2.50e-07, 1: 5.06e-10, 2: -2.58e-09, 3: 2.03e-09},
-                        "Co": {0: -3.29e-06, 1: 1.45e-09, 2: -6.68e-09, 3: 5.24e-09},
-                        "Al": {0: -1.10e-06, 1: 2.47e-09, 2: -1.14e-08, 3: 8.93e-09},
+                        "Li": {0: -4.21e-07, 1: 1.54e-09, 2: -2.85e-09, 3: 5.52e-09},
+                        "Co": {0: -3.73e-06, 1: 4.00e-09, 2: -7.39e-09, 3: 1.43e-08},
+                        "Al": {0: -1.85e-06, 1: 6.80e-09, 2: -1.26e-08, 3: 2.43e-08},
                     },
                     "Al": {
-                        "Li": {0: -2.84e-07, 1: 6.35e-10, 2: 1.45e-09, 3: -2.10e-09},
-                        "Co": {0: -7.34e-07, 1: 1.65e-09, 2: 3.75e-09, 3: -5.43e-09},
-                        "Al": {0: -3.26e-06, 1: 2.80e-09, 2: 6.39e-09, 3: -9.24e-09},
+                        "Li": {0: -1.07e-07, 1: 4.11e-10, 2: 9.35e-10, 3: -5.72e-09},
+                        "Co": {0: -2.76e-07, 1: 1.06e-09, 2: 2.42e-09, 3: -1.48e-08},
+                        "Al": {0: -2.48e-06, 1: 1.81e-09, 2: 4.12e-09, 3: -2.52e-08},
                     },
                 }
             return vals[i][j][k]
@@ -531,17 +529,19 @@ and used when constructing these,
 
         def initialize_convection_params(m, j, k):
             if self.config.charged_membrane:
-                # these params assume chi=-140 mM and lithium mem_conc range 50-80 mM & cobalt mem_conc range 80-110 mM
-                # current aluminum mem_conc range of 80-110 mM TODO: validate this range
+                # these params assume chi=-140 mM and lithium mem_conc range 50-80 mM & cobalt mem_conc range 80-110 mM & aluminum mem_conc range of 2-32 mM
                 vals = {
-                    "Li": {0: 0.807, 1: 0.000167, 2: 0.000382, 3: 0.000606},
-                    "Co": {0: 0.724, 1: 0.000239, 2: 0.000545, 3: 0.000865},
-                    "Al": {0: 0.685, 1: 0.000273, 2: 0.000623, 3: 0.000987},
+                    "Li": {0: 0.533, 1: 0.000806, 2: 0.00183, 3: 0.00287},
+                    "Co": {0: 0.333, 1: 0.00115, 2: 0.00261, 3: 0.00410},
+                    "Al": {0: 0.238, 1: 0.00131, 2: 0.00298, 3: 0.00468},
                 }
             else:
-                # these params assume chi=0 mM and lithium & cobalt mem_conc range 50-80 mM
-                # current aluminum mem_conc range of 50-80 mM TODO: validate this range
-                vals = {"Li": {0: 1, 1: 0, 2: 0, 3: 0}, "Co": {0: 1, 1: 0, 2: 0, 3: 0}}
+                # these params assume chi=0 mM and lithium & cobalt mem_conc range 50-80 mM & aluminum mem_conc range of 2-32 mM
+                vals = {
+                    "Li": {0: 1, 1: 0, 2: 0, 3: 0},
+                    "Co": {0: 1, 1: 0, 2: 0, 3: 0},
+                    "Al": {0: 1, 1: 0, 2: 0, 3: 0},
+                }
             return vals[j][k]
 
         self.convection_params = Var(
