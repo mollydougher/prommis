@@ -77,14 +77,12 @@ def main():
     # solve model
     solve_model(m)
 
-    # TODO: write exception for aluminum
     check_membrane_concentration_ranges(m)
 
     # check numerical warnings
     dt.assert_no_numerical_warnings()
 
     # visualize the results
-    # TODO: update plotting functions to visualize aluminum
     plot_results(m)
     plot_membrane_results(m)
 
@@ -164,7 +162,7 @@ def check_membrane_concentration_ranges(m):
             # diffusion coefficient calculation is not needed
             if x == 0:
                 pass
-            elif not (50 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 80):
+            elif not (50 <= value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) <= 80):
                 raise ValueError(
                     "Membrane concentration for lithium ("
                     f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
@@ -172,6 +170,15 @@ def check_membrane_concentration_ranges(m):
                     f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
                     "of the valid range for the diffusion coefficient approximations "
                     "(50-80 mM). The linearized approximation should be re-calculated."
+                )
+            elif not (2 <= value(m.fs.membrane.membrane_conc_mol_aluminum[x, z]) <= 32):
+                raise ValueError(
+                    "Membrane concentration for aluminum ("
+                    f"{value(m.fs.membrane.membrane_conc_mol_aluminum[x, z])} mM at "
+                    f"x={x * value(m.fs.membrane.total_module_length)} m and "
+                    f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
+                    "of the valid range for the diffusion coefficient approximations "
+                    "(2-32 mM). The linearized approximation should be re-calculated."
                 )
     if m.fs.membrane.config.charged_membrane:
         for x in m.fs.membrane.dimensionless_module_length:
@@ -181,7 +188,7 @@ def check_membrane_concentration_ranges(m):
                 if x == 0:
                     pass
                 elif not (
-                    80 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 110
+                    80 <= value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) <= 110
                 ):
                     raise ValueError(
                         "Membrane concentration for cobalt ("
@@ -199,7 +206,7 @@ def check_membrane_concentration_ranges(m):
                 if x == 0:
                     pass
                 elif not (
-                    50 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 80
+                    50 <= value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) <= 80
                 ):
                     raise ValueError(
                         "Membrane concentration for cobalt ("
@@ -229,23 +236,29 @@ def plot_results(m):
     conc_ret_cob = []
     # store values for concentration of cobalt in the permeate
     conc_perm_cob = []
+    # store values for concentration of aluminum in the retentate
+    conc_ret_al = []
+    # store values for concentration of aluminum in the permeate
+    conc_perm_al = []
 
     # store values for water flux across membrane
     water_flux = []
     # store values for mol flux of lithium across membrane
     lithium_flux = []
+    # store values for mol flux of cobalt across membrane
+    cobalt_flux = []
+    # store values for mol flux of aluminum across membrane
+    aluminum_flux = []
 
     # store values for percent recovery
     percent_recovery = []
 
     # store values for lithium rejection
     lithium_rejection = []
-    # store values for lithium solute passage
-    lithium_sieving = []
     # store values for cobalt rejection
     cobalt_rejection = []
-    # store values for cobalt solute passage
-    cobalt_sieving = []
+    # store values for aluminum rejection
+    aluminum_rejection = []
 
     for x_val in m.fs.membrane.dimensionless_module_length:
         if x_val != 0:
@@ -262,9 +275,17 @@ def plot_results(m):
             conc_perm_cob.append(
                 value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
             )
+            conc_ret_al.append(
+                value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Al"])
+            )
+            conc_perm_al.append(
+                value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Al"])
+            )
 
             water_flux.append(value(m.fs.membrane.volume_flux_water[x_val]))
             lithium_flux.append(value(m.fs.membrane.mol_flux_lithium[x_val]))
+            cobalt_flux.append(value(m.fs.membrane.mol_flux_cobalt[x_val]))
+            aluminum_flux.append(value(m.fs.membrane.mol_flux_aluminum[x_val]))
 
             lithium_rejection.append(
                 (
@@ -276,12 +297,6 @@ def plot_results(m):
                 )
                 * 100
             )
-            lithium_sieving.append(
-                (
-                    value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Li"])
-                    / value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Li"])
-                )
-            )
             cobalt_rejection.append(
                 (
                     1
@@ -292,11 +307,15 @@ def plot_results(m):
                 )
                 * 100
             )
-            cobalt_sieving.append(
+            aluminum_rejection.append(
                 (
-                    value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
-                    / value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Co"])
+                    1
+                    - (
+                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Al"])
+                        / value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Al"])
+                    )
                 )
+                * 100
             )
 
             percent_recovery.append(
@@ -307,8 +326,8 @@ def plot_results(m):
                 )
             )
 
-    fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
-        3, 2, dpi=100, figsize=(12, 10)
+    fig1, ((ax1, ax2, ax3), (ax4, ax5, ax6), (ax7, ax8, ax9)) = plt.subplots(
+        3, 3, dpi=100, figsize=(15, 10)
     )
 
     ax1.plot(x_axis_values, conc_ret_lith, linewidth=2, label="retentate")
@@ -331,34 +350,55 @@ def plot_results(m):
     ax2.tick_params(direction="in", labelsize=10)
     ax2.legend()
 
-    ax3.plot(x_axis_values, water_flux, linewidth=2)
-    ax3.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=10, fontweight="bold")
+    ax3.plot(x_axis_values, conc_ret_al, linewidth=2, label="retentate")
+    ax3.plot(x_axis_values, conc_perm_al, linewidth=2, label="permeate")
+    ax3.set_ylabel(
+        "Aluminum Concentration (mol/m$^3$)",
+        fontsize=10,
+        fontweight="bold",
+    )
     ax3.tick_params(direction="in", labelsize=10)
+    ax3.legend()
 
     ax4.plot(x_axis_values, lithium_flux, linewidth=2)
     ax4.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
     ax4.set_ylabel("Lithium Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
     ax4.tick_params(direction="in", labelsize=10)
 
-    ax5.plot(x_axis_values, lithium_rejection, linewidth=2, label="lithium")
-    ax5.plot(x_axis_values, cobalt_rejection, linewidth=2, label="cobalt")
+    ax5.plot(x_axis_values, cobalt_flux, linewidth=2)
     ax5.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax5.set_ylabel("Solute Rejection (%)", fontsize=10, fontweight="bold")
+    ax5.set_ylabel("Cobalt Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
     ax5.tick_params(direction="in", labelsize=10)
-    ax5.legend()
 
-    ax6.plot(x_axis_values, percent_recovery, linewidth=2)
+    ax6.plot(x_axis_values, aluminum_flux, linewidth=2)
     ax6.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax6.set_ylabel("Percent Recovery (%)", fontsize=10, fontweight="bold")
+    ax6.set_ylabel("Aluminum Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
     ax6.tick_params(direction="in", labelsize=10)
+
+    ax7.plot(x_axis_values, water_flux, linewidth=2)
+    ax7.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax7.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=10, fontweight="bold")
+    ax7.tick_params(direction="in", labelsize=10)
+
+    ax8.plot(x_axis_values, lithium_rejection, "g-", linewidth=2, label="lithium")
+    ax8.plot(x_axis_values, cobalt_rejection, linewidth=2, label="cobalt")
+    ax8.plot(x_axis_values, aluminum_rejection, linewidth=2, label="aluminum")
+    ax8.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax8.set_ylabel("Solute Rejection (%)", fontsize=10, fontweight="bold")
+    ax8.tick_params(direction="in", labelsize=10)
+    ax8.legend()
+
+    ax9.plot(x_axis_values, percent_recovery, linewidth=2)
+    ax9.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax9.set_ylabel("Percent Recovery (%)", fontsize=10, fontweight="bold")
+    ax9.tick_params(direction="in", labelsize=10)
 
     plt.show()
 
 
 def plot_membrane_results(m):
     """
-    Plots concentrations within the membrane.
+    Plots cation concentrations within the membrane.
 
     Args:
         m: Pyomo model
@@ -379,9 +419,9 @@ def plot_membrane_results(m):
     # store values for concentration of cobalt in the membrane
     conc_mem_cob = []
     conc_mem_cob_dict = {}
-    # store values for concentration of chloride in the membrane
-    conc_mem_chl = []
-    conc_mem_chl_dict = {}
+    # store values for concentration of aluminum in the membrane
+    conc_mem_al = []
+    conc_mem_al_dict = {}
 
     for z_val in m.fs.membrane.dimensionless_membrane_thickness:
         for x_val in m.fs.membrane.dimensionless_module_length:
@@ -392,20 +432,20 @@ def plot_membrane_results(m):
                 conc_mem_cob.append(
                     value(m.fs.membrane.membrane_conc_mol_cobalt[x_val, z_val])
                 )
-                conc_mem_chl.append(
-                    value(m.fs.membrane.membrane_conc_mol_chloride[x_val, z_val])
+                conc_mem_al.append(
+                    value(m.fs.membrane.membrane_conc_mol_aluminum[x_val, z_val])
                 )
 
         conc_mem_lith_dict[f"{z_val}"] = conc_mem_lith
         conc_mem_cob_dict[f"{z_val}"] = conc_mem_cob
-        conc_mem_chl_dict[f"{z_val}"] = conc_mem_chl
+        conc_mem_al_dict[f"{z_val}"] = conc_mem_al
         conc_mem_lith = []
         conc_mem_cob = []
-        conc_mem_chl = []
+        conc_mem_al = []
 
     conc_mem_lith_df = DataFrame(index=x_axis_values, data=conc_mem_lith_dict)
     conc_mem_cob_df = DataFrame(index=x_axis_values, data=conc_mem_cob_dict)
-    conc_mem_chl_df = DataFrame(index=x_axis_values, data=conc_mem_chl_dict)
+    conc_mem_al_df = DataFrame(index=x_axis_values, data=conc_mem_al_dict)
 
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi=125, figsize=(15, 7))
     lithium_plot = ax1.pcolor(
@@ -431,17 +471,17 @@ def plot_membrane_results(m):
     ax2.tick_params(direction="in", labelsize=10)
     fig.colorbar(cobalt_plot, ax=ax2)
 
-    chloride_plot = ax3.pcolor(
-        z_axis_values, x_axis_values, conc_mem_chl_df, cmap="Oranges"
+    aluminum_plot = ax3.pcolor(
+        z_axis_values, x_axis_values, conc_mem_al_df, cmap="Oranges"
     )
     ax3.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
     ax3.set_title(
-        "Chloride Concentration\n in Membrane (mol/m$^3$)",
+        "Aluminum Concentration\n in Membrane (mol/m$^3$)",
         fontsize=10,
         fontweight="bold",
     )
     ax3.tick_params(direction="in", labelsize=10)
-    fig.colorbar(chloride_plot, ax=ax3)
+    fig.colorbar(aluminum_plot, ax=ax3)
 
     plt.show()
 
