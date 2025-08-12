@@ -81,9 +81,7 @@ def main():
     check_membrane_concentration_ranges(m)
 
     # check numerical warnings
-    # TODO: debug numerical issues that are occurring even with optimal solution
-    # dt.assert_no_numerical_warnings()
-    dt.report_numerical_issues()
+    dt.assert_no_numerical_warnings()
 
     # visualize the results
     # TODO: update plotting functions to visualize aluminum
@@ -154,7 +152,7 @@ def solve_model(m):
 
     solver = SolverFactory("ipopt")
     results = solver.solve(scaled_model, tee=True)
-    # assert_optimal_termination(results)
+    assert_optimal_termination(results)
 
     scaling.propagate_solution(scaled_model, m)
 
