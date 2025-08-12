@@ -444,8 +444,7 @@ and used when constructing these,
         )
 
         def initialize_feed_conc_mol_comp(m, t, j):
-            # TODO: validate aluminum concentration
-            vals = {"Li": 245, "Co": 288, "Al": 200, "Cl": 931}
+            vals = {"Li": 245, "Co": 288, "Al": 30, "Cl": 911}
             return vals[j]
 
         self.feed_conc_mol_comp = Var(
@@ -465,8 +464,7 @@ and used when constructing these,
         )
 
         def initialize_diafiltrate_conc_mol_comp(m, t, j):
-            # TODO: validate aluminum concentration
-            vals = {"Li": 14, "Co": 3, "Al": 10, "Cl": 22}
+            vals = {"Li": 14, "Co": 3, "Al": 1.5, "Cl": 24.5}
             return vals[j]
 
         self.diafiltrate_conc_mol_comp = Var(
@@ -557,35 +555,35 @@ and used when constructing these,
         # add variables dependent on dimensionless_module_length
         self.volume_flux_water = Var(
             self.dimensionless_module_length,
-            initialize=0.3,
+            initialize=0.4,
             units=units.m**3 / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric water flux of water across the membrane",
         )
         self.mol_flux_lithium = Var(
             self.dimensionless_module_length,
-            initialize=69,
+            initialize=75,
             units=units.mol / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Mole flux of lithium across the membrane (z-direction, x-dependent)",
         )
         self.mol_flux_cobalt = Var(
             self.dimensionless_module_length,
-            initialize=80,
+            initialize=87,
             units=units.mol / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Mole flux of cobalt across the membrane (z-direction, x-dependent)",
         )
         self.mol_flux_aluminum = Var(
             self.dimensionless_module_length,
-            initialize=56,
+            initialize=9,
             units=units.mol / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Mole flux of aluminum across the membrane (z-direction, x-dependent)",
         )
         self.mol_flux_chloride = Var(
             self.dimensionless_module_length,
-            initialize=399,
+            initialize=276,
             units=units.mol / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Mole flux of chloride across the membrane (z-direction, x-dependent)",
@@ -593,15 +591,14 @@ and used when constructing these,
         self.retentate_flow_volume = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=100,
+            initialize=67,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the retentate, x-dependent",
         )
 
         def initialize_retentate_conc_mol_comp(m, t, p, j):
-            # TODO: validate aluminum concentration
-            vals = {"Li": 193, "Co": 225, "Al": 158, "Cl": 1116}
+            vals = {"Li": 194, "Co": 225, "Al": 23, "Cl": 714}
             return vals[j]
 
         self.retentate_conc_mol_comp = Var(
@@ -616,15 +613,14 @@ and used when constructing these,
         self.permeate_flow_volume = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=30,
+            initialize=63,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the permeate, x-dependent",
         )
 
         def initialize_permeate_conc_mol_comp(m, t, p, j):
-            # TODO: validate aluminum concentration
-            vals = {"Li": 190, "Co": 221, "Al": 155, "Cl": 1098}
+            vals = {"Li": 191, "Co": 221, "Al": 23, "Cl": 702}
             return vals[j]
 
         self.permeate_conc_mol_comp = Var(
@@ -648,7 +644,7 @@ and used when constructing these,
         self.membrane_conc_mol_lithium = Var(
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=64,
+            initialize=70,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of lithium in the membrane, x- and z-dependent",
@@ -656,7 +652,7 @@ and used when constructing these,
         self.membrane_conc_mol_cobalt = Var(
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=84,
+            initialize=101,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of cobalt in the membrane, x- and z-dependent",
@@ -664,7 +660,7 @@ and used when constructing these,
         self.membrane_conc_mol_aluminum = Var(
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=67,
+            initialize=13,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of aluminum in the membrane, x- and z-dependent",
@@ -672,7 +668,7 @@ and used when constructing these,
         self.membrane_conc_mol_chloride = Var(
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=290,
+            initialize=171,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of chloride in the membrane, x- and z-dependent",
