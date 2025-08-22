@@ -43,8 +43,21 @@ def set_parameter_values_and_concentration_ranges(chi):
 
     chi = chi
 
-    c1_vals = np.arange(40, 151, 1)  # mol/m3 = mM
-    c2_vals = np.arange(40, 151, 1)  # mol/m3 = mM
+    # nominal concentrations
+    # chi=0
+    # c,li,m ~57
+    # c,co,m ~66
+
+    # chi=-140
+    # c,li,m ~73
+    # c,co,m ~108
+
+    if chi == 0:
+        c1_vals = np.arange(40, 91, 1)  # mol/m3 = mM
+        c2_vals = np.arange(50, 101, 1)  # mol/m3 = mM
+    if chi == -140:
+        c1_vals = np.arange(60, 111, 1)  # mol/m3 = mM
+        c2_vals = np.arange(90, 141, 1)  # mol/m3 = mM
 
     return (z1, z2, z3, D1, D2, D3, chi, c1_vals, c2_vals)
 
