@@ -510,6 +510,18 @@ def fix_stream_values(m):
         m.C_Co_feed
     )
 
+    # initialize material_transfer_term to small, nonzero value
+    # MSContactor initializes material_transfer_term to 0 which sets initial permeate flow rates to 0
+    # the LB of all flow Vars is 1e-8
+    m.fs.stage1.material_transfer_term.fix(1e-5)
+    m.fs.stage1.material_transfer_term.unfix()
+
+    m.fs.stage2.material_transfer_term.fix(1e-5)
+    m.fs.stage2.material_transfer_term.unfix()
+
+    m.fs.stage3.material_transfer_term.fix(1e-5)
+    m.fs.stage3.material_transfer_term.unfix()
+
 
 def initialize_model(m):
     """
