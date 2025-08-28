@@ -283,9 +283,14 @@ from pyomo.environ import (
 from pyomo.network import Port
 
 from idaes.core import UnitModelBlockData, declare_process_block_class, useDefault
+
+from idaes.core.surrogate.pysmo_surrogate import PysmoSurrogate
+from idaes.core.surrogate.surrogate_block import SurrogateBlock
 from idaes.core.util.config import is_physical_parameter_block
 from idaes.core.util.constants import Constants
 from idaes.core.util.scaling import constraint_autoscale_large_jac
+
+from pandas import DataFrame
 
 
 @declare_process_block_class("TwoSaltDiafiltration")
@@ -340,6 +345,19 @@ and used when constructing these,
             default=True, doc="Boolean argument if the membrane has a surface charge"
         ),
     )
+    CONFIG.declare(
+        "surrogate_model_files",
+        ConfigValue(
+            doc="Dict of JSON file names for each surrogate model",
+        ),
+    )
+    CONFIG.declare(
+        "diffusion_surrogate_scaling_factor",
+        ConfigValue(
+            default=1,
+            doc="Numeric value to un-scale diffusion coefficient values",
+        ),
+    )
 
     def build(self):
         """
@@ -351,6 +369,7 @@ and used when constructing these,
 
         self.add_mutable_parameters()
         self.add_variables()
+        self.add_surrogate_constraints()
         self.add_constraints()
         self.discretize_model()
         self.fix_initial_values()
@@ -1004,7 +1023,7 @@ and used when constructing these,
                     * blk.volume_flux_water[x]
                 )
                 - (
-                    blk.D_lithium_lithium[x, z]
+                    blk.D_11[x, z]
                     / blk.total_membrane_thickness
                     * blk.d_membrane_conc_mol_lithium_dz[x, z]
                 )
@@ -1223,6 +1242,43 @@ and used when constructing these,
             self.dimensionless_module_length, rule=_membrane_permeate_interface_cobalt
         )
 
+    def add_surrogate_constraints(self):
+        self.D_11 = Var(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            initialize=1e-7,
+            units=units.m**2 / units.h,
+            bounds=[1e-11, None],
+        )
+
+        self._surrogates_obj_D_11 = PysmoSurrogate.load_from_file(
+            self.config.surrogate_model_files["D_11"]
+        )
+
+        def _D_11_calc(blk, x, z):
+            if x == 0:
+                return Constraint.Skip
+
+            input_dict = {
+                "conc_1": blk.membrane_conc_mol_lithium[x, z],
+                "conc_2": blk.membrane_conc_mol_cobalt[x, z],
+            }
+            input_df = DataFrame(data=input_dict, index=[0])
+            surrogate_value = self._surrogates_obj_D_11.evaluate_surrogate(input_df)
+
+            return self.D_11[x, z] == (
+                self.config.diffusion_surrogate_scaling_factor
+                * surrogate_value["D_11_scaled"][0]
+                * units.m**2
+                / units.h
+            )
+
+        self.D_11_calc = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_D_11_calc,
+        )
+
     def discretize_model(self):
         discretizer = TransformationFactory("dae.finite_difference")
         discretizer.apply_to(
@@ -1324,7 +1380,8 @@ and used when constructing these,
                 self.scaling_factor[self.mol_flux_chloride[x]] = 1e-2
 
             for z in self.dimensionless_membrane_thickness:
-                self.scaling_factor[self.D_lithium_lithium[x, z]] = 1e6
+                # self.scaling_factor[self.D_lithium_lithium[x, z]] = 1e6
+                self.scaling_factor[self.D_11[x, z]] = 1e8
                 self.scaling_factor[self.D_lithium_cobalt[x, z]] = 1e7
                 self.scaling_factor[self.D_cobalt_lithium[x, z]] = 1e7
                 self.scaling_factor[self.D_cobalt_cobalt[x, z]] = 1e6
