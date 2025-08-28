@@ -77,6 +77,7 @@ def main():
     three_salt_model_checks(m_three_salt)
 
     plot_relative_rejections(m_two_salt, m_three_salt)
+    plot_concentrations(m_two_salt, m_three_salt)
 
 
 def plot_relative_rejections(m2, m3):
@@ -107,7 +108,11 @@ def plot_relative_rejections(m2, m3):
 
     for x_val in m2.fs.membrane.dimensionless_module_length:
         if x_val != 0:
-            x_axis_values.append(x_val * value(m2.fs.membrane.total_module_length) * value(m2.fs.membrane.total_membrane_length))
+            x_axis_values.append(
+                x_val
+                * value(m2.fs.membrane.total_module_length)
+                * value(m2.fs.membrane.total_membrane_length)
+            )
 
             lith_rej_two_salt = (
                 1
@@ -153,38 +158,51 @@ def plot_relative_rejections(m2, m3):
             cobalt_rejection_two_salt.append(cob_rej_two_salt)
             cobalt_rejection_three_salt.append(cob_rej_three_salt)
             aluminum_rejection_three_salt.append(al_rej_three_salt)
-            
-    lithium_rejection_two_salt_norm = [(i-lithium_rejection_two_salt[0]) / lithium_rejection_two_salt[0] * 100 for i in lithium_rejection_two_salt]
-    lithium_rejection_three_salt_norm = [(i-lithium_rejection_three_salt[0]) / lithium_rejection_three_salt[0] * 100 for i in lithium_rejection_three_salt]
-    cobalt_rejection_two_salt_norm = [(i-cobalt_rejection_two_salt[0]) / cobalt_rejection_two_salt[0] * 100 for i in cobalt_rejection_two_salt]
-    cobalt_rejection_three_salt_norm = [(i-cobalt_rejection_three_salt[0]) / cobalt_rejection_three_salt[0] * 100 for i in cobalt_rejection_three_salt]
-    aluminum_rejection_three_salt_norm = [(i-aluminum_rejection_three_salt[0]) / aluminum_rejection_three_salt[0] * 100 for i in aluminum_rejection_three_salt]
 
-    # fig1, (ax1, ax2) = plt.subplots(1, 2, dpi=100, figsize=(9, 5))
+    lithium_rejection_two_salt_norm = [
+        (i - lithium_rejection_two_salt[0]) / lithium_rejection_two_salt[0] * 100
+        for i in lithium_rejection_two_salt
+    ]
+    lithium_rejection_three_salt_norm = [
+        (i - lithium_rejection_three_salt[0]) / lithium_rejection_three_salt[0] * 100
+        for i in lithium_rejection_three_salt
+    ]
+    cobalt_rejection_two_salt_norm = [
+        (i - cobalt_rejection_two_salt[0]) / cobalt_rejection_two_salt[0] * 100
+        for i in cobalt_rejection_two_salt
+    ]
+    cobalt_rejection_three_salt_norm = [
+        (i - cobalt_rejection_three_salt[0]) / cobalt_rejection_three_salt[0] * 100
+        for i in cobalt_rejection_three_salt
+    ]
+    aluminum_rejection_three_salt_norm = [
+        (i - aluminum_rejection_three_salt[0]) / aluminum_rejection_three_salt[0] * 100
+        for i in aluminum_rejection_three_salt
+    ]
 
-    fig1, ax2 = plt.subplots(
-        1, 1, dpi=100, figsize=(5, 4)
-    )
+    fig1, (ax1, ax2) = plt.subplots(1, 2, dpi=100, figsize=(9, 5))
 
-    # ax1.plot(
-    #     x_axis_values, lithium_rejection_two_salt, "m-", linewidth=2
-    # )  # , label="Lithium (Li-Co)")
-    # ax1.plot(
-    #     x_axis_values, cobalt_rejection_two_salt, "c-", linewidth=2
-    # )  # , label="Cobalt (Li-Co)")
-    # ax1.plot(
-    #     x_axis_values, lithium_rejection_three_salt, "m--", linewidth=2
-    # )  # , label="Lithium (Li-Co-Al)")
-    # ax1.plot(
-    #     x_axis_values, cobalt_rejection_three_salt, "c--", linewidth=2
-    # )  # , label="Cobalt (Li-Co-Al)")
-    # ax1.plot(
-    #     x_axis_values, aluminum_rejection_three_salt, "g--", linewidth=2
-    # )  # , label="Aluminum (Li-Co-Al)")
-    # ax1.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    # ax1.set_ylabel("Solute Rejection (%)", fontsize=10, fontweight="bold")
-    # ax1.tick_params(direction="in", labelsize=10)
-    # # ax1.legend()
+    # fig1, ax2 = plt.subplots(1, 1, dpi=100, figsize=(5, 4))
+
+    ax1.plot(
+        x_axis_values, lithium_rejection_two_salt, "m-", linewidth=2
+    )  # , label="Lithium (Li-Co)")
+    ax1.plot(
+        x_axis_values, cobalt_rejection_two_salt, "c-", linewidth=2
+    )  # , label="Cobalt (Li-Co)")
+    ax1.plot(
+        x_axis_values, lithium_rejection_three_salt, "m--", linewidth=2
+    )  # , label="Lithium (Li-Co-Al)")
+    ax1.plot(
+        x_axis_values, cobalt_rejection_three_salt, "c--", linewidth=2
+    )  # , label="Cobalt (Li-Co-Al)")
+    ax1.plot(
+        x_axis_values, aluminum_rejection_three_salt, "g--", linewidth=2
+    )  # , label="Aluminum (Li-Co-Al)")
+    ax1.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax1.set_ylabel("Solute Rejection (%)", fontsize=10, fontweight="bold")
+    ax1.tick_params(direction="in", labelsize=10)
+    # ax1.legend()
 
     ax2.plot(
         x_axis_values, lithium_rejection_two_salt_norm, "m-", linewidth=2
@@ -202,24 +220,148 @@ def plot_relative_rejections(m2, m3):
         x_axis_values, aluminum_rejection_three_salt_norm, "g--", linewidth=2
     )  # , label="Aluminum (Li-Co-Al)")
     ax2.set_xlabel("Membrane Area (m$^2$)", fontsize=10, fontweight="bold")
-    ax2.set_ylabel("Percent Change in Solute Rejection (%)", fontsize=10, fontweight="bold")
+    ax2.set_ylabel(
+        "Percent Change in Solute Rejection (%)", fontsize=10, fontweight="bold"
+    )
     ax2.tick_params(direction="in", labelsize=10)
 
-    ax2.plot([0,160],[0,0],"k-", linewidth=0.5)
+    ax2.plot([0, 160], [0, 0], "k-", linewidth=0.5)
 
-    ax2.set_xlim(0,160)
+    ax2.set_xlim(0, 160)
 
     # legend points
     # ax2.plot([],[], marker='None', linestyle='None', label="Solution (linestyle)")
     ax2.plot([], [], "k-", linewidth=2, label="Li-Co")
     ax2.plot([], [], "k--", linewidth=2, label="Li-Co-Al")
-    ax2.plot([],[], marker='None', linestyle='None', label="Solute (color)")
+    ax2.plot([], [], marker="None", linestyle="None", label="Solute (color)")
     ax2.plot([], [], "ms", markersize=8, label="Lithium")
     ax2.plot([], [], "cs", markersize=8, label="Cobalt")
     ax2.plot([], [], "gs", markersize=8, label="Aluminum")
-    ax2.legend(loc="best", title="Solution (linestyle)")#, bbox_to_anchor=(1, 0.39))
+    ax2.legend(loc="best", title="Solution (linestyle)")  # , bbox_to_anchor=(1, 0.39))
 
     plt.tight_layout()
+
+    plt.show()
+
+
+def plot_concentrations(m2, m3):
+    """
+    Plots permeate versus retentate concentrations for two and three salt models.
+
+    Args:
+        m2: two-salt Pyomo model
+        m3: three-salt Pyomo model
+    """
+
+    # store values for lithium concentration
+    retentate_lithium_conc_two_salt = []
+    retentate_lithium_conc_three_salt = []
+    permeate_lithium_conc_two_salt = []
+    permeate_lithium_conc_three_salt = []
+    # store values for cobalt concentration
+    retentate_cobalt_conc_two_salt = []
+    retentate_cobalt_conc_three_salt = []
+    permeate_cobalt_conc_two_salt = []
+    permeate_cobalt_conc_three_salt = []
+    # store values for cobalt concentration
+    retentate_aluminum_conc_three_salt = []
+    permeate_aluminum_conc_three_salt = []
+
+    for x_val in m2.fs.membrane.dimensionless_module_length:
+        if x_val != 0:
+            retentate_lithium_conc_two_salt.append(
+                value(m2.fs.membrane.retentate_conc_mol_comp[0, x_val, "Li"])
+            )
+            retentate_lithium_conc_three_salt.append(
+                value(m3.fs.membrane.retentate_conc_mol_comp[0, x_val, "Li"])
+            )
+            permeate_lithium_conc_two_salt.append(
+                value(m2.fs.membrane.permeate_conc_mol_comp[0, x_val, "Li"])
+            )
+            permeate_lithium_conc_three_salt.append(
+                value(m3.fs.membrane.permeate_conc_mol_comp[0, x_val, "Li"])
+            )
+            retentate_cobalt_conc_two_salt.append(
+                value(m2.fs.membrane.retentate_conc_mol_comp[0, x_val, "Co"])
+            )
+            retentate_cobalt_conc_three_salt.append(
+                value(m3.fs.membrane.retentate_conc_mol_comp[0, x_val, "Co"])
+            )
+            permeate_cobalt_conc_two_salt.append(
+                value(m2.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
+            )
+            permeate_cobalt_conc_three_salt.append(
+                value(m3.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
+            )
+            retentate_aluminum_conc_three_salt.append(
+                value(m3.fs.membrane.retentate_conc_mol_comp[0, x_val, "Al"])
+            )
+            permeate_aluminum_conc_three_salt.append(
+                value(m3.fs.membrane.permeate_conc_mol_comp[0, x_val, "Al"])
+            )
+
+    fig1, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi=100, figsize=(15, 5))
+
+    # fig1, ax2 = plt.subplots(1, 1, dpi=100, figsize=(5, 4))
+
+    ax1.plot(
+        retentate_lithium_conc_two_salt,
+        permeate_lithium_conc_two_salt,
+        "m-",
+        linewidth=2,
+    )  # , label="Lithium (Li-Co)")
+    ax2.plot(
+        retentate_cobalt_conc_two_salt, permeate_cobalt_conc_two_salt, "c-", linewidth=2
+    )  # , label="Cobalt (Li-Co)")
+    ax1.plot(
+        retentate_lithium_conc_three_salt,
+        permeate_lithium_conc_three_salt,
+        "m--",
+        linewidth=2,
+    )  # , label="Lithium (Li-Co-Al)")
+    ax2.plot(
+        retentate_cobalt_conc_three_salt,
+        permeate_cobalt_conc_three_salt,
+        "c--",
+        linewidth=2,
+    )  # , label="Cobalt (Li-Co-Al)")
+    ax3.plot(
+        retentate_aluminum_conc_three_salt,
+        permeate_aluminum_conc_three_salt,
+        "g--",
+        linewidth=2,
+    )  # , label="Aluminum (Li-Co-Al)")
+
+    lith_min = 188
+    lith_max = 195
+    ax1.plot([lith_min, lith_max], [lith_min, lith_max], "k-", linewidth=0.5)
+    ax1.set_xlim(lith_min, lith_max)
+    ax1.set_ylim(lith_min, lith_max)
+    cob_min = 218
+    cob_max = 226
+    ax2.plot([cob_min, cob_max], [cob_min, cob_max], "k-", linewidth=0.5)
+    ax2.set_xlim(cob_min, cob_max)
+    ax2.set_ylim(cob_min, cob_max)
+    al_min = 23
+    al_max = 24
+    ax3.plot([al_min, al_max], [al_min, al_max], "k-", linewidth=0.5)
+    ax3.set_xlim(al_min, al_max)
+    ax3.set_ylim(al_min, al_max)
+
+    # legend points
+    ax1.plot([], [], "m-", linewidth=2, label="Lithium (in Li-Co)")
+    ax1.plot([], [], "m--", linewidth=2, label="Lithium (in Li-Co-Al)")
+    ax2.plot([], [], "c-", linewidth=2, label="Cobalt (in Li-Co)")
+    ax2.plot([], [], "c--", linewidth=2, label="Cobalt (in Li-Co-Al)")
+    ax3.plot([], [], "g--", linewidth=2, label="Aluminum (in Li-Co-Al)")
+
+    for ax in (ax1, ax2, ax3):
+        ax.set_xlabel("Retentate Concentration (mM)", fontsize=10, fontweight="bold")
+        ax.set_ylabel("Permeate Concentration (mM)", fontsize=10, fontweight="bold")
+        ax.tick_params(direction="in", labelsize=10)
+        ax.legend(loc="upper left")
+
+    # plt.tight_layout()
 
     plt.show()
 
