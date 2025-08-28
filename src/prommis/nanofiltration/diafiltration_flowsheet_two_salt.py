@@ -370,8 +370,8 @@ def plot_membrane_results(m):
     conc_mem_cob = []
     conc_mem_cob_dict = {}
     # store values for concentration of chloride in the membrane
-    conc_mem_chl = []
-    conc_mem_chl_dict = {}
+    # conc_mem_chl = []
+    # conc_mem_chl_dict = {}
 
     for z_val in m.fs.membrane.dimensionless_membrane_thickness:
         for x_val in m.fs.membrane.dimensionless_module_length:
@@ -382,29 +382,30 @@ def plot_membrane_results(m):
                 conc_mem_cob.append(
                     value(m.fs.membrane.membrane_conc_mol_cobalt[x_val, z_val])
                 )
-                conc_mem_chl.append(
-                    value(m.fs.membrane.membrane_conc_mol_chloride[x_val, z_val])
-                )
+                # conc_mem_chl.append(
+                #     value(m.fs.membrane.membrane_conc_mol_chloride[x_val, z_val])
+                # )
 
         conc_mem_lith_dict[f"{z_val}"] = conc_mem_lith
         conc_mem_cob_dict[f"{z_val}"] = conc_mem_cob
-        conc_mem_chl_dict[f"{z_val}"] = conc_mem_chl
+        # conc_mem_chl_dict[f"{z_val}"] = conc_mem_chl
         conc_mem_lith = []
         conc_mem_cob = []
-        conc_mem_chl = []
+        # conc_mem_chl = []
 
     conc_mem_lith_df = DataFrame(index=x_axis_values, data=conc_mem_lith_dict)
     conc_mem_cob_df = DataFrame(index=x_axis_values, data=conc_mem_cob_dict)
-    conc_mem_chl_df = DataFrame(index=x_axis_values, data=conc_mem_chl_dict)
+    # conc_mem_chl_df = DataFrame(index=x_axis_values, data=conc_mem_chl_dict)
 
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi=125, figsize=(15, 7))
+    # fig, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi=125, figsize=(15, 7))
+    fig, (ax1, ax2) = plt.subplots(1, 2, dpi=125, figsize=(10, 7))
     lithium_plot = ax1.pcolor(
-        z_axis_values, x_axis_values, conc_mem_lith_df, cmap="Greens"
+        z_axis_values, x_axis_values, conc_mem_lith_df, cmap="Reds"
     )
     ax1.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
     ax1.set_ylabel("Module Length (m)", fontsize=10, fontweight="bold")
     ax1.set_title(
-        "Lithium Concentration\n in Membrane (mol/m$^3$)",
+        "Lithium Concentration\n in Membrane (mM)",
         fontsize=10,
         fontweight="bold",
     )
@@ -416,22 +417,22 @@ def plot_membrane_results(m):
     )
     ax2.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
     ax2.set_title(
-        "Cobalt Concentration\n in Membrane (mol/m$^3$)", fontsize=10, fontweight="bold"
+        "Cobalt Concentration\n in Membrane (mM)", fontsize=10, fontweight="bold"
     )
     ax2.tick_params(direction="in", labelsize=10)
     fig.colorbar(cobalt_plot, ax=ax2)
 
-    chloride_plot = ax3.pcolor(
-        z_axis_values, x_axis_values, conc_mem_chl_df, cmap="Oranges"
-    )
-    ax3.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
-    ax3.set_title(
-        "Chloride Concentration\n in Membrane (mol/m$^3$)",
-        fontsize=10,
-        fontweight="bold",
-    )
-    ax3.tick_params(direction="in", labelsize=10)
-    fig.colorbar(chloride_plot, ax=ax3)
+    # chloride_plot = ax3.pcolor(
+    #     z_axis_values, x_axis_values, conc_mem_chl_df, cmap="Oranges"
+    # )
+    # ax3.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
+    # ax3.set_title(
+    #     "Chloride Concentration\n in Membrane (mM)",
+    #     fontsize=10,
+    #     fontweight="bold",
+    # )
+    # ax3.tick_params(direction="in", labelsize=10)
+    # fig.colorbar(chloride_plot, ax=ax3)
 
     plt.show()
 
