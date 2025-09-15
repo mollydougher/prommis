@@ -4,35 +4,48 @@ from pandas import DataFrame
 
 
 def main():
-    (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df) = generate_data(
-        scaled=False
-    )
-    D_11_df.to_csv("surrogate_data/D_11.csv", index=False)
-    D_12_df.to_csv("surrogate_data/D_12.csv", index=False)
-    D_21_df.to_csv("surrogate_data/D_21.csv", index=False)
-    D_22_df.to_csv("surrogate_data/D_22.csv", index=False)
-    alpha_1_df.to_csv("surrogate_data/alpha_1.csv", index=False)
-    alpha_2_df.to_csv("surrogate_data/alpha_2.csv", index=False)
+    # (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df) = generate_data(
+    #     scaled_diff=False,
+    #     kriging_or_rbf=False,
+    # )
+    # D_11_df.to_csv("surrogate_data/D_11.csv", index=False)
+    # D_12_df.to_csv("surrogate_data/D_12.csv", index=False)
+    # D_21_df.to_csv("surrogate_data/D_21.csv", index=False)
+    # D_22_df.to_csv("surrogate_data/D_22.csv", index=False)
+    # alpha_1_df.to_csv("surrogate_data/alpha_1.csv", index=False)
+    # alpha_2_df.to_csv("surrogate_data/alpha_2.csv", index=False)
 
     (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df) = generate_data(
-        scaled=True
+        scaled_diff=True,
+        kriging_or_rbf=False,
     )
     D_11_df.to_csv("surrogate_data/D_11_scaled.csv", index=False)
     D_12_df.to_csv("surrogate_data/D_12_scaled.csv", index=False)
     D_21_df.to_csv("surrogate_data/D_21_scaled.csv", index=False)
     D_22_df.to_csv("surrogate_data/D_22_scaled.csv", index=False)
-    alpha_1_df.to_csv("surrogate_data/alpha_1_scaled.csv", index=False)
-    alpha_2_df.to_csv("surrogate_data/alpha_2_scaled.csv", index=False)
+    alpha_1_df.to_csv("surrogate_data/alpha_1.csv", index=False)
+    alpha_2_df.to_csv("surrogate_data/alpha_2.csv", index=False)
+
+    (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df) = generate_data(
+        scaled_diff=True,
+        kriging_or_rbf=True,
+    )
+    D_11_df.to_csv("surrogate_data/kriging_or_rbf/D_11_scaled.csv", index=False)
+    D_12_df.to_csv("surrogate_data/kriging_or_rbf/D_12_scaled.csv", index=False)
+    D_21_df.to_csv("surrogate_data/kriging_or_rbf/D_21_scaled.csv", index=False)
+    D_22_df.to_csv("surrogate_data/kriging_or_rbf/D_22_scaled.csv", index=False)
+    alpha_1_df.to_csv("surrogate_data/kriging_or_rbf/alpha_1.csv", index=False)
+    alpha_2_df.to_csv("surrogate_data/kriging_or_rbf/alpha_2.csv", index=False)
 
 
-def set_parameter_values_and_concentration_ranges():
+def set_parameter_values_and_concentration_ranges(kriging_or_rbf):
     z1 = 1
     z2 = 2
     z3 = -1
 
-    D1 = 3.7e-6  # m2/h
-    D2 = 2.64e-6  # m2/h
-    D3 = 7.3e-6  # m2/h
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 7.31e-6  # m2/h (chloride)
 
     # chi = chi
 
@@ -52,9 +65,18 @@ def set_parameter_values_and_concentration_ranges():
     #     c1_vals = np.arange(60, 111, 1)  # mol/m3 = mM
     #     c2_vals = np.arange(90, 141, 1)  # mol/m3 = mM
 
-    c1_vals = np.arange(50, 111, 1)  # mol/m3 = mM
-    c2_vals = np.arange(50, 141, 1)  # mol/m3 = mM
-    chi_vals = np.arange(-140, 10, 10)  # mol/m3 = mM
+    c1_vals = np.arange(50, 237.5, 37.5)  # mol/m3 = mM
+    c2_vals = np.arange(50, 237.5, 37.5)  # mol/m3 = mM
+    chi_vals = np.arange(-150, 37.5, 37.5)  # mol/m3 = mM
+
+    if kriging_or_rbf:
+        c1_vals = np.arange(50, 275, 75)  # mol/m3 = mM
+        c2_vals = np.arange(50, 275, 75)  # mol/m3 = mM
+        chi_vals = np.arange(-150, 75, 75)  # mol/m3 = mM
+
+    print(c1_vals)
+    print(c2_vals)
+    print(chi_vals)
 
     return (z1, z2, z3, D1, D2, D3, c1_vals, c2_vals, chi_vals)
 
@@ -112,9 +134,9 @@ def calculate_alpha_2(z1, z2, z3, D1, D2, D3, c1, c2, chi):
     return alpha_2
 
 
-def generate_data(scaled):
+def generate_data(scaled_diff, kriging_or_rbf):
     (z1, z2, z3, D1, D2, D3, c1_vals, c2_vals, chi_vals) = (
-        set_parameter_values_and_concentration_ranges()
+        set_parameter_values_and_concentration_ranges(kriging_or_rbf)
     )
 
     c1_list = []
@@ -134,7 +156,7 @@ def generate_data(scaled):
                 c2_list.append(c2)
                 chi_list.append(chi)
 
-    if scaled:
+    if scaled_diff:
         scale_factor = 1e7
     else:
         scale_factor = 1
@@ -155,15 +177,13 @@ def generate_data(scaled):
                     scale_factor * (calculate_D_22(z1, z2, z3, D1, D2, D3, c1, c2, chi))
                 )
                 alpha_1_vals.append(
-                    scale_factor
-                    * (calculate_alpha_1(z1, z2, z3, D1, D2, D3, c1, c2, chi))
+                    (calculate_alpha_1(z1, z2, z3, D1, D2, D3, c1, c2, chi))
                 )
                 alpha_2_vals.append(
-                    scale_factor
-                    * (calculate_alpha_2(z1, z2, z3, D1, D2, D3, c1, c2, chi))
+                    (calculate_alpha_2(z1, z2, z3, D1, D2, D3, c1, c2, chi))
                 )
 
-    if scaled:
+    if scaled_diff:
         d_11_dict = {
             "conc_1": c1_list,
             "conc_2": c2_list,
@@ -187,18 +207,6 @@ def generate_data(scaled):
             "conc_2": c2_list,
             "chi": chi_list,
             "D_22_scaled": D_22_vals,
-        }
-        alpha_1_dict = {
-            "conc_1": c1_list,
-            "conc_2": c2_list,
-            "chi": chi_list,
-            "alpha_1_scaled": alpha_1_vals,
-        }
-        alpha_2_dict = {
-            "conc_1": c1_list,
-            "conc_2": c2_list,
-            "chi": chi_list,
-            "alpha_2_scaled": alpha_2_vals,
         }
     else:
         d_11_dict = {
@@ -225,18 +233,18 @@ def generate_data(scaled):
             "chi": chi_list,
             "D_22": D_22_vals,
         }
-        alpha_1_dict = {
-            "conc_1": c1_list,
-            "conc_2": c2_list,
-            "chi": chi_list,
-            "alpha_1": alpha_1_vals,
-        }
-        alpha_2_dict = {
-            "conc_1": c1_list,
-            "conc_2": c2_list,
-            "chi": chi_list,
-            "alpha_2": alpha_2_vals,
-        }
+    alpha_1_dict = {
+        "conc_1": c1_list,
+        "conc_2": c2_list,
+        "chi": chi_list,
+        "alpha_1": alpha_1_vals,
+    }
+    alpha_2_dict = {
+        "conc_1": c1_list,
+        "conc_2": c2_list,
+        "chi": chi_list,
+        "alpha_2": alpha_2_vals,
+    }
 
     D_11_df = DataFrame(data=d_11_dict)
     D_12_df = DataFrame(data=d_12_dict)
