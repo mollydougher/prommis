@@ -51,7 +51,12 @@ def main():
     m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
 
     surrogate_model_file_dict = {
-        "D_11": "surrogate_models/pysmo_surrogate_d11_scaled_chi_0.json"
+        "D_11": "surrogate_models/rbf_pysmo_surrogate_d11_scaled.json",
+        "D_12": "surrogate_models/rbf_pysmo_surrogate_d12_scaled.json",
+        "D_21": "surrogate_models/rbf_pysmo_surrogate_d21_scaled.json",
+        "D_22": "surrogate_models/rbf_pysmo_surrogate_d22_scaled.json",
+        "alpha_1": "surrogate_models/rbf_pysmo_surrogate_alpha1.json",
+        "alpha_2": "surrogate_models/rbf_pysmo_surrogate_alpha2.json",
     }
 
     # add the membrane unit model
@@ -79,6 +84,7 @@ def main():
     dt.assert_no_structural_warnings()
 
     # solve model
+    # TODO: degug solver failure with RBF surrogates
     solve_model(m)
 
     # for x in m.fs.membrane.dimensionless_module_length:
@@ -136,6 +142,11 @@ def main():
     # check numerical warnings
     # dt.assert_no_numerical_warnings()
     dt.report_numerical_issues()
+    # dt.display_variables_with_extreme_jacobians()
+    # dt.display_constraints_with_extreme_jacobians()
+    # dt.display_near_parallel_variables()
+    # svd = dt.prepare_svd_toolbox()
+    # svd.display_underdetermined_variables_and_constraints()
 
     # visualize the results
     # plot_results(m)
