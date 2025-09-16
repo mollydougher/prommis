@@ -84,73 +84,49 @@ def main():
     dt.assert_no_structural_warnings()
 
     # solve model
-    # TODO: degug solver failure with RBF surrogates
     solve_model(m)
 
-    # for x in m.fs.membrane.dimensionless_module_length:
-    #     for z in m.fs.membrane.dimensionless_membrane_thickness:
-    #         # skip check at x=0 as the concentration is expected to be 0 and the
-    #         # diffusion coefficient calculation is not needed
-    #         if x == 0:
-    #             pass
-    #         elif not (50 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 80):
-    #             raise ValueError(
-    #                 "Membrane concentration for lithium ("
-    #                 f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
-    #                 f"x={x * value(m.fs.membrane.total_module_length)} m and "
-    #                 f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-    #                 "of the valid range for the diffusion coefficient approximations "
-    #                 "(50-80 mM). The linearized approximation should be re-calculated."
-    #             )
-    # if m.fs.membrane.config.charged_membrane:
-    #     for x in m.fs.membrane.dimensionless_module_length:
-    #         for z in m.fs.membrane.dimensionless_membrane_thickness:
-    #             # skip check at x=0 as the concentration is expected to be 0 and the
-    #             # diffusion coefficient calculation is not needed
-    #             if x == 0:
-    #                 pass
-    #             elif not (
-    #                 80 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 110
-    #             ):
-    #                 raise ValueError(
-    #                     "Membrane concentration for cobalt ("
-    #                     f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
-    #                     f"x={x * value(m.fs.membrane.total_module_length)} m and "
-    #                     f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-    #                     "of the valid range for the diffusion coefficient approximations "
-    #                     "(80-110 mM). The linearized approximation should be re-calculated."
-    #                 )
-    # else:
-    #     for x in m.fs.membrane.dimensionless_module_length:
-    #         for z in m.fs.membrane.dimensionless_membrane_thickness:
-    #             # skip check at x=0 as the concentration is expected to be 0 and the
-    #             # diffusion coefficient calculation is not needed
-    #             if x == 0:
-    #                 pass
-    #             elif not (
-    #                 50 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 80
-    #             ):
-    #                 raise ValueError(
-    #                     "Membrane concentration for cobalt ("
-    #                     f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
-    #                     f"x={x * value(m.fs.membrane.total_module_length)} m and "
-    #                     f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-    #                     "of the valid range for the diffusion coefficient approximations "
-    #                     "(50-80 mM). The linearized approximation should be re-calculated."
-    #                 )
+    for x in m.fs.membrane.dimensionless_module_length:
+        for z in m.fs.membrane.dimensionless_membrane_thickness:
+            # skip check at x=0 as the concentration is expected to be 0 and the
+            # diffusion coefficient calculation is not needed
+            if x == 0:
+                pass
+            elif not (50 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 200):
+                raise ValueError(
+                    "WARNING: Membrane concentration for lithium ("
+                    f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
+                    f"x={x * value(m.fs.membrane.total_module_length)} m and "
+                    f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
+                    "of the valid range for the diffusion coefficient surrogate model "
+                    "(50-200 mM). Consider re-training the surrogate model."
+                )
+    if m.fs.membrane.config.charged_membrane:
+        for x in m.fs.membrane.dimensionless_module_length:
+            for z in m.fs.membrane.dimensionless_membrane_thickness:
+                # skip check at x=0 as the concentration is expected to be 0 and the
+                # diffusion coefficient calculation is not needed
+                if x == 0:
+                    pass
+                elif not (
+                    80 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 110
+                ):
+                    raise ValueError(
+                        "WARNING: Membrane concentration for cobalt ("
+                        f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
+                        f"x={x * value(m.fs.membrane.total_module_length)} m and "
+                        f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
+                        "of the valid range for the diffusion coefficient surrogate model "
+                        "(50-200 mM). Consider re-training the surrogate model."
+                    )
 
     # check numerical warnings
-    # dt.assert_no_numerical_warnings()
+    dt.assert_no_numerical_warnings()
     dt.report_numerical_issues()
-    # dt.display_variables_with_extreme_jacobians()
-    # dt.display_constraints_with_extreme_jacobians()
-    # dt.display_near_parallel_variables()
-    # svd = dt.prepare_svd_toolbox()
-    # svd.display_underdetermined_variables_and_constraints()
 
     # visualize the results
-    # plot_results(m)
-    # plot_membrane_results(m)
+    plot_results(m)
+    plot_membrane_results(m)
 
 
 def build_membrane_parameters(m):
@@ -214,7 +190,7 @@ def solve_model(m):
 
     solver = SolverFactory("ipopt")
     results = solver.solve(scaled_model, tee=True)
-    # assert_optimal_termination(results)
+    assert_optimal_termination(results)
 
     scaling.propagate_solution(scaled_model, m)
 

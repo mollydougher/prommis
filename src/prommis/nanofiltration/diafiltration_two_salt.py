@@ -1056,7 +1056,7 @@ and used when constructing these,
                 "D_11_scaled"
             ][0]
 
-            return self.D_11[x, z] == (
+            return self.D_11[x, z] == -(
                 self.config.diffusion_surrogate_scaling_factor
                 * surrogate_value
                 * units.m**2
@@ -1083,7 +1083,7 @@ and used when constructing these,
                 "D_12_scaled"
             ][0]
 
-            return self.D_12[x, z] == (
+            return self.D_12[x, z] == -(
                 self.config.diffusion_surrogate_scaling_factor
                 * surrogate_value
                 * units.m**2
@@ -1110,7 +1110,7 @@ and used when constructing these,
                 "D_21_scaled"
             ][0]
 
-            return self.D_21[x, z] == (
+            return self.D_21[x, z] == -(
                 self.config.diffusion_surrogate_scaling_factor
                 * surrogate_value
                 * units.m**2
@@ -1137,7 +1137,7 @@ and used when constructing these,
                 "D_22_scaled"
             ][0]
 
-            return self.D_22[x, z] == (
+            return self.D_22[x, z] == -(
                 self.config.diffusion_surrogate_scaling_factor
                 * surrogate_value
                 * units.m**2
@@ -1285,24 +1285,11 @@ and used when constructing these,
 
         # Add scaling factors for poorly scaled variables
         for x in self.dimensionless_module_length:
-            # if x != 0:
-            #     self.scaling_factor[self.retentate_flow_volume[0, x]] = 1e-2
-            #     self.scaling_factor[self.permeate_flow_volume[0, x]] = 1e-2
-
-            # self.scaling_factor[self.volume_flux_water[x]] = 1e-1
-            # self.scaling_factor[self.mol_flux_lithium[x]] = 1e-1
-            # self.scaling_factor[self.mol_flux_cobalt[x]] = 1e-1
-            # self.scaling_factor[self.mol_flux_chloride[x]] = 1e-2
-
             for z in self.dimensionless_membrane_thickness:
-                self.scaling_factor[self.D_11[x, z]] = 1e10
-                self.scaling_factor[self.D_12[x, z]] = 1e11
-                self.scaling_factor[self.D_21[x, z]] = 1e11
-                self.scaling_factor[self.D_22[x, z]] = 1e10
-
-                # self.scaling_factor[self.membrane_conc_mol_lithium[x, z]] = 1e-1
-                # self.scaling_factor[self.membrane_conc_mol_cobalt[x, z]] = 1e-1
-                # self.scaling_factor[self.membrane_conc_mol_chloride[x, z]] = 1e-2
+                self.scaling_factor[self.D_11[x, z]] = 1e6
+                self.scaling_factor[self.D_12[x, z]] = 1e7
+                self.scaling_factor[self.D_21[x, z]] = 1e7
+                self.scaling_factor[self.D_22[x, z]] = 1e6
 
         # Add scaling factors for poorly scaled constraints
         constraint_autoscale_large_jac(self)
