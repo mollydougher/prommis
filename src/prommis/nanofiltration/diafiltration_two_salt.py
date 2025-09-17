@@ -1022,6 +1022,45 @@ and used when constructing these,
             self.dimensionless_module_length, rule=_membrane_permeate_interface_cobalt
         )
 
+        # initial conditions
+        def _initial_retentate_flow_volume(blk):
+            return (
+                blk.retentate_flow_volume[0, 0]
+                == blk.feed_flow_volume[0] + blk.diafiltrate_flow_volume[0]
+            )
+
+        self.initial_retentate_flow_volume = Constraint(
+            rule=_initial_retentate_flow_volume
+        )
+
+        def _initial_retentate_conc_mol_lith(blk):
+            return blk.retentate_conc_mol_comp[0, 0, "Li"] == (
+                (
+                    blk.feed_flow_volume[0] * blk.feed_conc_mol_comp[0, "Li"]
+                    + blk.diafiltrate_flow_volume[0]
+                    * blk.diafiltrate_conc_mol_comp[0, "Li"]
+                )
+                / (blk.feed_flow_volume[0] + blk.diafiltrate_flow_volume[0])
+            )
+
+        self.initial_retentate_conc_mol_lith = Constraint(
+            rule=_initial_retentate_conc_mol_lith
+        )
+
+        def _initial_retentate_conc_mol_cob(blk):
+            return blk.retentate_conc_mol_comp[0, 0, "Co"] == (
+                (
+                    blk.feed_flow_volume[0] * blk.feed_conc_mol_comp[0, "Co"]
+                    + blk.diafiltrate_flow_volume[0]
+                    * blk.diafiltrate_conc_mol_comp[0, "Co"]
+                )
+                / (blk.feed_flow_volume[0] + blk.diafiltrate_flow_volume[0])
+            )
+
+        self.initial_retentate_conc_mol_cob = Constraint(
+            rule=_initial_retentate_conc_mol_cob
+        )
+
     def add_surrogate_constraints(self):
         self._surrogates_obj_D_11 = PysmoSurrogate.load_from_file(
             self.config.surrogate_model_files["D_11"]
@@ -1222,27 +1261,6 @@ and used when constructing these,
             # associated discretization equation not needed in model
             if x != 0:
                 self.d_retentate_conc_mol_comp_dx_disc_eq[0, x, "Cl"].deactivate()
-
-        # initial conditions
-        self.retentate_flow_volume[0, 0].fix(
-            self.feed_flow_volume[0] + self.diafiltrate_flow_volume[0]
-        )
-        self.retentate_conc_mol_comp[0, 0, "Li"].fix(
-            (
-                self.feed_flow_volume[0] * self.feed_conc_mol_comp[0, "Li"]
-                + self.diafiltrate_flow_volume[0]
-                * self.diafiltrate_conc_mol_comp[0, "Li"]
-            )
-            / (self.feed_flow_volume[0] + self.diafiltrate_flow_volume[0])
-        )
-        self.retentate_conc_mol_comp[0, 0, "Co"].fix(
-            (
-                self.feed_flow_volume[0] * self.feed_conc_mol_comp[0, "Co"]
-                + self.diafiltrate_flow_volume[0]
-                * self.diafiltrate_conc_mol_comp[0, "Co"]
-            )
-            / (self.feed_flow_volume[0] + self.diafiltrate_flow_volume[0])
-        )
 
         # set "zero" initial values to a sufficiently small value
         self.permeate_flow_volume[0, 0].fix(value(self.numerical_zero_tolerance))
