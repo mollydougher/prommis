@@ -91,10 +91,18 @@ def main():
     percent_error_plot_linear = ax4.pcolor(c1_vals, c2_vals, percent_error_df_linear)
     percent_error_plot_rbf = ax5.pcolor(c1_vals, c2_vals, percent_error_df_rbf)
 
-    ax4.plot([73], [108], "ms", markersize=7)
-    ax5.plot([73], [108], "ms", markersize=7)
+    ax4.plot([50, 80], [80, 80], "m-")
+    ax4.plot([50, 80], [110, 110], "m-")
+    ax4.plot([50, 50], [80, 110], "m-")
+    ax4.plot([80, 80], [80, 110], "m-")
 
-    fig2.colorbar(percent_error_plot_linear, ax=[ax4, ax5])
+    # ax4.plot([73], [108], "ms", markersize=7)
+    # ax5.plot([73], [108], "ms", markersize=7)
+
+    # fig2.colorbar(percent_error_plot_linear, ax=[ax4, ax5])
+
+    fig2.colorbar(percent_error_plot_linear, ax=ax4)
+    fig2.colorbar(percent_error_plot_rbf, ax=ax5)
 
     plt.show()
 

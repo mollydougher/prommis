@@ -126,7 +126,7 @@ def main():
 
     # visualize the results
     plot_results(m)
-    plot_membrane_results(m)
+    # plot_membrane_results(m)
 
 
 def build_membrane_parameters(m):
@@ -292,49 +292,47 @@ def plot_results(m):
             )
 
     fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
-        3, 2, dpi=100, figsize=(12, 10)
+        3, 2, dpi=75, figsize=(12, 10)
     )
 
     ax1.plot(x_axis_values, conc_ret_lith, linewidth=2, label="retentate")
     ax1.plot(x_axis_values, conc_perm_lith, linewidth=2, label="permeate")
     ax1.set_ylabel(
-        "Lithium Concentration (mol/m$^3$)",
-        fontsize=10,
+        "Lithium Concentration\n(mM)",
+        fontsize=12,
         fontweight="bold",
     )
     ax1.tick_params(direction="in", labelsize=10)
-    ax1.legend()
+    ax1.legend(fontsize=12)
 
     ax2.plot(x_axis_values, conc_ret_cob, linewidth=2, label="retentate")
     ax2.plot(x_axis_values, conc_perm_cob, linewidth=2, label="permeate")
     ax2.set_ylabel(
-        "Cobalt Concentration (mol/m$^3$)",
-        fontsize=10,
+        "Cobalt Concentration\n(mM)",
+        fontsize=12,
         fontweight="bold",
     )
     ax2.tick_params(direction="in", labelsize=10)
-    ax2.legend()
+    ax2.legend(fontsize=12)
 
     ax3.plot(x_axis_values, water_flux, linewidth=2)
-    ax3.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=10, fontweight="bold")
+    ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=12, fontweight="bold")
     ax3.tick_params(direction="in", labelsize=10)
 
     ax4.plot(x_axis_values, lithium_flux, linewidth=2)
-    ax4.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax4.set_ylabel("Lithium Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
+    ax4.set_ylabel("Lithium Molar Flux\n(mol/m$^2$/h)", fontsize=12, fontweight="bold")
     ax4.tick_params(direction="in", labelsize=10)
 
     ax5.plot(x_axis_values, lithium_rejection, linewidth=2, label="lithium")
     ax5.plot(x_axis_values, cobalt_rejection, linewidth=2, label="cobalt")
-    ax5.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax5.set_ylabel("Solute Rejection (%)", fontsize=10, fontweight="bold")
+    ax5.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
+    ax5.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
     ax5.tick_params(direction="in", labelsize=10)
-    ax5.legend()
+    ax5.legend(fontsize=12)
 
     ax6.plot(x_axis_values, percent_recovery, linewidth=2)
-    ax6.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax6.set_ylabel("Percent Recovery (%)", fontsize=10, fontweight="bold")
+    ax6.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
+    ax6.set_ylabel("Percent Recovery (%)", fontsize=12, fontweight="bold")
     ax6.tick_params(direction="in", labelsize=10)
 
     plt.show()
