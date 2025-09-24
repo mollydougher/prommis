@@ -51,12 +51,12 @@ def main():
     m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
 
     surrogate_model_file_dict = {
-        "D_11": "surrogate_models/rbf_pysmo_surrogate_d11_scaled.json",
-        "D_12": "surrogate_models/rbf_pysmo_surrogate_d12_scaled.json",
-        "D_21": "surrogate_models/rbf_pysmo_surrogate_d21_scaled.json",
-        "D_22": "surrogate_models/rbf_pysmo_surrogate_d22_scaled.json",
-        "alpha_1": "surrogate_models/rbf_pysmo_surrogate_alpha1.json",
-        "alpha_2": "surrogate_models/rbf_pysmo_surrogate_alpha2.json",
+        "D_11": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d11_scaled.json",
+        "D_12": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d12_scaled.json",
+        "D_21": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d21_scaled.json",
+        "D_22": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d22_scaled.json",
+        "alpha_1": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha1.json",
+        "alpha_2": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha2.json",
     }
 
     # add the membrane unit model

@@ -12,11 +12,11 @@ Author: Molly Dougher
 
 from pyomo.environ import (
     ConcreteModel,
-    Objective,
+    # Objective,
     SolverFactory,
     TransformationFactory,
     assert_optimal_termination,
-    maximize,
+    # maximize,
     value,
 )
 from pyomo.network import Arc
@@ -46,10 +46,11 @@ from prommis.nanofiltration.diafiltration_three_salt import ThreeSaltDiafiltrati
 
 def main():
     m_two_salt = build_two_salt_model()
+    m_two_salt.fs.membrane.total_module_length.set_value(4)
+    m_two_salt.fs.membrane.total_membrane_length.set_value(70)
     solve_model(m_two_salt)
     two_salt_model_checks(m_two_salt)
-    # m_two_salt.fs.membrane.total_module_length.unfix()
-    # m_two_salt.fs.membrane.total_membrane_length.unfix()
+
     # m_two_salt.fs.membrane.applied_pressure.unfix()
     # m_two_salt.fs.membrane.diafiltrate_flow_volume.unfix()
 
@@ -73,6 +74,8 @@ def main():
     # two_salt_model_checks(m_two_salt)
 
     m_three_salt = build_three_salt_model()
+    m_three_salt.fs.membrane.total_module_length.set_value(4)
+    m_three_salt.fs.membrane.total_membrane_length.set_value(70)
     solve_model(m_three_salt)
     three_salt_model_checks(m_three_salt)
 
@@ -199,8 +202,8 @@ def plot_relative_rejections(m2, m3):
     ax1.plot(
         x_axis_values, aluminum_rejection_three_salt, "g--", linewidth=2
     )  # , label="Aluminum (Li-Co-Al)")
-    ax1.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax1.set_ylabel("Solute Rejection (%)", fontsize=10, fontweight="bold")
+    ax1.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
+    ax1.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
     ax1.tick_params(direction="in", labelsize=10)
     # ax1.legend()
 
@@ -219,15 +222,15 @@ def plot_relative_rejections(m2, m3):
     ax2.plot(
         x_axis_values, aluminum_rejection_three_salt_norm, "g--", linewidth=2
     )  # , label="Aluminum (Li-Co-Al)")
-    ax2.set_xlabel("Membrane Area (m$^2$)", fontsize=10, fontweight="bold")
+    ax2.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
     ax2.set_ylabel(
-        "Percent Change in Solute Rejection (%)", fontsize=10, fontweight="bold"
+        "Percent Change in Solute Rejection (%)", fontsize=12, fontweight="bold"
     )
     ax2.tick_params(direction="in", labelsize=10)
 
-    ax2.plot([0, 160], [0, 0], "k-", linewidth=0.5)
+    ax2.plot([0, 280], [0, 0], "k-", linewidth=0.5)
 
-    ax2.set_xlim(0, 160)
+    ax2.set_xlim(0, 280)
 
     # legend points
     # ax2.plot([],[], marker='None', linestyle='None', label="Solution (linestyle)")
@@ -333,17 +336,17 @@ def plot_concentrations(m2, m3):
     )  # , label="Aluminum (Li-Co-Al)")
 
     lith_min = 188
-    lith_max = 195
+    lith_max = 200
     ax1.plot([lith_min, lith_max], [lith_min, lith_max], "k-", linewidth=0.5)
     ax1.set_xlim(lith_min, lith_max)
     ax1.set_ylim(lith_min, lith_max)
-    cob_min = 218
-    cob_max = 226
+    cob_min = 217
+    cob_max = 235
     ax2.plot([cob_min, cob_max], [cob_min, cob_max], "k-", linewidth=0.5)
     ax2.set_xlim(cob_min, cob_max)
     ax2.set_ylim(cob_min, cob_max)
-    al_min = 23
-    al_max = 24
+    al_min = 22.9
+    al_max = 24.5
     ax3.plot([al_min, al_max], [al_min, al_max], "k-", linewidth=0.5)
     ax3.set_xlim(al_min, al_max)
     ax3.set_ylim(al_min, al_max)
@@ -356,8 +359,8 @@ def plot_concentrations(m2, m3):
     ax3.plot([], [], "g--", linewidth=2, label="Aluminum (in Li-Co-Al)")
 
     for ax in (ax1, ax2, ax3):
-        ax.set_xlabel("Retentate Concentration (mM)", fontsize=10, fontweight="bold")
-        ax.set_ylabel("Permeate Concentration (mM)", fontsize=10, fontweight="bold")
+        ax.set_xlabel("Retentate Concentration (mM)", fontsize=12, fontweight="bold")
+        ax.set_ylabel("Permeate Concentration (mM)", fontsize=12, fontweight="bold")
         ax.tick_params(direction="in", labelsize=10)
         ax.legend(loc="upper left")
 
@@ -377,12 +380,23 @@ def build_two_salt_model():
     m.fs.feed_block = Feed(property_package=m.fs.stream_properties)
     m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
 
+    surrogate_model_file_dict = {
+        "D_11": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d11_scaled.json",
+        "D_12": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d12_scaled.json",
+        "D_21": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d21_scaled.json",
+        "D_22": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d22_scaled.json",
+        "alpha_1": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha1.json",
+        "alpha_2": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha2.json",
+    }
+
     # add the membrane unit model
     m.fs.membrane = TwoSaltDiafiltration(
         property_package=m.fs.properties,
         NFE_module_length=20,
         NFE_membrane_thickness=5,
         charged_membrane=True,
+        surrogate_model_files=surrogate_model_file_dict,
+        diffusion_surrogate_scaling_factor=1e-07,
     )
 
     # add product blocks for retentate and permeate
@@ -440,51 +454,24 @@ def two_salt_model_checks(m):
             # diffusion coefficient calculation is not needed
             if x == 0:
                 pass
-            elif not (50 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 80):
+            elif not (50 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 200):
                 raise ValueError(
-                    "Membrane concentration for lithium ("
+                    "WARNING: Membrane concentration for lithium ("
                     f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
                     f"x={x * value(m.fs.membrane.total_module_length)} m and "
                     f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                    "of the valid range for the diffusion coefficient approximations "
-                    "(50-80 mM). The linearized approximation should be re-calculated."
+                    "of the valid range for the diffusion coefficient surrogate model "
+                    "(50-200 mM). Consider re-training the surrogate model."
                 )
-    if m.fs.membrane.config.charged_membrane:
-        for x in m.fs.membrane.dimensionless_module_length:
-            for z in m.fs.membrane.dimensionless_membrane_thickness:
-                # skip check at x=0 as the concentration is expected to be 0 and the
-                # diffusion coefficient calculation is not needed
-                if x == 0:
-                    pass
-                elif not (
-                    80 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 110
-                ):
-                    raise ValueError(
-                        "Membrane concentration for cobalt ("
-                        f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
-                        f"x={x * value(m.fs.membrane.total_module_length)} m and "
-                        f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                        "of the valid range for the diffusion coefficient approximations "
-                        "(80-110 mM). The linearized approximation should be re-calculated."
-                    )
-    else:
-        for x in m.fs.membrane.dimensionless_module_length:
-            for z in m.fs.membrane.dimensionless_membrane_thickness:
-                # skip check at x=0 as the concentration is expected to be 0 and the
-                # diffusion coefficient calculation is not needed
-                if x == 0:
-                    pass
-                elif not (
-                    50 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 80
-                ):
-                    raise ValueError(
-                        "Membrane concentration for cobalt ("
-                        f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
-                        f"x={x * value(m.fs.membrane.total_module_length)} m and "
-                        f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                        "of the valid range for the diffusion coefficient approximations "
-                        "(50-80 mM). The linearized approximation should be re-calculated."
-                    )
+            elif not (50 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 200):
+                raise ValueError(
+                    "WARNING: Membrane concentration for cobalt ("
+                    f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
+                    f"x={x * value(m.fs.membrane.total_module_length)} m and "
+                    f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
+                    "of the valid range for the diffusion coefficient surrogate model "
+                    "(50-200 mM). Consider re-training the surrogate model."
+                )
 
 
 def build_three_salt_model():
@@ -498,12 +485,29 @@ def build_three_salt_model():
     m.fs.feed_block = Feed(property_package=m.fs.stream_properties)
     m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
 
+    surrogate_model_file_dict = {
+        "D_11": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d11_scaled",
+        "D_12": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d12_scaled",
+        "D_13": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d13_scaled",
+        "D_21": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d21_scaled",
+        "D_22": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d22_scaled",
+        "D_23": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d23_scaled",
+        "D_31": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d31_scaled",
+        "D_32": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d32_scaled",
+        "D_33": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d33_scaled",
+        "alpha_1": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha1",
+        "alpha_2": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha2",
+        "alpha_3": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha3",
+    }
+
     # add the membrane unit model
     m.fs.membrane = ThreeSaltDiafiltration(
         property_package=m.fs.properties,
         NFE_module_length=20,
         NFE_membrane_thickness=5,
         charged_membrane=True,
+        surrogate_model_files=surrogate_model_file_dict,
+        diffusion_surrogate_scaling_factor=1e-07,
     )
 
     # add product blocks for retentate and permeate
@@ -563,60 +567,33 @@ def three_salt_model_checks(m):
             # diffusion coefficient calculation is not needed
             if x == 0:
                 pass
-            elif not (50 <= value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) <= 80):
+            elif not (50 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 200):
                 raise ValueError(
-                    "Membrane concentration for lithium ("
+                    "WARNING: Membrane concentration for lithium ("
                     f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
                     f"x={x * value(m.fs.membrane.total_module_length)} m and "
                     f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                    "of the valid range for the diffusion coefficient approximations "
-                    "(50-80 mM). The linearized approximation should be re-calculated."
+                    "of the valid range for the diffusion coefficient surrogate model "
+                    "(50-200 mM). Consider re-training the surrogate model."
                 )
-            elif not (2 <= value(m.fs.membrane.membrane_conc_mol_aluminum[x, z]) <= 32):
+            elif not (50 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 200):
                 raise ValueError(
-                    "Membrane concentration for aluminum ("
+                    "WARNING: Membrane concentration for cobalt ("
+                    f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
+                    f"x={x * value(m.fs.membrane.total_module_length)} m and "
+                    f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
+                    "of the valid range for the diffusion coefficient surrogate model "
+                    "(50-200 mM). Consider re-training the surrogate model."
+                )
+            elif not (5 < value(m.fs.membrane.membrane_conc_mol_aluminum[x, z]) < 155):
+                raise ValueError(
+                    "WARNING: Membrane concentration for aluminum ("
                     f"{value(m.fs.membrane.membrane_conc_mol_aluminum[x, z])} mM at "
                     f"x={x * value(m.fs.membrane.total_module_length)} m and "
                     f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                    "of the valid range for the diffusion coefficient approximations "
-                    "(2-32 mM). The linearized approximation should be re-calculated."
+                    "of the valid range for the diffusion coefficient surrogate model "
+                    "(50-200 mM). Consider re-training the surrogate model."
                 )
-    if m.fs.membrane.config.charged_membrane:
-        for x in m.fs.membrane.dimensionless_module_length:
-            for z in m.fs.membrane.dimensionless_membrane_thickness:
-                # skip check at x=0 as the concentration is expected to be 0 and the
-                # diffusion coefficient calculation is not needed
-                if x == 0:
-                    pass
-                elif not (
-                    80 <= value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) <= 110
-                ):
-                    raise ValueError(
-                        "Membrane concentration for cobalt ("
-                        f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
-                        f"x={x * value(m.fs.membrane.total_module_length)} m and "
-                        f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                        "of the valid range for the diffusion coefficient approximations "
-                        "(80-110 mM). The linearized approximation should be re-calculated."
-                    )
-    else:
-        for x in m.fs.membrane.dimensionless_module_length:
-            for z in m.fs.membrane.dimensionless_membrane_thickness:
-                # skip check at x=0 as the concentration is expected to be 0 and the
-                # diffusion coefficient calculation is not needed
-                if x == 0:
-                    pass
-                elif not (
-                    50 <= value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) <= 80
-                ):
-                    raise ValueError(
-                        "Membrane concentration for cobalt ("
-                        f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
-                        f"x={x * value(m.fs.membrane.total_module_length)} m and "
-                        f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                        "of the valid range for the diffusion coefficient approximations "
-                        "(50-80 mM). The linearized approximation should be re-calculated."
-                    )
 
 
 def solve_model(m, simulation=True):
