@@ -103,21 +103,9 @@ def main():
         ],
     }
 
-    # for var, datafile in data_dict_three_salt.items():
-    #     train_data_set(train_rbf_surrogate_model, datafile, var, True, "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d11_scaled", number_of_salts=3)
-    #     # train_data_set(train_rbf_surrogate_model, datafile, var, number_of_salts=3)
-
     key_list = list(data_dict_three_salt.keys())
-    # value_list = list(data_dict_three_salt.values())
-    # print(key_list[0])
-    # print(value_list[0][0])
 
     for key in key_list:
-        # print(key)
-        # # print(data_dict_three_salt[key])
-        # print(data_dict_three_salt[key][0]) # eg) d11
-        # print(data_dict_three_salt[key][-1]) # eg) datafilename
-
         train_data_set(
             train_rbf_surrogate_model,
             data_dict_three_salt[key][-1],
@@ -126,14 +114,6 @@ def main():
             f"surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_{data_dict_three_salt[key][0]}_scaled",
             number_of_salts=3,
         )
-    # train_data_set(
-    #     train_rbf_surrogate_model,
-    #     data_dict_three_salt[key_list[1]],
-    #     key_list[0],
-    #     True,
-    #     "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d12_scaled",
-    #     number_of_salts=3,
-    # )
 
 
 def train_data_set(
