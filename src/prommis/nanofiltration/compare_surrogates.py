@@ -136,11 +136,17 @@ def evaluate_linear_surrogate_three_salt(c1, c2, c3):
 def plot_residuals_three_salt():
     surrogate_model_file_dict_three_salt = {
         "D_11": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d11_scaled",
-        # "D_12": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d12_scaled.json",
-        # "D_21": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d21_scaled.json",
-        # "D_22": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d22_scaled.json",
-        # "alpha_1": "surrogate_models/rlithium_cobalt_chloride/bf_pysmo_surrogate_alpha1.json",
-        # "alpha_2": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha2.json",
+        # "D_12": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d12_scaled",
+        # "D_13": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d13_scaled",
+        # "D_21": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d21_scaled",
+        # "D_22": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d22_scaled",
+        # "D_23": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d23_scaled",
+        # "D_31": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d31_scaled",
+        # "D_32": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d32_scaled",
+        # "D_33": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d33_scaled",
+        # "alpha_1": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha1",
+        # "alpha_2": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha2",
+        # "alpha_3": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha3",
     }
 
     _surrogates_obj_D_11 = PysmoSurrogate.load_from_file(
