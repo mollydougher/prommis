@@ -169,7 +169,7 @@ def plot_residuals_three_salt():
     percent_error_vals_linear = []
     percent_error_vals_rbf = []
 
-    for c3 in [75, 100, 125]:
+    for c3 in [15, 30, 45]:
         for c1 in np.arange(50, 210, 10):
             for c2 in np.arange(50, 210, 10):
                 linear_val = evaluate_linear_surrogate_three_salt(c1, c2, c3)
@@ -193,7 +193,7 @@ def plot_residuals_three_salt():
                 )
                 percent_error_vals_rbf.append(percent_error_val_rbf)
 
-            if c3 == 75:
+            if c3 == 15:
                 if c1 == 50:
                     linear_surrogate_vals_dict_l = {f"{c1})": linear_surrogate_vals}
                     RBF_surrogate_vals_dict_l = {f"{c1}": RBF_surrogate_vals}
@@ -206,7 +206,7 @@ def plot_residuals_three_salt():
                     actual_vals_dict_l[f"{c1}"] = actual_vals
                     percent_error_dict_linear_l[f"{c1}"] = percent_error_vals_linear
                     percent_error_dict_rbf_l[f"{c1}"] = percent_error_vals_rbf
-            elif c3 == 100:
+            elif c3 == 30:
                 if c1 == 50:
                     linear_surrogate_vals_dict_m = {f"{c1})": linear_surrogate_vals}
                     RBF_surrogate_vals_dict_m = {f"{c1}": RBF_surrogate_vals}
@@ -219,7 +219,7 @@ def plot_residuals_three_salt():
                     actual_vals_dict_m[f"{c1}"] = actual_vals
                     percent_error_dict_linear_m[f"{c1}"] = percent_error_vals_linear
                     percent_error_dict_rbf_m[f"{c1}"] = percent_error_vals_rbf
-            elif c3 == 125:
+            elif c3 == 45:
                 if c1 == 50:
                     linear_surrogate_vals_dict_h = {f"{c1})": linear_surrogate_vals}
                     RBF_surrogate_vals_dict_h = {f"{c1}": RBF_surrogate_vals}

@@ -155,7 +155,7 @@ def generate_data_li_co_al_cl(kriging_or_rbf):
 
 
 def set_two_salt_concentration_ranges(system, kriging_or_rbf):
-    # nominal concentrations (min and max)
+    # nominal membrane concentrations (min and max)
     # chi=0
     # c,li,m ~57
     # c,co,m ~66
@@ -190,6 +190,8 @@ def set_two_salt_concentration_ranges(system, kriging_or_rbf):
 
 
 def set_three_salt_concentration_ranges(system, kriging_or_rbf):
+    # battery leachte aluminum conc: 22-89 mM
+
     if system == "li_co_al_cl":
         z1 = 1  # m2/h (lithium)
         z2 = 2  # m2/h (cobalt)
@@ -204,7 +206,7 @@ def set_three_salt_concentration_ranges(system, kriging_or_rbf):
         if kriging_or_rbf:
             c1_vals = np.arange(50, 275, 75)  # mol/m3 = mM
             c2_vals = np.arange(50, 275, 75)  # mol/m3 = mM
-            c3_vals = np.arange(50, 275, 75)  # mol/m3 = mM
+            c3_vals = np.arange(5, 230, 75)  # mol/m3 = mM
             chi_vals = np.arange(-150, 75, 75)  # mol/m3 = mM
         else:
             c1_vals = np.arange(50, 237.5, 37.5)  # mol/m3 = mM
