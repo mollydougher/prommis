@@ -12,6 +12,7 @@ Author: Molly Dougher
 
 from pyomo.environ import (
     ConcreteModel,
+    Objective,
     SolverFactory,
     TransformationFactory,
     assert_optimal_termination,
@@ -53,12 +54,12 @@ def main():
     m.fs.diafiltrate_block_stage_two = Feed(property_package=m.fs.stream_properties)
 
     surrogate_model_file_dict = {
-        "D_11": "surrogate_models/rbf_pysmo_surrogate_d11_scaled.json",
-        "D_12": "surrogate_models/rbf_pysmo_surrogate_d12_scaled.json",
-        "D_21": "surrogate_models/rbf_pysmo_surrogate_d21_scaled.json",
-        "D_22": "surrogate_models/rbf_pysmo_surrogate_d22_scaled.json",
-        "alpha_1": "surrogate_models/rbf_pysmo_surrogate_alpha1.json",
-        "alpha_2": "surrogate_models/rbf_pysmo_surrogate_alpha2.json",
+        "D_11": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d11_scaled",
+        "D_12": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d12_scaled",
+        "D_21": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d21_scaled",
+        "D_22": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d22_scaled",
+        "alpha_1": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_1",
+        "alpha_2": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_2",
     }
 
     # add the membranes
@@ -101,9 +102,43 @@ def main():
     # check numerical warnings
     dt.assert_no_numerical_warnings()
 
+    # m.fs.membrane_one.diafiltrate_flow_volume.unfix()
+    # m.fs.membrane_two.diafiltrate_flow_volume.unfix()
+    # m.fs.membrane.feed_flow_volume.unfix()
+    # m.fs.membrane_one.applied_pressure.unfix()
+    # m.fs.membrane_two.applied_pressure.unfix()
+    # m.fs.membrane_one.membrane_permeability.unfix()
+    # m.fs.membrane_two.membrane_permeability.unfix()
+
+    # m.obj = Objective(expr=-(m.fs.membrane_two.permeate_conc_mol_comp[0,1,"Li"]/m.fs.membrane_one.retentate_conc_mol_comp[0,0,"Li"]))
+    # m.obj = Objective(expr=-(m.fs.membrane_two.retentate_conc_mol_comp[0,1,"Co"]/m.fs.membrane_one.retentate_conc_mol_comp[0,0,"Co"]))
+
+    # m.obj = Objective(expr=-m.fs.membrane_two.permeate_conc_mol_comp[0,1,"Li"])
+
+    # m.obj = Objective(expr=-(
+    #             m.fs.membrane_two.permeate_conc_mol_comp[0, 1, "Li"]
+    #             / m.fs.membrane_two.feed_conc_mol_comp[0, "Li"]
+    #         ) / (
+    #             m.fs.membrane_two.permeate_conc_mol_comp[0, 1, "Co"]
+    #             / m.fs.membrane_two.feed_conc_mol_comp[0, "Co"]
+    #         ))
+
+    # solve model
+    # solve_model(m)
+    # check_concentrations(m)
+
+    # check numerical warnings
+    # dt.assert_no_numerical_warnings()
+
     # visualize the results
     plot_results(m)
     # plot_membrane_results(m)
+
+    # m.fs.membrane_one.diafiltrate_flow_volume.display()
+    # m.fs.membrane_two.diafiltrate_flow_volume.display()
+
+    # m.fs.membrane_one.applied_pressure.display()
+    # m.fs.membrane_two.applied_pressure.display()
 
 
 def build_membrane_parameters(m):
@@ -131,7 +166,7 @@ def fix_variables(m):
     m.fs.membrane_one.feed_conc_mol_comp[0, "Co"].fix()
     m.fs.membrane_one.feed_conc_mol_comp[0, "Cl"].fix()
 
-    m.fs.membrane_one.diafiltrate_flow_volume.fix()
+    m.fs.membrane_one.diafiltrate_flow_volume.fix(1e-10)
     m.fs.membrane_one.diafiltrate_conc_mol_comp[0, "Li"].fix()
     m.fs.membrane_one.diafiltrate_conc_mol_comp[0, "Co"].fix()
     m.fs.membrane_one.diafiltrate_conc_mol_comp[0, "Cl"].fix()
@@ -238,7 +273,7 @@ def check_concentrations(m):
                 # diffusion coefficient calculation is not needed
                 if x == 0:
                     pass
-                elif not (50 < value(membrane.membrane_conc_mol_lithium[x, z]) < 200):
+                elif not (75 < value(membrane.membrane_conc_mol_lithium[x, z]) < 225):
                     raise ValueError(
                         "WARNING: Membrane concentration for lithium ("
                         f"{value(membrane.membrane_conc_mol_lithium[x, z])} mM at "
@@ -255,7 +290,7 @@ def check_concentrations(m):
                     if x == 0:
                         pass
                     elif not (
-                        80 < value(membrane.membrane_conc_mol_cobalt[x, z]) < 110
+                        50 < value(membrane.membrane_conc_mol_cobalt[x, z]) < 200
                     ):
                         raise ValueError(
                             "WARNING: Membrane concentration for cobalt ("

@@ -77,7 +77,7 @@ class SoluteParameterData(PhysicalParameterBlock):
             units=units.dimensionless,
             initialize={
                 "Li": 0.3,
-                "Co": 0.3,
+                "Co": 0.03,
                 "Cl": 0.3,
             },
         )

@@ -11,12 +11,12 @@ def main():
 
 def plot_residuals_two_salt():
     surrogate_model_file_dict_two_salt = {
-        "D_11": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d11_scaled.json",
-        "D_12": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d12_scaled.json",
-        "D_21": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d21_scaled.json",
-        "D_22": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d22_scaled.json",
-        "alpha_1": "surrogate_models/rlithium_cobalt_chloride/bf_pysmo_surrogate_alpha1.json",
-        "alpha_2": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha2.json",
+        "D_11": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d11_scaled",
+        "D_12": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d12_scaled",
+        "D_21": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d21_scaled",
+        "D_22": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d22_scaled",
+        "alpha_1": "surrogate_models/rlithium_cobalt_chloride/bf_pysmo_surrogate_alpha1",
+        "alpha_2": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha2",
     }
 
     _surrogates_obj_D_11 = PysmoSurrogate.load_from_file(
@@ -25,7 +25,7 @@ def plot_residuals_two_salt():
 
     c1_vals = []
     c2_vals = []
-    for c1 in np.arange(50, 201, 1):
+    for c1 in np.arange(75, 226, 1):
         c1_vals.append(c1)
     for c2 in np.arange(50, 201, 1):
         c2_vals.append(c2)
@@ -42,7 +42,7 @@ def plot_residuals_two_salt():
     percent_error_dict_linear = {}
     percent_error_dict_rbf = {}
 
-    for c1 in np.arange(50, 201, 1):
+    for c1 in np.arange(75, 226, 1):
         for c2 in np.arange(50, 201, 1):
             linear_val = evaluate_linear_surrogate_two_salt(c1, c2)
             linear_surrogate_vals.append(linear_val)
@@ -156,11 +156,11 @@ def plot_residuals_three_salt():
     c1_vals = []
     c2_vals = []
     c3_vals = []
-    for c1 in np.arange(50, 210, 10):
+    for c1 in np.arange(75, 235, 10):
         c1_vals.append(c1)
     for c2 in np.arange(50, 210, 10):
         c2_vals.append(c2)
-    for c3 in [75, 100, 125]:
+    for c3 in [2, 17, 32]:
         c3_vals.append(c3)
 
     linear_surrogate_vals = []
@@ -169,8 +169,8 @@ def plot_residuals_three_salt():
     percent_error_vals_linear = []
     percent_error_vals_rbf = []
 
-    for c3 in [15, 30, 45]:
-        for c1 in np.arange(50, 210, 10):
+    for c3 in [2, 17, 32]:
+        for c1 in np.arange(75, 235, 10):
             for c2 in np.arange(50, 210, 10):
                 linear_val = evaluate_linear_surrogate_three_salt(c1, c2, c3)
                 linear_surrogate_vals.append(linear_val)
@@ -193,8 +193,8 @@ def plot_residuals_three_salt():
                 )
                 percent_error_vals_rbf.append(percent_error_val_rbf)
 
-            if c3 == 15:
-                if c1 == 50:
+            if c3 == 2:
+                if c1 == 75:
                     linear_surrogate_vals_dict_l = {f"{c1})": linear_surrogate_vals}
                     RBF_surrogate_vals_dict_l = {f"{c1}": RBF_surrogate_vals}
                     actual_vals_dict_l = {f"{c1}": actual_vals}
@@ -206,8 +206,8 @@ def plot_residuals_three_salt():
                     actual_vals_dict_l[f"{c1}"] = actual_vals
                     percent_error_dict_linear_l[f"{c1}"] = percent_error_vals_linear
                     percent_error_dict_rbf_l[f"{c1}"] = percent_error_vals_rbf
-            elif c3 == 30:
-                if c1 == 50:
+            elif c3 == 17:
+                if c1 == 75:
                     linear_surrogate_vals_dict_m = {f"{c1})": linear_surrogate_vals}
                     RBF_surrogate_vals_dict_m = {f"{c1}": RBF_surrogate_vals}
                     actual_vals_dict_m = {f"{c1}": actual_vals}
@@ -219,8 +219,8 @@ def plot_residuals_three_salt():
                     actual_vals_dict_m[f"{c1}"] = actual_vals
                     percent_error_dict_linear_m[f"{c1}"] = percent_error_vals_linear
                     percent_error_dict_rbf_m[f"{c1}"] = percent_error_vals_rbf
-            elif c3 == 45:
-                if c1 == 50:
+            elif c3 == 32:
+                if c1 == 75:
                     linear_surrogate_vals_dict_h = {f"{c1})": linear_surrogate_vals}
                     RBF_surrogate_vals_dict_h = {f"{c1}": RBF_surrogate_vals}
                     actual_vals_dict_h = {f"{c1}": actual_vals}

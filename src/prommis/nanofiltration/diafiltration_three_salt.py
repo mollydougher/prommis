@@ -263,6 +263,7 @@ from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.dae import ContinuousSet, DerivativeVar
 from pyomo.environ import (
     Constraint,
+    Expression,
     Param,
     Reference,
     Set,
@@ -367,6 +368,107 @@ and used when constructing these,
         self.add_scaling_factors()
         self.add_ports()
 
+        def _peclet_number_lithium(self, x, z):
+            if x == 0:
+                return Expression.Skip
+            return abs(
+                self.convection_coefficient_lithium[x, z]
+                * self.membrane_conc_mol_lithium[x, z]
+                * self.volume_flux_water[x]
+            ) / (
+                abs(
+                    (
+                        -(
+                            self.D_lithium_lithium[x, z]
+                            / self.total_membrane_thickness
+                            * self.d_membrane_conc_mol_lithium_dz[x, z]
+                        )
+                        - (
+                            self.D_lithium_cobalt[x, z]
+                            / self.total_membrane_thickness
+                            * self.d_membrane_conc_mol_cobalt_dz[x, z]
+                        )
+                        - (
+                            self.D_lithium_aluminum[x, z]
+                            / self.total_membrane_thickness
+                            * self.d_membrane_conc_mol_aluminum_dz[x, z]
+                        )
+                    )
+                )
+            )
+
+        self.peclet_number_lithium = Expression(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_peclet_number_lithium,
+        )
+
+        def _peclet_number_cobalt(self, x, z):
+            if x == 0:
+                return Expression.Skip
+            return abs(
+                self.convection_coefficient_cobalt[x, z]
+                * self.membrane_conc_mol_cobalt[x, z]
+                * self.volume_flux_water[x]
+            ) / (
+                abs(
+                    -(
+                        self.D_cobalt_lithium[x, z]
+                        / self.total_membrane_thickness
+                        * self.d_membrane_conc_mol_lithium_dz[x, z]
+                    )
+                    - (
+                        self.D_cobalt_cobalt[x, z]
+                        / self.total_membrane_thickness
+                        * self.d_membrane_conc_mol_cobalt_dz[x, z]
+                    )
+                    - (
+                        self.D_cobalt_aluminum[x, z]
+                        / self.total_membrane_thickness
+                        * self.d_membrane_conc_mol_aluminum_dz[x, z]
+                    )
+                )
+            )
+
+        self.peclet_number_cobalt = Expression(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_peclet_number_cobalt,
+        )
+
+        def _peclet_number_aluminum(self, x, z):
+            if x == 0:
+                return Expression.Skip
+            return abs(
+                self.convection_coefficient_aluminum[x, z]
+                * self.membrane_conc_mol_aluminum[x, z]
+                * self.volume_flux_water[x]
+            ) / (
+                abs(
+                    -(
+                        self.D_aluminum_lithium[x, z]
+                        / self.total_membrane_thickness
+                        * self.d_membrane_conc_mol_lithium_dz[x, z]
+                    )
+                    - (
+                        self.D_aluminum_cobalt[x, z]
+                        / self.total_membrane_thickness
+                        * self.d_membrane_conc_mol_cobalt_dz[x, z]
+                    )
+                    - (
+                        self.D_aluminum_aluminum[x, z]
+                        / self.total_membrane_thickness
+                        * self.d_membrane_conc_mol_aluminum_dz[x, z]
+                    )
+                )
+            )
+
+        self.peclet_number_aluminum = Expression(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_peclet_number_aluminum,
+        )
+
     def add_mutable_parameters(self):
         """
         Adds parameters for the three salt diafiltration unit model.
@@ -406,7 +508,7 @@ and used when constructing these,
                 doc="Fixed charge on the membrane",
             )
         self.membrane_permeability = Param(
-            initialize=0.03,
+            initialize=0.003,
             mutable=True,
             units=units.m / units.h / units.bar,
             doc="Hydraulic permeability coefficient",
@@ -435,13 +537,13 @@ and used when constructing these,
 
         # add global variables
         self.total_module_length = Var(
-            initialize=4,
+            initialize=4,  # 4 tubes that are ~1m long each (NF270-440)
             units=units.m,
             bounds=[1e-11, None],
             doc="Width of the membrane (x-direction)",
         )
         self.total_membrane_length = Var(
-            initialize=40,
+            initialize=41,  # 41 m of length in each tube (NF270-440)
             units=units.m,
             bounds=[1e-11, None],
             doc="Length of the membrane, wound radially",
@@ -454,14 +556,14 @@ and used when constructing these,
         )
         self.feed_flow_volume = Var(
             self.time,
-            initialize=100,
+            initialize=10,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the feed",
         )
 
         def initialize_feed_conc_mol_comp(m, t, j):
-            vals = {"Li": 245, "Co": 288, "Al": 30, "Cl": 911}
+            vals = {"Li": 150, "Co": 300, "Al": 25, "Cl": 840}
             return vals[j]
 
         self.feed_conc_mol_comp = Var(
@@ -474,7 +576,7 @@ and used when constructing these,
         )
         self.diafiltrate_flow_volume = Var(
             self.time,
-            initialize=30,
+            initialize=3,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the diafiltrate",
@@ -496,35 +598,35 @@ and used when constructing these,
         # add variables dependent on dimensionless_module_length
         self.volume_flux_water = Var(
             self.dimensionless_module_length,
-            initialize=0.4,
+            initialize=0.04,
             units=units.m**3 / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric water flux of water across the membrane",
         )
         self.mol_flux_lithium = Var(
             self.dimensionless_module_length,
-            initialize=75,
+            initialize=5,
             units=units.mol / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Mole flux of lithium across the membrane (z-direction, x-dependent)",
         )
         self.mol_flux_cobalt = Var(
             self.dimensionless_module_length,
-            initialize=87,
+            initialize=9,
             units=units.mol / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Mole flux of cobalt across the membrane (z-direction, x-dependent)",
         )
         self.mol_flux_aluminum = Var(
             self.dimensionless_module_length,
-            initialize=9,
+            initialize=1.6,
             units=units.mol / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Mole flux of aluminum across the membrane (z-direction, x-dependent)",
         )
         self.mol_flux_chloride = Var(
             self.dimensionless_module_length,
-            initialize=276,
+            initialize=22,
             units=units.mol / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Mole flux of chloride across the membrane (z-direction, x-dependent)",
@@ -532,14 +634,14 @@ and used when constructing these,
         self.retentate_flow_volume = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=67,
+            initialize=7.5,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the retentate, x-dependent",
         )
 
         def initialize_retentate_conc_mol_comp(m, t, p, j):
-            vals = {"Li": 194, "Co": 225, "Al": 23, "Cl": 714}
+            vals = {"Li": 48, "Co": 222, "Al": 23, "Cl": 714}
             return vals[j]
 
         self.retentate_conc_mol_comp = Var(
@@ -554,14 +656,14 @@ and used when constructing these,
         self.permeate_flow_volume = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=63,
+            initialize=5.5,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the permeate, x-dependent",
         )
 
         def initialize_permeate_conc_mol_comp(m, t, p, j):
-            vals = {"Li": 191, "Co": 221, "Al": 23, "Cl": 702}
+            vals = {"Li": 48, "Co": 222, "Al": 23, "Cl": 702}
             return vals[j]
 
         self.permeate_conc_mol_comp = Var(
@@ -1620,14 +1722,14 @@ and used when constructing these,
         discretizer = TransformationFactory("dae.finite_difference")
         discretizer.apply_to(
             self,
-            wrt=self.dimensionless_module_length,
-            nfe=self.config.NFE_module_length,
+            wrt=self.dimensionless_membrane_thickness,
+            nfe=self.config.NFE_membrane_thickness,
             scheme="BACKWARD",
         )
         discretizer.apply_to(
             self,
-            wrt=self.dimensionless_membrane_thickness,
-            nfe=self.config.NFE_membrane_thickness,
+            wrt=self.dimensionless_module_length,
+            nfe=self.config.NFE_module_length,
             scheme="BACKWARD",
         )
 

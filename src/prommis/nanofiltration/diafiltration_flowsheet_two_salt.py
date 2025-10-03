@@ -12,9 +12,11 @@ Author: Molly Dougher
 
 from pyomo.environ import (
     ConcreteModel,
+    Objective,
     SolverFactory,
     TransformationFactory,
     assert_optimal_termination,
+    maximize,
     value,
 )
 from pyomo.network import Arc
@@ -23,6 +25,7 @@ from idaes.core import FlowsheetBlock
 from idaes.core.util.model_diagnostics import DiagnosticsToolbox
 from idaes.models.unit_models import Feed, Product
 
+import numpy as np
 import matplotlib.pyplot as plt
 from pandas import DataFrame
 
@@ -62,8 +65,8 @@ def main():
     # add the membrane unit model
     m.fs.membrane = TwoSaltDiafiltration(
         property_package=m.fs.properties,
-        NFE_module_length=10,
-        NFE_membrane_thickness=5,
+        NFE_module_length=20,
+        NFE_membrane_thickness=10,
         charged_membrane=True,
         surrogate_model_files=surrogate_model_file_dict,
         diffusion_surrogate_scaling_factor=1e-07,
@@ -85,48 +88,69 @@ def main():
 
     # solve model
     solve_model(m)
-
-    for x in m.fs.membrane.dimensionless_module_length:
-        for z in m.fs.membrane.dimensionless_membrane_thickness:
-            # skip check at x=0 as the concentration is expected to be 0 and the
-            # diffusion coefficient calculation is not needed
-            if x == 0:
-                pass
-            elif not (50 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 200):
-                raise ValueError(
-                    "WARNING: Membrane concentration for lithium ("
-                    f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
-                    f"x={x * value(m.fs.membrane.total_module_length)} m and "
-                    f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                    "of the valid range for the diffusion coefficient surrogate model "
-                    "(50-200 mM). Consider re-training the surrogate model."
-                )
-    if m.fs.membrane.config.charged_membrane:
-        for x in m.fs.membrane.dimensionless_module_length:
-            for z in m.fs.membrane.dimensionless_membrane_thickness:
-                # skip check at x=0 as the concentration is expected to be 0 and the
-                # diffusion coefficient calculation is not needed
-                if x == 0:
-                    pass
-                elif not (
-                    80 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 110
-                ):
-                    raise ValueError(
-                        "WARNING: Membrane concentration for cobalt ("
-                        f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
-                        f"x={x * value(m.fs.membrane.total_module_length)} m and "
-                        f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                        "of the valid range for the diffusion coefficient surrogate model "
-                        "(50-200 mM). Consider re-training the surrogate model."
-                    )
+    # TODO: retrain the surrogate for lower Co membrane cocnentrations to reach other feed ratios
+    check_membrane_concentration_ranges(m)
 
     # check numerical warnings
     dt.assert_no_numerical_warnings()
-    dt.report_numerical_issues()
+
+    # print(value(m.fs.membrane.mol_flux_cobalt[1]))
+    # print(value(m.fs.membrane.mol_flux_chloride[1]))
+    # print(value(m.fs.membrane.retentate_flow_volume[0,1]))
+    # print(value(m.fs.membrane.permeate_flow_volume[0,1]))
+    # print(value(m.fs.membrane.membrane_conc_mol_chloride[1,1]))
+
+    lithium_pe = []
+    cobalt_pe = []
+    lithium_sieving = []
+    cobalt_sieving = []
+    sep_factor = []
+    for x in m.fs.membrane.dimensionless_module_length:
+        if x != 0:
+            lithium_sieving.append(value(m.fs.membrane.sieving_coefficient_lithium[x]))
+            cobalt_sieving.append(value(m.fs.membrane.sieving_coefficient_cobalt[x]))
+            sep_factor.append(value(m.fs.membrane.separation_factor_lithium_cobalt[x]))
+            for z in m.fs.membrane.dimensionless_membrane_thickness:
+                lithium_pe.append(value(m.fs.membrane.peclet_number_lithium[x, z]))
+                cobalt_pe.append(value(m.fs.membrane.peclet_number_cobalt[x, z]))
+
+    print("\n")
+    print(
+        f"average lithium Pe = {np.average(lithium_pe)} with stdev = {np.std(lithium_pe)}"
+    )
+    print(
+        f"average cobalt Pe = {np.average(cobalt_pe)} with stdev = {np.std(cobalt_pe)}"
+    )
+    print(
+        f"average lithium sieving = {np.average(lithium_sieving)} with stdev = {np.std(lithium_sieving)}"
+    )
+    print(
+        f"average cobalt sieving = {np.average(cobalt_sieving)} with stdev = {np.std(cobalt_sieving)}"
+    )
+    print(
+        f"average l:c selectivity = {np.average(sep_factor)} with stdev = {np.std(sep_factor)}"
+    )
+
+    # m.fs.membrane.diafiltrate_flow_volume.unfix()
+    # m.fs.membrane.feed_flow_volume.unfix()
+    # m.fs.membrane.applied_pressure.unfix()
+    # m.selectivity_obj = Objective(expr=m.fs.membrane.overall_selectivity, sense=maximize)
+    # m.cobalt_sieving_obj = Objective(expr=m.fs.membrane.sieving_coefficient_cobalt[1], sense=maximize)
+
+    # solve model
+    # solve_model(m)
+    # # check_membrane_concentration_ranges(m)
+
+    # m.fs.membrane.applied_pressure.display()
+
+    # # check numerical warnings
+    # dt.assert_no_numerical_warnings()
+
+    # m.selectivity_obj.display()
 
     # visualize the results
     plot_results(m)
-    # plot_membrane_results(m)
+    plot_membrane_results(m)
 
 
 def build_membrane_parameters(m):
@@ -193,6 +217,42 @@ def solve_model(m):
     assert_optimal_termination(results)
 
     scaling.propagate_solution(scaled_model, m)
+
+
+def check_membrane_concentration_ranges(m):
+    for x in m.fs.membrane.dimensionless_module_length:
+        for z in m.fs.membrane.dimensionless_membrane_thickness:
+            # skip check at x=0 as the concentration is expected to be 0 and the
+            # diffusion coefficient calculation is not needed
+            if x == 0:
+                pass
+            elif not (50 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 200):
+                raise ValueError(
+                    "WARNING: Membrane concentration for lithium ("
+                    f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
+                    f"x={x * value(m.fs.membrane.total_module_length)} m and "
+                    f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
+                    "of the valid range for the diffusion coefficient surrogate model "
+                    "(50-200 mM). Consider re-training the surrogate model."
+                )
+    if m.fs.membrane.config.charged_membrane:
+        for x in m.fs.membrane.dimensionless_module_length:
+            for z in m.fs.membrane.dimensionless_membrane_thickness:
+                # skip check at x=0 as the concentration is expected to be 0 and the
+                # diffusion coefficient calculation is not needed
+                if x == 0:
+                    pass
+                elif not (
+                    50 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 200
+                ):
+                    raise ValueError(
+                        "WARNING: Membrane concentration for cobalt ("
+                        f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
+                        f"x={x * value(m.fs.membrane.total_module_length)} m and "
+                        f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
+                        "of the valid range for the diffusion coefficient surrogate model "
+                        "(50-200 mM). Consider re-training the surrogate model."
+                    )
 
 
 def plot_results(m):
@@ -286,7 +346,7 @@ def plot_results(m):
             percent_recovery.append(
                 (
                     value(m.fs.membrane.permeate_flow_volume[0, x_val])
-                    / value(m.fs.membrane.feed_flow_volume[0])
+                    / value(m.fs.membrane.retentate_flow_volume[0, 0])
                     * 100
                 )
             )

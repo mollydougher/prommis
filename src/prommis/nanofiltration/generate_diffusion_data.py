@@ -174,7 +174,7 @@ def set_two_salt_concentration_ranges(system, kriging_or_rbf):
         D3 = 7.31e-6  # m2/h (chloride)
 
         if kriging_or_rbf:
-            c1_vals = np.arange(50, 275, 75)  # mol/m3 = mM
+            c1_vals = np.arange(75, 300, 75)  # mol/m3 = mM
             c2_vals = np.arange(50, 275, 75)  # mol/m3 = mM
             chi_vals = np.arange(-150, 75, 75)  # mol/m3 = mM
         else:
@@ -204,9 +204,9 @@ def set_three_salt_concentration_ranges(system, kriging_or_rbf):
         D4 = 7.31e-6  # m2/h (chloride)
 
         if kriging_or_rbf:
-            c1_vals = np.arange(50, 275, 75)  # mol/m3 = mM
+            c1_vals = np.arange(75, 300, 75)  # mol/m3 = mM
             c2_vals = np.arange(50, 275, 75)  # mol/m3 = mM
-            c3_vals = np.arange(5, 230, 75)  # mol/m3 = mM
+            c3_vals = np.arange(1, 226, 75)  # mol/m3 = mM
             chi_vals = np.arange(-150, 75, 75)  # mol/m3 = mM
         else:
             c1_vals = np.arange(50, 237.5, 37.5)  # mol/m3 = mM
