@@ -54,12 +54,12 @@ def main():
     m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
 
     surrogate_model_file_dict = {
-        "D_11": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d11_scaled.json",
-        "D_12": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d12_scaled.json",
-        "D_21": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d21_scaled.json",
-        "D_22": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d22_scaled.json",
-        "alpha_1": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha1.json",
-        "alpha_2": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha2.json",
+        "D_11": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d11_scaled",
+        "D_12": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d12_scaled",
+        "D_21": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d21_scaled",
+        "D_22": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d22_scaled",
+        "alpha_1": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_1",
+        "alpha_2": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_2",
     }
 
     # add the membrane unit model
@@ -94,42 +94,36 @@ def main():
     # check numerical warnings
     dt.assert_no_numerical_warnings()
 
-    # print(value(m.fs.membrane.mol_flux_cobalt[1]))
-    # print(value(m.fs.membrane.mol_flux_chloride[1]))
-    # print(value(m.fs.membrane.retentate_flow_volume[0,1]))
-    # print(value(m.fs.membrane.permeate_flow_volume[0,1]))
-    # print(value(m.fs.membrane.membrane_conc_mol_chloride[1,1]))
+    # lithium_pe = []
+    # cobalt_pe = []
+    # lithium_sieving = []
+    # cobalt_sieving = []
+    # sep_factor = []
+    # for x in m.fs.membrane.dimensionless_module_length:
+    #     if x != 0:
+    #         lithium_sieving.append(value(m.fs.membrane.sieving_coefficient_lithium[x]))
+    #         cobalt_sieving.append(value(m.fs.membrane.sieving_coefficient_cobalt[x]))
+    #         sep_factor.append(value(m.fs.membrane.separation_factor_lithium_cobalt[x]))
+    #         for z in m.fs.membrane.dimensionless_membrane_thickness:
+    #             lithium_pe.append(value(m.fs.membrane.peclet_number_lithium[x, z]))
+    #             cobalt_pe.append(value(m.fs.membrane.peclet_number_cobalt[x, z]))
 
-    lithium_pe = []
-    cobalt_pe = []
-    lithium_sieving = []
-    cobalt_sieving = []
-    sep_factor = []
-    for x in m.fs.membrane.dimensionless_module_length:
-        if x != 0:
-            lithium_sieving.append(value(m.fs.membrane.sieving_coefficient_lithium[x]))
-            cobalt_sieving.append(value(m.fs.membrane.sieving_coefficient_cobalt[x]))
-            sep_factor.append(value(m.fs.membrane.separation_factor_lithium_cobalt[x]))
-            for z in m.fs.membrane.dimensionless_membrane_thickness:
-                lithium_pe.append(value(m.fs.membrane.peclet_number_lithium[x, z]))
-                cobalt_pe.append(value(m.fs.membrane.peclet_number_cobalt[x, z]))
-
-    print("\n")
-    print(
-        f"average lithium Pe = {np.average(lithium_pe)} with stdev = {np.std(lithium_pe)}"
-    )
-    print(
-        f"average cobalt Pe = {np.average(cobalt_pe)} with stdev = {np.std(cobalt_pe)}"
-    )
-    print(
-        f"average lithium sieving = {np.average(lithium_sieving)} with stdev = {np.std(lithium_sieving)}"
-    )
-    print(
-        f"average cobalt sieving = {np.average(cobalt_sieving)} with stdev = {np.std(cobalt_sieving)}"
-    )
-    print(
-        f"average l:c selectivity = {np.average(sep_factor)} with stdev = {np.std(sep_factor)}"
-    )
+    # print("\n")
+    # print(
+    #     f"average lithium Pe = {np.average(lithium_pe)} with stdev = {np.std(lithium_pe)}"
+    # )
+    # print(
+    #     f"average cobalt Pe = {np.average(cobalt_pe)} with stdev = {np.std(cobalt_pe)}"
+    # )
+    # print(
+    #     f"average lithium sieving = {np.average(lithium_sieving)} with stdev = {np.std(lithium_sieving)}"
+    # )
+    # print(
+    #     f"average cobalt sieving = {np.average(cobalt_sieving)} with stdev = {np.std(cobalt_sieving)}"
+    # )
+    # print(
+    #     f"average l:c selectivity = {np.average(sep_factor)} with stdev = {np.std(sep_factor)}"
+    # )
 
     # m.fs.membrane.diafiltrate_flow_volume.unfix()
     # m.fs.membrane.feed_flow_volume.unfix()

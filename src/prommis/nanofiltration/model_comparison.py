@@ -43,26 +43,33 @@ from prommis.nanofiltration.diafiltration_three_salt_solute_properties import (
     SoluteParameter as SoluteThreeSaltParameter,
 )
 from prommis.nanofiltration.diafiltration_three_salt import ThreeSaltDiafiltration
+from prommis.nanofiltration.diafiltration_flowsheet_three_salt import (
+    plot_results,
+    plot_membrane_results,
+)
 
 
 def main():
-    m_two_salt = build_two_salt_model()
-    solve_model(m_two_salt)
-    two_salt_model_checks(m_two_salt)
-    m_two_salt.fs.retentate_block.display()
-    m_two_salt.fs.permeate_block.display()
+    # m_two_salt = build_two_salt_model()
+    # solve_model(m_two_salt)
+    # two_salt_model_checks(m_two_salt)
 
-    m_three_salt = build_three_salt_model()
-    solve_model(m_three_salt)
-    three_salt_model_checks(m_three_salt)
+    # # initialize three salt model
+    # m_three_salt = build_three_salt_model()
+    # solve_model(m_three_salt)
+    # three_salt_model_checks(m_three_salt)
 
-    m_three_salt.fs.retentate_block.display()
-    m_three_salt.fs.permeate_block.display()
+    # m_three_salt.fs.membrane.diafiltrate_flow_volume.fix(1e-10)
+    # m_three_salt.fs.membrane.feed_conc_mol_comp[0,"Al"].fix(75)
+    # solve_model(m_three_salt)
+    # three_salt_model_checks(m_three_salt)
+    # plot_results(m_three_salt)
+    # plot_membrane_results(m_three_salt)
 
-    plot_relative_rejections(m_two_salt, m_three_salt)
+    # plot_relative_rejections(m_two_salt, m_three_salt)
     # plot_concentrations(m_two_salt, m_three_salt)
 
-    # plot_relative_flux()
+    plot_relative_flux()
 
     # source = ["Atacama Salar\nBrine, Chile", "Uyuni Salar\nBrine, Bolivia", "East Taijinar,\nChina", "West Taijinar,\nChina"]#, "Chott Djerid Salt\nLake, Tunisia", "Longmucuo, China", "North Arm Salt\nLake, USA"]
     # ion_conc = {
@@ -243,12 +250,12 @@ def plot_relative_rejections(m2, m3):
     ax2.set_ylabel(
         "Percent Change in Solute Rejection (%)", fontsize=10, fontweight="bold"
     )
-    ax2.tick_params(direction="in", labelsize=10)
+    ax2.tick_params(direction="in", top=True, right=True, labelsize=10)
 
     ax2.plot([0, 164], [0, 0], "k-", linewidth=0.5)
 
     ax2.set_xlim(0, 164)
-    ax2.set_ylim(-14, 2)
+    ax2.set_ylim(-20, 5)
 
     # legend points
     # ax2.plot([],[], marker='None', linestyle='None', label="Solution (linestyle)")
@@ -266,7 +273,7 @@ def plot_relative_rejections(m2, m3):
     plt.show()
 
 
-def calculate_ionic_strength(m):
+def calculate_ionic_strength_two_salt(m):
     return 0.5 * (
         (
             value(m.fs.membrane.retentate_conc_mol_comp[0, 0, "Li"])
@@ -275,6 +282,27 @@ def calculate_ionic_strength(m):
         + (
             value(m.fs.membrane.retentate_conc_mol_comp[0, 0, "Co"])
             * value(m.fs.membrane.config.property_package.charge["Co"]) ** 2
+        )
+        + (
+            value(m.fs.membrane.retentate_conc_mol_comp[0, 0, "Cl"])
+            * value(m.fs.membrane.config.property_package.charge["Cl"]) ** 2
+        )
+    )
+
+
+def calculate_ionic_strength_three_salt(m):
+    return 0.5 * (
+        (
+            value(m.fs.membrane.retentate_conc_mol_comp[0, 0, "Li"])
+            * value(m.fs.membrane.config.property_package.charge["Li"]) ** 2
+        )
+        + (
+            value(m.fs.membrane.retentate_conc_mol_comp[0, 0, "Co"])
+            * value(m.fs.membrane.config.property_package.charge["Co"]) ** 2
+        )
+        + (
+            value(m.fs.membrane.retentate_conc_mol_comp[0, 0, "Al"])
+            * value(m.fs.membrane.config.property_package.charge["Al"]) ** 2
         )
         + (
             value(m.fs.membrane.retentate_conc_mol_comp[0, 0, "Cl"])
@@ -314,9 +342,9 @@ def plot_relative_flux():
         [350, 500],
     ]
 
-    for conc in conc_list_2:
-        m_two_salt = build_two_salt_model()
+    m_two_salt = build_two_salt_model()
 
+    for conc in conc_list_2:
         m_two_salt.fs.membrane.feed_conc_mol_comp[0, "Li"].fix(conc[0])
         m_two_salt.fs.membrane.feed_conc_mol_comp[0, "Co"].fix(conc[1])
 
@@ -334,7 +362,7 @@ def plot_relative_flux():
                         value(m_two_salt.fs.membrane.peclet_number_cobalt[x, z])
                     )
 
-        ionic_strength = calculate_ionic_strength(m_two_salt)
+        ionic_strength = calculate_ionic_strength_two_salt(m_two_salt)
         ionic_strength_list_2.append(ionic_strength)
         li_pe_list_2.append(np.average(lithium_pe_2))
         co_pe_list_2.append(np.average(cobalt_pe_2))
@@ -367,9 +395,13 @@ def plot_relative_flux():
         [350, 500, 70],
     ]
 
-    for conc in conc_list_3:
-        m_three_salt = build_three_salt_model()
+    # initialize
+    m_three_salt = build_three_salt_model()
+    solve_model(m_three_salt)
+    three_salt_model_checks(m_three_salt)
+    m_three_salt.fs.membrane.diafiltrate_flow_volume.fix(1e-10)
 
+    for conc in conc_list_3:
         m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Li"].fix(conc[0])
         m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Co"].fix(conc[1])
         m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Al"].fix(conc[2])
@@ -390,7 +422,7 @@ def plot_relative_flux():
                         value(m_three_salt.fs.membrane.peclet_number_aluminum[x, z])
                     )
 
-        ionic_strength = calculate_ionic_strength(m_three_salt)
+        ionic_strength = calculate_ionic_strength_three_salt(m_three_salt)
         ionic_strength_list_3.append(ionic_strength)
         li_pe_list_3.append(np.average(lithium_pe_3))
         co_pe_list_3.append(np.average(cobalt_pe_3))
@@ -400,7 +432,7 @@ def plot_relative_flux():
         cobalt_pe_3 = []
         aluminum_pe_3 = []
 
-    fig, ax1 = plt.subplots(1, 1, dpi=100, figsize=(5, 4))
+    fig, ax1 = plt.subplots(1, 1, dpi=125, figsize=(7, 5))
     # ax1.plot(ionic_strength_list_2, water_flux_list_2, '.')
     ax1.plot(ionic_strength_list_2, li_pe_list_2, "mx", markersize=6)
     ax1.plot(ionic_strength_list_2, co_pe_list_2, "cx", markersize=6)
@@ -574,7 +606,7 @@ def build_two_salt_model():
     m.fs.membrane = TwoSaltDiafiltration(
         property_package=m.fs.properties,
         NFE_module_length=20,
-        NFE_membrane_thickness=5,
+        NFE_membrane_thickness=10,
         charged_membrane=True,
         surrogate_model_files=surrogate_model_file_dict,
         diffusion_surrogate_scaling_factor=1e-07,
@@ -685,7 +717,7 @@ def build_three_salt_model():
     m.fs.membrane = ThreeSaltDiafiltration(
         property_package=m.fs.properties,
         NFE_module_length=20,
-        NFE_membrane_thickness=5,
+        NFE_membrane_thickness=10,
         charged_membrane=True,
         surrogate_model_files=surrogate_model_file_dict,
         diffusion_surrogate_scaling_factor=1e-07,
@@ -708,7 +740,7 @@ def build_three_salt_model():
     m.fs.membrane.feed_conc_mol_comp[0, "Al"].fix()
     m.fs.membrane.feed_conc_mol_comp[0, "Cl"].fix()
 
-    m.fs.membrane.diafiltrate_flow_volume.fix(1e-10)
+    m.fs.membrane.diafiltrate_flow_volume.fix()
     m.fs.membrane.diafiltrate_conc_mol_comp[0, "Li"].fix()
     m.fs.membrane.diafiltrate_conc_mol_comp[0, "Co"].fix()
     m.fs.membrane.diafiltrate_conc_mol_comp[0, "Al"].fix()
@@ -777,7 +809,7 @@ def three_salt_model_checks(m):
                 )
 
 
-def solve_model(m, simulation=True):
+def solve_model(m):
     """
     Solves scaled model.
 
@@ -795,12 +827,8 @@ def solve_model(m, simulation=True):
 
     dt = DiagnosticsToolbox(m)
     # check numerical warnings
-    if simulation:
-        # dt.assert_no_numerical_warnings()
-        dt.report_numerical_issues()
-    else:
-        dt.report_numerical_issues()
-        dt.display_variables_at_or_outside_bounds()
+    dt.assert_no_numerical_warnings()
+    # dt.report_numerical_issues()
 
 
 if __name__ == "__main__":

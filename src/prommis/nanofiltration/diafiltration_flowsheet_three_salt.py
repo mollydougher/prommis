@@ -97,8 +97,7 @@ def main():
     check_membrane_concentration_ranges(m)
 
     # check numerical warnings
-    # dt.assert_no_numerical_warnings()
-    dt.report_numerical_issues()
+    dt.assert_no_numerical_warnings()
 
     # visualize the results
     plot_results(m)
@@ -180,7 +179,7 @@ def check_membrane_concentration_ranges(m):
             # diffusion coefficient calculation is not needed
             if x == 0:
                 pass
-            elif not (50 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 200):
+            elif not (75 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 225):
                 raise ValueError(
                     "WARNING: Membrane concentration for lithium ("
                     f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
