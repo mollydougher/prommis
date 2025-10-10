@@ -54,17 +54,17 @@ def main():
     # solve_model(m_two_salt)
     # two_salt_model_checks(m_two_salt)
 
-    # # initialize three salt model
+    # # # initialize three salt model
     # m_three_salt = build_three_salt_model()
-    # solve_model(m_three_salt)
-    # three_salt_model_checks(m_three_salt)
+    # # solve_model(m_three_salt)
+    # # three_salt_model_checks(m_three_salt)
 
     # m_three_salt.fs.membrane.diafiltrate_flow_volume.fix(1e-10)
-    # m_three_salt.fs.membrane.feed_conc_mol_comp[0,"Al"].fix(75)
+    # # m_three_salt.fs.membrane.feed_conc_mol_comp[0,"Al"].fix(25)
     # solve_model(m_three_salt)
     # three_salt_model_checks(m_three_salt)
-    # plot_results(m_three_salt)
-    # plot_membrane_results(m_three_salt)
+    # # plot_results(m_three_salt)
+    # # plot_membrane_results(m_three_salt)
 
     # plot_relative_rejections(m_two_salt, m_three_salt)
     # plot_concentrations(m_two_salt, m_three_salt)
@@ -255,7 +255,7 @@ def plot_relative_rejections(m2, m3):
     ax2.plot([0, 164], [0, 0], "k-", linewidth=0.5)
 
     ax2.set_xlim(0, 164)
-    ax2.set_ylim(-20, 5)
+    ax2.set_ylim(-14, 2)
 
     # legend points
     # ax2.plot([],[], marker='None', linestyle='None', label="Solution (linestyle)")

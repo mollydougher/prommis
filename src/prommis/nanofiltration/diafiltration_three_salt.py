@@ -818,88 +818,53 @@ and used when constructing these,
             self.dimensionless_module_length, rule=_aluminum_mol_balance
         )
 
-        # algebraic mol balance constraints
-        def _algebraic_mol_balance_overall(blk, x):
-            if x == 0:
-                return Constraint.Skip
-            return (blk.feed_flow_volume[0] + blk.diafiltrate_flow_volume[0]) == (
-                blk.retentate_flow_volume[0, x] + blk.permeate_flow_volume[0, x]
-            )
-
-        self.algebraic_mol_balance_overall = Constraint(
-            self.dimensionless_module_length, rule=_algebraic_mol_balance_overall
-        )
-
-        def _algebraic_mol_balance_lithium(blk, x):
+        # bulk flux balance constraints
+        def _bulk_flux_balance_overall(blk, x):
             if x == 0:
                 return Constraint.Skip
             return (
-                (blk.feed_flow_volume[0] * blk.feed_conc_mol_comp[0, "Li"])
-                + (
-                    blk.diafiltrate_flow_volume[0]
-                    * blk.diafiltrate_conc_mol_comp[0, "Li"]
-                )
-            ) == (
-                (
-                    blk.retentate_flow_volume[0, x]
-                    * blk.retentate_conc_mol_comp[0, x, "Li"]
-                )
-                + (
-                    blk.permeate_flow_volume[0, x]
-                    * blk.permeate_conc_mol_comp[0, x, "Li"]
-                )
+                blk.permeate_flow_volume[0, x]
+                == blk.volume_flux_water[x]
+                * x
+                * blk.total_membrane_length
+                * blk.total_module_length
             )
 
-        self.algebraic_mol_balance_lithium = Constraint(
-            self.dimensionless_module_length, rule=_algebraic_mol_balance_lithium
+        self.bulk_flux_balance_overall = Constraint(
+            self.dimensionless_module_length, rule=_bulk_flux_balance_overall
         )
 
-        def _algebraic_mol_balance_cobalt(blk, x):
+        def _bulk_flux_balance_lithium(blk, x):
             if x == 0:
                 return Constraint.Skip
-            return (
-                (blk.feed_flow_volume[0] * blk.feed_conc_mol_comp[0, "Co"])
-                + (
-                    blk.diafiltrate_flow_volume[0]
-                    * blk.diafiltrate_conc_mol_comp[0, "Co"]
-                )
-            ) == (
-                (
-                    blk.retentate_flow_volume[0, x]
-                    * blk.retentate_conc_mol_comp[0, x, "Co"]
-                )
-                + (
-                    blk.permeate_flow_volume[0, x]
-                    * blk.permeate_conc_mol_comp[0, x, "Co"]
-                )
+            return blk.mol_flux_lithium[x] == (
+                blk.permeate_conc_mol_comp[0, x, "Li"] * blk.volume_flux_water[x]
             )
 
-        self.algebraic_mol_balance_cobalt = Constraint(
-            self.dimensionless_module_length, rule=_algebraic_mol_balance_cobalt
+        self.bulk_flux_balance_lithium = Constraint(
+            self.dimensionless_module_length, rule=_bulk_flux_balance_lithium
         )
 
-        def _algebraic_mol_balance_aluminum(blk, x):
+        def _bulk_flux_balance_cobalt(blk, x):
             if x == 0:
                 return Constraint.Skip
-            return (
-                (blk.feed_flow_volume[0] * blk.feed_conc_mol_comp[0, "Al"])
-                + (
-                    blk.diafiltrate_flow_volume[0]
-                    * blk.diafiltrate_conc_mol_comp[0, "Al"]
-                )
-            ) == (
-                (
-                    blk.retentate_flow_volume[0, x]
-                    * blk.retentate_conc_mol_comp[0, x, "Al"]
-                )
-                + (
-                    blk.permeate_flow_volume[0, x]
-                    * blk.permeate_conc_mol_comp[0, x, "Al"]
-                )
+            return blk.mol_flux_cobalt[x] == (
+                blk.permeate_conc_mol_comp[0, x, "Co"] * blk.volume_flux_water[x]
             )
 
-        self.algebraic_mol_balance_aluminum = Constraint(
-            self.dimensionless_module_length, rule=_algebraic_mol_balance_aluminum
+        self.bulk_flux_balance_cobalt = Constraint(
+            self.dimensionless_module_length, rule=_bulk_flux_balance_cobalt
+        )
+
+        def _bulk_flux_balance_aluminum(blk, x):
+            if x == 0:
+                return Constraint.Skip
+            return blk.mol_flux_aluminum[x] == (
+                blk.permeate_conc_mol_comp[0, x, "Al"] * blk.volume_flux_water[x]
+            )
+
+        self.bulk_flux_balance_aluminum = Constraint(
+            self.dimensionless_module_length, rule=_bulk_flux_balance_aluminum
         )
 
         # transport constraints (first principles)
