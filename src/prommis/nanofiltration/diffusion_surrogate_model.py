@@ -273,16 +273,16 @@ def train_rbf_surrogate_model(datafile, parametername, number_of_salts):
     if number_of_salts == 2:
         input_labels = ["conc_1", "conc_2", "chi"]
         output_labels = [parametername]
-        xmin = [75, 50, -150]
-        xmax = [225, 200, 0]
+        xmin = [40, 40, -150]
+        xmax = [190, 190, 0]
         input_bounds = {
             input_labels[i]: (xmin[i], xmax[i]) for i in range(len(input_labels))
         }
     if number_of_salts == 3:
         input_labels = ["conc_1", "conc_2", "conc_3", "chi"]
         output_labels = [parametername]
-        xmin = [75, 50, 1, -150]
-        xmax = [225, 200, 151, 0]
+        xmin = [40, 40, 1, -150]
+        xmax = [190, 190, 151, 0]
         input_bounds = {
             input_labels[i]: (xmin[i], xmax[i]) for i in range(len(input_labels))
         }

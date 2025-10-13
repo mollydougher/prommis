@@ -165,8 +165,8 @@ def fix_variables(m):
 
     # fix degrees of freedom in the flowsheet
     m.fs.membrane.feed_flow_volume.fix()
-    m.fs.membrane.feed_conc_mol_comp[0, "Li"].fix()
-    m.fs.membrane.feed_conc_mol_comp[0, "Co"].fix()
+    m.fs.membrane.feed_conc_mol_comp[0, "Li"].fix(75)
+    m.fs.membrane.feed_conc_mol_comp[0, "Co"].fix(150)
     m.fs.membrane.feed_conc_mol_comp[0, "Cl"].fix()
 
     m.fs.membrane.diafiltrate_flow_volume.fix()
@@ -220,14 +220,14 @@ def check_membrane_concentration_ranges(m):
             # diffusion coefficient calculation is not needed
             if x == 0:
                 pass
-            elif not (50 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 200):
+            elif not (40 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 190):
                 raise ValueError(
                     "WARNING: Membrane concentration for lithium ("
                     f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
                     f"x={x * value(m.fs.membrane.total_module_length)} m and "
                     f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
                     "of the valid range for the diffusion coefficient surrogate model "
-                    "(50-200 mM). Consider re-training the surrogate model."
+                    "(40-190 mM). Consider re-training the surrogate model."
                 )
     if m.fs.membrane.config.charged_membrane:
         for x in m.fs.membrane.dimensionless_module_length:
@@ -237,7 +237,7 @@ def check_membrane_concentration_ranges(m):
                 if x == 0:
                     pass
                 elif not (
-                    50 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 200
+                    40 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 190
                 ):
                     raise ValueError(
                         "WARNING: Membrane concentration for cobalt ("
@@ -245,7 +245,7 @@ def check_membrane_concentration_ranges(m):
                         f"x={x * value(m.fs.membrane.total_module_length)} m and "
                         f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
                         "of the valid range for the diffusion coefficient surrogate model "
-                        "(50-200 mM). Consider re-training the surrogate model."
+                        "(40-190 mM). Consider re-training the surrogate model."
                     )
 
 
