@@ -38,7 +38,7 @@ from idaes.core.util.model_statistics import degrees_of_freedom
 import pytest
 
 # PrOMMiS packages
-from prommis.nanofiltration.diafiltration import (
+from prommis.nanofiltration.flowsheets.diafiltration import (
     add_costing,
     add_objective,
     add_product_constraints,

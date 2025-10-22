@@ -15,7 +15,7 @@ from idaes.models.unit_models import MSContactor
 
 import pytest
 
-from prommis.nanofiltration.diafiltration import (
+from prommis.nanofiltration.flowsheets.diafiltration import (
     add_costing,
     add_product_constraints,
     build_model,

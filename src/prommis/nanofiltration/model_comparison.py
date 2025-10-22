@@ -45,7 +45,7 @@ from prommis.nanofiltration.diafiltration_three_salt_solute_properties import (
     SoluteParameter as SoluteThreeSaltParameter,
 )
 from prommis.nanofiltration.diafiltration_three_salt import ThreeSaltDiafiltration
-from prommis.nanofiltration.diafiltration_flowsheet_three_salt import (
+from prommis.nanofiltration.flowsheets.diafiltration_flowsheet_three_salt import (
     plot_results,
     plot_membrane_results,
 )
