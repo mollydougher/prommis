@@ -2,18 +2,72 @@ import numpy as np
 
 from pandas import DataFrame
 
+import itertools
+
 
 def main():
-    generate_data_li_co_cl(kriging_or_rbf=True)
-    generate_data_li_co_al_cl(kriging_or_rbf=True)
+    generate_data_li_co_cl()
+    # generate_two_salt_data()
+    # set_three_level_doe()
+    # generate_data_li_co_al_cl(kriging_or_rbf=True)
+
+def generate_three_level_doe_design():
+    levels = [-1, 0, 1]
+    full_cube_list = list(itertools.product(levels, repeat=3))
+    full_cube_array = np.asarray(full_cube_list)
+    full_cube_bool = np.asarray([full_cube_array[i,:] == 0 for i in range(len(full_cube_array))])
+    index_to_keep = []
+    index=0
+    for point in full_cube_bool:
+        if point.sum() == 1:
+            pass
+        else: index_to_keep.append(index)
+        index+=1
+    fractional_doe = full_cube_array[index_to_keep,:]
+    return fractional_doe
 
 
-def generate_data_li_co_cl(kriging_or_rbf):
+def set_three_level_doe():
+    design_structure = generate_three_level_doe_design()
+    print(design_structure)
+    c_values = [1, 101, 201]
+    chi_values = [-150, -50, 50]
+    final_design = []
+    for design_point in design_structure:
+        final_point = []
+        var = 0
+        for conc_level in design_point:
+            if conc_level == -1:
+                if var == 0 or var == 1:
+                    val = c_values[0]
+                if var == 2:
+                    val = chi_values[0]
+                final_point.append(val)
+            elif conc_level == 0:
+                if var == 0 or var == 1:
+                    val = c_values[1]
+                if var == 2:
+                    val = chi_values[1]
+                final_point.append(val)
+            elif conc_level == 1:
+                if var == 0 or var == 1:
+                    val = c_values[2]
+                if var == 2:
+                    val = chi_values[2]
+                final_point.append(val)
+            var +=1
+        final_design.append(final_point)
+    return final_design
+    # print(final_design)
+
+
+def generate_data_li_co_cl():
+    kriging_or_rbf = True
     if kriging_or_rbf:
         (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df) = (
             generate_two_salt_data(
                 system="li_co_cl",
-                kriging_or_rbf=kriging_or_rbf,
+                # kriging_or_rbf=kriging_or_rbf,
             )
         )
         D_11_df.to_csv(
@@ -44,7 +98,7 @@ def generate_data_li_co_cl(kriging_or_rbf):
         (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df) = (
             generate_two_salt_data(
                 system="li_co_cl",
-                kriging_or_rbf=kriging_or_rbf,
+                # kriging_or_rbf=kriging_or_rbf,
             )
         )
         D_11_df.to_csv("surrogate_data/D_11_scaled.csv", index=False)
@@ -154,7 +208,7 @@ def generate_data_li_co_al_cl(kriging_or_rbf):
         alpha_3_df.to_csv("surrogate_data/alpha_3.csv", index=False)
 
 
-def set_two_salt_concentration_ranges(system, kriging_or_rbf):
+def set_two_salt_concentration_ranges(system):#, kriging_or_rbf):
     # nominal membrane concentrations (min and max)
     # chi=0
     # c,li,m ~57
@@ -173,22 +227,23 @@ def set_two_salt_concentration_ranges(system, kriging_or_rbf):
         D2 = 2.64e-6  # m2/h (cobalt)
         D3 = 7.31e-6  # m2/h (chloride)
 
-        if kriging_or_rbf:
-            c1_vals = [40, 115, 190]  # mol/m3 = mM
-            c2_vals = [40, 115, 190]  # mol/m3 = mM
-            # c1_vals = np.arange(1, 300, 100)  # mol/m3 = mM
-            # c2_vals = np.arange(50, 275, 75)  # mol/m3 = mM
-            chi_vals = np.arange(-150, 75, 75)  # mol/m3 = mM
-        else:
-            c1_vals = np.arange(50, 237.5, 37.5)  # mol/m3 = mM
-            c2_vals = np.arange(50, 237.5, 37.5)  # mol/m3 = mM
-            chi_vals = np.arange(-150, 37.5, 37.5)  # mol/m3 = mM
+        # if kriging_or_rbf:
+        #     c1_vals = [40, 115, 190]  # mol/m3 = mM
+        #     c2_vals = [40, 115, 190]  # mol/m3 = mM
+        #     # c1_vals = np.arange(1, 300, 100)  # mol/m3 = mM
+        #     # c2_vals = np.arange(50, 275, 75)  # mol/m3 = mM
+        #     chi_vals = np.arange(-150, 75, 75)  # mol/m3 = mM
+        # else:
+        #     c1_vals = np.arange(50, 237.5, 37.5)  # mol/m3 = mM
+        #     c2_vals = np.arange(50, 237.5, 37.5)  # mol/m3 = mM
+        #     chi_vals = np.arange(-150, 37.5, 37.5)  # mol/m3 = mM
 
-        print(c1_vals)
-        print(c2_vals)
-        print(chi_vals)
+        # print(c1_vals)
+        # print(c2_vals)
+        # print(chi_vals)
 
-    return (z1, z2, z3, D1, D2, D3, c1_vals, c2_vals, chi_vals)
+    # return (z1, z2, z3, D1, D2, D3, c1_vals, c2_vals, chi_vals)
+    return (z1, z2, z3, D1, D2, D3)
 
 
 def set_three_salt_concentration_ranges(system, kriging_or_rbf):
@@ -401,9 +456,12 @@ def calculate_alpha_3_three_salt(z1, z2, z3, z4, D1, D2, D3, D4, c1, c2, c3, chi
     return alpha_3
 
 
-def generate_two_salt_data(system, kriging_or_rbf, scaled_diff=True):
-    (z1, z2, z3, D1, D2, D3, c1_vals, c2_vals, chi_vals) = (
-        set_two_salt_concentration_ranges(system, kriging_or_rbf)
+def generate_two_salt_data(system="li_co_cl", scaled_diff=True):
+    training_ponts = set_three_level_doe()
+
+    # (z1, z2, z3, D1, D2, D3, c1_vals, c2_vals, chi_vals) = (
+    (z1, z2, z3, D1, D2, D3) = (
+        set_two_salt_concentration_ranges(system)#, kriging_or_rbf)
     )
 
     c1_list = []
@@ -416,43 +474,42 @@ def generate_two_salt_data(system, kriging_or_rbf, scaled_diff=True):
     alpha_1_vals = []
     alpha_2_vals = []
 
-    for c1 in c1_vals:
-        for c2 in c2_vals:
-            for chi in chi_vals:
-                c1_list.append(c1)
-                c2_list.append(c2)
-                chi_list.append(chi)
-
     if scaled_diff:
         scale_factor = 1e7
     else:
         scale_factor = 1
 
-    for c1 in c1_vals:
-        for c2 in c2_vals:
-            for chi in chi_vals:
-                D_11_vals.append(
-                    scale_factor
-                    * (calculate_D_11_two_salt(z1, z2, z3, D1, D2, D3, c1, c2, chi))
-                )
-                D_12_vals.append(
-                    scale_factor
-                    * (calculate_D_12_two_salt(z1, z2, z3, D1, D2, D3, c1, c2, chi))
-                )
-                D_21_vals.append(
-                    scale_factor
-                    * (calculate_D_21_two_salt(z1, z2, z3, D1, D2, D3, c1, c2, chi))
-                )
-                D_22_vals.append(
-                    scale_factor
-                    * (calculate_D_22_two_salt(z1, z2, z3, D1, D2, D3, c1, c2, chi))
-                )
-                alpha_1_vals.append(
-                    (calculate_alpha_1_two_salt(z1, z2, z3, D1, D2, D3, c1, c2, chi))
-                )
-                alpha_2_vals.append(
-                    (calculate_alpha_2_two_salt(z1, z2, z3, D1, D2, D3, c1, c2, chi))
-                )
+    for point in training_ponts:
+        c1 = point[0]
+        c2 = point[1]
+        chi = point[2]
+
+        c1_list.append(c1)
+        c2_list.append(c2)
+        chi_list.append(chi)
+
+        D_11_vals.append(
+            scale_factor
+            * (calculate_D_11_two_salt(z1, z2, z3, D1, D2, D3, c1, c2, chi))
+        )
+        D_12_vals.append(
+            scale_factor
+            * (calculate_D_12_two_salt(z1, z2, z3, D1, D2, D3, c1, c2, chi))
+        )
+        D_21_vals.append(
+            scale_factor
+            * (calculate_D_21_two_salt(z1, z2, z3, D1, D2, D3, c1, c2, chi))
+        )
+        D_22_vals.append(
+            scale_factor
+            * (calculate_D_22_two_salt(z1, z2, z3, D1, D2, D3, c1, c2, chi))
+        )
+        alpha_1_vals.append(
+            (calculate_alpha_1_two_salt(z1, z2, z3, D1, D2, D3, c1, c2, chi))
+        )
+        alpha_2_vals.append(
+            (calculate_alpha_2_two_salt(z1, z2, z3, D1, D2, D3, c1, c2, chi))
+        )
 
     if scaled_diff:
         d_11_dict = {
@@ -525,6 +582,7 @@ def generate_two_salt_data(system, kriging_or_rbf, scaled_diff=True):
     alpha_2_df = DataFrame(data=alpha_2_dict)
 
     return (D_11_df, D_12_df, D_21_df, D_22_df, alpha_1_df, alpha_2_df)
+    # print(D_11_df)
 
 
 def generate_three_salt_data(system, kriging_or_rbf, scaled_diff=True):
