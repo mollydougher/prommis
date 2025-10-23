@@ -6,59 +6,113 @@ import itertools
 
 
 def main():
-    generate_data_li_co_cl()
+    # generate_data_li_co_cl()
     # generate_two_salt_data()
-    # set_three_level_doe()
+    generate_three_level_doe_design(
+        num_inputs=3,
+        input_bounds={"c1": [1, 101, 201], "c2": [1, 101, 201], "chi": [-150, -50, 50]},
+        fractional=True,
+        remove_sum=1,
+        extra_center=True,
+    )
+    generate_three_level_doe_design(
+        num_inputs=3,
+        input_bounds={"c1": [1, 101, 201], "c2": [1, 101, 201], "chi": [-150, -50, 50]},
+        fractional=False,
+        remove_sum=1,
+        extra_center=True,
+    )
     # generate_data_li_co_al_cl(kriging_or_rbf=True)
 
-def generate_three_level_doe_design():
+
+def generate_three_level_doe_design(
+    num_inputs,
+    input_bounds,
+    fractional=True,
+    remove_sum=1,
+    extra_center=True,
+):
+    # set the number of levels in the doe (high, medium, low)
     levels = [-1, 0, 1]
-    full_cube_list = list(itertools.product(levels, repeat=3))
+
+    # create the full factorial
+    full_cube_list = list(itertools.product(levels, repeat=num_inputs))
     full_cube_array = np.asarray(full_cube_list)
-    full_cube_bool = np.asarray([full_cube_array[i,:] == 0 for i in range(len(full_cube_array))])
-    index_to_keep = []
-    index=0
-    for point in full_cube_bool:
-        if point.sum() == 1:
-            pass
-        else: index_to_keep.append(index)
-        index+=1
-    fractional_doe = full_cube_array[index_to_keep,:]
-    return fractional_doe
 
+    # return the full factorial if desired
+    if not fractional:
+        design_structure = full_cube_array
 
-def set_three_level_doe():
-    design_structure = generate_three_level_doe_design()
+    # otherwise create the fractional factorial
+    else:
+        # express the full factorial as Boolean (True when 0)
+        full_cube_bool = np.asarray(
+            [full_cube_array[i, :] == 0 for i in range(len(full_cube_array))]
+        )
+
+        # create a list to store index values to keep
+        index_to_keep = []
+        index = 0
+
+        # for each experiement in the full factorial doe (Bool)
+        for point in full_cube_bool:
+            # check the sum of the Bool exp.
+            if point.sum() == remove_sum:
+                pass
+            # keep if not equal to the specified sum
+            # default: remove_sum = 1, meaning removal of the edge midpoints
+            # if remove_sum = 2, it will remove the face midponts
+            else:
+                index_to_keep.append(index)
+            index += 1
+
+        # create the fractional doe based on indices to keep
+        fractional_doe = full_cube_array[index_to_keep, :]
+
+        design_structure = fractional_doe
+
+    print("---------------")
     print(design_structure)
-    c_values = [1, 101, 201]
-    chi_values = [-150, -50, 50]
-    final_design = []
+    print("---------------")
+
+    if extra_center:
+        # add multiple instances of the center point
+        middle_point = np.array([0, 0, 0])
+        for j in range(num_inputs - 1):
+            design_structure = np.vstack((design_structure, middle_point))
+
+        # re-sort the design
+        sorted_indicies = np.lexsort(
+            (design_structure[:, 0], design_structure[:, 1], design_structure[:, 2])
+        )
+        design_structure = design_structure[sorted_indicies]
+
+        print("---------------")
+        print(design_structure)
+        print("---------------")
+
+    # set the bounds for the input variables
+    # input_bounds = {var: [min, mid, max], ...}
+    bounds_list = []
+    for bounds in input_bounds.values():
+        bounds_list.append(bounds)
+
+    # for each experiment
     for design_point in design_structure:
-        final_point = []
-        var = 0
-        for conc_level in design_point:
-            if conc_level == -1:
-                if var == 0 or var == 1:
-                    val = c_values[0]
-                if var == 2:
-                    val = chi_values[0]
-                final_point.append(val)
-            elif conc_level == 0:
-                if var == 0 or var == 1:
-                    val = c_values[1]
-                if var == 2:
-                    val = chi_values[1]
-                final_point.append(val)
-            elif conc_level == 1:
-                if var == 0 or var == 1:
-                    val = c_values[2]
-                if var == 2:
-                    val = chi_values[2]
-                final_point.append(val)
-            var +=1
-        final_design.append(final_point)
-    return final_design
-    # print(final_design)
+        # replace each condition with the appropriate value
+        for i in range(num_inputs):
+            if design_point[i] == -1:
+                np.put(design_point, i, bounds_list[i][0])
+            elif design_point[i] == 0:
+                np.put(design_point, i, bounds_list[i][1])
+            elif design_point[i] == 1:
+                np.put(design_point, i, bounds_list[i][2])
+
+    print("---------------")
+    print(design_structure)
+    print("---------------")
+
+    return design_structure
 
 
 def generate_data_li_co_cl():
@@ -208,7 +262,7 @@ def generate_data_li_co_al_cl(kriging_or_rbf):
         alpha_3_df.to_csv("surrogate_data/alpha_3.csv", index=False)
 
 
-def set_two_salt_concentration_ranges(system):#, kriging_or_rbf):
+def set_two_salt_concentration_ranges(system):  # , kriging_or_rbf):
     # nominal membrane concentrations (min and max)
     # chi=0
     # c,li,m ~57
@@ -460,9 +514,9 @@ def generate_two_salt_data(system="li_co_cl", scaled_diff=True):
     training_ponts = set_three_level_doe()
 
     # (z1, z2, z3, D1, D2, D3, c1_vals, c2_vals, chi_vals) = (
-    (z1, z2, z3, D1, D2, D3) = (
-        set_two_salt_concentration_ranges(system)#, kriging_or_rbf)
-    )
+    (z1, z2, z3, D1, D2, D3) = set_two_salt_concentration_ranges(
+        system
+    )  # , kriging_or_rbf)
 
     c1_list = []
     c2_list = []
