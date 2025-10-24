@@ -50,16 +50,64 @@ def main():
                     remove_sum=1,
                     extra_center=extra_center_Bool,
                 )
-    generate_two_salt_data(
-        system="li_co_cl",
-        vary_chi=True,
-        input_bounds={"c1": [1, 101, 201], "c2": [1, 101, 201], "chi": [-150, -50, 50]},
-        fractional=True,
-        remove_sum=1,
-        extra_center=True,
-        save=True,
-        folder_name="lithium_cobalt_chloride",
-    )
+
+    for fractional_Bool in [True, False]:
+        for sum_option in [1, 2]:
+            for extra_center_Bool in [True, False]:
+                generate_two_salt_data(
+                    system="li_co_cl",
+                    vary_chi=True,
+                    input_bounds={
+                        "c1": [1, 101, 201],
+                        "c2": [1, 101, 201],
+                        "chi": [-150, -50, 50],
+                    },
+                    fractional=fractional_Bool,
+                    remove_sum=sum_option,
+                    extra_center=extra_center_Bool,
+                    save=True,
+                    folder_name="lithium_cobalt_chloride",
+                )
+                generate_two_salt_data(
+                    system="li_co_cl",
+                    vary_chi=False,
+                    input_bounds={"c1": [1, 101, 201], "c2": [1, 101, 201]},
+                    fractional=fractional_Bool,
+                    remove_sum=sum_option,
+                    extra_center=extra_center_Bool,
+                    save=True,
+                    folder_name="lithium_cobalt_chloride",
+                )
+
+                generate_three_salt_data(
+                    system="li_co_al_cl",
+                    vary_chi=True,
+                    input_bounds={
+                        "c1": [1, 101, 201],
+                        "c2": [1, 101, 201],
+                        "c3": [1, 101, 201],
+                        "chi": [-150, -50, 50],
+                    },
+                    fractional=fractional_Bool,
+                    remove_sum=sum_option,
+                    extra_center=extra_center_Bool,
+                    save=True,
+                    folder_name="lithium_cobalt_aluminum_chloride",
+                )
+                generate_three_salt_data(
+                    system="li_co_al_cl",
+                    vary_chi=False,
+                    input_bounds={
+                        "c1": [1, 101, 201],
+                        "c2": [1, 101, 201],
+                        "c3": [1, 101, 201],
+                    },
+                    fractional=fractional_Bool,
+                    remove_sum=sum_option,
+                    extra_center=extra_center_Bool,
+                    save=True,
+                    folder_name="lithium_cobalt_aluminum_chloride",
+                )
 
 
 def generate_three_level_doe_design(
@@ -407,13 +455,21 @@ def generate_two_salt_data(
             chi_folder_name = "without_chi_input"
 
         if fractional:
-            factorial_folder_name = "fractional_factorial"
+            if remove_sum == 1:
+                factorial_folder_name = "fractional_factorial_1"
+            elif remove_sum == 2:
+                factorial_folder_name = "fractional_factorial_2"
         else:
             factorial_folder_name = "full_factorial"
 
+        if extra_center:
+            center_folder_name = "with_extra_center"
+        else:
+            center_folder_name = "without_extra_center"
+
         for dataframe in dataframe_list:
             dataframe.to_csv(
-                f"surrogate_data/{folder_name}/{chi_folder_name}/{factorial_folder_name}/{dataframe.columns[-1]}.csv",
+                f"surrogate_data/{folder_name}/{chi_folder_name}/{factorial_folder_name}/{center_folder_name}/{dataframe.columns[-1]}.csv",
                 index=False,
             )
     else:
@@ -480,6 +536,7 @@ def generate_three_salt_data(
 
         c1_list.append(c1)
         c2_list.append(c2)
+        c3_list.append(c3)
         if vary_chi:
             chi_list.append(chi)
 
@@ -705,13 +762,21 @@ def generate_three_salt_data(
             chi_folder_name = "without_chi_input"
 
         if fractional:
-            factorial_folder_name = "fractional_factorial"
+            if remove_sum == 1:
+                factorial_folder_name = "fractional_factorial_1"
+            elif remove_sum == 2:
+                factorial_folder_name = "fractional_factorial_2"
         else:
             factorial_folder_name = "full_factorial"
 
+        if extra_center:
+            center_folder_name = "with_extra_center"
+        else:
+            center_folder_name = "without_extra_center"
+
         for dataframe in dataframe_list:
             dataframe.to_csv(
-                f"surrogate_data/{folder_name}/{chi_folder_name}/{factorial_folder_name}/{dataframe.columns[-1]}.csv",
+                f"surrogate_data/{folder_name}/{chi_folder_name}/{factorial_folder_name}/{center_folder_name}/{dataframe.columns[-1]}.csv",
                 index=False,
             )
     else:
