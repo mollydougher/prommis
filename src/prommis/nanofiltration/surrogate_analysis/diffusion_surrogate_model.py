@@ -34,7 +34,7 @@ def main():
     # average_analysis(drop_sse=True)
 
     # save data for the Frac1 with chi and extra center
-    data_dict_two_salt = {
+    data_dict_two_salt_frac1 = {
         "D_11_scaled": [
             "d11_scaled",
             "surrogate_data/lithium_cobalt_chloride/with_chi_input/fractional_factorial_1/with_extra_center/D_11_scaled.csv",
@@ -61,11 +61,11 @@ def main():
         ],
     }
 
-    key_list = list(data_dict_two_salt.keys())
+    key_list = list(data_dict_two_salt_frac1.keys())
 
     for key in key_list:
         (surrogate, error_metrics) = train_rbf_surrogate_model(
-            datafile=data_dict_two_salt[key][-1],
+            datafile=data_dict_two_salt_frac1[key][-1],
             parametername=key,
             number_of_salts=2,
             vary_chi=True,
@@ -73,7 +73,95 @@ def main():
             visualize=False,
         )
         surrogate.save_to_file(
-            f"surrogate_models/lithium_cobalt_chloride/with_chi_input/fractional_factorial_1/with_extra_center/rbf_surrogate_{data_dict_two_salt[key][0]}",
+            f"surrogate_models/lithium_cobalt_chloride/with_chi_input/fractional_factorial_1/with_extra_center/rbf_surrogate_{data_dict_two_salt_frac1[key][0]}",
+            overwrite=True,
+        )
+
+    # save data for the Frac2 with chi and extra center
+    data_dict_two_salt_frac2 = {
+        "D_11_scaled": [
+            "d11_scaled",
+            "surrogate_data/lithium_cobalt_chloride/with_chi_input/fractional_factorial_2/with_extra_center/D_11_scaled.csv",
+        ],
+        "D_12_scaled": [
+            "d12_scaled",
+            "surrogate_data/lithium_cobalt_chloride/with_chi_input/fractional_factorial_2/with_extra_center/D_12_scaled.csv",
+        ],
+        "D_21_scaled": [
+            "d21_scaled",
+            "surrogate_data/lithium_cobalt_chloride/with_chi_input/fractional_factorial_2/with_extra_center/D_21_scaled.csv",
+        ],
+        "D_22_scaled": [
+            "d22_scaled",
+            "surrogate_data/lithium_cobalt_chloride/with_chi_input/fractional_factorial_2/with_extra_center/D_22_scaled.csv",
+        ],
+        "alpha_1": [
+            "alpha_1",
+            "surrogate_data/lithium_cobalt_chloride/with_chi_input/fractional_factorial_2/with_extra_center/alpha_1.csv",
+        ],
+        "alpha_2": [
+            "alpha_2",
+            "surrogate_data/lithium_cobalt_chloride/with_chi_input/fractional_factorial_2/with_extra_center/alpha_2.csv",
+        ],
+    }
+
+    key_list = list(data_dict_two_salt_frac2.keys())
+
+    for key in key_list:
+        (surrogate, error_metrics) = train_rbf_surrogate_model(
+            datafile=data_dict_two_salt_frac2[key][-1],
+            parametername=key,
+            number_of_salts=2,
+            vary_chi=True,
+            basis_func="cubic",
+            visualize=False,
+        )
+        surrogate.save_to_file(
+            f"surrogate_models/lithium_cobalt_chloride/with_chi_input/fractional_factorial_2/with_extra_center/rbf_surrogate_{data_dict_two_salt_frac2[key][0]}",
+            overwrite=True,
+        )
+
+    # save data for the full factorial with chi and extra center
+    data_dict_two_salt_full = {
+        "D_11_scaled": [
+            "d11_scaled",
+            "surrogate_data/lithium_cobalt_chloride/with_chi_input/full_factorial/with_extra_center/D_11_scaled.csv",
+        ],
+        "D_12_scaled": [
+            "d12_scaled",
+            "surrogate_data/lithium_cobalt_chloride/with_chi_input/full_factorial/with_extra_center/D_12_scaled.csv",
+        ],
+        "D_21_scaled": [
+            "d21_scaled",
+            "surrogate_data/lithium_cobalt_chloride/with_chi_input/full_factorial/with_extra_center/D_21_scaled.csv",
+        ],
+        "D_22_scaled": [
+            "d22_scaled",
+            "surrogate_data/lithium_cobalt_chloride/with_chi_input/full_factorial/with_extra_center/D_22_scaled.csv",
+        ],
+        "alpha_1": [
+            "alpha_1",
+            "surrogate_data/lithium_cobalt_chloride/with_chi_input/full_factorial/with_extra_center/alpha_1.csv",
+        ],
+        "alpha_2": [
+            "alpha_2",
+            "surrogate_data/lithium_cobalt_chloride/with_chi_input/full_factorial/with_extra_center/alpha_2.csv",
+        ],
+    }
+
+    key_list = list(data_dict_two_salt_full.keys())
+
+    for key in key_list:
+        (surrogate, error_metrics) = train_rbf_surrogate_model(
+            datafile=data_dict_two_salt_full[key][-1],
+            parametername=key,
+            number_of_salts=2,
+            vary_chi=True,
+            basis_func="cubic",
+            visualize=False,
+        )
+        surrogate.save_to_file(
+            f"surrogate_models/lithium_cobalt_chloride/with_chi_input/full_factorial/with_extra_center/rbf_surrogate_{data_dict_two_salt_full[key][0]}",
             overwrite=True,
         )
 
