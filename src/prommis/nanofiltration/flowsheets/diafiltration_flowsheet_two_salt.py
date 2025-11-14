@@ -29,11 +29,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pandas import DataFrame
 
-from prommis.nanofiltration.diafiltration_stream_properties import (
+from prommis.nanofiltration.property_packages.diafiltration_stream_properties import (
     DiafiltrationStreamParameter,
 )
-from prommis.nanofiltration.diafiltration_solute_properties import SoluteParameter
-from prommis.nanofiltration.diafiltration_two_salt import TwoSaltDiafiltration
+from prommis.nanofiltration.property_packages.diafiltration_solute_properties import (
+    SoluteParameter,
+)
+from prommis.nanofiltration.unit_models.diafiltration_two_salt import (
+    TwoSaltDiafiltration,
+)
 
 
 def main():
@@ -53,14 +57,14 @@ def main():
     m.fs.feed_block = Feed(property_package=m.fs.stream_properties)
     m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
 
-    surrogate_model_file_dict = {
-        "D_11": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d11_scaled",
-        "D_12": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d12_scaled",
-        "D_21": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d21_scaled",
-        "D_22": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d22_scaled",
-        "alpha_1": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_1",
-        "alpha_2": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_2",
-    }
+    # surrogate_model_file_dict = {
+    #     "D_11": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d11_scaled",
+    #     "D_12": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d12_scaled",
+    #     "D_21": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d21_scaled",
+    #     "D_22": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d22_scaled",
+    #     "alpha_1": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_1",
+    #     "alpha_2": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_2",
+    # }
 
     # add the membrane unit model
     m.fs.membrane = TwoSaltDiafiltration(
@@ -68,8 +72,8 @@ def main():
         NFE_module_length=20,
         NFE_membrane_thickness=10,
         charged_membrane=True,
-        surrogate_model_files=surrogate_model_file_dict,
-        diffusion_surrogate_scaling_factor=1e-07,
+        # surrogate_model_files=surrogate_model_file_dict,
+        # diffusion_surrogate_scaling_factor=1e-07,
     )
 
     # add product blocks for retentate and permeate
@@ -89,7 +93,7 @@ def main():
     # solve model
     solve_model(m)
     # TODO: retrain the surrogate for lower Co membrane cocnentrations to reach other feed ratios
-    check_membrane_concentration_ranges(m)
+    # check_membrane_concentration_ranges(m)
 
     # check numerical warnings
     dt.assert_no_numerical_warnings()

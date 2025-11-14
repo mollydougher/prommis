@@ -345,19 +345,19 @@ and used when constructing these,
             default=True, doc="Boolean argument if the membrane has a surface charge"
         ),
     )
-    CONFIG.declare(
-        "surrogate_model_files",
-        ConfigValue(
-            doc="Dict of JSON file names for each surrogate model",
-        ),
-    )
-    CONFIG.declare(
-        "diffusion_surrogate_scaling_factor",
-        ConfigValue(
-            default=1,
-            doc="Numeric value to un-scale diffusion coefficient values",
-        ),
-    )
+    # CONFIG.declare(
+    #     "surrogate_model_files",
+    #     ConfigValue(
+    #         doc="Dict of JSON file names for each surrogate model",
+    #     ),
+    # )
+    # CONFIG.declare(
+    #     "diffusion_surrogate_scaling_factor",
+    #     ConfigValue(
+    #         default=1,
+    #         doc="Numeric value to un-scale diffusion coefficient values",
+    #     ),
+    # )
 
     def build(self):
         """
@@ -369,11 +369,11 @@ and used when constructing these,
 
         self.add_mutable_parameters()
         self.add_variables()
-        self.add_surrogate_constraints()
+        # self.add_surrogate_constraints()
         self.add_constraints()
         self.discretize_model()
         self.fix_initial_values()
-        self.add_helpful_expressions()
+        # self.add_helpful_expressions()
         self.add_scaling_factors()
         self.add_ports()
 
@@ -613,51 +613,162 @@ and used when constructing these,
             bounds=[1e-11, None],
             doc="Mole concentration of chloride in the membrane, x- and z-dependent",
         )
-        self.D_11 = Var(
+        # self.D_11 = Var(
+        #     self.dimensionless_module_length,
+        #     self.dimensionless_membrane_thickness,
+        #     initialize=1e-6,
+        #     units=units.m**2 / units.h,
+        #     bounds=[1e-11, None],
+        #     doc="Cross diffusion coefficient for lithium-lithium",
+        # )
+        # self.D_12 = Var(
+        #     self.dimensionless_module_length,
+        #     self.dimensionless_membrane_thickness,
+        #     initialize=1e-7,
+        #     units=units.m**2 / units.h,
+        #     bounds=[1e-11, None],
+        #     doc="Cross diffusion coefficient for lithium-cobalt",
+        # )
+        # self.D_21 = Var(
+        #     self.dimensionless_module_length,
+        #     self.dimensionless_membrane_thickness,
+        #     initialize=1e-7,
+        #     units=units.m**2 / units.h,
+        #     bounds=[1e-11, None],
+        #     doc="Cross diffusion coefficient for cobalt-lithium",
+        # )
+        # self.D_22 = Var(
+        #     self.dimensionless_module_length,
+        #     self.dimensionless_membrane_thickness,
+        #     initialize=1e-6,
+        #     units=units.m**2 / units.h,
+        #     bounds=[1e-11, None],
+        #     doc="Cross diffusion coefficient for cobalt-cobalt",
+        # )
+        # self.alpha_1 = Var(
+        #     self.dimensionless_module_length,
+        #     self.dimensionless_membrane_thickness,
+        #     initialize=0.2,
+        #     bounds=[1e-11, None],
+        #     doc="Conveciton coefficient for lithium",
+        # )
+        # self.alpha_2 = Var(
+        #     self.dimensionless_module_length,
+        #     self.dimensionless_membrane_thickness,
+        #     initialize=0.2,
+        #     bounds=[1e-11, None],
+        #     doc="Conveciton coefficient for cobalt",
+        # )
+
+        self.D_tilde = Var(
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=1e-6,
-            units=units.m**2 / units.h,
-            bounds=[1e-11, None],
+            initialize=1e3,
+            units=units.mm**2 / units.h * units.mol / units.m**3,
+            # bounds=[1e-20, None],
+            doc="Denominator of diffusion and convection coefficients",
+        )
+        self.D_lithium_lithium_bilinear = Var(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            initialize=-1e3,
+            units=units.mm**2
+            / units.h
+            * (units.mm**2 / units.h * units.mol / units.m**3),
+            # bounds=[1e-20, None],
+            doc="Bi-linear cross diffusion coefficient for lithium-lithium",
+        )
+        self.D_lithium_cobalt_bilinear = Var(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            initialize=-1e3,
+            units=units.mm**2
+            / units.h
+            * (units.mm**2 / units.h * units.mol / units.m**3),
+            # bounds=[1e-20, None],
+            doc="Bi-linear cross diffusion coefficient for lithium-cobalt",
+        )
+        self.D_cobalt_lithium_bilinear = Var(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            initialize=-1e2,
+            units=units.mm**2
+            / units.h
+            * (units.mm**2 / units.h * units.mol / units.m**3),
+            # bounds=[1e-20, None],
+            doc="Bi-linear cross diffusion coefficient for cobalt-lithium",
+        )
+        self.D_cobalt_cobalt_bilinear = Var(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            initialize=-1e3,
+            units=units.mm**2
+            / units.h
+            * (units.mm**2 / units.h * units.mol / units.m**3),
+            # bounds=[1e-20, None],
+            doc="Bi-linear cross diffusion coefficient for cobalt-cobalt",
+        )
+        self.alpha_lithium_bilinear = Var(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            initialize=1e2,
+            units=units.mm**2 / units.h * units.mol / units.m**3,
+            # bounds=[1e-20, None],
+            doc="Bi-linear cross diffusion coefficient for lithium",
+        )
+        self.alpha_cobalt_bilinear = Var(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            initialize=1e2,
+            units=units.mm**2 / units.h * units.mol / units.m**3,
+            # bounds=[1e-20, None],
+            doc="Bi-linear convection coefficient for cobalt",
+        )
+        self.D_lithium_lithium = Var(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            initialize=-5,
+            units=units.mm**2 / units.h,
+            # bounds=[1e-20, None],
             doc="Cross diffusion coefficient for lithium-lithium",
         )
-        self.D_12 = Var(
+        self.D_lithium_cobalt = Var(
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=1e-7,
-            units=units.m**2 / units.h,
-            bounds=[1e-11, None],
+            initialize=-3,
+            units=units.mm**2 / units.h,
+            # bounds=[1e-20, None],
             doc="Cross diffusion coefficient for lithium-cobalt",
         )
-        self.D_21 = Var(
+        self.D_cobalt_lithium = Var(
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=1e-7,
-            units=units.m**2 / units.h,
-            bounds=[1e-11, None],
+            initialize=-0.5,
+            units=units.mm**2 / units.h,
+            # bounds=[1e-20, None],
             doc="Cross diffusion coefficient for cobalt-lithium",
         )
-        self.D_22 = Var(
+        self.D_cobalt_cobalt = Var(
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=1e-6,
-            units=units.m**2 / units.h,
-            bounds=[1e-11, None],
+            initialize=-4,
+            units=units.mm**2 / units.h,
+            # bounds=[1e-20, None],
             doc="Cross diffusion coefficient for cobalt-cobalt",
         )
-        self.alpha_1 = Var(
+        self.convection_coefficient_lithium = Var(
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=0.2,
-            bounds=[1e-11, None],
-            doc="Conveciton coefficient for lithium",
+            initialize=0.6,
+            units=units.dimensionless,
+            doc="Convection coefficient for lithium",
         )
-        self.alpha_2 = Var(
+        self.convection_coefficient_cobalt = Var(
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=0.2,
-            bounds=[1e-11, None],
-            doc="Conveciton coefficient for cobalt",
+            initialize=0.5,
+            units=units.dimensionless,
+            doc="Convection coefficient for cobalt",
         )
 
         # define the (partial) derivative variables
@@ -794,22 +905,311 @@ and used when constructing these,
             self.dimensionless_module_length, rule=_lumped_water_flux
         )
 
+        def _D_tilde_calculation(blk, x, z):
+            return blk.D_tilde[x, z] == (
+                (
+                    (
+                        (
+                            (blk.config.property_package.charge["Li"] ** 2)
+                            * blk.config.property_package.diffusion_coefficient["Li"]
+                        )
+                        - (
+                            blk.config.property_package.charge["Li"]
+                            * blk.config.property_package.charge["Cl"]
+                            * blk.config.property_package.diffusion_coefficient["Cl"]
+                        )
+                    )
+                    * blk.membrane_conc_mol_lithium[x, z]
+                )
+                + (
+                    (
+                        (
+                            (blk.config.property_package.charge["Co"] ** 2)
+                            * blk.config.property_package.diffusion_coefficient["Co"]
+                        )
+                        - (
+                            blk.config.property_package.charge["Co"]
+                            * blk.config.property_package.charge["Cl"]
+                            * blk.config.property_package.diffusion_coefficient["Cl"]
+                        )
+                    )
+                    * blk.membrane_conc_mol_cobalt[x, z]
+                )
+                - (
+                    blk.config.property_package.charge["Cl"]
+                    * blk.config.property_package.diffusion_coefficient["Cl"]
+                    * blk.membrane_fixed_charge
+                )
+            )
+
+        self.D_tilde_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_D_tilde_calculation,
+        )
+
+        def _D_lithium_lithium_bilinear_calculation(blk, x, z):
+            return (
+                blk.D_lithium_lithium_bilinear[x, z]
+                == blk.D_lithium_lithium[x, z] * blk.D_tilde[x, z]
+            )
+
+        self.D_lithium_lithium_bilinear_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_D_lithium_lithium_bilinear_calculation,
+        )
+
+        def _D_lithium_cobalt_bilinear_calculation(blk, x, z):
+            return (
+                blk.D_lithium_cobalt_bilinear[x, z]
+                == blk.D_lithium_cobalt[x, z] * blk.D_tilde[x, z]
+            )
+
+        self.D_lithium_cobalt_bilinear_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_D_lithium_cobalt_bilinear_calculation,
+        )
+
+        def _D_cobalt_lithium_bilinear_calculation(blk, x, z):
+            return (
+                blk.D_cobalt_lithium_bilinear[x, z]
+                == blk.D_cobalt_lithium[x, z] * blk.D_tilde[x, z]
+            )
+
+        self.D_cobalt_lithium_bilinear_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_D_cobalt_lithium_bilinear_calculation,
+        )
+
+        def _D_cobalt_cobalt_bilinear_calculation(blk, x, z):
+            return (
+                blk.D_cobalt_cobalt_bilinear[x, z]
+                == blk.D_cobalt_cobalt[x, z] * blk.D_tilde[x, z]
+            )
+
+        self.D_cobalt_cobalt_bilinear_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_D_cobalt_cobalt_bilinear_calculation,
+        )
+
+        def _alpha_lithium_bilinear_calculation(blk, x, z):
+            return (
+                blk.alpha_lithium_bilinear[x, z]
+                == blk.convection_coefficient_lithium[x, z] * blk.D_tilde[x, z]
+            )
+
+        self.alpha_lithium_bilinear_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_alpha_lithium_bilinear_calculation,
+        )
+
+        def _alpha_cobalt_bilinear_calculation(blk, x, z):
+            return (
+                blk.alpha_cobalt_bilinear[x, z]
+                == blk.convection_coefficient_cobalt[x, z] * blk.D_tilde[x, z]
+            )
+
+        self.alpha_cobalt_bilinear_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_alpha_cobalt_bilinear_calculation,
+        )
+
+        def _D_lithium_lithium_calculation(blk, x, z):
+            return blk.D_lithium_lithium_bilinear[x, z] == (
+                (
+                    (
+                        blk.config.property_package.charge["Li"]
+                        * blk.config.property_package.charge["Cl"]
+                        * blk.config.property_package.diffusion_coefficient["Li"]
+                        * blk.config.property_package.diffusion_coefficient["Cl"]
+                    )
+                    - (
+                        (blk.config.property_package.charge["Li"] ** 2)
+                        * blk.config.property_package.diffusion_coefficient["Li"]
+                        * blk.config.property_package.diffusion_coefficient["Cl"]
+                    )
+                )
+                * blk.membrane_conc_mol_lithium[x, z]
+                + (
+                    (
+                        blk.config.property_package.charge["Co"]
+                        * blk.config.property_package.charge["Cl"]
+                        * blk.config.property_package.diffusion_coefficient["Li"]
+                        * blk.config.property_package.diffusion_coefficient["Cl"]
+                    )
+                    - (
+                        (blk.config.property_package.charge["Co"] ** 2)
+                        * blk.config.property_package.diffusion_coefficient["Li"]
+                        * blk.config.property_package.diffusion_coefficient["Co"]
+                    )
+                )
+                * blk.membrane_conc_mol_cobalt[x, z]
+                + (
+                    blk.config.property_package.charge["Cl"]
+                    * blk.config.property_package.diffusion_coefficient["Li"]
+                    * blk.config.property_package.diffusion_coefficient["Cl"]
+                    * blk.membrane_fixed_charge
+                )
+            )
+
+        self.D_lithium_lithium_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_D_lithium_lithium_calculation,
+        )
+
+        def _D_lithium_cobalt_calculation(blk, x, z):
+            return blk.D_lithium_cobalt_bilinear[x, z] == (
+                (
+                    (
+                        blk.config.property_package.charge["Li"]
+                        * blk.config.property_package.charge["Co"]
+                        * blk.config.property_package.diffusion_coefficient["Li"]
+                        * blk.config.property_package.diffusion_coefficient["Co"]
+                    )
+                    - (
+                        blk.config.property_package.charge["Li"]
+                        * blk.config.property_package.charge["Co"]
+                        * blk.config.property_package.diffusion_coefficient["Li"]
+                        * blk.config.property_package.diffusion_coefficient["Cl"]
+                    )
+                )
+                * blk.membrane_conc_mol_lithium[x, z]
+            )
+
+        self.D_lithium_cobalt_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_D_lithium_cobalt_calculation,
+        )
+
+        def _D_cobalt_lithium_calculation(blk, x, z):
+            return blk.D_cobalt_lithium_bilinear[x, z] == (
+                (
+                    (
+                        blk.config.property_package.charge["Li"]
+                        * blk.config.property_package.charge["Co"]
+                        * blk.config.property_package.diffusion_coefficient["Li"]
+                        * blk.config.property_package.diffusion_coefficient["Co"]
+                    )
+                    - (
+                        blk.config.property_package.charge["Li"]
+                        * blk.config.property_package.charge["Co"]
+                        * blk.config.property_package.diffusion_coefficient["Co"]
+                        * blk.config.property_package.diffusion_coefficient["Cl"]
+                    )
+                )
+                * blk.membrane_conc_mol_cobalt[x, z]
+            )
+
+        self.D_cobalt_lithium_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_D_cobalt_lithium_calculation,
+        )
+
+        def _D_cobalt_cobalt_calculation(blk, x, z):
+            return blk.D_cobalt_cobalt_bilinear[x, z] == (
+                (
+                    (
+                        blk.config.property_package.charge["Li"]
+                        * blk.config.property_package.charge["Cl"]
+                        * blk.config.property_package.diffusion_coefficient["Co"]
+                        * blk.config.property_package.diffusion_coefficient["Cl"]
+                    )
+                    - (
+                        (blk.config.property_package.charge["Li"] ** 2)
+                        * blk.config.property_package.diffusion_coefficient["Li"]
+                        * blk.config.property_package.diffusion_coefficient["Co"]
+                    )
+                )
+                * blk.membrane_conc_mol_lithium[x, z]
+                + (
+                    (
+                        blk.config.property_package.charge["Co"]
+                        * blk.config.property_package.charge["Cl"]
+                        * blk.config.property_package.diffusion_coefficient["Co"]
+                        * blk.config.property_package.diffusion_coefficient["Cl"]
+                    )
+                    - (
+                        (blk.config.property_package.charge["Co"] ** 2)
+                        * blk.config.property_package.diffusion_coefficient["Co"]
+                        * blk.config.property_package.diffusion_coefficient["Cl"]
+                    )
+                )
+                * blk.membrane_conc_mol_cobalt[x, z]
+                + (
+                    blk.config.property_package.charge["Cl"]
+                    * blk.config.property_package.diffusion_coefficient["Co"]
+                    * blk.config.property_package.diffusion_coefficient["Cl"]
+                    * blk.membrane_fixed_charge
+                )
+            )
+
+        self.D_cobalt_cobalt_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_D_cobalt_cobalt_calculation,
+        )
+
+        def _convection_coefficient_lithium_calculation(blk, x, z):
+            return blk.alpha_lithium_bilinear[x, z] == (
+                blk.D_tilde[x, z]
+                + (
+                    blk.config.property_package.charge["Li"]
+                    * blk.config.property_package.diffusion_coefficient["Li"]
+                    * blk.membrane_fixed_charge
+                )
+            )
+
+        self.convection_coefficient_lithium_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_convection_coefficient_lithium_calculation,
+        )
+
+        def _convection_coefficient_cobalt_calculation(blk, x, z):
+            return blk.alpha_cobalt_bilinear[x, z] == (
+                blk.D_tilde[x, z]
+                + (
+                    blk.config.property_package.charge["Co"]
+                    * blk.config.property_package.diffusion_coefficient["Co"]
+                    * blk.membrane_fixed_charge
+                )
+            )
+
+        self.convection_coefficient_cobalt_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            rule=_convection_coefficient_cobalt_calculation,
+        )
+
         def _lithium_flux_membrane(blk, x, z):
             if x == 0:
                 return Constraint.Skip
             return blk.mol_flux_lithium[x] == (
                 (
-                    blk.alpha_1[x, z]
+                    blk.convection_coefficient_lithium[x, z]
                     * blk.membrane_conc_mol_lithium[x, z]
                     * blk.volume_flux_water[x]
                 )
-                - (
-                    blk.D_11[x, z]
+                + (
+                    units.convert(
+                        blk.D_lithium_lithium[x, z], to_units=units.m**2 / units.h
+                    )
                     / blk.total_membrane_thickness
                     * blk.d_membrane_conc_mol_lithium_dz[x, z]
                 )
-                - (
-                    blk.D_12[x, z]
+                + (
+                    units.convert(
+                        blk.D_lithium_cobalt[x, z], to_units=units.m**2 / units.h
+                    )
                     / blk.total_membrane_thickness
                     * blk.d_membrane_conc_mol_cobalt_dz[x, z]
                 )
@@ -826,17 +1226,21 @@ and used when constructing these,
                 return Constraint.Skip
             return blk.mol_flux_cobalt[x] == (
                 (
-                    blk.alpha_2[x, z]
+                    blk.convection_coefficient_cobalt[x, z]
                     * blk.membrane_conc_mol_cobalt[x, z]
                     * blk.volume_flux_water[x]
                 )
-                - (
-                    blk.D_21[x, z]
+                + (
+                    units.convert(
+                        blk.D_cobalt_lithium[x, z], to_units=units.m**2 / units.h
+                    )
                     / blk.total_membrane_thickness
                     * blk.d_membrane_conc_mol_lithium_dz[x, z]
                 )
-                - (
-                    blk.D_22[x, z]
+                + (
+                    units.convert(
+                        blk.D_cobalt_cobalt[x, z], to_units=units.m**2 / units.h
+                    )
                     / blk.total_membrane_thickness
                     * blk.d_membrane_conc_mol_cobalt_dz[x, z]
                 )
@@ -1062,177 +1466,177 @@ and used when constructing these,
             rule=_initial_retentate_conc_mol_cob
         )
 
-    def add_surrogate_constraints(self):
-        self._surrogates_obj_D_11 = PysmoSurrogate.load_from_file(
-            self.config.surrogate_model_files["D_11"]
-        )
-        self._surrogates_obj_D_12 = PysmoSurrogate.load_from_file(
-            self.config.surrogate_model_files["D_12"]
-        )
-        self._surrogates_obj_D_21 = PysmoSurrogate.load_from_file(
-            self.config.surrogate_model_files["D_21"]
-        )
-        self._surrogates_obj_D_22 = PysmoSurrogate.load_from_file(
-            self.config.surrogate_model_files["D_22"]
-        )
-        self._surrogates_obj_alpha_1 = PysmoSurrogate.load_from_file(
-            self.config.surrogate_model_files["alpha_1"]
-        )
-        self._surrogates_obj_alpha_2 = PysmoSurrogate.load_from_file(
-            self.config.surrogate_model_files["alpha_2"]
-        )
+    # def add_surrogate_constraints(self):
+    #     self._surrogates_obj_D_11 = PysmoSurrogate.load_from_file(
+    #         self.config.surrogate_model_files["D_11"]
+    #     )
+    #     self._surrogates_obj_D_12 = PysmoSurrogate.load_from_file(
+    #         self.config.surrogate_model_files["D_12"]
+    #     )
+    #     self._surrogates_obj_D_21 = PysmoSurrogate.load_from_file(
+    #         self.config.surrogate_model_files["D_21"]
+    #     )
+    #     self._surrogates_obj_D_22 = PysmoSurrogate.load_from_file(
+    #         self.config.surrogate_model_files["D_22"]
+    #     )
+    #     self._surrogates_obj_alpha_1 = PysmoSurrogate.load_from_file(
+    #         self.config.surrogate_model_files["alpha_1"]
+    #     )
+    #     self._surrogates_obj_alpha_2 = PysmoSurrogate.load_from_file(
+    #         self.config.surrogate_model_files["alpha_2"]
+    #     )
 
-        def _D_11_calc(blk, x, z):
-            if x == 0:
-                return Constraint.Skip
+    #     def _D_11_calc(blk, x, z):
+    #         if x == 0:
+    #             return Constraint.Skip
 
-            input_dict = {
-                "conc_1": value(blk.membrane_conc_mol_lithium[x, z]),
-                "conc_2": value(blk.membrane_conc_mol_cobalt[x, z]),
-                "chi": value(blk.membrane_fixed_charge),
-            }
-            input_df = DataFrame(data=input_dict, index=[0])
-            surrogate_value = blk._surrogates_obj_D_11.evaluate_surrogate(input_df)[
-                "D_11_scaled"
-            ][0]
+    #         input_dict = {
+    #             "conc_1": value(blk.membrane_conc_mol_lithium[x, z]),
+    #             "conc_2": value(blk.membrane_conc_mol_cobalt[x, z]),
+    #             "chi": value(blk.membrane_fixed_charge),
+    #         }
+    #         input_df = DataFrame(data=input_dict, index=[0])
+    #         surrogate_value = blk._surrogates_obj_D_11.evaluate_surrogate(input_df)[
+    #             "D_11_scaled"
+    #         ][0]
 
-            return blk.D_11[x, z] == -(
-                blk.config.diffusion_surrogate_scaling_factor
-                * surrogate_value
-                * units.m**2
-                / units.h
-            )
+    #         return blk.D_11[x, z] == -(
+    #             blk.config.diffusion_surrogate_scaling_factor
+    #             * surrogate_value
+    #             * units.m**2
+    #             / units.h
+    #         )
 
-        self.D_11_calc = Constraint(
-            self.dimensionless_module_length,
-            self.dimensionless_membrane_thickness,
-            rule=_D_11_calc,
-        )
+    #     self.D_11_calc = Constraint(
+    #         self.dimensionless_module_length,
+    #         self.dimensionless_membrane_thickness,
+    #         rule=_D_11_calc,
+    #     )
 
-        def _D_12_calc(blk, x, z):
-            if x == 0:
-                return Constraint.Skip
+    #     def _D_12_calc(blk, x, z):
+    #         if x == 0:
+    #             return Constraint.Skip
 
-            input_dict = {
-                "conc_1": value(blk.membrane_conc_mol_lithium[x, z]),
-                "conc_2": value(blk.membrane_conc_mol_cobalt[x, z]),
-                "chi": value(blk.membrane_fixed_charge),
-            }
-            input_df = DataFrame(data=input_dict, index=[0])
-            surrogate_value = blk._surrogates_obj_D_12.evaluate_surrogate(input_df)[
-                "D_12_scaled"
-            ][0]
+    #         input_dict = {
+    #             "conc_1": value(blk.membrane_conc_mol_lithium[x, z]),
+    #             "conc_2": value(blk.membrane_conc_mol_cobalt[x, z]),
+    #             "chi": value(blk.membrane_fixed_charge),
+    #         }
+    #         input_df = DataFrame(data=input_dict, index=[0])
+    #         surrogate_value = blk._surrogates_obj_D_12.evaluate_surrogate(input_df)[
+    #             "D_12_scaled"
+    #         ][0]
 
-            return blk.D_12[x, z] == -(
-                blk.config.diffusion_surrogate_scaling_factor
-                * surrogate_value
-                * units.m**2
-                / units.h
-            )
+    #         return blk.D_12[x, z] == -(
+    #             blk.config.diffusion_surrogate_scaling_factor
+    #             * surrogate_value
+    #             * units.m**2
+    #             / units.h
+    #         )
 
-        self.D_12_calc = Constraint(
-            self.dimensionless_module_length,
-            self.dimensionless_membrane_thickness,
-            rule=_D_12_calc,
-        )
+    #     self.D_12_calc = Constraint(
+    #         self.dimensionless_module_length,
+    #         self.dimensionless_membrane_thickness,
+    #         rule=_D_12_calc,
+    #     )
 
-        def _D_21_calc(blk, x, z):
-            if x == 0:
-                return Constraint.Skip
+    #     def _D_21_calc(blk, x, z):
+    #         if x == 0:
+    #             return Constraint.Skip
 
-            input_dict = {
-                "conc_1": value(blk.membrane_conc_mol_lithium[x, z]),
-                "conc_2": value(blk.membrane_conc_mol_cobalt[x, z]),
-                "chi": value(blk.membrane_fixed_charge),
-            }
-            input_df = DataFrame(data=input_dict, index=[0])
-            surrogate_value = blk._surrogates_obj_D_21.evaluate_surrogate(input_df)[
-                "D_21_scaled"
-            ][0]
+    #         input_dict = {
+    #             "conc_1": value(blk.membrane_conc_mol_lithium[x, z]),
+    #             "conc_2": value(blk.membrane_conc_mol_cobalt[x, z]),
+    #             "chi": value(blk.membrane_fixed_charge),
+    #         }
+    #         input_df = DataFrame(data=input_dict, index=[0])
+    #         surrogate_value = blk._surrogates_obj_D_21.evaluate_surrogate(input_df)[
+    #             "D_21_scaled"
+    #         ][0]
 
-            return blk.D_21[x, z] == -(
-                blk.config.diffusion_surrogate_scaling_factor
-                * surrogate_value
-                * units.m**2
-                / units.h
-            )
+    #         return blk.D_21[x, z] == -(
+    #             blk.config.diffusion_surrogate_scaling_factor
+    #             * surrogate_value
+    #             * units.m**2
+    #             / units.h
+    #         )
 
-        self.D_21_calc = Constraint(
-            self.dimensionless_module_length,
-            self.dimensionless_membrane_thickness,
-            rule=_D_21_calc,
-        )
+    #     self.D_21_calc = Constraint(
+    #         self.dimensionless_module_length,
+    #         self.dimensionless_membrane_thickness,
+    #         rule=_D_21_calc,
+    #     )
 
-        def _D_22_calc(blk, x, z):
-            if x == 0:
-                return Constraint.Skip
+    #     def _D_22_calc(blk, x, z):
+    #         if x == 0:
+    #             return Constraint.Skip
 
-            input_dict = {
-                "conc_1": value(blk.membrane_conc_mol_lithium[x, z]),
-                "conc_2": value(blk.membrane_conc_mol_cobalt[x, z]),
-                "chi": value(blk.membrane_fixed_charge),
-            }
-            input_df = DataFrame(data=input_dict, index=[0])
-            surrogate_value = blk._surrogates_obj_D_22.evaluate_surrogate(input_df)[
-                "D_22_scaled"
-            ][0]
+    #         input_dict = {
+    #             "conc_1": value(blk.membrane_conc_mol_lithium[x, z]),
+    #             "conc_2": value(blk.membrane_conc_mol_cobalt[x, z]),
+    #             "chi": value(blk.membrane_fixed_charge),
+    #         }
+    #         input_df = DataFrame(data=input_dict, index=[0])
+    #         surrogate_value = blk._surrogates_obj_D_22.evaluate_surrogate(input_df)[
+    #             "D_22_scaled"
+    #         ][0]
 
-            return blk.D_22[x, z] == -(
-                blk.config.diffusion_surrogate_scaling_factor
-                * surrogate_value
-                * units.m**2
-                / units.h
-            )
+    #         return blk.D_22[x, z] == -(
+    #             blk.config.diffusion_surrogate_scaling_factor
+    #             * surrogate_value
+    #             * units.m**2
+    #             / units.h
+    #         )
 
-        self.D_22_calc = Constraint(
-            self.dimensionless_module_length,
-            self.dimensionless_membrane_thickness,
-            rule=_D_22_calc,
-        )
+    #     self.D_22_calc = Constraint(
+    #         self.dimensionless_module_length,
+    #         self.dimensionless_membrane_thickness,
+    #         rule=_D_22_calc,
+    #     )
 
-        def _alpha_1_calc(blk, x, z):
-            if x == 0:
-                return Constraint.Skip
+    #     def _alpha_1_calc(blk, x, z):
+    #         if x == 0:
+    #             return Constraint.Skip
 
-            input_dict = {
-                "conc_1": value(blk.membrane_conc_mol_lithium[x, z]),
-                "conc_2": value(blk.membrane_conc_mol_cobalt[x, z]),
-                "chi": value(blk.membrane_fixed_charge),
-            }
-            input_df = DataFrame(data=input_dict, index=[0])
-            surrogate_value = blk._surrogates_obj_alpha_1.evaluate_surrogate(input_df)[
-                "alpha_1"
-            ][0]
+    #         input_dict = {
+    #             "conc_1": value(blk.membrane_conc_mol_lithium[x, z]),
+    #             "conc_2": value(blk.membrane_conc_mol_cobalt[x, z]),
+    #             "chi": value(blk.membrane_fixed_charge),
+    #         }
+    #         input_df = DataFrame(data=input_dict, index=[0])
+    #         surrogate_value = blk._surrogates_obj_alpha_1.evaluate_surrogate(input_df)[
+    #             "alpha_1"
+    #         ][0]
 
-            return blk.alpha_1[x, z] == surrogate_value
+    #         return blk.alpha_1[x, z] == surrogate_value
 
-        self.alpha_1_calc = Constraint(
-            self.dimensionless_module_length,
-            self.dimensionless_membrane_thickness,
-            rule=_alpha_1_calc,
-        )
+    #     self.alpha_1_calc = Constraint(
+    #         self.dimensionless_module_length,
+    #         self.dimensionless_membrane_thickness,
+    #         rule=_alpha_1_calc,
+    #     )
 
-        def _alpha_2_calc(blk, x, z):
-            if x == 0:
-                return Constraint.Skip
+    #     def _alpha_2_calc(blk, x, z):
+    #         if x == 0:
+    #             return Constraint.Skip
 
-            input_dict = {
-                "conc_1": value(blk.membrane_conc_mol_lithium[x, z]),
-                "conc_2": value(blk.membrane_conc_mol_cobalt[x, z]),
-                "chi": value(blk.membrane_fixed_charge),
-            }
-            input_df = DataFrame(data=input_dict, index=[0])
-            surrogate_value = blk._surrogates_obj_alpha_2.evaluate_surrogate(input_df)[
-                "alpha_2"
-            ][0]
+    #         input_dict = {
+    #             "conc_1": value(blk.membrane_conc_mol_lithium[x, z]),
+    #             "conc_2": value(blk.membrane_conc_mol_cobalt[x, z]),
+    #             "chi": value(blk.membrane_fixed_charge),
+    #         }
+    #         input_df = DataFrame(data=input_dict, index=[0])
+    #         surrogate_value = blk._surrogates_obj_alpha_2.evaluate_surrogate(input_df)[
+    #             "alpha_2"
+    #         ][0]
 
-            return blk.alpha_2[x, z] == surrogate_value
+    #         return blk.alpha_2[x, z] == surrogate_value
 
-        self.alpha_2_calc = Constraint(
-            self.dimensionless_module_length,
-            self.dimensionless_membrane_thickness,
-            rule=_alpha_2_calc,
-        )
+    #     self.alpha_2_calc = Constraint(
+    #         self.dimensionless_module_length,
+    #         self.dimensionless_membrane_thickness,
+    #         rule=_alpha_2_calc,
+    #     )
 
     def discretize_model(self):
         discretizer = TransformationFactory("dae.finite_difference")
@@ -1286,117 +1690,117 @@ and used when constructing these,
                 value(self.numerical_zero_tolerance)
             )
 
-    def add_helpful_expressions(self):
-        def _peclet_number_lithium(blk, x, z):
-            if x == 0:
-                return Expression.Skip
-            return abs(
-                blk.alpha_1[x, z]
-                * blk.membrane_conc_mol_lithium[x, z]
-                * blk.volume_flux_water[x]
-            ) / (
-                abs(
-                    +(
-                        blk.D_11[x, z]
-                        / blk.total_membrane_thickness
-                        * blk.d_membrane_conc_mol_lithium_dz[x, z]
-                    )
-                    + (
-                        blk.D_12[x, z]
-                        / blk.total_membrane_thickness
-                        * blk.d_membrane_conc_mol_cobalt_dz[x, z]
-                    )
-                )
-            )
+    # def add_helpful_expressions(self):
+    #     def _peclet_number_lithium(blk, x, z):
+    #         if x == 0:
+    #             return Expression.Skip
+    #         return abs(
+    #             blk.alpha_1[x, z]
+    #             * blk.membrane_conc_mol_lithium[x, z]
+    #             * blk.volume_flux_water[x]
+    #         ) / (
+    #             abs(
+    #                 +(
+    #                     blk.D_11[x, z]
+    #                     / blk.total_membrane_thickness
+    #                     * blk.d_membrane_conc_mol_lithium_dz[x, z]
+    #                 )
+    #                 + (
+    #                     blk.D_12[x, z]
+    #                     / blk.total_membrane_thickness
+    #                     * blk.d_membrane_conc_mol_cobalt_dz[x, z]
+    #                 )
+    #             )
+    #         )
 
-        self.peclet_number_lithium = Expression(
-            self.dimensionless_module_length,
-            self.dimensionless_membrane_thickness,
-            rule=_peclet_number_lithium,
-        )
+    #     self.peclet_number_lithium = Expression(
+    #         self.dimensionless_module_length,
+    #         self.dimensionless_membrane_thickness,
+    #         rule=_peclet_number_lithium,
+    #     )
 
-        def _peclet_number_cobalt(blk, x, z):
-            if x == 0:
-                return Expression.Skip
-            return abs(
-                blk.alpha_2[x, z]
-                * blk.membrane_conc_mol_cobalt[x, z]
-                * blk.volume_flux_water[x]
-            ) / (
-                abs(
-                    (
-                        blk.D_21[x, z]
-                        / blk.total_membrane_thickness
-                        * blk.d_membrane_conc_mol_lithium_dz[x, z]
-                    )
-                    + (
-                        blk.D_22[x, z]
-                        / blk.total_membrane_thickness
-                        * blk.d_membrane_conc_mol_cobalt_dz[x, z]
-                    )
-                )
-            )
+    #     def _peclet_number_cobalt(blk, x, z):
+    #         if x == 0:
+    #             return Expression.Skip
+    #         return abs(
+    #             blk.alpha_2[x, z]
+    #             * blk.membrane_conc_mol_cobalt[x, z]
+    #             * blk.volume_flux_water[x]
+    #         ) / (
+    #             abs(
+    #                 (
+    #                     blk.D_21[x, z]
+    #                     / blk.total_membrane_thickness
+    #                     * blk.d_membrane_conc_mol_lithium_dz[x, z]
+    #                 )
+    #                 + (
+    #                     blk.D_22[x, z]
+    #                     / blk.total_membrane_thickness
+    #                     * blk.d_membrane_conc_mol_cobalt_dz[x, z]
+    #                 )
+    #             )
+    #         )
 
-        self.peclet_number_cobalt = Expression(
-            self.dimensionless_module_length,
-            self.dimensionless_membrane_thickness,
-            rule=_peclet_number_cobalt,
-        )
+    #     self.peclet_number_cobalt = Expression(
+    #         self.dimensionless_module_length,
+    #         self.dimensionless_membrane_thickness,
+    #         rule=_peclet_number_cobalt,
+    #     )
 
-        def _sieving_coefficient_lithium(blk, x):
-            if x == 0:
-                return Expression.Skip
-            return (
-                blk.permeate_conc_mol_comp[0, x, "Li"]
-                / blk.retentate_conc_mol_comp[0, x, "Li"]
-            )
+    #     def _sieving_coefficient_lithium(blk, x):
+    #         if x == 0:
+    #             return Expression.Skip
+    #         return (
+    #             blk.permeate_conc_mol_comp[0, x, "Li"]
+    #             / blk.retentate_conc_mol_comp[0, x, "Li"]
+    #         )
 
-        self.sieving_coefficient_lithium = Expression(
-            self.dimensionless_module_length,
-            rule=_sieving_coefficient_lithium,
-        )
+    #     self.sieving_coefficient_lithium = Expression(
+    #         self.dimensionless_module_length,
+    #         rule=_sieving_coefficient_lithium,
+    #     )
 
-        def _sieving_coefficient_cobalt(blk, x):
-            if x == 0:
-                return Expression.Skip
-            return (
-                blk.permeate_conc_mol_comp[0, x, "Co"]
-                / blk.retentate_conc_mol_comp[0, x, "Co"]
-            )
+    #     def _sieving_coefficient_cobalt(blk, x):
+    #         if x == 0:
+    #             return Expression.Skip
+    #         return (
+    #             blk.permeate_conc_mol_comp[0, x, "Co"]
+    #             / blk.retentate_conc_mol_comp[0, x, "Co"]
+    #         )
 
-        self.sieving_coefficient_cobalt = Expression(
-            self.dimensionless_module_length,
-            rule=_sieving_coefficient_cobalt,
-        )
+    #     self.sieving_coefficient_cobalt = Expression(
+    #         self.dimensionless_module_length,
+    #         rule=_sieving_coefficient_cobalt,
+    #     )
 
-        def _separation_factor_lithium_cobalt(blk, x):
-            if x == 0:
-                return Expression.Skip
-            return (
-                blk.permeate_conc_mol_comp[0, x, "Li"]
-                / blk.retentate_conc_mol_comp[0, x, "Li"]
-            ) / (
-                blk.permeate_conc_mol_comp[0, x, "Co"]
-                / blk.retentate_conc_mol_comp[0, x, "Co"]
-            )
+    #     def _separation_factor_lithium_cobalt(blk, x):
+    #         if x == 0:
+    #             return Expression.Skip
+    #         return (
+    #             blk.permeate_conc_mol_comp[0, x, "Li"]
+    #             / blk.retentate_conc_mol_comp[0, x, "Li"]
+    #         ) / (
+    #             blk.permeate_conc_mol_comp[0, x, "Co"]
+    #             / blk.retentate_conc_mol_comp[0, x, "Co"]
+    #         )
 
-        self.separation_factor_lithium_cobalt = Expression(
-            self.dimensionless_module_length,
-            rule=_separation_factor_lithium_cobalt,
-        )
+    #     self.separation_factor_lithium_cobalt = Expression(
+    #         self.dimensionless_module_length,
+    #         rule=_separation_factor_lithium_cobalt,
+    #     )
 
-        def _overall_selectivity(blk):
-            return (
-                blk.permeate_conc_mol_comp[0, 1, "Li"]
-                / blk.retentate_conc_mol_comp[0, 0, "Li"]
-            ) / (
-                blk.permeate_conc_mol_comp[0, 1, "Co"]
-                / blk.retentate_conc_mol_comp[0, 0, "Co"]
-            )
+    #     def _overall_selectivity(blk):
+    #         return (
+    #             blk.permeate_conc_mol_comp[0, 1, "Li"]
+    #             / blk.retentate_conc_mol_comp[0, 0, "Li"]
+    #         ) / (
+    #             blk.permeate_conc_mol_comp[0, 1, "Co"]
+    #             / blk.retentate_conc_mol_comp[0, 0, "Co"]
+    #         )
 
-        self.overall_selectivity = Expression(
-            rule=_overall_selectivity,
-        )
+    #     self.overall_selectivity = Expression(
+    #         rule=_overall_selectivity,
+    #     )
 
     def add_scaling_factors(self):
         """
@@ -1406,12 +1810,12 @@ and used when constructing these,
         self.scaling_factor = Suffix(direction=Suffix.EXPORT)
 
         # Add scaling factors for poorly scaled variables
-        for x in self.dimensionless_module_length:
-            for z in self.dimensionless_membrane_thickness:
-                self.scaling_factor[self.D_11[x, z]] = 1e6
-                self.scaling_factor[self.D_12[x, z]] = 1e7
-                self.scaling_factor[self.D_21[x, z]] = 1e7
-                self.scaling_factor[self.D_22[x, z]] = 1e6
+        # for x in self.dimensionless_module_length:
+        #     for z in self.dimensionless_membrane_thickness:
+        #         self.scaling_factor[self.D_11[x, z]] = 1e6
+        #         self.scaling_factor[self.D_12[x, z]] = 1e7
+        #         self.scaling_factor[self.D_21[x, z]] = 1e7
+        #         self.scaling_factor[self.D_22[x, z]] = 1e6
 
         # Add scaling factors for poorly scaled constraints
         constraint_autoscale_large_jac(self)
