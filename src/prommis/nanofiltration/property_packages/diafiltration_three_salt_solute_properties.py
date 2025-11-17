@@ -61,6 +61,18 @@ class SoluteParameterData(PhysicalParameterBlock):
             },
         )
 
+        # add single solute diffusion coefficient
+        self.diffusion_coefficient = Param(
+            self.component_list,
+            units=units.mm**2 / units.h,
+            initialize={
+                "Li": 3.71,
+                "Co": 2.64,
+                "Al": 2.01,
+                "Cl": 7.31,
+            },
+        )
+
         # add thermal reflection coefficient, related to solute rejection
         self.sigma = Param(
             self.component_list,

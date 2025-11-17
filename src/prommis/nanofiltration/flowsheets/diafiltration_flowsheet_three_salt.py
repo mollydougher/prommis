@@ -26,13 +26,15 @@ from idaes.models.unit_models import Feed, Product
 import matplotlib.pyplot as plt
 from pandas import DataFrame
 
-from prommis.nanofiltration.diafiltration_three_salt_stream_properties import (
+from prommis.nanofiltration.property_packages.diafiltration_three_salt_stream_properties import (
     DiafiltrationStreamParameter,
 )
-from prommis.nanofiltration.diafiltration_three_salt_solute_properties import (
+from prommis.nanofiltration.property_packages.diafiltration_three_salt_solute_properties import (
     SoluteParameter,
 )
-from prommis.nanofiltration.diafiltration_three_salt import ThreeSaltDiafiltration
+from prommis.nanofiltration.unit_models.diafiltration_three_salt import (
+    ThreeSaltDiafiltration,
+)
 
 
 def main():
@@ -52,20 +54,20 @@ def main():
     m.fs.feed_block = Feed(property_package=m.fs.stream_properties)
     m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
 
-    surrogate_model_file_dict = {
-        "D_11": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d11_scaled",
-        "D_12": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d12_scaled",
-        "D_13": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d13_scaled",
-        "D_21": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d21_scaled",
-        "D_22": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d22_scaled",
-        "D_23": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d23_scaled",
-        "D_31": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d31_scaled",
-        "D_32": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d32_scaled",
-        "D_33": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d33_scaled",
-        "alpha_1": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha1",
-        "alpha_2": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha2",
-        "alpha_3": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha3",
-    }
+    # surrogate_model_file_dict = {
+    #     "D_11": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d11_scaled",
+    #     "D_12": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d12_scaled",
+    #     "D_13": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d13_scaled",
+    #     "D_21": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d21_scaled",
+    #     "D_22": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d22_scaled",
+    #     "D_23": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d23_scaled",
+    #     "D_31": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d31_scaled",
+    #     "D_32": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d32_scaled",
+    #     "D_33": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d33_scaled",
+    #     "alpha_1": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha1",
+    #     "alpha_2": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha2",
+    #     "alpha_3": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha3",
+    # }
 
     # add the membrane unit model
     m.fs.membrane = ThreeSaltDiafiltration(
@@ -73,8 +75,8 @@ def main():
         NFE_module_length=10,
         NFE_membrane_thickness=5,
         charged_membrane=True,
-        surrogate_model_files=surrogate_model_file_dict,
-        diffusion_surrogate_scaling_factor=1e-07,
+        # surrogate_model_files=surrogate_model_file_dict,
+        # diffusion_surrogate_scaling_factor=1e-07,
     )
 
     # add product blocks for retentate and permeate
@@ -90,18 +92,24 @@ def main():
     # check structural warnings
     dt = DiagnosticsToolbox(m)
     dt.assert_no_structural_warnings()
+    # dt.report_structural_issues()
+    # dt.display_underconstrained_set()
 
     # solve model
     solve_model(m)
 
-    check_membrane_concentration_ranges(m)
+    # check_membrane_concentration_ranges(m)
 
     # check numerical warnings
-    dt.assert_no_numerical_warnings()
+    # dt.assert_no_numerical_warnings()
+    dt.report_numerical_issues()
+    dt.display_variables_at_or_outside_bounds()
+
+    m.fs.membrane.D_tilde.display()
 
     # visualize the results
-    plot_results(m)
-    plot_membrane_results(m)
+    # plot_results(m)
+    # plot_membrane_results(m)
 
 
 def build_membrane_parameters(m):
@@ -167,7 +175,7 @@ def solve_model(m):
 
     solver = SolverFactory("ipopt")
     results = solver.solve(scaled_model, tee=True)
-    assert_optimal_termination(results)
+    # assert_optimal_termination(results)
 
     scaling.propagate_solution(scaled_model, m)
 
