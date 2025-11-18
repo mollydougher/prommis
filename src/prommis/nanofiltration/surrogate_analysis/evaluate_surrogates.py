@@ -6,18 +6,22 @@ import math
 
 
 def main():
-    # plot_D_tilde()
-    # plot_ground_truth_numerators()
-    # plot_ground_truth()
+    # plot_D_tilde_two_salt()
+    # plot_ground_truth_numerators_two_salt()
+    # plot_ground_truth_two_salt()
+
+    plot_D_tilde_three_salt()
+    plot_ground_truth_numerators_three_salt()
+    # plot_ground_truth_three_salt()
 
     # fractional_factorial_1
     # fractional_factorial_2
     # full_factorial
-    plot_residuals_two_salt(model_type="fractional_factorial_1")
+    # plot_residuals_two_salt(model_type="fractional_factorial_1")
     # plot_residuals_three_salt()
 
 
-def plot_D_tilde():
+def plot_D_tilde_two_salt():
     conc_array = np.arange(1, 201, 1)
 
     c1_vals = []
@@ -77,7 +81,7 @@ def plot_D_tilde():
     plt.show()
 
 
-def plot_ground_truth_numerators():
+def plot_ground_truth_numerators_two_salt():
     conc_array = np.arange(1, 201, 1)
 
     c1_vals = []
@@ -158,7 +162,402 @@ def plot_ground_truth_numerators():
     plt.show()
 
 
-def plot_ground_truth():
+def plot_ground_truth_two_salt():
+    conc_array = np.arange(1, 201, 1)
+
+    c1_vals = []
+    c2_vals = []
+    for c1 in conc_array:
+        c1_vals.append(c1)
+    for c2 in conc_array:
+        c2_vals.append(c2)
+
+    chi = -140
+
+    actual_vals_d11 = []
+    actual_vals_d12 = []
+    actual_vals_d21 = []
+    actual_vals_d22 = []
+    actual_vals_alpha1 = []
+    actual_vals_alpha2 = []
+
+    actual_vals_dict_d11 = {}
+    actual_vals_dict_d12 = {}
+    actual_vals_dict_d21 = {}
+    actual_vals_dict_d22 = {}
+    actual_vals_dict_alpha1 = {}
+    actual_vals_dict_alpha2 = {}
+
+    for c1 in conc_array:
+        for c2 in conc_array:
+            actual_val_d11 = calculate_true_value_two_salt_d11(c1, c2, chi)
+            actual_vals_d11.append(actual_val_d11)
+            actual_val_d12 = calculate_true_value_two_salt_d12(c1, c2, chi)
+            actual_vals_d12.append(actual_val_d12)
+            actual_val_d21 = calculate_true_value_two_salt_d21(c1, c2, chi)
+            actual_vals_d21.append(actual_val_d21)
+            actual_val_d22 = calculate_true_value_two_salt_d22(c1, c2, chi)
+            actual_vals_d22.append(actual_val_d22)
+            actual_val_alpha1 = calculate_true_value_two_salt_alpha1(c1, c2, chi)
+            actual_vals_alpha1.append(actual_val_alpha1)
+            actual_val_alpha2 = calculate_true_value_two_salt_alpha2(c1, c2, chi)
+            actual_vals_alpha2.append(actual_val_alpha2)
+
+        actual_vals_dict_d11[f"{c1}"] = actual_vals_d11
+        actual_vals_dict_d12[f"{c1}"] = actual_vals_d12
+        actual_vals_dict_d21[f"{c1}"] = actual_vals_d21
+        actual_vals_dict_d22[f"{c1}"] = actual_vals_d22
+        actual_vals_dict_alpha1[f"{c1}"] = actual_vals_alpha1
+        actual_vals_dict_alpha2[f"{c1}"] = actual_vals_alpha2
+
+        actual_vals_d11 = []
+        actual_vals_d12 = []
+        actual_vals_d21 = []
+        actual_vals_d22 = []
+        actual_vals_alpha1 = []
+        actual_vals_alpha2 = []
+
+    actual_vals_df_d11 = DataFrame(index=c2_vals, data=actual_vals_dict_d11)
+    actual_vals_df_d12 = DataFrame(index=c2_vals, data=actual_vals_dict_d12)
+    actual_vals_df_d21 = DataFrame(index=c2_vals, data=actual_vals_dict_d21)
+    actual_vals_df_d22 = DataFrame(index=c2_vals, data=actual_vals_dict_d22)
+    actual_vals_df_alpha1 = DataFrame(index=c2_vals, data=actual_vals_dict_alpha1)
+    actual_vals_df_alpha2 = DataFrame(index=c2_vals, data=actual_vals_dict_alpha2)
+
+    fig1, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(10, 8))
+    actual_vals_plot_d11 = ax1.pcolor(c1_vals, c2_vals, actual_vals_df_d11)
+    actual_vals_plot_d12 = ax2.pcolor(c1_vals, c2_vals, actual_vals_df_d12)
+    actual_vals_plot_d21 = ax4.pcolor(c1_vals, c2_vals, actual_vals_df_d21)
+    actual_vals_plot_d22 = ax5.pcolor(c1_vals, c2_vals, actual_vals_df_d22)
+    actual_vals_plot_alpha1 = ax3.pcolor(c1_vals, c2_vals, actual_vals_df_alpha1)
+    actual_vals_plot_alpha2 = ax6.pcolor(c1_vals, c2_vals, actual_vals_df_alpha2)
+
+    plt.suptitle(
+        "Ground Truth Values (m2/h or dimensionless)", fontsize=12, fontweight="bold"
+    )
+
+    ax1.set_title("D_11", fontsize=12, fontweight="bold")
+    ax2.set_title("D_12", fontsize=12, fontweight="bold")
+    ax4.set_title("D_21", fontsize=12, fontweight="bold")
+    ax5.set_title("D_22", fontsize=12, fontweight="bold")
+    ax3.set_title("alpha_1", fontsize=12, fontweight="bold")
+    ax6.set_title("alpha_2", fontsize=12, fontweight="bold")
+
+    for ax in (ax1, ax4):
+        ax.set_ylabel(
+            "Cobalt Concentration in Membrane (mM)",
+            fontsize=12,
+            fontweight="bold",
+        )
+    for ax in (ax4, ax5, ax6):
+        ax.tick_params(direction="in", labelsize=10)
+        ax.set_xlabel(
+            "Lithium Concentration\n in Membrane (mM)",
+            fontsize=12,
+            fontweight="bold",
+        )
+
+    fig1.colorbar(actual_vals_plot_d11, ax=ax1)
+    fig1.colorbar(actual_vals_plot_d12, ax=ax2)
+    fig1.colorbar(actual_vals_plot_alpha1, ax=ax3)
+    fig1.colorbar(actual_vals_plot_d21, ax=ax4)
+    fig1.colorbar(actual_vals_plot_d22, ax=ax5)
+    fig1.colorbar(actual_vals_plot_alpha2, ax=ax6)
+    plt.show()
+
+
+def plot_D_tilde_three_salt():
+    conc_array = np.arange(1, 201, 1)
+
+    c1_vals = []
+    c2_vals = []
+    for c1 in conc_array:
+        c1_vals.append(c1)
+    for c2 in conc_array:
+        c2_vals.append(c2)
+
+    chi = -140
+    c3 = 2.5
+
+    actual_vals = []
+
+    actual_vals_dict = {}
+
+    for c1 in conc_array:
+        for c2 in conc_array:
+            actual_val = calculate_true_value_three_salt_dtilde(c1, c2, c3, chi)
+            actual_vals.append(actual_val)
+
+        actual_vals_dict[f"{c1}"] = actual_vals
+
+        actual_vals = []
+
+    actual_vals_df = DataFrame(index=c2_vals, data=actual_vals_dict)
+
+    fig, ax1 = plt.subplots(1, 1, figsize=(5, 5))
+    actual_vals_plot = ax1.pcolor(c1_vals, c2_vals, actual_vals_df)
+
+    plt.suptitle(
+        f"Ground Truth Value, D_tilde (m2/h), c_aluminum = {c3} mM",
+        fontsize=12,
+        fontweight="bold",
+    )
+
+    ax1.set_ylabel(
+        "Cobalt Concentration in Membrane (mM)",
+        fontsize=12,
+        fontweight="bold",
+    )
+    ax1.tick_params(direction="in", labelsize=10)
+    ax1.set_xlabel(
+        "Lithium Concentration\n in Membrane (mM)",
+        fontsize=12,
+        fontweight="bold",
+    )
+
+    fig.colorbar(actual_vals_plot, ax=ax1)
+
+    # add contour for when this denominator = 0:
+    ax1.contour(
+        c1_vals,
+        c2_vals,
+        actual_vals_df,
+        levels=[0],
+        colors="red",
+        linestyles="--",
+        linewidths=2,
+    )
+
+    plt.show()
+
+
+def plot_ground_truth_numerators_three_salt():
+    conc_array = np.arange(1, 201, 1)
+
+    c1_vals = []
+    c2_vals = []
+    for c1 in conc_array:
+        c1_vals.append(c1)
+    for c2 in conc_array:
+        c2_vals.append(c2)
+
+    chi = -140
+
+    c3 = 2.5
+
+    actual_vals_d11_num = []
+    actual_vals_d12_num = []
+    actual_vals_d13_num = []
+    actual_vals_d21_num = []
+    actual_vals_d22_num = []
+    actual_vals_d23_num = []
+    actual_vals_d31_num = []
+    actual_vals_d32_num = []
+    actual_vals_d33_num = []
+
+    actual_vals_dict_d11_num = {}
+    actual_vals_dict_d12_num = {}
+    actual_vals_dict_d13_num = {}
+    actual_vals_dict_d21_num = {}
+    actual_vals_dict_d22_num = {}
+    actual_vals_dict_d23_num = {}
+    actual_vals_dict_d31_num = {}
+    actual_vals_dict_d32_num = {}
+    actual_vals_dict_d33_num = {}
+
+    for c1 in conc_array:
+        for c2 in conc_array:
+            actual_val_d11_num = calculate_true_value_three_salt_d11_num(
+                c1, c2, c3, chi
+            )
+            actual_vals_d11_num.append(actual_val_d11_num)
+            actual_val_d12_num = calculate_true_value_three_salt_d12_num(c1)
+            actual_vals_d12_num.append(actual_val_d12_num)
+            actual_val_d13_num = calculate_true_value_three_salt_d13_num(c1)
+            actual_vals_d13_num.append(actual_val_d13_num)
+            actual_val_d21_num = calculate_true_value_three_salt_d21_num(c2)
+            actual_vals_d21_num.append(actual_val_d21_num)
+            actual_val_d22_num = calculate_true_value_three_salt_d22_num(
+                c1, c2, c3, chi
+            )
+            actual_vals_d22_num.append(actual_val_d22_num)
+            actual_val_d23_num = calculate_true_value_three_salt_d23_num(c2)
+            actual_vals_d23_num.append(actual_val_d23_num)
+            actual_val_d31_num = calculate_true_value_three_salt_d31_num(c3)
+            actual_vals_d31_num.append(actual_val_d31_num)
+            actual_val_d32_num = calculate_true_value_three_salt_d32_num(c3)
+            actual_vals_d32_num.append(actual_val_d32_num)
+            actual_val_d33_num = calculate_true_value_three_salt_d33_num(
+                c1, c2, c3, chi
+            )
+            actual_vals_d33_num.append(actual_val_d33_num)
+
+        actual_vals_dict_d11_num[f"{c1}"] = actual_vals_d11_num
+        actual_vals_dict_d12_num[f"{c1}"] = actual_vals_d12_num
+        actual_vals_dict_d13_num[f"{c1}"] = actual_vals_d13_num
+        actual_vals_dict_d21_num[f"{c1}"] = actual_vals_d21_num
+        actual_vals_dict_d22_num[f"{c1}"] = actual_vals_d22_num
+        actual_vals_dict_d23_num[f"{c1}"] = actual_vals_d23_num
+        actual_vals_dict_d31_num[f"{c1}"] = actual_vals_d31_num
+        actual_vals_dict_d32_num[f"{c1}"] = actual_vals_d32_num
+        actual_vals_dict_d33_num[f"{c1}"] = actual_vals_d33_num
+
+        actual_vals_d11_num = []
+        actual_vals_d12_num = []
+        actual_vals_d13_num = []
+        actual_vals_d21_num = []
+        actual_vals_d22_num = []
+        actual_vals_d23_num = []
+        actual_vals_d31_num = []
+        actual_vals_d32_num = []
+        actual_vals_d33_num = []
+
+    actual_vals_df_d11_num = DataFrame(index=c2_vals, data=actual_vals_dict_d11_num)
+    actual_vals_df_d12_num = DataFrame(index=c2_vals, data=actual_vals_dict_d12_num)
+    actual_vals_df_d13_num = DataFrame(index=c2_vals, data=actual_vals_dict_d13_num)
+    actual_vals_df_d21_num = DataFrame(index=c2_vals, data=actual_vals_dict_d21_num)
+    actual_vals_df_d22_num = DataFrame(index=c2_vals, data=actual_vals_dict_d22_num)
+    actual_vals_df_d23_num = DataFrame(index=c2_vals, data=actual_vals_dict_d23_num)
+    actual_vals_df_d31_num = DataFrame(index=c2_vals, data=actual_vals_dict_d31_num)
+    actual_vals_df_d32_num = DataFrame(index=c2_vals, data=actual_vals_dict_d32_num)
+    actual_vals_df_d33_num = DataFrame(index=c2_vals, data=actual_vals_dict_d33_num)
+
+    fig1, ((ax1, ax2, ax3), (ax4, ax5, ax6), (ax7, ax8, ax9)) = plt.subplots(
+        3, 3, figsize=(10, 8)
+    )
+    actual_vals_plot_d11_num = ax1.pcolor(c1_vals, c2_vals, actual_vals_df_d11_num)
+    ax1.contour(
+        c1_vals,
+        c2_vals,
+        actual_vals_df_d11_num,
+        levels=[0],
+        colors="red",
+        linestyles="--",
+        linewidths=2,
+    )
+    actual_vals_plot_d12_num = ax2.pcolor(c1_vals, c2_vals, actual_vals_df_d12_num)
+    ax2.contour(
+        c1_vals,
+        c2_vals,
+        actual_vals_df_d12_num,
+        levels=[0],
+        colors="red",
+        linestyles="--",
+        linewidths=2,
+    )
+    actual_vals_plot_d13_num = ax3.pcolor(c1_vals, c2_vals, actual_vals_df_d13_num)
+    ax3.contour(
+        c1_vals,
+        c2_vals,
+        actual_vals_df_d13_num,
+        levels=[0],
+        colors="red",
+        linestyles="--",
+        linewidths=2,
+    )
+    actual_vals_plot_d21_num = ax4.pcolor(c1_vals, c2_vals, actual_vals_df_d21_num)
+    ax4.contour(
+        c1_vals,
+        c2_vals,
+        actual_vals_df_d21_num,
+        levels=[0],
+        colors="red",
+        linestyles="--",
+        linewidths=2,
+    )
+    actual_vals_plot_d22_num = ax5.pcolor(c1_vals, c2_vals, actual_vals_df_d22_num)
+    ax5.contour(
+        c1_vals,
+        c2_vals,
+        actual_vals_df_d22_num,
+        levels=[0],
+        colors="red",
+        linestyles="--",
+        linewidths=2,
+    )
+    actual_vals_plot_d23_num = ax6.pcolor(c1_vals, c2_vals, actual_vals_df_d23_num)
+    ax6.contour(
+        c1_vals,
+        c2_vals,
+        actual_vals_df_d23_num,
+        levels=[0],
+        colors="red",
+        linestyles="--",
+        linewidths=2,
+    )
+    actual_vals_plot_d31_num = ax7.pcolor(c1_vals, c2_vals, actual_vals_df_d31_num)
+    ax7.contour(
+        c1_vals,
+        c2_vals,
+        actual_vals_df_d31_num,
+        levels=[0],
+        colors="red",
+        linestyles="--",
+        linewidths=2,
+    )
+    actual_vals_plot_d32_num = ax8.pcolor(c1_vals, c2_vals, actual_vals_df_d32_num)
+    ax8.contour(
+        c1_vals,
+        c2_vals,
+        actual_vals_df_d32_num,
+        levels=[0],
+        colors="red",
+        linestyles="--",
+        linewidths=2,
+    )
+    actual_vals_plot_d33_num = ax9.pcolor(c1_vals, c2_vals, actual_vals_df_d33_num)
+    ax9.contour(
+        c1_vals,
+        c2_vals,
+        actual_vals_df_d33_num,
+        levels=[0],
+        colors="red",
+        linestyles="--",
+        linewidths=2,
+    )
+
+    plt.suptitle(
+        f"Ground Truth Values - Numerators, c_aluminum = {c3} mM",
+        fontsize=12,
+        fontweight="bold",
+    )
+
+    ax1.set_title("D_11", fontsize=12, fontweight="bold")
+    ax2.set_title("D_12", fontsize=12, fontweight="bold")
+    ax3.set_title("D_13", fontsize=12, fontweight="bold")
+    ax4.set_title("D_21", fontsize=12, fontweight="bold")
+    ax5.set_title("D_22", fontsize=12, fontweight="bold")
+    ax6.set_title("D_23", fontsize=12, fontweight="bold")
+    ax7.set_title("D_31", fontsize=12, fontweight="bold")
+    ax8.set_title("D_32", fontsize=12, fontweight="bold")
+    ax9.set_title("D_33", fontsize=12, fontweight="bold")
+
+    for ax in (ax1, ax4, ax7):
+        ax.set_ylabel(
+            "Cobalt Concentration in Membrane (mM)",
+            fontsize=12,
+            fontweight="bold",
+        )
+    for ax in (ax7, ax8, ax9):
+        ax.set_xlabel(
+            "Lithium Concentration\n in Membrane (mM)",
+            fontsize=12,
+            fontweight="bold",
+        )
+
+    fig1.colorbar(actual_vals_plot_d11_num, ax=ax1)
+    fig1.colorbar(actual_vals_plot_d12_num, ax=ax2)
+    fig1.colorbar(actual_vals_plot_d13_num, ax=ax3)
+    fig1.colorbar(actual_vals_plot_d21_num, ax=ax4)
+    fig1.colorbar(actual_vals_plot_d22_num, ax=ax5)
+    fig1.colorbar(actual_vals_plot_d23_num, ax=ax6)
+    fig1.colorbar(actual_vals_plot_d31_num, ax=ax7)
+    fig1.colorbar(actual_vals_plot_d32_num, ax=ax8)
+    fig1.colorbar(actual_vals_plot_d33_num, ax=ax9)
+    plt.show()
+
+
+def plot_ground_truth_three_salt():
     conc_array = np.arange(1, 201, 1)
 
     c1_vals = []
@@ -1117,7 +1516,7 @@ def calculate_true_value_two_salt_alpha2(c1, c2, chi):
     return alpha_2_calc
 
 
-def calculate_true_value_three_salt(c1, c2, c3):
+def calculate_true_value_three_salt_dtilde(c1, c2, c3, chi):
     z1 = 1  # m2/h (lithium)
     z2 = 2  # m2/h (cobalt)
     z3 = 3  # m2/h (aluminum)
@@ -1128,7 +1527,177 @@ def calculate_true_value_three_salt(c1, c2, c3):
     D3 = 2.01e-6  # m2/h (aluminum)
     D4 = 7.31e-6  # m2/h (chloride)
 
-    chi = -140
+    chi = chi
+
+    D_denom = (
+        ((((z1**2) * D1) - (z1 * z4 * D4)) * c1)
+        + ((((z2**2) * D2) - (z2 * z4 * D4)) * c2)
+        + ((((z3**2) * D3) - (z3 * z4 * D4)) * c3)
+        - (z4 * D4 * chi)
+    )
+
+    return D_denom
+
+
+def calculate_true_value_three_salt_d11_num(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_11_num = (
+        (((z1 * z4 * D1 * D4) - ((z1**2) * D1 * D4)) * c1)
+        + (((z2 * z4 * D1 * D4) - ((z2**2) * D1 * D2)) * c2)
+        + (((z3 * z4 * D1 * D4) - ((z3**2) * D1 * D3)) * c3)
+        + (z4 * D1 * D4 * chi)
+    )
+
+    return D_11_num
+
+
+def calculate_true_value_three_salt_d12_num(c1):
+    z1 = 1
+    z2 = 2
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    D_12_num = ((z1 * z2 * D1 * D2) - (z1 * z2 * D1 * D4)) * c1
+
+    return D_12_num
+
+
+def calculate_true_value_three_salt_d13_num(c1):
+    z1 = 1
+    z3 = -1
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    D_13_num = ((z1 * z3 * D1 * D3) - (z1 * z3 * D1 * D4)) * c1
+
+    return D_13_num
+
+
+def calculate_true_value_three_salt_d21_num(c2):
+    z1 = 1
+    z2 = 2
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    D_21_num = ((z1 * z2 * D1 * D2) - (z1 * z2 * D2 * D4)) * c2
+
+    return D_21_num
+
+
+def calculate_true_value_three_salt_d22_num(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_22_num = (
+        (((z1 * z4 * D2 * D4) - ((z1**2) * D1 * D2)) * c1)
+        + (((z2 * z4 * D2 * D4) - ((z2**2) * D2 * D4)) * c2)
+        + (((z3 * z4 * D2 * D4) - ((z3**2) * D2 * D3)) * c3)
+        + (z4 * D2 * D4 * chi)
+    )
+
+    return D_22_num
+
+
+def calculate_true_value_three_salt_d23_num(c2):
+    z2 = 2
+    z3 = -1
+
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    D_23_num = ((z2 * z3 * D2 * D3) - (z2 * z3 * D2 * D4)) * c2
+
+    return D_23_num
+
+
+def calculate_true_value_three_salt_d31_num(c3):
+    z1 = 1
+    z3 = -1
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    D_31_num = ((z1 * z3 * D1 * D3) - (z1 * z3 * D3 * D4)) * c3
+
+    return D_31_num
+
+
+def calculate_true_value_three_salt_d32_num(c3):
+    z2 = 2
+    z3 = -1
+
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    D_32_num = ((z2 * z3 * D2 * D3) - (z2 * z3 * D3 * D4)) * c3
+
+    return D_32_num
+
+
+def calculate_true_value_three_salt_d33_num(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_33_num = (
+        (((z1 * z4 * D3 * D4) - ((z1**2) * D1 * D3)) * c1)
+        + (((z2 * z4 * D3 * D4) - ((z2**2) * D2 * D3)) * c2)
+        + (((z3 * z4 * D3 * D4) - ((z3**2) * D3 * D4)) * c3)
+        + (z4 * D3 * D4 * chi)
+    )
+
+    return D_33_num
+
+
+def calculate_true_value_three_salt_d11(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
 
     D_denom = (
         ((((z1**2) * D1) - (z1 * z4 * D4)) * c1)
@@ -1145,6 +1714,291 @@ def calculate_true_value_three_salt(c1, c2, c3):
     ) / D_denom
 
     return D_11
+
+
+def calculate_true_value_three_salt_d12(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_denom = (
+        ((((z1**2) * D1) - (z1 * z4 * D4)) * c1)
+        + ((((z2**2) * D2) - (z2 * z4 * D4)) * c2)
+        + ((((z3**2) * D3) - (z3 * z4 * D4)) * c3)
+        - (z4 * D4 * chi)
+    ) / D_denom
+
+    D_12 = ((z1 * z2 * D1 * D2) - (z1 * z2 * D1 * D4)) * c1
+
+    return D_12
+
+
+def calculate_true_value_three_salt_d13(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_denom = (
+        ((((z1**2) * D1) - (z1 * z4 * D4)) * c1)
+        + ((((z2**2) * D2) - (z2 * z4 * D4)) * c2)
+        + ((((z3**2) * D3) - (z3 * z4 * D4)) * c3)
+        - (z4 * D4 * chi)
+    )
+
+    D_13 = (((z1 * z3 * D1 * D3) - (z1 * z3 * D1 * D4)) * c1) / D_denom
+
+    return D_13
+
+
+def calculate_true_value_three_salt_d21(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_denom = (
+        ((((z1**2) * D1) - (z1 * z4 * D4)) * c1)
+        + ((((z2**2) * D2) - (z2 * z4 * D4)) * c2)
+        + ((((z3**2) * D3) - (z3 * z4 * D4)) * c3)
+        - (z4 * D4 * chi)
+    )
+
+    D_21 = (((z1 * z2 * D1 * D2) - (z1 * z2 * D2 * D4)) * c2) / D_denom
+
+    return D_21
+
+
+def calculate_true_value_three_salt_d22(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_denom = (
+        ((((z1**2) * D1) - (z1 * z4 * D4)) * c1)
+        + ((((z2**2) * D2) - (z2 * z4 * D4)) * c2)
+        + ((((z3**2) * D3) - (z3 * z4 * D4)) * c3)
+        - (z4 * D4 * chi)
+    )
+
+    D_22 = (
+        (((z1 * z4 * D2 * D4) - ((z1**2) * D1 * D2)) * c1)
+        + (((z2 * z4 * D2 * D4) - ((z2**2) * D2 * D4)) * c2)
+        + (((z3 * z4 * D2 * D4) - ((z3**2) * D2 * D3)) * c3)
+        + (z4 * D2 * D4 * chi)
+    ) / D_denom
+
+    return D_22
+
+
+def calculate_true_value_three_salt_d23(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_denom = (
+        ((((z1**2) * D1) - (z1 * z4 * D4)) * c1)
+        + ((((z2**2) * D2) - (z2 * z4 * D4)) * c2)
+        + ((((z3**2) * D3) - (z3 * z4 * D4)) * c3)
+        - (z4 * D4 * chi)
+    )
+
+    D_23 = (((z2 * z3 * D2 * D3) - (z2 * z3 * D2 * D4)) * c2) / D_denom
+
+    return D_23
+
+
+def calculate_true_value_three_salt_d31(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_denom = (
+        ((((z1**2) * D1) - (z1 * z4 * D4)) * c1)
+        + ((((z2**2) * D2) - (z2 * z4 * D4)) * c2)
+        + ((((z3**2) * D3) - (z3 * z4 * D4)) * c3)
+        - (z4 * D4 * chi)
+    )
+
+    D_31 = (((z1 * z3 * D1 * D3) - (z1 * z3 * D3 * D4)) * c3) / D_denom
+
+    return D_31
+
+
+def calculate_true_value_three_salt_d32(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_denom = (
+        ((((z1**2) * D1) - (z1 * z4 * D4)) * c1)
+        + ((((z2**2) * D2) - (z2 * z4 * D4)) * c2)
+        + ((((z3**2) * D3) - (z3 * z4 * D4)) * c3)
+        - (z4 * D4 * chi)
+    )
+
+    D_32 = (((z2 * z3 * D2 * D3) - (z2 * z3 * D3 * D4)) * c3) / D_denom
+
+    return D_32
+
+
+def calculate_true_value_three_salt_d33(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_denom = (
+        ((((z1**2) * D1) - (z1 * z4 * D4)) * c1)
+        + ((((z2**2) * D2) - (z2 * z4 * D4)) * c2)
+        + ((((z3**2) * D3) - (z3 * z4 * D4)) * c3)
+        - (z4 * D4 * chi)
+    )
+
+    D_33 = (
+        (((z1 * z4 * D3 * D4) - ((z1**2) * D1 * D3)) * c1)
+        + (((z2 * z4 * D3 * D4) - ((z2**2) * D2 * D3)) * c2)
+        + (((z3 * z4 * D3 * D4) - ((z3**2) * D3 * D4)) * c3)
+        + (z4 * D3 * D4 * chi)
+    ) / D_denom
+
+    return D_33
+
+
+def calculate_true_value_three_salt_alpha1(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_denom = (
+        ((((z1**2) * D1) - (z1 * z4 * D4)) * c1)
+        + ((((z2**2) * D2) - (z2 * z4 * D4)) * c2)
+        + ((((z3**2) * D3) - (z3 * z4 * D4)) * c3)
+        - (z4 * D4 * chi)
+    )
+
+    alpha1 = 1 + (z1 * D1 * chi) / D_denom
+
+    return alpha1
+
+
+def calculate_true_value_three_salt_alpha2(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_denom = (
+        ((((z1**2) * D1) - (z1 * z4 * D4)) * c1)
+        + ((((z2**2) * D2) - (z2 * z4 * D4)) * c2)
+        + ((((z3**2) * D3) - (z3 * z4 * D4)) * c3)
+        - (z4 * D4 * chi)
+    )
+
+    alpha2 = 1 + (z2 * D2 * chi) / D_denom
+
+    return alpha2
+
+
+def calculate_true_value_three_salt_alpha3(c1, c2, c3, chi):
+    z1 = 1
+    z2 = 2
+    z3 = -1
+    z4 = -1  # m2/h (chloride)
+
+    D1 = 3.71e-6  # m2/h (lithium)
+    D2 = 2.64e-6  # m2/h (cobalt)
+    D3 = 2.01e-6  # m2/h (aluminum)
+    D4 = 7.31e-6  # m2/h (chloride)
+
+    chi = chi
+
+    D_denom = (
+        ((((z1**2) * D1) - (z1 * z4 * D4)) * c1)
+        + ((((z2**2) * D2) - (z2 * z4 * D4)) * c2)
+        + ((((z3**2) * D3) - (z3 * z4 * D4)) * c3)
+        - (z4 * D4 * chi)
+    )
+
+    alpha3 = 1 + (z3 * D3 * chi) / D_denom
+
+    return alpha3
 
 
 if __name__ == "__main__":
