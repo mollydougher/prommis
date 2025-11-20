@@ -87,7 +87,6 @@ class SoluteParameterData(PhysicalParameterBlock):
 
         # add partition coefficient
         # currently H,Li is based on https://doi.org/10.1021/acs.iecr.4c04763
-        # H,Co and H,Cl are arbitrarily chosen to be the same value
         self.partition_coefficient = Param(
             self.component_list,
             units=units.dimensionless,

@@ -57,8 +57,8 @@ def main():
     # add the membrane unit model
     m.fs.membrane = ThreeSaltDiafiltration(
         property_package=m.fs.properties,
-        NFE_module_length=3,
-        NFE_membrane_thickness=3,
+        NFE_module_length=10,
+        NFE_membrane_thickness=5,
         charged_membrane=True,
     )
 
@@ -80,26 +80,11 @@ def main():
     solve_model(m)
 
     # check numerical warnings
-    # dt.assert_no_numerical_warnings()
-    dt.report_numerical_issues()
-    dt.display_constraints_with_large_residuals()
-    # dt.compute_infeasibility_explanation()
-    dt.display_variables_at_or_outside_bounds()
-
-    # m.fs.membrane.lumped_water_flux.display()
-    # m.fs.membrane.volume_flux_water.display()
-    # m.fs.membrane.osmotic_pressure.display()
-
-    # m.fs.membrane.D_tilde.display()
-    # m.fs.membrane.D_aluminum_aluminum_bilinear.display()
-    # m.fs.membrane.D_aluminum_aluminum.display()
-    # m.fs.membrane.alpha_lithium_bilinear.display()
-    # m.fs.membrane.alpha_cobalt_bilinear.display()
-    # m.fs.membrane.alpha_aluminum_bilinear.display()
+    dt.assert_no_numerical_warnings()
 
     # visualize the results
-    # plot_results(m)
-    # plot_membrane_results(m)
+    plot_results(m)
+    plot_membrane_results(m)
 
 
 def build_membrane_parameters(m):
@@ -314,17 +299,17 @@ def plot_results(m):
 
     ax4.plot(x_axis_values, lithium_flux, linewidth=2)
     ax4.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax4.set_ylabel("Lithium Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
+    ax4.set_ylabel("Lithium Molar Flux\n(mol/m$^2$/h)", fontsize=10, fontweight="bold")
     ax4.tick_params(direction="in", labelsize=10)
 
     ax5.plot(x_axis_values, cobalt_flux, linewidth=2)
     ax5.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax5.set_ylabel("Cobalt Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
+    ax5.set_ylabel("Cobalt Molar Flux\n(mol/m$^2$/h)", fontsize=10, fontweight="bold")
     ax5.tick_params(direction="in", labelsize=10)
 
     ax6.plot(x_axis_values, aluminum_flux, linewidth=2)
     ax6.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax6.set_ylabel("Aluminum Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
+    ax6.set_ylabel("Aluminum Molar Flux\n(mol/m$^2$/h)", fontsize=10, fontweight="bold")
     ax6.tick_params(direction="in", labelsize=10)
 
     ax7.plot(x_axis_values, water_flux, linewidth=2)
