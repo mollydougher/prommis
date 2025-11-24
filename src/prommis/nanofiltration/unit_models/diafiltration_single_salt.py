@@ -852,6 +852,8 @@ and used when constructing these,
 
         # other physical constraints
         def _osmotic_pressure_calculation(blk, x):
+            if x == 0:
+                return Constraint.Skip
             return blk.osmotic_pressure[x] == units.convert(
                 (
                     Constants.gas_constant  # J / mol / K
@@ -928,8 +930,8 @@ and used when constructing these,
             if x == 0:
                 return Constraint.Skip
             return (
-                blk.config.property_package.partition_coefficient["cation"]
-                * blk.config.property_package.partition_coefficient["anion"]
+                blk.config.property_package.partition_coefficient_retentate["cation"]
+                * blk.config.property_package.partition_coefficient_retentate["anion"]
                 * blk.retentate_conc_mol_comp[0, x, "cation"]
                 * blk.retentate_conc_mol_comp[0, x, "anion"]
             ) == (
@@ -944,8 +946,8 @@ and used when constructing these,
             if x == 0:
                 return Constraint.Skip
             return (
-                blk.config.property_package.partition_coefficient["cation"]
-                * blk.config.property_package.partition_coefficient["anion"]
+                blk.config.property_package.partition_coefficient_permeate["cation"]
+                * blk.config.property_package.partition_coefficient_permeate["anion"]
                 * blk.permeate_conc_mol_comp[0, x, "cation"]
                 * blk.permeate_conc_mol_comp[0, x, "anion"]
             ) == (
@@ -1031,7 +1033,7 @@ and used when constructing these,
             if x == 0:
                 return Expression.Skip
             return abs(
-                blk.alpha_cation[x, z]
+                blk.convection_coefficient_cation[x, z]
                 * blk.membrane_conc_mol_cation[x, z]
                 * blk.volume_flux_water[x]
             ) / (
