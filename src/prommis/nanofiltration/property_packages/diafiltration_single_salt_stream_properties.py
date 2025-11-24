@@ -29,10 +29,6 @@ class DiafiltrationStreamParameterData(PhysicalParameterBlock):
     """
     Property Package for the feed and product streams in the
     single-salt diafiltration membrane.
-
-    Currently includes the following solutes:
-        Li+ (lithium ion)
-        Cl- (chloride ion)
     """
 
     def build(self):

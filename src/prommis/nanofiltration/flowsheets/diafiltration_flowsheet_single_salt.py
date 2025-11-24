@@ -26,10 +26,10 @@ from idaes.models.unit_models import Feed, Product
 import matplotlib.pyplot as plt
 from pandas import DataFrame
 
-from prommis.nanofiltration.property_packages.diafiltration_LiCl_stream_properties import (
+from prommis.nanofiltration.property_packages.diafiltration_single_salt_stream_properties import (
     DiafiltrationStreamParameter,
 )
-from prommis.nanofiltration.property_packages.diafiltration_LiCl_solute_properties import (
+from prommis.nanofiltration.property_packages.diafiltration_single_salt_solute_properties import (
     SoluteParameter,
 )
 from prommis.nanofiltration.unit_models.diafiltration_single_salt import (
@@ -45,7 +45,7 @@ def main():
     m = ConcreteModel()
     m.fs = FlowsheetBlock(dynamic=False)
     m.fs.stream_properties = DiafiltrationStreamParameter()
-    m.fs.properties = SoluteParameter()
+    m.fs.properties = SoluteParameter(single_salt_system="aluminum_chloride")
 
     # update parameter inputs if desired
     build_membrane_parameters(m)
@@ -101,7 +101,22 @@ def fix_variables(m):
     # fix degrees of freedom in the membrane
     m.fs.membrane.total_module_length.fix()
     m.fs.membrane.total_membrane_length.fix()
-    m.fs.membrane.applied_pressure.fix()
+    # at a constant salt concentration in the feed, the ionic strength (this the osmostic pressure) changes
+    if (
+        m.fs.membrane.config.property_package.config.single_salt_system
+        == "lithium_chloride"
+    ):
+        m.fs.membrane.applied_pressure.fix()
+    elif (
+        m.fs.membrane.config.property_package.config.single_salt_system
+        == "cobalt_chloride"
+    ):
+        m.fs.membrane.applied_pressure.fix(25)
+    elif (
+        m.fs.membrane.config.property_package.config.single_salt_system
+        == "aluminum_chloride"
+    ):
+        m.fs.membrane.applied_pressure.fix(35)
 
     # fix degrees of freedom in the flowsheet
     m.fs.membrane.feed_flow_volume.fix()
@@ -161,39 +176,55 @@ def plot_results(m):
     # store values for x-coordinate
     x_axis_values = []
 
-    # store values for concentration of lithium in the retentate
-    conc_ret_lith = []
-    # store values for concentration of lithium in the permeate
-    conc_perm_lith = []
-    # store values for concentration of cobalt in the retentate
+    # store values for concentration of cation in the retentate
+    conc_ret_cation = []
+    # store values for concentration of cation in the permeate
+    conc_perm_cation = []
+    # store values for concentration of anion in the retentate
+    conc_ret_anion = []
+    # store values for concentration of anion in the permeate
+    conc_perm_anion = []
 
     # store values for water flux across membrane
     water_flux = []
-    # store values for mol flux of lithium across membrane
-    lithium_flux = []
+    # store values for mol flux of cation across membrane
+    cation_flux = []
+    # store values for mol flux of anion across membrane
+    anion_flux = []
 
     # store values for percent recovery
     percent_recovery = []
 
-    # store values for lithium rejection
-    lithium_rejection = []
-    # store values for lithium solute passage
-    lithium_sieving = []
+    # store values for cation rejection
+    cation_rejection = []
+    # store values for cation solute passage
+    cation_sieving = []
+    # store values for anion rejection
+    anion_rejection = []
+    # store values for anion solute passage
+    anion_sieving = []
 
     for x_val in m.fs.membrane.dimensionless_module_length:
         if x_val != 0:
             x_axis_values.append(x_val * value(m.fs.membrane.total_module_length))
-            conc_ret_lith.append(
+            conc_ret_cation.append(
                 value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation"])
             )
-            conc_perm_lith.append(
+            conc_perm_cation.append(
                 value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation"])
+            )
+            conc_ret_anion.append(
+                value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "anion"])
+            )
+            conc_perm_anion.append(
+                value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "anion"])
             )
 
             water_flux.append(value(m.fs.membrane.volume_flux_water[x_val]))
-            lithium_flux.append(value(m.fs.membrane.mol_flux_cation[x_val]))
+            cation_flux.append(value(m.fs.membrane.mol_flux_cation[x_val]))
+            anion_flux.append(value(m.fs.membrane.mol_flux_anion[x_val]))
 
-            lithium_rejection.append(
+            cation_rejection.append(
                 (
                     1
                     - (
@@ -205,10 +236,29 @@ def plot_results(m):
                 )
                 * 100
             )
-            lithium_sieving.append(
+            cation_sieving.append(
                 (
                     value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation"])
                     / value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation"])
+                )
+            )
+
+            anion_rejection.append(
+                (
+                    1
+                    - (
+                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "anion"])
+                        / value(
+                            m.fs.membrane.retentate_conc_mol_comp[0, x_val, "anion"]
+                        )
+                    )
+                )
+                * 100
+            )
+            anion_sieving.append(
+                (
+                    value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "anion"])
+                    / value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "anion"])
                 )
             )
 
@@ -224,25 +274,35 @@ def plot_results(m):
         3, 2, dpi=75, figsize=(12, 10)
     )
 
-    ax1.plot(x_axis_values, conc_ret_lith, linewidth=2, label="retentate")
-    ax1.plot(x_axis_values, conc_perm_lith, linewidth=2, label="permeate")
+    ax1.plot(x_axis_values, conc_ret_cation, linewidth=2, label="retentate")
+    ax1.plot(x_axis_values, conc_perm_cation, linewidth=2, label="permeate")
     ax1.set_ylabel(
-        "Lithium Concentration\n(mM)",
+        "Cation Concentration\n(mM)",
         fontsize=12,
         fontweight="bold",
     )
     ax1.tick_params(direction="in", labelsize=10)
     ax1.legend(fontsize=12)
 
+    ax2.plot(x_axis_values, conc_ret_anion, linewidth=2, label="retentate")
+    ax2.plot(x_axis_values, conc_perm_anion, linewidth=2, label="permeate")
+    ax2.set_ylabel(
+        "Anion Concentration\n(mM)",
+        fontsize=12,
+        fontweight="bold",
+    )
+    ax2.tick_params(direction="in", labelsize=10)
+    ax2.legend(fontsize=12)
+
     ax3.plot(x_axis_values, water_flux, linewidth=2)
     ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=12, fontweight="bold")
     ax3.tick_params(direction="in", labelsize=10)
 
-    ax4.plot(x_axis_values, lithium_flux, linewidth=2)
+    ax4.plot(x_axis_values, cation_flux, linewidth=2)
     ax4.set_ylabel("Lithium Molar Flux\n(mol/m$^2$/h)", fontsize=12, fontweight="bold")
     ax4.tick_params(direction="in", labelsize=10)
 
-    ax5.plot(x_axis_values, lithium_rejection, linewidth=2, label="lithium")
+    ax5.plot(x_axis_values, cation_rejection, linewidth=2, label="cation")
     ax5.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
     ax5.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
     ax5.tick_params(direction="in", labelsize=10)
@@ -252,6 +312,8 @@ def plot_results(m):
     ax6.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
     ax6.set_ylabel("Percent Recovery (%)", fontsize=12, fontweight="bold")
     ax6.tick_params(direction="in", labelsize=10)
+
+    plt.suptitle(f"{m.fs.membrane.config.property_package.config.single_salt_system}")
 
     plt.show()
 
@@ -273,56 +335,58 @@ def plot_membrane_results(m):
         z_axis_values.append(
             z_val * value(m.fs.membrane.total_membrane_thickness) * 1e9
         )
-    # store values for concentration of lithium in the membrane
-    conc_mem_lith = []
-    conc_mem_lith_dict = {}
-    # store values for concentration of chloride in the membrane
-    conc_mem_chl = []
-    conc_mem_chl_dict = {}
+    # store values for concentration of cation in the membrane
+    conc_mem_cation = []
+    conc_mem_cation_dict = {}
+    # store values for concentration of anion in the membrane
+    conc_mem_anion = []
+    conc_mem_anion_dict = {}
 
     for z_val in m.fs.membrane.dimensionless_membrane_thickness:
         for x_val in m.fs.membrane.dimensionless_module_length:
             if x_val != 0:
-                conc_mem_lith.append(
+                conc_mem_cation.append(
                     value(m.fs.membrane.membrane_conc_mol_cation[x_val, z_val])
                 )
-                conc_mem_chl.append(
+                conc_mem_anion.append(
                     value(m.fs.membrane.membrane_conc_mol_anion[x_val, z_val])
                 )
 
-        conc_mem_lith_dict[f"{z_val}"] = conc_mem_lith
-        conc_mem_chl_dict[f"{z_val}"] = conc_mem_chl
-        conc_mem_lith = []
-        conc_mem_chl = []
+        conc_mem_cation_dict[f"{z_val}"] = conc_mem_cation
+        conc_mem_anion_dict[f"{z_val}"] = conc_mem_anion
+        conc_mem_cation = []
+        conc_mem_anion = []
 
-    conc_mem_lith_df = DataFrame(index=x_axis_values, data=conc_mem_lith_dict)
-    conc_mem_chl_df = DataFrame(index=x_axis_values, data=conc_mem_chl_dict)
+    conc_mem_cation_df = DataFrame(index=x_axis_values, data=conc_mem_cation_dict)
+    conc_mem_anion_df = DataFrame(index=x_axis_values, data=conc_mem_anion_dict)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, dpi=125, figsize=(10, 7))
-    lithium_plot = ax1.pcolor(
-        z_axis_values, x_axis_values, conc_mem_lith_df, cmap="Reds"
+    cation_plot = ax1.pcolor(
+        z_axis_values, x_axis_values, conc_mem_cation_df, cmap="Reds"
     )
     ax1.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
     ax1.set_ylabel("Module Length (m)", fontsize=10, fontweight="bold")
     ax1.set_title(
-        "Lithium Concentration\n in Membrane (mM)",
+        "Cation Concentration\n in Membrane (mM)",
         fontsize=10,
         fontweight="bold",
     )
     ax1.tick_params(direction="in", labelsize=10)
-    fig.colorbar(lithium_plot, ax=ax1)
+    fig.colorbar(cation_plot, ax=ax1)
 
-    chloride_plot = ax2.pcolor(
-        z_axis_values, x_axis_values, conc_mem_chl_df, cmap="Oranges"
+    anion_plot = ax2.pcolor(
+        z_axis_values, x_axis_values, conc_mem_anion_df, cmap="Oranges"
     )
     ax2.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
     ax2.set_title(
-        "Chloride Concentration\n in Membrane (mM)",
+        "Anion Concentration\n in Membrane (mM)",
         fontsize=10,
         fontweight="bold",
     )
     ax2.tick_params(direction="in", labelsize=10)
-    fig.colorbar(chloride_plot, ax=ax2)
+    fig.colorbar(anion_plot, ax=ax2)
+
+    plt.suptitle(f"{m.fs.membrane.config.property_package.config.single_salt_system}")
 
     plt.show()
 

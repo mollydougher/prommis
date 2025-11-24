@@ -931,11 +931,18 @@ and used when constructing these,
                 return Constraint.Skip
             return (
                 blk.config.property_package.partition_coefficient_retentate["cation"]
+                ** (-blk.config.property_package.charge["anion"])
                 * blk.config.property_package.partition_coefficient_retentate["anion"]
+                ** blk.config.property_package.charge["cation"]
                 * blk.retentate_conc_mol_comp[0, x, "cation"]
+                ** (-blk.config.property_package.charge["anion"])
                 * blk.retentate_conc_mol_comp[0, x, "anion"]
+                ** blk.config.property_package.charge["cation"]
             ) == (
-                blk.membrane_conc_mol_cation[x, 0] * blk.membrane_conc_mol_anion[x, 0]
+                blk.membrane_conc_mol_cation[x, 0]
+                ** (-blk.config.property_package.charge["anion"])
+                * blk.membrane_conc_mol_anion[x, 0]
+                ** blk.config.property_package.charge["cation"]
             )
 
         self.retentate_membrane_interface_cation = Constraint(
@@ -947,11 +954,18 @@ and used when constructing these,
                 return Constraint.Skip
             return (
                 blk.config.property_package.partition_coefficient_permeate["cation"]
+                ** (-blk.config.property_package.charge["anion"])
                 * blk.config.property_package.partition_coefficient_permeate["anion"]
+                ** blk.config.property_package.charge["cation"]
                 * blk.permeate_conc_mol_comp[0, x, "cation"]
+                ** (-blk.config.property_package.charge["anion"])
                 * blk.permeate_conc_mol_comp[0, x, "anion"]
+                ** blk.config.property_package.charge["cation"]
             ) == (
-                blk.membrane_conc_mol_cation[x, 1] * blk.membrane_conc_mol_anion[x, 1]
+                blk.membrane_conc_mol_cation[x, 1]
+                ** (-blk.config.property_package.charge["anion"])
+                * blk.membrane_conc_mol_anion[x, 1]
+                ** blk.config.property_package.charge["cation"]
             )
 
         self.membrane_permeate_interface_cation = Constraint(

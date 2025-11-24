@@ -10,6 +10,7 @@ Property package for the multi-salt diafiltration membrane.
 Author: Molly Dougher
 """
 
+from pyomo.common.config import ConfigValue
 from pyomo.environ import Param, Var, units
 
 from idaes.core import (
@@ -29,61 +30,146 @@ class SoluteParameterData(PhysicalParameterBlock):
     """
     Property Package for the single-salt diafiltration membrane.
 
+    Congfig arguments:
+        single_salt_system: chosen salt name
+
     Currently includes the following solutes:
         Li+ (lithium ion)
+        Co2+ (cobalt ion)
+        Al3+ (aluminum ion)
+
         Cl- (chloride ion)
+
+    Thus, the following salt are supported:
+        lithium_chloride
+        cobalt_chloride
+        aluminum_chloride
     """
+
+    CONFIG = PhysicalParameterBlock.CONFIG()
+
+    CONFIG.declare(
+        "single_salt_system",
+        ConfigValue(
+            default="lithium_chloride",
+            doc="Name of the salt system to be modeled",
+        ),
+    )
 
     def build(self):
         super().build()
 
         self.liquid = Phase()
 
-        # add cation (lithium)
+        # add cation
         self.cation = Component()
 
-        # add anions (chloride)
+        # add anion
         self.anion = Component()
 
-        # add valence
-        self.charge = Param(
-            self.component_list,
-            units=units.dimensionless,
-            initialize={
-                "cation": 1,  # Li
-                "anion": -1,  # Cl
-            },
-        )
+        # ion valence
+        charge_dict = {
+            "Li": 1,
+            "Co": 2,
+            "Al": 3,
+            "Cl": -1,
+        }
 
-        # add single solute diffusion coefficient
-        self.diffusion_coefficient = Param(
-            self.component_list,
-            units=units.mm**2 / units.h,
-            initialize={
-                "cation": 3.71,  # Li
-                "anion": 7.31,  # Cl
-            },
-        )
+        # single solute diffusion coefficient
+        diffusion_coefficient_dict = {
+            "Li": 3.71,  # mm2/h
+            "Co": 2.64,  # mm2/h
+            "Al": 2.01,  # mm2/h
+            "Cl": 7.31,  # mm2/h
+        }
 
-        # add thermal reflection coefficient, related to solute rejection
-        self.sigma = Param(
-            self.component_list,
-            units=units.dimensionless,
-            initialize={
-                "cation": 1,  # Li
-                "anion": 1,  # Cl
-            },
-        )
+        # thermal reflection coefficient, related to solute rejection
+        sigma_dict = {
+            "Li": 1,
+            "Co": 1,
+            "Al": 1,
+            "Cl": 1,
+        }
 
         # add partition coefficient
         # currently H,Li is based on https://doi.org/10.1021/acs.iecr.4c04763
         # H,Cl arbitrarily chosen to be the same value
+        partition_coefficient_dict = {
+            "retentate": {
+                "Li": 0.3,
+                "Co": 0.03,
+                "Al": 0.003,
+                "Cl": 0.3,
+            },
+            "permeate": {
+                "Li": 0.6,
+                "Co": 0.6,
+                "Al": 0.6,
+                "Cl": 0.6,
+            },
+        }
+
+        num_solutes_dict = {
+            "lithium_chloride": {
+                "Li": 1,
+                "Cl": 1,
+            },
+            "cobalt_chloride": {
+                "Co": 1,
+                "Cl": 2,
+            },
+            "aluminum_chloride": {
+                "Al": 1,
+                "Cl": 3,
+            },
+        }
+
+        if self.config.single_salt_system == "lithium_chloride":
+            cation = "Li"
+            anion = "Cl"
+        elif self.config.single_salt_system == "cobalt_chloride":
+            cation = "Co"
+            anion = "Cl"
+        elif self.config.single_salt_system == "aluminum_chloride":
+            cation = "Al"
+            anion = "Cl"
+        else:
+            # TODO write exception
+            pass
+
+        self.charge = Param(
+            self.component_list,
+            units=units.dimensionless,
+            initialize={
+                "cation": charge_dict[cation],
+                "anion": charge_dict[anion],
+            },
+        )
+
+        self.diffusion_coefficient = Param(
+            self.component_list,
+            units=units.mm**2 / units.h,
+            initialize={
+                "cation": diffusion_coefficient_dict[cation],
+                "anion": diffusion_coefficient_dict[anion],
+            },
+        )
+
+        self.sigma = Param(
+            self.component_list,
+            units=units.dimensionless,
+            initialize={
+                "cation": sigma_dict[cation],
+                "anion": sigma_dict[anion],
+            },
+        )
+
         self.partition_coefficient_retentate = Param(
             self.component_list,
             units=units.dimensionless,
             initialize={
-                "cation": 0.3,  # Li
-                "anion": 0.3,  # Cl
+                "cation": partition_coefficient_dict["retentate"][cation],
+                "anion": partition_coefficient_dict["retentate"][anion],
             },
         )
 
@@ -91,8 +177,8 @@ class SoluteParameterData(PhysicalParameterBlock):
             self.component_list,
             units=units.dimensionless,
             initialize={
-                "cation": 0.6,  # Li
-                "anion": 0.6,  # Cl
+                "cation": partition_coefficient_dict["permeate"][cation],
+                "anion": partition_coefficient_dict["permeate"][anion],
             },
         )
 
@@ -100,8 +186,8 @@ class SoluteParameterData(PhysicalParameterBlock):
             self.component_list,
             units=units.dimensionless,
             initialize={
-                "cation": 1,  # Li
-                "anion": 1,  # Cl
+                "cation": num_solutes_dict[self.config.single_salt_system][cation],
+                "anion": num_solutes_dict[self.config.single_salt_system][anion],
             },
             doc="Moles of ions dissociated in solution per mole of lithium and cobalt chloride",
         )
