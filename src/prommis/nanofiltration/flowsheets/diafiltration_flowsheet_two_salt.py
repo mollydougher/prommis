@@ -57,23 +57,12 @@ def main():
     m.fs.feed_block = Feed(property_package=m.fs.stream_properties)
     m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
 
-    # surrogate_model_file_dict = {
-    #     "D_11": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d11_scaled",
-    #     "D_12": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d12_scaled",
-    #     "D_21": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d21_scaled",
-    #     "D_22": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d22_scaled",
-    #     "alpha_1": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_1",
-    #     "alpha_2": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_2",
-    # }
-
     # add the membrane unit model
     m.fs.membrane = TwoSaltDiafiltration(
         property_package=m.fs.properties,
         NFE_module_length=20,
         NFE_membrane_thickness=10,
         charged_membrane=True,
-        # surrogate_model_files=surrogate_model_file_dict,
-        # diffusion_surrogate_scaling_factor=1e-07,
     )
 
     # add product blocks for retentate and permeate
@@ -92,8 +81,6 @@ def main():
 
     # solve model
     solve_model(m)
-    # TODO: retrain the surrogate for lower Co membrane cocnentrations to reach other feed ratios
-    # check_membrane_concentration_ranges(m)
 
     # check numerical warnings
     dt.assert_no_numerical_warnings()
@@ -169,8 +156,8 @@ def fix_variables(m):
 
     # fix degrees of freedom in the flowsheet
     m.fs.membrane.feed_flow_volume.fix()
-    m.fs.membrane.feed_conc_mol_comp[0, "Li"].fix(75)
-    m.fs.membrane.feed_conc_mol_comp[0, "Co"].fix(150)
+    m.fs.membrane.feed_conc_mol_comp[0, "Li"].fix()
+    m.fs.membrane.feed_conc_mol_comp[0, "Co"].fix()
     m.fs.membrane.feed_conc_mol_comp[0, "Cl"].fix()
 
     m.fs.membrane.diafiltrate_flow_volume.fix()
@@ -215,43 +202,6 @@ def solve_model(m):
     assert_optimal_termination(results)
 
     scaling.propagate_solution(scaled_model, m)
-
-
-def check_membrane_concentration_ranges(m):
-    for x in m.fs.membrane.dimensionless_module_length:
-        for z in m.fs.membrane.dimensionless_membrane_thickness:
-            # skip check at x=0 as the concentration is expected to be 0 and the
-            # diffusion coefficient calculation is not needed
-            if x == 0:
-                pass
-            elif not (40 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 190):
-                raise ValueError(
-                    "WARNING: Membrane concentration for lithium ("
-                    f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
-                    f"x={x * value(m.fs.membrane.total_module_length)} m and "
-                    f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                    "of the valid range for the diffusion coefficient surrogate model "
-                    "(40-190 mM). Consider re-training the surrogate model."
-                )
-    if m.fs.membrane.config.charged_membrane:
-        for x in m.fs.membrane.dimensionless_module_length:
-            for z in m.fs.membrane.dimensionless_membrane_thickness:
-                # skip check at x=0 as the concentration is expected to be 0 and the
-                # diffusion coefficient calculation is not needed
-                if x == 0:
-                    pass
-                elif not (
-                    40 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 190
-                ):
-                    raise ValueError(
-                        "WARNING: Membrane concentration for cobalt ("
-                        f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
-                        f"x={x * value(m.fs.membrane.total_module_length)} m and "
-                        f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                        "of the valid range for the diffusion coefficient surrogate model "
-                        "(40-190 mM). Consider re-training the surrogate model."
-                    )
-
 
 def plot_results(m):
     """
@@ -349,37 +299,75 @@ def plot_results(m):
                 )
             )
 
-    fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
-        3, 2, dpi=75, figsize=(12, 10)
+    # fig1, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
+    #     3, 2, dpi=75, figsize=(12, 10)
+    # )
+
+    # ax1.plot(x_axis_values, conc_ret_lith, linewidth=2, label="retentate")
+    # ax1.plot(x_axis_values, conc_perm_lith, linewidth=2, label="permeate")
+    # ax1.set_ylabel(
+    #     "Lithium Concentration\n(mM)",
+    #     fontsize=12,
+    #     fontweight="bold",
+    # )
+    # ax1.tick_params(direction="in", labelsize=10)
+    # ax1.legend(fontsize=12)
+
+    # ax2.plot(x_axis_values, conc_ret_cob, linewidth=2, label="retentate")
+    # ax2.plot(x_axis_values, conc_perm_cob, linewidth=2, label="permeate")
+    # ax2.set_ylabel(
+    #     "Cobalt Concentration\n(mM)",
+    #     fontsize=12,
+    #     fontweight="bold",
+    # )
+    # ax2.tick_params(direction="in", labelsize=10)
+    # ax2.legend(fontsize=12)
+
+    # ax3.plot(x_axis_values, water_flux, linewidth=2)
+    # ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=12, fontweight="bold")
+    # ax3.tick_params(direction="in", labelsize=10)
+
+    # ax4.plot(x_axis_values, lithium_flux, linewidth=2)
+    # ax4.set_ylabel("Lithium Molar Flux\n(mol/m$^2$/h)", fontsize=12, fontweight="bold")
+    # ax4.tick_params(direction="in", labelsize=10)
+
+    # ax5.plot(x_axis_values, lithium_rejection, linewidth=2, label="lithium")
+    # ax5.plot(x_axis_values, cobalt_rejection, linewidth=2, label="cobalt")
+    # ax5.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
+    # ax5.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
+    # ax5.tick_params(direction="in", labelsize=10)
+    # ax5.legend(fontsize=12)
+
+    # ax6.plot(x_axis_values, percent_recovery, linewidth=2)
+    # ax6.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
+    # ax6.set_ylabel("Percent Recovery (%)", fontsize=12, fontweight="bold")
+    # ax6.tick_params(direction="in", labelsize=10)
+
+    fig1, (ax1, ax2, ax5) = plt.subplots(
+        1, 3, dpi=75, figsize=(14, 4)
     )
 
     ax1.plot(x_axis_values, conc_ret_lith, linewidth=2, label="retentate")
     ax1.plot(x_axis_values, conc_perm_lith, linewidth=2, label="permeate")
     ax1.set_ylabel(
-        "Lithium Concentration\n(mM)",
+        "Lithium Concentration (mM)",
         fontsize=12,
         fontweight="bold",
     )
+    ax1.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
     ax1.tick_params(direction="in", labelsize=10)
     ax1.legend(fontsize=12)
 
     ax2.plot(x_axis_values, conc_ret_cob, linewidth=2, label="retentate")
     ax2.plot(x_axis_values, conc_perm_cob, linewidth=2, label="permeate")
     ax2.set_ylabel(
-        "Cobalt Concentration\n(mM)",
+        "Cobalt Concentration (mM)",
         fontsize=12,
         fontweight="bold",
     )
+    ax2.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
     ax2.tick_params(direction="in", labelsize=10)
     ax2.legend(fontsize=12)
-
-    ax3.plot(x_axis_values, water_flux, linewidth=2)
-    ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=12, fontweight="bold")
-    ax3.tick_params(direction="in", labelsize=10)
-
-    ax4.plot(x_axis_values, lithium_flux, linewidth=2)
-    ax4.set_ylabel("Lithium Molar Flux\n(mol/m$^2$/h)", fontsize=12, fontweight="bold")
-    ax4.tick_params(direction="in", labelsize=10)
 
     ax5.plot(x_axis_values, lithium_rejection, linewidth=2, label="lithium")
     ax5.plot(x_axis_values, cobalt_rejection, linewidth=2, label="cobalt")
@@ -387,11 +375,6 @@ def plot_results(m):
     ax5.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
     ax5.tick_params(direction="in", labelsize=10)
     ax5.legend(fontsize=12)
-
-    ax6.plot(x_axis_values, percent_recovery, linewidth=2)
-    ax6.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
-    ax6.set_ylabel("Percent Recovery (%)", fontsize=12, fontweight="bold")
-    ax6.tick_params(direction="in", labelsize=10)
 
     plt.show()
 

@@ -30,21 +30,21 @@ from idaes.models.unit_models import Feed, Product
 import matplotlib.pyplot as plt
 import numpy as np
 
-from prommis.nanofiltration.diafiltration_stream_properties import (
+from prommis.nanofiltration.property_packages.diafiltration_stream_properties import (
     DiafiltrationStreamParameter as DiafiltrationTwoSaltStreamParameter,
 )
-from prommis.nanofiltration.diafiltration_solute_properties import (
+from prommis.nanofiltration.property_packages.diafiltration_solute_properties import (
     SoluteParameter as SoluteTwoSaltParameter,
 )
-from prommis.nanofiltration.diafiltration_two_salt import TwoSaltDiafiltration
+from prommis.nanofiltration.unit_models.diafiltration_two_salt import TwoSaltDiafiltration
 
-from prommis.nanofiltration.diafiltration_three_salt_stream_properties import (
+from prommis.nanofiltration.property_packages.diafiltration_three_salt_stream_properties import (
     DiafiltrationStreamParameter as DiafiltrationThreeSaltStreamParameter,
 )
-from prommis.nanofiltration.diafiltration_three_salt_solute_properties import (
+from prommis.nanofiltration.property_packages.diafiltration_three_salt_solute_properties import (
     SoluteParameter as SoluteThreeSaltParameter,
 )
-from prommis.nanofiltration.diafiltration_three_salt import ThreeSaltDiafiltration
+from prommis.nanofiltration.unit_models.diafiltration_three_salt import ThreeSaltDiafiltration
 from prommis.nanofiltration.flowsheets.diafiltration_flowsheet_three_salt import (
     plot_results,
     plot_membrane_results,
@@ -52,27 +52,18 @@ from prommis.nanofiltration.flowsheets.diafiltration_flowsheet_three_salt import
 
 
 def main():
-    m_two_salt = build_two_salt_model()
-    m_two_salt.fs.membrane.diafiltrate_flow_volume.fix(1e-10)
-    solve_model(m_two_salt)
-    two_salt_model_checks(m_two_salt)
+    # m_two_salt = build_two_salt_model()
+    # # m_two_salt.fs.membrane.diafiltrate_flow_volume.fix(1e-10)
+    # solve_model(m_two_salt)
 
-    # # initialize three salt model
-    m_three_salt = build_three_salt_model()
-    solve_model(m_three_salt)
-    three_salt_model_checks(m_three_salt)
+    # m_three_salt = build_three_salt_model()
+    # # m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Al"].fix(30)
+    # solve_model(m_three_salt)
 
-    m_three_salt.fs.membrane.diafiltrate_flow_volume.fix(1e-10)
-    m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Al"].fix(25)
-    solve_model(m_three_salt)
-    three_salt_model_checks(m_three_salt)
-    # plot_results(m_three_salt)
-    # plot_membrane_results(m_three_salt)
+    # # plot_relative_rejections(m_two_salt, m_three_salt)
+    # # plot_concentrations(m_two_salt, m_three_salt)
 
-    plot_relative_rejections(m_two_salt, m_three_salt)
-    # plot_concentrations(m_two_salt, m_three_salt)
-
-    # plot_relative_flux()
+    plot_relative_flux()
 
     # print("------------------------")
     # conc_list_2 = [
@@ -264,29 +255,29 @@ def plot_relative_rejections(m2, m3):
         for i in aluminum_rejection_three_salt
     ]
 
-    # fig1, (ax1, ax2) = plt.subplots(1, 2, dpi=100, figsize=(9, 5))
+    fig1, (ax1, ax2) = plt.subplots(1, 2, dpi=100, figsize=(10, 5))
 
-    fig1, ax2 = plt.subplots(1, 1, dpi=125, figsize=(5, 4))
+    # fig1, ax2 = plt.subplots(1, 1, dpi=125, figsize=(5, 4))
 
-    # ax1.plot(
-    #     x_axis_values, lithium_rejection_two_salt, "m-", linewidth=2
-    # )  # , label="Lithium (Li-Co)")
-    # ax1.plot(
-    #     x_axis_values, cobalt_rejection_two_salt, "c-", linewidth=2
-    # )  # , label="Cobalt (Li-Co)")
-    # ax1.plot(
-    #     x_axis_values, lithium_rejection_three_salt, "m--", linewidth=2
-    # )  # , label="Lithium (Li-Co-Al)")
-    # ax1.plot(
-    #     x_axis_values, cobalt_rejection_three_salt, "c--", linewidth=2
-    # )  # , label="Cobalt (Li-Co-Al)")
-    # ax1.plot(
-    #     x_axis_values, aluminum_rejection_three_salt, "g--", linewidth=2
-    # )  # , label="Aluminum (Li-Co-Al)")
-    # ax1.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
-    # ax1.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
-    # ax1.tick_params(direction="in", labelsize=10)
-    # # ax1.legend()
+    ax1.plot(
+        x_axis_values, lithium_rejection_two_salt, "m-", linewidth=2
+    )  # , label="Lithium (Li-Co)")
+    ax1.plot(
+        x_axis_values, cobalt_rejection_two_salt, "c-", linewidth=2
+    )  # , label="Cobalt (Li-Co)")
+    ax1.plot(
+        x_axis_values, lithium_rejection_three_salt, "m--", linewidth=2
+    )  # , label="Lithium (Li-Co-Al)")
+    ax1.plot(
+        x_axis_values, cobalt_rejection_three_salt, "c--", linewidth=2
+    )  # , label="Cobalt (Li-Co-Al)")
+    ax1.plot(
+        x_axis_values, aluminum_rejection_three_salt, "g--", linewidth=2
+    )  # , label="Aluminum (Li-Co-Al)")
+    ax1.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
+    ax1.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
+    ax1.tick_params(direction="in", labelsize=10)
+    # ax1.legend()
 
     ax2.plot(
         x_axis_values, lithium_rejection_two_salt_norm, "m-", linewidth=2
@@ -312,7 +303,9 @@ def plot_relative_rejections(m2, m3):
     ax2.plot([0, 164], [0, 0], "k-", linewidth=0.5)
 
     ax2.set_xlim(0, 164)
-    ax2.set_ylim(-12, 2)
+    # ax2.set_ylim(-12, 2)
+
+    ax2.set_ylim(-50, 2)
 
     # legend points
     # ax2.plot([],[], marker='None', linestyle='None', label="Solution (linestyle)")
@@ -444,26 +437,29 @@ def plot_relative_flux():
     ]
 
     m_two_salt = build_two_salt_model()
-    solve_model(m_two_salt)
-    two_salt_model_checks(m_two_salt)
+    results = solve_model(m_two_salt)
+    # two_salt_model_checks(m_two_salt)
 
     for conc in conc_list_2:
         m_two_salt.fs.membrane.feed_conc_mol_comp[0, "Li"].fix(conc[0])
         m_two_salt.fs.membrane.feed_conc_mol_comp[0, "Co"].fix(conc[1])
 
-        solve_model(m_two_salt)
-        two_salt_model_checks(m_two_salt)
+        results = solve_model(m_two_salt)
+        
+        if results.solver.termination_condition == 'optimal':
+            dt = DiagnosticsToolbox(m_two_salt)
+            dt.assert_no_numerical_warnings()
 
-        for x in m_two_salt.fs.membrane.dimensionless_module_length:
-            if x != 0:
-                # water_flux_2.append(value(m_two_salt.fs.membrane.volume_flux_water[x]))
-                for z in m_two_salt.fs.membrane.dimensionless_membrane_thickness:
-                    lithium_pe_2.append(
-                        value(m_two_salt.fs.membrane.peclet_number_lithium[x, z])
-                    )
-                    cobalt_pe_2.append(
-                        value(m_two_salt.fs.membrane.peclet_number_cobalt[x, z])
-                    )
+            for x in m_two_salt.fs.membrane.dimensionless_module_length:
+                if x != 0:
+                    # water_flux_2.append(value(m_two_salt.fs.membrane.volume_flux_water[x]))
+                    for z in m_two_salt.fs.membrane.dimensionless_membrane_thickness:
+                        lithium_pe_2.append(
+                            value(m_two_salt.fs.membrane.peclet_number_lithium[x, z])
+                        )
+                        cobalt_pe_2.append(
+                            value(m_two_salt.fs.membrane.peclet_number_cobalt[x, z])
+                        )
 
         ionic_strength = calculate_ionic_strength_two_salt(m_two_salt)
         ionic_strength_list_2.append(ionic_strength)
@@ -476,6 +472,10 @@ def plot_relative_flux():
         lithium_pe_2 = []
         cobalt_pe_2 = []
         # water_flux_2 = []
+
+    print(ionic_strength_list_2)
+    print(li_pe_list_2)
+    print(co_pe_list_2)
 
     fig, ax1 = plt.subplots(1, 1, figsize=(7, 5))
     # ax1.plot(ionic_strength_list_2, water_flux_list_2, '.')
@@ -518,8 +518,8 @@ def plot_relative_flux():
     ]
     # initialize
     m_three_salt = build_three_salt_model()
-    solve_model(m_three_salt)
-    three_salt_model_checks(m_three_salt)
+    results = solve_model(m_three_salt)
+    # three_salt_model_checks(m_three_salt)
     # m_three_salt.fs.membrane.diafiltrate_flow_volume.fix(1e-10)
 
     for conc in conc_list_3:
@@ -527,21 +527,23 @@ def plot_relative_flux():
         m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Co"].fix(conc[1])
         m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Al"].fix(conc[2])
 
-        solve_model(m_three_salt)
-        three_salt_model_checks(m_three_salt)
+        results = solve_model(m_three_salt)
+        if results.solver.termination_condition == 'optimal':
+            dt = DiagnosticsToolbox(m_two_salt)
+            dt.assert_no_numerical_warnings()
 
-        for x in m_three_salt.fs.membrane.dimensionless_module_length:
-            if x != 0:
-                for z in m_three_salt.fs.membrane.dimensionless_membrane_thickness:
-                    lithium_pe_3.append(
-                        value(m_three_salt.fs.membrane.peclet_number_lithium[x, z])
-                    )
-                    cobalt_pe_3.append(
-                        value(m_three_salt.fs.membrane.peclet_number_cobalt[x, z])
-                    )
-                    aluminum_pe_3.append(
-                        value(m_three_salt.fs.membrane.peclet_number_aluminum[x, z])
-                    )
+            for x in m_three_salt.fs.membrane.dimensionless_module_length:
+                if x != 0:
+                    for z in m_three_salt.fs.membrane.dimensionless_membrane_thickness:
+                        lithium_pe_3.append(
+                            value(m_three_salt.fs.membrane.peclet_number_lithium[x, z])
+                        )
+                        cobalt_pe_3.append(
+                            value(m_three_salt.fs.membrane.peclet_number_cobalt[x, z])
+                        )
+                        aluminum_pe_3.append(
+                            value(m_three_salt.fs.membrane.peclet_number_aluminum[x, z])
+                        )
 
         ionic_strength = calculate_ionic_strength_three_salt(m_three_salt)
         ionic_strength_list_3.append(ionic_strength)
@@ -604,30 +606,30 @@ def plot_relative_flux():
     ]
     # initialize
     m_three_salt = build_three_salt_model()
-    solve_model(m_three_salt)
-    three_salt_model_checks(m_three_salt)
-    # m_three_salt.fs.membrane.diafiltrate_flow_volume.fix(1e-10)
+    results = solve_model(m_three_salt)
 
     for conc in conc_list_3:
         m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Li"].fix(conc[0])
         m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Co"].fix(conc[1])
         m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Al"].fix(conc[2])
 
-        solve_model(m_three_salt)
-        three_salt_model_checks(m_three_salt)
+        results = solve_model(m_three_salt)
+        if results.solver.termination_condition == 'optimal':
+            dt = DiagnosticsToolbox(m_two_salt)
+            dt.assert_no_numerical_warnings()
 
-        for x in m_three_salt.fs.membrane.dimensionless_module_length:
-            if x != 0:
-                for z in m_three_salt.fs.membrane.dimensionless_membrane_thickness:
-                    lithium_pe_3.append(
-                        value(m_three_salt.fs.membrane.peclet_number_lithium[x, z])
-                    )
-                    cobalt_pe_3.append(
-                        value(m_three_salt.fs.membrane.peclet_number_cobalt[x, z])
-                    )
-                    aluminum_pe_3.append(
-                        value(m_three_salt.fs.membrane.peclet_number_aluminum[x, z])
-                    )
+            for x in m_three_salt.fs.membrane.dimensionless_module_length:
+                if x != 0:
+                    for z in m_three_salt.fs.membrane.dimensionless_membrane_thickness:
+                        lithium_pe_3.append(
+                            value(m_three_salt.fs.membrane.peclet_number_lithium[x, z])
+                        )
+                        cobalt_pe_3.append(
+                            value(m_three_salt.fs.membrane.peclet_number_cobalt[x, z])
+                        )
+                        aluminum_pe_3.append(
+                            value(m_three_salt.fs.membrane.peclet_number_aluminum[x, z])
+                        )
 
         ionic_strength = calculate_ionic_strength_three_salt(m_three_salt)
         ionic_strength_list_3.append(ionic_strength)
@@ -663,6 +665,7 @@ def plot_relative_flux():
         linestyle="-",
         linewidth=0.7,
     )
+
     ax1.axhline(1, color="black", linewidth=1)
 
     # legend points
@@ -825,14 +828,14 @@ def build_two_salt_model():
     m.fs.feed_block = Feed(property_package=m.fs.stream_properties)
     m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
 
-    surrogate_model_file_dict = {
-        "D_11": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d11_scaled",
-        "D_12": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d12_scaled",
-        "D_21": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d21_scaled",
-        "D_22": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d22_scaled",
-        "alpha_1": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_1",
-        "alpha_2": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_2",
-    }
+    # surrogate_model_file_dict = {
+    #     "D_11": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d11_scaled",
+    #     "D_12": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d12_scaled",
+    #     "D_21": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d21_scaled",
+    #     "D_22": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_d22_scaled",
+    #     "alpha_1": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_1",
+    #     "alpha_2": "surrogate_models/lithium_cobalt_chloride/rbf_pysmo_surrogate_alpha_2",
+    # }
 
     # add the membrane unit model
     m.fs.membrane = TwoSaltDiafiltration(
@@ -840,8 +843,8 @@ def build_two_salt_model():
         NFE_module_length=20,
         NFE_membrane_thickness=10,
         charged_membrane=True,
-        surrogate_model_files=surrogate_model_file_dict,
-        diffusion_surrogate_scaling_factor=1e-07,
+        # surrogate_model_files=surrogate_model_file_dict,
+        # diffusion_surrogate_scaling_factor=1e-07,
     )
 
     # add product blocks for retentate and permeate
@@ -892,31 +895,31 @@ def build_two_salt_model():
     return m
 
 
-def two_salt_model_checks(m):
-    for x in m.fs.membrane.dimensionless_module_length:
-        for z in m.fs.membrane.dimensionless_membrane_thickness:
-            # skip check at x=0 as the concentration is expected to be 0 and the
-            # diffusion coefficient calculation is not needed
-            if x == 0:
-                pass
-            elif not (40 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 190):
-                raise ValueError(
-                    "WARNING: Membrane concentration for lithium ("
-                    f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
-                    f"x={x * value(m.fs.membrane.total_module_length)} m and "
-                    f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                    "of the valid range for the diffusion coefficient surrogate model "
-                    "(40-190 mM). Consider re-training the surrogate model."
-                )
-            elif not (40 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 190):
-                raise ValueError(
-                    "WARNING: Membrane concentration for cobalt ("
-                    f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
-                    f"x={x * value(m.fs.membrane.total_module_length)} m and "
-                    f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                    "of the valid range for the diffusion coefficient surrogate model "
-                    "(40-190 mM). Consider re-training the surrogate model."
-                )
+# def two_salt_model_checks(m):
+#     for x in m.fs.membrane.dimensionless_module_length:
+#         for z in m.fs.membrane.dimensionless_membrane_thickness:
+#             # skip check at x=0 as the concentration is expected to be 0 and the
+#             # diffusion coefficient calculation is not needed
+#             if x == 0:
+#                 pass
+#             elif not (40 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 190):
+#                 raise ValueError(
+#                     "WARNING: Membrane concentration for lithium ("
+#                     f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
+#                     f"x={x * value(m.fs.membrane.total_module_length)} m and "
+#                     f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
+#                     "of the valid range for the diffusion coefficient surrogate model "
+#                     "(40-190 mM). Consider re-training the surrogate model."
+#                 )
+#             elif not (40 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 190):
+#                 raise ValueError(
+#                     "WARNING: Membrane concentration for cobalt ("
+#                     f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
+#                     f"x={x * value(m.fs.membrane.total_module_length)} m and "
+#                     f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
+#                     "of the valid range for the diffusion coefficient surrogate model "
+#                     "(40-190 mM). Consider re-training the surrogate model."
+#                 )
 
 
 def build_three_salt_model():
@@ -930,20 +933,20 @@ def build_three_salt_model():
     m.fs.feed_block = Feed(property_package=m.fs.stream_properties)
     m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
 
-    surrogate_model_file_dict = {
-        "D_11": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d11_scaled",
-        "D_12": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d12_scaled",
-        "D_13": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d13_scaled",
-        "D_21": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d21_scaled",
-        "D_22": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d22_scaled",
-        "D_23": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d23_scaled",
-        "D_31": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d31_scaled",
-        "D_32": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d32_scaled",
-        "D_33": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d33_scaled",
-        "alpha_1": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha1",
-        "alpha_2": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha2",
-        "alpha_3": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha3",
-    }
+    # surrogate_model_file_dict = {
+    #     "D_11": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d11_scaled",
+    #     "D_12": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d12_scaled",
+    #     "D_13": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d13_scaled",
+    #     "D_21": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d21_scaled",
+    #     "D_22": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d22_scaled",
+    #     "D_23": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d23_scaled",
+    #     "D_31": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d31_scaled",
+    #     "D_32": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d32_scaled",
+    #     "D_33": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_d33_scaled",
+    #     "alpha_1": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha1",
+    #     "alpha_2": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha2",
+    #     "alpha_3": "surrogate_models/lithium_cobalt_aluminum_chloride/rbf_pysmo_surrogate_alpha3",
+    # }
 
     # add the membrane unit model
     m.fs.membrane = ThreeSaltDiafiltration(
@@ -951,8 +954,8 @@ def build_three_salt_model():
         NFE_module_length=20,
         NFE_membrane_thickness=10,
         charged_membrane=True,
-        surrogate_model_files=surrogate_model_file_dict,
-        diffusion_surrogate_scaling_factor=1e-07,
+        # surrogate_model_files=surrogate_model_file_dict,
+        # diffusion_surrogate_scaling_factor=1e-07,
     )
 
     # add product blocks for retentate and permeate
@@ -1005,40 +1008,40 @@ def build_three_salt_model():
     return m
 
 
-def three_salt_model_checks(m):
-    for x in m.fs.membrane.dimensionless_module_length:
-        for z in m.fs.membrane.dimensionless_membrane_thickness:
-            # skip check at x=0 as the concentration is expected to be 0 and the
-            # diffusion coefficient calculation is not needed
-            if x == 0:
-                pass
-            elif not (40 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 190):
-                raise ValueError(
-                    "WARNING: Membrane concentration for lithium ("
-                    f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
-                    f"x={x * value(m.fs.membrane.total_module_length)} m and "
-                    f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                    "of the valid range for the diffusion coefficient surrogate model "
-                    "(40-190 mM). Consider re-training the surrogate model."
-                )
-            elif not (40 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 190):
-                raise ValueError(
-                    "WARNING: Membrane concentration for cobalt ("
-                    f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
-                    f"x={x * value(m.fs.membrane.total_module_length)} m and "
-                    f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                    "of the valid range for the diffusion coefficient surrogate model "
-                    "(50-190 mM). Consider re-training the surrogate model."
-                )
-            elif not (1 < value(m.fs.membrane.membrane_conc_mol_aluminum[x, z]) < 151):
-                raise ValueError(
-                    "WARNING: Membrane concentration for aluminum ("
-                    f"{value(m.fs.membrane.membrane_conc_mol_aluminum[x, z])} mM at "
-                    f"x={x * value(m.fs.membrane.total_module_length)} m and "
-                    f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
-                    "of the valid range for the diffusion coefficient surrogate model "
-                    "(1-151 mM). Consider re-training the surrogate model."
-                )
+# def three_salt_model_checks(m):
+#     for x in m.fs.membrane.dimensionless_module_length:
+#         for z in m.fs.membrane.dimensionless_membrane_thickness:
+#             # skip check at x=0 as the concentration is expected to be 0 and the
+#             # diffusion coefficient calculation is not needed
+#             if x == 0:
+#                 pass
+#             elif not (40 < value(m.fs.membrane.membrane_conc_mol_lithium[x, z]) < 190):
+#                 raise ValueError(
+#                     "WARNING: Membrane concentration for lithium ("
+#                     f"{value(m.fs.membrane.membrane_conc_mol_lithium[x, z])} mM at "
+#                     f"x={x * value(m.fs.membrane.total_module_length)} m and "
+#                     f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
+#                     "of the valid range for the diffusion coefficient surrogate model "
+#                     "(40-190 mM). Consider re-training the surrogate model."
+#                 )
+#             elif not (40 < value(m.fs.membrane.membrane_conc_mol_cobalt[x, z]) < 190):
+#                 raise ValueError(
+#                     "WARNING: Membrane concentration for cobalt ("
+#                     f"{value(m.fs.membrane.membrane_conc_mol_cobalt[x, z])} mM at "
+#                     f"x={x * value(m.fs.membrane.total_module_length)} m and "
+#                     f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
+#                     "of the valid range for the diffusion coefficient surrogate model "
+#                     "(50-190 mM). Consider re-training the surrogate model."
+#                 )
+#             elif not (1 < value(m.fs.membrane.membrane_conc_mol_aluminum[x, z]) < 151):
+#                 raise ValueError(
+#                     "WARNING: Membrane concentration for aluminum ("
+#                     f"{value(m.fs.membrane.membrane_conc_mol_aluminum[x, z])} mM at "
+#                     f"x={x * value(m.fs.membrane.total_module_length)} m and "
+#                     f"z={z * value(m.fs.membrane.total_membrane_thickness)} m) is outside "
+#                     "of the valid range for the diffusion coefficient surrogate model "
+#                     "(1-151 mM). Consider re-training the surrogate model."
+#                 )
 
 
 def solve_model(m):
@@ -1053,15 +1056,17 @@ def solve_model(m):
 
     solver = SolverFactory("ipopt")
     results = solver.solve(scaled_model, tee=True)
-    assert_optimal_termination(results)
+    # assert_optimal_termination(results)
 
     scaling.propagate_solution(scaled_model, m)
 
-    dt = DiagnosticsToolbox(m)
+    # dt = DiagnosticsToolbox(m)
     # check numerical warnings
-    dt.assert_no_numerical_warnings()
+    # dt.assert_no_numerical_warnings()
     # dt.report_numerical_issues()
     # dt.display_variables_at_or_outside_bounds()
+
+    return results
 
 
 if __name__ == "__main__":

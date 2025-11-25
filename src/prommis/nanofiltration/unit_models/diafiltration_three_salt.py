@@ -352,7 +352,7 @@ and used when constructing these,
         self.add_constraints()
         self.discretize_model()
         self.fix_initial_values()
-        # self.add_helpful_expressions()
+        self.add_helpful_expressions()
         self.add_scaling_factors()
         self.add_ports()
 
@@ -436,7 +436,7 @@ and used when constructing these,
             doc="Length of the membrane, wound radially",
         )
         self.applied_pressure = Var(
-            initialize=15,
+            initialize=10,
             units=units.bar,
             bounds=[1e-11, None],
             doc="Pressure applied to membrane",
@@ -1894,13 +1894,31 @@ and used when constructing these,
             if x == 0:
                 return Constraint.Skip
             return (
-                blk.config.property_package.partition_coefficient["Li"]
-                * blk.config.property_package.partition_coefficient["Cl"]
-                * blk.retentate_conc_mol_comp[0, x, "Li"]
-                * blk.retentate_conc_mol_comp[0, x, "Cl"]
+                (
+                    blk.config.property_package.partition_coefficient_retentate["Li"]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.config.property_package.partition_coefficient_retentate["Cl"]
+                    ** blk.config.property_package.charge["Li"]
+                )
+                * (
+                    blk.retentate_conc_mol_comp[0, x, "Li"]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.retentate_conc_mol_comp[0, x, "Cl"]
+                    ** blk.config.property_package.charge["Li"]
+                )
             ) == (
-                blk.membrane_conc_mol_lithium[x, 0]
-                * blk.membrane_conc_mol_chloride[x, 0]
+                (
+                    blk.membrane_conc_mol_lithium[x, 0]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.membrane_conc_mol_chloride[x, 0]
+                    ** blk.config.property_package.charge["Li"]
+                )
             )
 
         self.retentate_membrane_interface_lithium = Constraint(
@@ -1911,16 +1929,31 @@ and used when constructing these,
             if x == 0:
                 return Constraint.Skip
             return (
-                blk.config.property_package.partition_coefficient["Co"]
-                * blk.config.property_package.partition_coefficient["Cl"]
-                ** blk.config.property_package.charge["Co"]
-                * blk.retentate_conc_mol_comp[0, x, "Co"]
-                * blk.retentate_conc_mol_comp[0, x, "Cl"]
-                ** blk.config.property_package.charge["Co"]
+                (
+                    blk.config.property_package.partition_coefficient_retentate["Co"]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.config.property_package.partition_coefficient_retentate["Cl"]
+                    ** blk.config.property_package.charge["Co"]
+                )
+                * (
+                    blk.retentate_conc_mol_comp[0, x, "Co"]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.retentate_conc_mol_comp[0, x, "Cl"]
+                    ** blk.config.property_package.charge["Co"]
+                )
             ) == (
-                blk.membrane_conc_mol_cobalt[x, 0]
-                * blk.membrane_conc_mol_chloride[x, 0]
-                ** blk.config.property_package.charge["Co"]
+                (
+                    blk.membrane_conc_mol_cobalt[x, 0]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.membrane_conc_mol_chloride[x, 0]
+                    ** blk.config.property_package.charge["Co"]
+                )
             )
 
         self.retentate_membrane_interface_cobalt = Constraint(
@@ -1931,16 +1964,31 @@ and used when constructing these,
             if x == 0:
                 return Constraint.Skip
             return (
-                blk.config.property_package.partition_coefficient["Al"]
-                * blk.config.property_package.partition_coefficient["Cl"]
-                ** blk.config.property_package.charge["Al"]
-                * blk.retentate_conc_mol_comp[0, x, "Al"]
-                * blk.retentate_conc_mol_comp[0, x, "Cl"]
-                ** blk.config.property_package.charge["Al"]
+                (
+                    blk.config.property_package.partition_coefficient_retentate["Al"]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.config.property_package.partition_coefficient_retentate["Cl"]
+                    ** blk.config.property_package.charge["Al"]
+                )
+                * (
+                    blk.retentate_conc_mol_comp[0, x, "Al"]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.retentate_conc_mol_comp[0, x, "Cl"]
+                    ** blk.config.property_package.charge["Al"]
+                )
             ) == (
-                blk.membrane_conc_mol_aluminum[x, 0]
-                * blk.membrane_conc_mol_chloride[x, 0]
-                ** blk.config.property_package.charge["Al"]
+                (
+                    blk.membrane_conc_mol_aluminum[x, 0]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.membrane_conc_mol_chloride[x, 0]
+                    ** blk.config.property_package.charge["Al"]
+                )
             )
 
         self.retentate_membrane_interface_aluminum = Constraint(
@@ -1948,22 +1996,35 @@ and used when constructing these,
             rule=_retentate_membrane_interface_aluminum,
         )
 
-        # essentially, set the permeate partition coefficent to 1
-        # TODO: differentiate H_retentate and H_permeate in propery package
         def _membrane_permeate_interface_lithium(blk, x):
             if x == 0:
                 return Constraint.Skip
-            # return (
-            #     blk.config.property_package.partition_coefficient["Li"]
-            #     * blk.config.property_package.partition_coefficient["Cl"]
-            #     * blk.permeate_conc_mol_comp[0, x, "Li"]
-            #     * blk.permeate_conc_mol_comp[0, x, "Cl"]
-            # ) == (
-            #     blk.membrane_conc_mol_lithium[x, 1]
-            #     * blk.membrane_conc_mol_chloride[x, 1]
-            # )
-            return (blk.permeate_conc_mol_comp[0, x, "Li"]) == (
-                blk.membrane_conc_mol_lithium[x, 1]
+            return (
+                (
+                    blk.config.property_package.partition_coefficient_permeate["Li"]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.config.property_package.partition_coefficient_permeate["Cl"]
+                    ** blk.config.property_package.charge["Li"]
+                )
+                * (
+                    blk.permeate_conc_mol_comp[0, x, "Li"]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.permeate_conc_mol_comp[0, x, "Cl"]
+                    ** blk.config.property_package.charge["Li"]
+                )
+            ) == (
+                (
+                    blk.membrane_conc_mol_lithium[x, 1]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.membrane_conc_mol_chloride[x, 1]
+                    ** blk.config.property_package.charge["Li"]
+                )
             )
 
         self.membrane_permeate_interface_lithium = Constraint(
@@ -1973,20 +2034,32 @@ and used when constructing these,
         def _membrane_permeate_interface_cobalt(blk, x):
             if x == 0:
                 return Constraint.Skip
-            # return (
-            #     blk.config.property_package.partition_coefficient["Co"]
-            #     * blk.config.property_package.partition_coefficient["Cl"]
-            #     ** blk.config.property_package.charge["Co"]
-            #     * blk.permeate_conc_mol_comp[0, x, "Co"]
-            #     * blk.permeate_conc_mol_comp[0, x, "Cl"]
-            #     ** blk.config.property_package.charge["Co"]
-            # ) == (
-            #     blk.membrane_conc_mol_cobalt[x, 1]
-            #     * blk.membrane_conc_mol_chloride[x, 1]
-            #     ** blk.config.property_package.charge["Co"]
-            # )
-            return (blk.permeate_conc_mol_comp[0, x, "Co"]) == (
-                blk.membrane_conc_mol_cobalt[x, 1]
+            return (
+                (
+                    blk.config.property_package.partition_coefficient_permeate["Co"]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.config.property_package.partition_coefficient_permeate["Cl"]
+                    ** blk.config.property_package.charge["Co"]
+                )
+                * (
+                    blk.permeate_conc_mol_comp[0, x, "Co"]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.permeate_conc_mol_comp[0, x, "Cl"]
+                    ** blk.config.property_package.charge["Co"]
+                )
+            ) == (
+                (
+                    blk.membrane_conc_mol_cobalt[x, 1]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.membrane_conc_mol_chloride[x, 1]
+                    ** blk.config.property_package.charge["Co"]
+                )
             )
 
         self.membrane_permeate_interface_cobalt = Constraint(
@@ -1996,20 +2069,32 @@ and used when constructing these,
         def _membrane_permeate_interface_aluminum(blk, x):
             if x == 0:
                 return Constraint.Skip
-            # return (
-            #     blk.config.property_package.partition_coefficient["Al"]
-            #     * blk.config.property_package.partition_coefficient["Cl"]
-            #     ** blk.config.property_package.charge["Al"]
-            #     * blk.permeate_conc_mol_comp[0, x, "Al"]
-            #     * blk.permeate_conc_mol_comp[0, x, "Cl"]
-            #     ** blk.config.property_package.charge["Al"]
-            # ) == (
-            #     blk.membrane_conc_mol_aluminum[x, 1]
-            #     * blk.membrane_conc_mol_chloride[x, 1]
-            #     ** blk.config.property_package.charge["Al"]
-            # )
-            return (blk.permeate_conc_mol_comp[0, x, "Al"]) == (
-                blk.membrane_conc_mol_aluminum[x, 1]
+            return (
+                (
+                    blk.config.property_package.partition_coefficient_permeate["Al"]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.config.property_package.partition_coefficient_permeate["Cl"]
+                    ** blk.config.property_package.charge["Al"]
+                )
+                * (
+                    blk.permeate_conc_mol_comp[0, x, "Al"]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.permeate_conc_mol_comp[0, x, "Cl"]
+                    ** blk.config.property_package.charge["Al"]
+                )
+            ) == (
+                (
+                    blk.membrane_conc_mol_aluminum[x, 1]
+                    ** (-blk.config.property_package.charge["Cl"])
+                )
+                * (
+                    blk.membrane_conc_mol_chloride[x, 1]
+                    ** blk.config.property_package.charge["Al"]
+                )
             )
 
         self.membrane_permeate_interface_aluminum = Constraint(

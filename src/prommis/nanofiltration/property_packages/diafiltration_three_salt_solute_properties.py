@@ -87,7 +87,7 @@ class SoluteParameterData(PhysicalParameterBlock):
 
         # add partition coefficient
         # currently H,Li is based on https://doi.org/10.1021/acs.iecr.4c04763
-        self.partition_coefficient = Param(
+        self.partition_coefficient_retentate = Param(
             self.component_list,
             units=units.dimensionless,
             initialize={
@@ -95,6 +95,19 @@ class SoluteParameterData(PhysicalParameterBlock):
                 "Co": 0.03,
                 "Al": 0.003,
                 "Cl": 0.3,
+            },
+        )
+
+        # add partition coefficient, permeate-side
+        # assume to be 0.8 (arbitrary)
+        self.partition_coefficient_permeate = Param(
+            self.component_list,
+            units=units.dimensionless,
+            initialize={
+                "Li": 0.6,
+                "Co": 0.6,
+                "Al": 0.6,
+                "Cl": 0.6,
             },
         )
 
