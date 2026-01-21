@@ -938,7 +938,9 @@ and used when constructing these,
         )
 
         def _boundary_layer_D_tilde_calculation(blk, x, z):
-            if x == 0:
+            if x == 0 or z > value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.boundary_layer_D_tilde[x, z] == (
                 (
@@ -988,7 +990,9 @@ and used when constructing these,
         def _boundary_layer_diffusion_coefficient_lithium_lithium_bilinear_calculation(
             blk, x, z
         ):
-            if x == 0:
+            if x == 0 or z > value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return (
                 blk.boundary_layer_diffusion_coefficient_lithium_lithium_bilinear[x, z]
@@ -1005,7 +1009,9 @@ and used when constructing these,
         def _boundary_layer_diffusion_coefficient_lithium_cobalt_bilinear_calculation(
             blk, x, z
         ):
-            if x == 0:
+            if x == 0 or z > value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return (
                 blk.boundary_layer_diffusion_coefficient_lithium_cobalt_bilinear[x, z]
@@ -1022,7 +1028,9 @@ and used when constructing these,
         def _boundary_layer_diffusion_coefficient_cobalt_lithium_bilinear_calculation(
             blk, x, z
         ):
-            if x == 0:
+            if x == 0 or z > value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return (
                 blk.boundary_layer_diffusion_coefficient_cobalt_lithium_bilinear[x, z]
@@ -1039,7 +1047,9 @@ and used when constructing these,
         def _boundary_layer_diffusion_coefficient_cobalt_cobalt_bilinear_calculation(
             blk, x, z
         ):
-            if x == 0:
+            if x == 0 or z > value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return (
                 blk.boundary_layer_diffusion_coefficient_cobalt_cobalt_bilinear[x, z]
@@ -1056,7 +1066,9 @@ and used when constructing these,
         def _boundary_layer_diffusion_coefficient_lithium_lithium_calculation(
             blk, x, z
         ):
-            if x == 0:
+            if x == 0 or z > value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.boundary_layer_diffusion_coefficient_lithium_lithium_bilinear[
                 x, z
@@ -1116,7 +1128,9 @@ and used when constructing these,
         )
 
         def _boundary_layer_diffusion_coefficient_lithium_cobalt_calculation(blk, x, z):
-            if x == 0:
+            if x == 0 or z > value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.boundary_layer_diffusion_coefficient_lithium_cobalt_bilinear[
                 x, z
@@ -1155,7 +1169,9 @@ and used when constructing these,
         )
 
         def _boundary_layer_diffusion_coefficient_cobalt_lithium_calculation(blk, x, z):
-            if x == 0:
+            if x == 0 or z > value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.boundary_layer_diffusion_coefficient_cobalt_lithium_bilinear[
                 x, z
@@ -1194,7 +1210,9 @@ and used when constructing these,
         )
 
         def _boundary_layer_diffusion_coefficient_cobalt_cobalt_calculation(blk, x, z):
-            if x == 0:
+            if x == 0 or z > value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.boundary_layer_diffusion_coefficient_cobalt_cobalt_bilinear[
                 x, z
@@ -1254,7 +1272,9 @@ and used when constructing these,
         )
 
         def _membrane_D_tilde_calculation(blk, x, z):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.membrane_D_tilde[x, z] == (
                 (
@@ -1309,7 +1329,9 @@ and used when constructing these,
         def _membrane_diffusion_coefficient_lithium_lithium_bilinear_calculation(
             blk, x, z
         ):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return (
                 blk.membrane_diffusion_coefficient_lithium_lithium_bilinear[x, z]
@@ -1326,7 +1348,9 @@ and used when constructing these,
         def _membrane_diffusion_coefficient_lithium_cobalt_bilinear_calculation(
             blk, x, z
         ):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return (
                 blk.membrane_diffusion_coefficient_lithium_cobalt_bilinear[x, z]
@@ -1343,7 +1367,9 @@ and used when constructing these,
         def _membrane_diffusion_coefficient_cobalt_lithium_bilinear_calculation(
             blk, x, z
         ):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return (
                 blk.membrane_diffusion_coefficient_cobalt_lithium_bilinear[x, z]
@@ -1360,7 +1386,9 @@ and used when constructing these,
         def _membrane_diffusion_coefficient_cobalt_cobalt_bilinear_calculation(
             blk, x, z
         ):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return (
                 blk.membrane_diffusion_coefficient_cobalt_cobalt_bilinear[x, z]
@@ -1377,7 +1405,9 @@ and used when constructing these,
         )
 
         def _membrane_convection_coefficient_lithium_bilinear_calculation(blk, x, z):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return (
                 blk.membrane_convection_coefficient_lithium_bilinear[x, z]
@@ -1392,7 +1422,9 @@ and used when constructing these,
         )
 
         def _membrane_convection_coefficient_cobalt_bilinear_calculation(blk, x, z):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return (
                 blk.membrane_convection_coefficient_cobalt_bilinear[x, z]
@@ -1407,7 +1439,9 @@ and used when constructing these,
         )
 
         def _membrane_diffusion_coefficient_lithium_lithium_calculation(blk, x, z):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.membrane_diffusion_coefficient_lithium_lithium_bilinear[
                 x, z
@@ -1471,7 +1505,9 @@ and used when constructing these,
         )
 
         def _membrane_diffusion_coefficient_lithium_cobalt_calculation(blk, x, z):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.membrane_diffusion_coefficient_lithium_cobalt_bilinear[x, z] == (
                 (
@@ -1506,7 +1542,9 @@ and used when constructing these,
         )
 
         def _membrane_diffusion_coefficient_cobalt_lithium_calculation(blk, x, z):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.membrane_diffusion_coefficient_cobalt_lithium_bilinear[x, z] == (
                 (
@@ -1541,7 +1579,9 @@ and used when constructing these,
         )
 
         def _membrane_diffusion_coefficient_cobalt_cobalt_calculation(blk, x, z):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.membrane_diffusion_coefficient_cobalt_cobalt_bilinear[x, z] == (
                 (
@@ -1603,7 +1643,9 @@ and used when constructing these,
         )
 
         def _membrane_convection_coefficient_lithium_calculation(blk, x, z):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.membrane_convection_coefficient_lithium_bilinear[x, z] == (
                 blk.membrane_D_tilde[x, z]
@@ -1621,7 +1663,9 @@ and used when constructing these,
         )
 
         def _membrane_convection_coefficient_cobalt_calculation(blk, x, z):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.membrane_convection_coefficient_cobalt_bilinear[x, z] == (
                 blk.membrane_D_tilde[x, z]
@@ -1639,7 +1683,11 @@ and used when constructing these,
         )
 
         def _lithium_flux_boundary_layer(blk, x, z):
-            if x == 0 or z == 0:
+            if (
+                x == 0
+                or z == 0
+                or z > value(blk.dimensionless_boundary_layer_membrane_transition_point)
+            ):
                 return Constraint.Skip
             return blk.mol_flux_lithium[x] == (
                 (blk.boundary_layer_conc_mol_lithium[x, z] * blk.volume_flux_water[x])
@@ -1680,7 +1728,11 @@ and used when constructing these,
         )
 
         def _cobalt_flux_boundary_layer(blk, x, z):
-            if x == 0 or z == 0:
+            if (
+                x == 0
+                or z == 0
+                or z > value(blk.dimensionless_boundary_layer_membrane_transition_point)
+            ):
                 return Constraint.Skip
             return blk.mol_flux_cobalt[x] == (
                 (blk.boundary_layer_conc_mol_cobalt[x, z] * blk.volume_flux_water[x])
@@ -1721,7 +1773,9 @@ and used when constructing these,
         )
 
         def _lithium_flux_membrane(blk, x, z):
-            if x == 0:
+            if x == 0 or z <= value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.mol_flux_lithium[x] == (
                 (
@@ -1760,7 +1814,9 @@ and used when constructing these,
         )
 
         def _cobalt_flux_membrane(blk, x, z):
-            if x == 0:
+            if x == 0 or z <= value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return blk.mol_flux_cobalt[x] == (
                 (
@@ -1883,7 +1939,9 @@ and used when constructing these,
         )
 
         def _electroneutrality_boundary_layer(blk, x, z):
-            if x == 0:
+            if x == 0 or z > value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return 0 == (
                 blk.config.property_package.charge["Li"]
@@ -1901,7 +1959,9 @@ and used when constructing these,
         )
 
         def _electroneutrality_membrane(blk, x, z):
-            if x == 0:
+            if x == 0 or z < value(
+                blk.dimensionless_boundary_layer_membrane_transition_point
+            ):
                 return Constraint.Skip
             return 0 == (
                 blk.config.property_package.charge["Li"]
@@ -1961,19 +2021,6 @@ and used when constructing these,
             self.dimensionless_module_length,
             rule=_retentate_boundary_layer_interface_cobalt,
         )
-
-        # def _retentate_boundary_layer_interface_chloride(blk, x):
-        #     if x == 0:
-        #         return Constraint.Skip
-        #     return (
-        #         blk.retentate_conc_mol_comp[0, x, "Cl"]
-        #         == blk.boundary_layer_conc_mol_chloride[x, 0]
-        #     )
-
-        # self.retentate_boundary_layer_interface_chloride = Constraint(
-        #     self.dimensionless_module_length,
-        #     rule=_retentate_boundary_layer_interface_chloride,
-        # )
 
         def _boundary_layer_membrane_interface_lithium(blk, x):
             if x == 0:
@@ -2185,6 +2232,71 @@ and used when constructing these,
             # associated discretization equation not needed in model
             if x != 0:
                 self.d_retentate_conc_mol_comp_dx_disc_eq[0, x, "Cl"].deactivate()
+
+        # boundary layer and membrane concentrations are not both needed across all z
+        # fix to reduce number of variables
+        for x in self.dimensionless_module_length:
+            for z in self.dimensionless_active_thickness:
+                if z > value(
+                    self.dimensionless_boundary_layer_membrane_transition_point
+                ):
+                    self.boundary_layer_conc_mol_lithium[x, z].fix(
+                        value(self.numerical_zero_tolerance)
+                    )
+                    self.boundary_layer_conc_mol_cobalt[x, z].fix(
+                        value(self.numerical_zero_tolerance)
+                    )
+                    self.boundary_layer_conc_mol_chloride[x, z].fix(
+                        value(self.numerical_zero_tolerance)
+                    )
+
+                    self.d_boundary_layer_conc_mol_lithium_dx[x, z].fix(
+                        value(self.numerical_zero_tolerance)
+                    )
+                    self.d_boundary_layer_conc_mol_lithium_dz[x, z].fix(
+                        value(self.numerical_zero_tolerance)
+                    )
+                    self.d_boundary_layer_conc_mol_cobalt_dx[x, z].fix(
+                        value(self.numerical_zero_tolerance)
+                    )
+                    self.d_boundary_layer_conc_mol_cobalt_dz[x, z].fix(
+                        value(self.numerical_zero_tolerance)
+                    )
+
+                    if x != 0:
+                        self.d_boundary_layer_conc_mol_lithium_dx_disc_eq[
+                            x, z
+                        ].deactivate()
+                        self.d_boundary_layer_conc_mol_cobalt_dx_disc_eq[
+                            x, z
+                        ].deactivate()
+
+                    self.d_boundary_layer_conc_mol_lithium_dz_disc_eq[x, z].deactivate()
+                    self.d_boundary_layer_conc_mol_cobalt_dz_disc_eq[x, z].deactivate()
+
+                if z < value(
+                    self.dimensionless_boundary_layer_membrane_transition_point
+                ):
+                    self.membrane_conc_mol_lithium[x, z].fix(
+                        value(self.numerical_zero_tolerance)
+                    )
+                    self.membrane_conc_mol_cobalt[x, z].fix(
+                        value(self.numerical_zero_tolerance)
+                    )
+                    self.membrane_conc_mol_chloride[x, z].fix(
+                        value(self.numerical_zero_tolerance)
+                    )
+
+                    self.d_membrane_conc_mol_lithium_dz[x, z].fix(
+                        value(self.numerical_zero_tolerance)
+                    )
+                    self.d_membrane_conc_mol_cobalt_dz[x, z].fix(
+                        value(self.numerical_zero_tolerance)
+                    )
+
+                    if z != 0:
+                        self.d_membrane_conc_mol_lithium_dz_disc_eq[x, z].deactivate()
+                        self.d_membrane_conc_mol_cobalt_dz_disc_eq[x, z].deactivate()
 
         # boundary conditions
         self.retentate_flow_volume[0, 0].fix(
