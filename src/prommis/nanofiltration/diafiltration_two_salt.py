@@ -383,8 +383,8 @@ and used when constructing these,
         self.dimensionless_module_length = ContinuousSet(bounds=(0, 1))
 
         def _dimensionless_boundary_layer_membrane_transition_point(blk):
-            return self.total_boundary_layer_thickness / (
-                self.total_boundary_layer_thickness + self.total_membrane_thickness
+            return blk.total_boundary_layer_thickness / (
+                blk.total_boundary_layer_thickness + blk.total_membrane_thickness
             )
 
         self.dimensionless_boundary_layer_membrane_transition_point = Expression(
@@ -672,22 +672,6 @@ and used when constructing these,
             # bounds=,
             doc="Concentration-dependent diffusion coefficient for cobalt-cobalt (boundary layer)",
         )
-        self.boundary_layer_convection_coefficient_lithium = Var(
-            self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
-            initialize=1,
-            units=units.dimensionless,
-            doc="Concentration-dependent convection coefficient for lithium (boundary layer)",
-        )
-        self.boundary_layer_convection_coefficient_lithium.fix()
-        self.boundary_layer_convection_coefficient_cobalt = Var(
-            self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
-            initialize=1,
-            units=units.dimensionless,
-            doc="Concentration-dependent convection coefficient for cobalt (boundary layer)",
-        )
-        self.boundary_layer_convection_coefficient_cobalt.fix()
         self.membrane_D_tilde = Var(
             self.dimensionless_module_length,
             self.dimensionless_active_thickness,
@@ -1655,14 +1639,10 @@ and used when constructing these,
         )
 
         def _lithium_flux_boundary_layer(blk, x, z):
-            if x == 0:
+            if x == 0 or z == 0:
                 return Constraint.Skip
             return blk.mol_flux_lithium[x] == (
-                (
-                    blk.boundary_layer_convection_coefficient_lithium[x, z]
-                    * blk.boundary_layer_conc_mol_lithium[x, z]
-                    * blk.volume_flux_water[x]
-                )
+                (blk.boundary_layer_conc_mol_lithium[x, z] * blk.volume_flux_water[x])
                 + (
                     units.convert(
                         blk.boundary_layer_diffusion_coefficient_lithium_lithium[x, z],
@@ -1700,14 +1680,10 @@ and used when constructing these,
         )
 
         def _cobalt_flux_boundary_layer(blk, x, z):
-            if x == 0:
+            if x == 0 or z == 0:
                 return Constraint.Skip
             return blk.mol_flux_cobalt[x] == (
-                (
-                    blk.boundary_layer_convection_coefficient_cobalt[x, z]
-                    * blk.boundary_layer_conc_mol_cobalt[x, z]
-                    * blk.volume_flux_water[x]
-                )
+                (blk.boundary_layer_conc_mol_cobalt[x, z] * blk.volume_flux_water[x])
                 + (
                     units.convert(
                         blk.boundary_layer_diffusion_coefficient_cobalt_lithium[x, z],
@@ -1848,7 +1824,12 @@ and used when constructing these,
                             blk.config.property_package.num_solutes["Li"]
                             * blk.config.property_package.sigma["Li"]
                             * (
-                                blk.retentate_conc_mol_comp[0, x, "Li"]
+                                blk.boundary_layer_conc_mol_lithium[
+                                    x,
+                                    value(
+                                        blk.dimensionless_boundary_layer_membrane_transition_point
+                                    ),
+                                ]
                                 - blk.permeate_conc_mol_comp[0, x, "Li"]
                             )
                         )
@@ -1856,7 +1837,12 @@ and used when constructing these,
                             blk.config.property_package.num_solutes["Co"]
                             * blk.config.property_package.sigma["Co"]
                             * (
-                                blk.retentate_conc_mol_comp[0, x, "Co"]
+                                blk.boundary_layer_conc_mol_cobalt[
+                                    x,
+                                    value(
+                                        blk.dimensionless_boundary_layer_membrane_transition_point
+                                    ),
+                                ]
                                 - blk.permeate_conc_mol_comp[0, x, "Co"]
                             )
                         )
@@ -1864,7 +1850,12 @@ and used when constructing these,
                             blk.config.property_package.num_solutes["Cl"]
                             * blk.config.property_package.sigma["Cl"]
                             * (
-                                blk.retentate_conc_mol_comp[0, x, "Cl"]
+                                blk.boundary_layer_conc_mol_chloride[
+                                    x,
+                                    value(
+                                        blk.dimensionless_boundary_layer_membrane_transition_point
+                                    ),
+                                ]
                                 - blk.permeate_conc_mol_comp[0, x, "Cl"]
                             )
                         )
@@ -1950,7 +1941,7 @@ and used when constructing these,
                 return Constraint.Skip
             return (
                 blk.retentate_conc_mol_comp[0, x, "Li"]
-                == blk.boundary_layer_conc_mol_lithium[0, 0]
+                == blk.boundary_layer_conc_mol_lithium[x, 0]
             )
 
         self.retentate_boundary_layer_interface_lithium = Constraint(
@@ -1963,7 +1954,7 @@ and used when constructing these,
                 return Constraint.Skip
             return (
                 blk.retentate_conc_mol_comp[0, x, "Co"]
-                == blk.boundary_layer_conc_mol_cobalt[0, 0]
+                == blk.boundary_layer_conc_mol_cobalt[x, 0]
             )
 
         self.retentate_boundary_layer_interface_cobalt = Constraint(
@@ -1971,18 +1962,18 @@ and used when constructing these,
             rule=_retentate_boundary_layer_interface_cobalt,
         )
 
-        def _retentate_boundary_layer_interface_chloride(blk, x):
-            if x == 0:
-                return Constraint.Skip
-            return (
-                blk.retentate_conc_mol_comp[0, x, "Cl"]
-                == blk.boundary_layer_conc_mol_chloride[0, 0]
-            )
+        # def _retentate_boundary_layer_interface_chloride(blk, x):
+        #     if x == 0:
+        #         return Constraint.Skip
+        #     return (
+        #         blk.retentate_conc_mol_comp[0, x, "Cl"]
+        #         == blk.boundary_layer_conc_mol_chloride[x, 0]
+        #     )
 
-        self.retentate_boundary_layer_interface_chloride = Constraint(
-            self.dimensionless_module_length,
-            rule=_retentate_boundary_layer_interface_chloride,
-        )
+        # self.retentate_boundary_layer_interface_chloride = Constraint(
+        #     self.dimensionless_module_length,
+        #     rule=_retentate_boundary_layer_interface_chloride,
+        # )
 
         def _boundary_layer_membrane_interface_lithium(blk, x):
             if x == 0:
@@ -1997,11 +1988,21 @@ and used when constructing these,
                     ** blk.config.property_package.charge["Li"]
                 )
                 * (
-                    blk.boundary_layer_conc_mol_lithium[0, x]
+                    blk.boundary_layer_conc_mol_lithium[
+                        x,
+                        value(
+                            blk.dimensionless_boundary_layer_membrane_transition_point
+                        ),
+                    ]
                     ** (-blk.config.property_package.charge["Cl"])
                 )
                 * (
-                    blk.boundary_layer_conc_mol_chloride[0, x]
+                    blk.boundary_layer_conc_mol_chloride[
+                        x,
+                        value(
+                            blk.dimensionless_boundary_layer_membrane_transition_point
+                        ),
+                    ]
                     ** blk.config.property_package.charge["Li"]
                 )
             ) == (
@@ -2043,11 +2044,21 @@ and used when constructing these,
                     ** blk.config.property_package.charge["Co"]
                 )
                 * (
-                    blk.boundary_layer_conc_mol_cobalt[0, x]
+                    blk.boundary_layer_conc_mol_cobalt[
+                        x,
+                        value(
+                            blk.dimensionless_boundary_layer_membrane_transition_point
+                        ),
+                    ]
                     ** (-blk.config.property_package.charge["Cl"])
                 )
                 * (
-                    blk.boundary_layer_conc_mol_chloride[0, x]
+                    blk.boundary_layer_conc_mol_chloride[
+                        x,
+                        value(
+                            blk.dimensionless_boundary_layer_membrane_transition_point
+                        ),
+                    ]
                     ** blk.config.property_package.charge["Co"]
                 )
             ) == (
@@ -2195,6 +2206,32 @@ and used when constructing these,
             )
             / (self.feed_flow_volume[0] + self.diafiltrate_flow_volume[0])
         )
+        for x in self.dimensionless_module_length:
+            self.d_boundary_layer_conc_mol_cobalt_dz[x, 0].fix(
+                value(self.numerical_zero_tolerance)
+            )
+            self.d_boundary_layer_conc_mol_lithium_dz[x, 0].fix(
+                value(self.numerical_zero_tolerance)
+            )
+        for z in self.dimensionless_active_thickness:
+            self.boundary_layer_conc_mol_lithium[0, z].fix(
+                value(self.numerical_zero_tolerance)
+            )
+            self.boundary_layer_conc_mol_cobalt[0, z].fix(
+                value(self.numerical_zero_tolerance)
+            )
+            self.boundary_layer_conc_mol_chloride[0, z].fix(
+                value(self.numerical_zero_tolerance)
+            )
+            self.membrane_conc_mol_lithium[0, z].fix(
+                value(self.numerical_zero_tolerance)
+            )
+            self.membrane_conc_mol_cobalt[0, z].fix(
+                value(self.numerical_zero_tolerance)
+            )
+            self.membrane_conc_mol_chloride[0, z].fix(
+                value(self.numerical_zero_tolerance)
+            )
 
         # set "zero" boundary values to a sufficiently small value
         self.permeate_flow_volume[0, 0].fix(value(self.numerical_zero_tolerance))
@@ -2207,16 +2244,6 @@ and used when constructing these,
         self.permeate_conc_mol_comp[0, 0, "Cl"].fix(
             value(self.numerical_zero_tolerance)
         )
-        for z in self.dimensionless_active_thickness:
-            self.membrane_conc_mol_lithium[0, z].fix(
-                value(self.numerical_zero_tolerance)
-            )
-            self.membrane_conc_mol_cobalt[0, z].fix(
-                value(self.numerical_zero_tolerance)
-            )
-            self.membrane_conc_mol_chloride[0, z].fix(
-                value(self.numerical_zero_tolerance)
-            )
         self.d_retentate_conc_mol_comp_dx[0, 0, "Li"].fix(
             value(self.numerical_zero_tolerance)
         )
