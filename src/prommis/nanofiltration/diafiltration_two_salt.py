@@ -242,6 +242,7 @@ from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.dae import ContinuousSet, DerivativeVar
 from pyomo.environ import (
     Constraint,
+    Expression,
     Param,
     Reference,
     Set,
@@ -380,8 +381,22 @@ and used when constructing these,
         """
         # define length scales
         self.dimensionless_module_length = ContinuousSet(bounds=(0, 1))
+
+        def _dimensionless_boundary_layer_membrane_transition_point(blk):
+            return self.total_boundary_layer_thickness / (
+                self.total_boundary_layer_thickness + self.total_membrane_thickness
+            )
+
+        self.dimensionless_boundary_layer_membrane_transition_point = Expression(
+            rule=_dimensionless_boundary_layer_membrane_transition_point
+        )
+
         self.dimensionless_active_thickness = ContinuousSet(
-            bounds=(0, 1)
+            initialize=[
+                0,
+                value(self.dimensionless_boundary_layer_membrane_transition_point),
+                1,
+            ]
         )  # TODO update name to be more descriptive
 
         # add a time index since the property package variables are indexed over time
@@ -625,22 +640,6 @@ and used when constructing these,
             # bounds=,
             doc="Bi-linear cross diffusion coefficient for cobalt-cobalt (boundary layer)",
         )
-        self.boundary_layer_convection_coefficient_lithium_bilinear = Var(
-            self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
-            initialize=1e2,
-            units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D,tilde
-            # bounds=,
-            doc="Bi-linear cross diffusion coefficient for lithium (boundary layer)",
-        )
-        self.boundary_layer_convection_coefficient_cobalt_bilinear = Var(
-            self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
-            initialize=1e2,
-            units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D,tilde
-            # bounds=,
-            doc="Bi-linear convection coefficient for cobalt (boundary layer)",
-        )
         self.boundary_layer_diffusion_coefficient_lithium_lithium = Var(
             self.dimensionless_module_length,
             self.dimensionless_active_thickness,
@@ -676,17 +675,19 @@ and used when constructing these,
         self.boundary_layer_convection_coefficient_lithium = Var(
             self.dimensionless_module_length,
             self.dimensionless_active_thickness,
-            initialize=0.6,
+            initialize=1,
             units=units.dimensionless,
             doc="Concentration-dependent convection coefficient for lithium (boundary layer)",
         )
+        self.boundary_layer_convection_coefficient_lithium.fix()
         self.boundary_layer_convection_coefficient_cobalt = Var(
             self.dimensionless_module_length,
             self.dimensionless_active_thickness,
-            initialize=0.5,
+            initialize=1,
             units=units.dimensionless,
             doc="Concentration-dependent convection coefficient for cobalt (boundary layer)",
         )
+        self.boundary_layer_convection_coefficient_cobalt.fix()
         self.membrane_D_tilde = Var(
             self.dimensionless_module_length,
             self.dimensionless_active_thickness,
@@ -992,13 +993,6 @@ and used when constructing these,
                     )
                     * blk.boundary_layer_conc_mol_cobalt[x, z]
                 )
-                - (
-                    blk.config.property_package.charge["Cl"]
-                    * blk.config.property_package.boundary_layer_diffusion_coefficient[
-                        "Cl"
-                    ]
-                    * blk.boundary_layer_fixed_charge
-                )
             )
 
         self.boundary_layer_D_tilde_calculation = Constraint(
@@ -1075,42 +1069,6 @@ and used when constructing these,
             rule=_boundary_layer_diffusion_coefficient_cobalt_cobalt_bilinear_calculation,
         )
 
-        def _boundary_layer_convection_coefficient_lithium_bilinear_calculation(
-            blk, x, z
-        ):
-            if x == 0:
-                return Constraint.Skip
-            return (
-                blk.boundary_layer_convection_coefficient_lithium_bilinear[x, z]
-                == blk.boundary_layer_convection_coefficient_lithium[x, z]
-                * blk.boundary_layer_D_tilde[x, z]
-            )
-
-        self.boundary_layer_convection_coefficient_lithium_bilinear_calculation = Constraint(
-            self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
-            rule=_boundary_layer_convection_coefficient_lithium_bilinear_calculation,
-        )
-
-        def _boundary_layer_convection_coefficient_cobalt_bilinear_calculation(
-            blk, x, z
-        ):
-            if x == 0:
-                return Constraint.Skip
-            return (
-                blk.boundary_layer_convection_coefficient_cobalt_bilinear[x, z]
-                == blk.boundary_layer_convection_coefficient_cobalt[x, z]
-                * blk.boundary_layer_D_tilde[x, z]
-            )
-
-        self.boundary_layer_convection_coefficient_cobalt_bilinear_calculation = (
-            Constraint(
-                self.dimensionless_module_length,
-                self.dimensionless_active_thickness,
-                rule=_boundary_layer_convection_coefficient_cobalt_bilinear_calculation,
-            )
-        )
-
         def _boundary_layer_diffusion_coefficient_lithium_lithium_calculation(
             blk, x, z
         ):
@@ -1163,16 +1121,6 @@ and used when constructing these,
                     )
                 )
                 * blk.boundary_layer_conc_mol_cobalt[x, z]
-                + (
-                    blk.config.property_package.charge["Cl"]
-                    * blk.config.property_package.boundary_layer_diffusion_coefficient[
-                        "Li"
-                    ]
-                    * blk.config.property_package.boundary_layer_diffusion_coefficient[
-                        "Cl"
-                    ]
-                    * blk.boundary_layer_fixed_charge
-                )
             )
 
         self.boundary_layer_diffusion_coefficient_lithium_lithium_calculation = (
@@ -1311,16 +1259,6 @@ and used when constructing these,
                     )
                 )
                 * blk.boundary_layer_conc_mol_cobalt[x, z]
-                + (
-                    blk.config.property_package.charge["Cl"]
-                    * blk.config.property_package.boundary_layer_diffusion_coefficient[
-                        "Co"
-                    ]
-                    * blk.config.property_package.boundary_layer_diffusion_coefficient[
-                        "Cl"
-                    ]
-                    * blk.boundary_layer_fixed_charge
-                )
             )
 
         self.boundary_layer_diffusion_coefficient_cobalt_cobalt_calculation = (
@@ -1329,46 +1267,6 @@ and used when constructing these,
                 self.dimensionless_active_thickness,
                 rule=_boundary_layer_diffusion_coefficient_cobalt_cobalt_calculation,
             )
-        )
-
-        def _boundary_layer_convection_coefficient_lithium_calculation(blk, x, z):
-            if x == 0:
-                return Constraint.Skip
-            return blk.boundary_layer_convection_coefficient_lithium_bilinear[x, z] == (
-                blk.boundary_layer_D_tilde[x, z]
-                + (
-                    blk.config.property_package.charge["Li"]
-                    * blk.config.property_package.boundary_layer_diffusion_coefficient[
-                        "Li"
-                    ]
-                    * blk.boundary_layer_fixed_charge
-                )
-            )
-
-        self.boundary_layer_convection_coefficient_lithium_calculation = Constraint(
-            self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
-            rule=_boundary_layer_convection_coefficient_lithium_calculation,
-        )
-
-        def _boundary_layer_convection_coefficient_cobalt_calculation(blk, x, z):
-            if x == 0:
-                return Constraint.Skip
-            return blk.boundary_layer_convection_coefficient_cobalt_bilinear[x, z] == (
-                blk.boundary_layer_D_tilde[x, z]
-                + (
-                    blk.config.property_package.charge["Co"]
-                    * blk.config.property_package.boundary_layer_diffusion_coefficient[
-                        "Co"
-                    ]
-                    * blk.boundary_layer_fixed_charge
-                )
-            )
-
-        self.boundary_layer_convection_coefficient_cobalt_calculation = Constraint(
-            self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
-            rule=_boundary_layer_convection_coefficient_cobalt_calculation,
         )
 
         def _membrane_D_tilde_calculation(blk, x, z):
@@ -2110,12 +2008,8 @@ and used when constructing these,
                 (
                     blk.membrane_conc_mol_lithium[
                         x,
-                        (
-                            blk.total_boundary_layer_thickness
-                            / (
-                                blk.total_boundary_layer_thickness
-                                + blk.total_membrane_thickness
-                            )
+                        value(
+                            blk.dimensionless_boundary_layer_membrane_transition_point
                         ),
                     ]
                     ** (-blk.config.property_package.charge["Cl"])
@@ -2123,12 +2017,8 @@ and used when constructing these,
                 * (
                     blk.membrane_conc_mol_chloride[
                         x,
-                        (
-                            blk.total_boundary_layer_thickness
-                            / (
-                                blk.total_boundary_layer_thickness
-                                + blk.total_membrane_thickness
-                            )
+                        value(
+                            blk.dimensionless_boundary_layer_membrane_transition_point
                         ),
                     ]
                     ** blk.config.property_package.charge["Li"]
@@ -2164,12 +2054,8 @@ and used when constructing these,
                 (
                     blk.membrane_conc_mol_cobalt[
                         x,
-                        (
-                            blk.total_boundary_layer_thickness
-                            / (
-                                blk.total_boundary_layer_thickness
-                                + blk.total_membrane_thickness
-                            )
+                        value(
+                            blk.dimensionless_boundary_layer_membrane_transition_point
                         ),
                     ]
                     ** (-blk.config.property_package.charge["Cl"])
@@ -2177,12 +2063,8 @@ and used when constructing these,
                 * (
                     blk.membrane_conc_mol_chloride[
                         x,
-                        (
-                            blk.total_boundary_layer_thickness
-                            / (
-                                blk.total_boundary_layer_thickness
-                                + blk.total_membrane_thickness
-                            )
+                        value(
+                            blk.dimensionless_boundary_layer_membrane_transition_point
                         ),
                     ]
                     ** blk.config.property_package.charge["Co"]
@@ -2275,7 +2157,7 @@ and used when constructing these,
         discretizer.apply_to(
             self,
             wrt=self.dimensionless_active_thickness,
-            nfe=self.config.NFE_membrane_thickness,
+            nfe=self.config.NFE_active_thickness,
             scheme="BACKWARD",
         )
 

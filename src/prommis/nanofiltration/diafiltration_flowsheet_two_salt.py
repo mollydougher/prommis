@@ -54,7 +54,7 @@ def main():
     m.fs.membrane = TwoSaltDiafiltration(
         property_package=m.fs.properties,
         NFE_module_length=10,
-        NFE_membrane_thickness=5,
+        NFE_active_thickness=5,
     )
 
     # add product blocks for retentate and permeate
