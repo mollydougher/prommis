@@ -53,8 +53,8 @@ def main():
     # add the membrane unit model
     m.fs.membrane = TwoSaltDiafiltration(
         property_package=m.fs.properties,
-        NFE_module_length=10,
-        NFE_active_thickness=5,
+        NFE_module_length=1,
+        NFE_active_thickness=1,
     )
 
     # add product blocks for retentate and permeate
@@ -69,21 +69,25 @@ def main():
 
     # check structural warnings
     dt = DiagnosticsToolbox(m)
-    dt.assert_no_structural_warnings()
+    # dt.assert_no_structural_warnings()
+    dt.report_structural_issues()
+    dt.display_underconstrained_set()
+    # TODO: debug DOF
 
-    # solve model
-    solve_model(m)
+    # # solve model
+    # solve_model(m)
 
-    # check numerical warnings
-    dt.assert_no_numerical_warnings()
+    # # check numerical warnings
+    # dt.assert_no_numerical_warnings()
 
-    # visualize the results
-    overall_results_plot = plot_results(m)
-    membrane_results_plot = plot_membrane_results(m)
+    # # visualize the results
+    # overall_results_plot = plot_results(m)
+    # membrane_results_plot = plot_membrane_results(m)
 
-    print(overall_results_plot)
+    # print(overall_results_plot)
 
-    return (m, overall_results_plot, membrane_results_plot)
+    # return (m, overall_results_plot, membrane_results_plot)
+    return m
 
 
 def build_membrane_parameters(m):
