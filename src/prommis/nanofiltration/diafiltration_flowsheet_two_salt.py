@@ -53,9 +53,11 @@ def main():
     # add the membrane unit model
     m.fs.membrane = TwoSaltDiafiltration(
         property_package=m.fs.properties,
-        NFE_module_length=1,
-        NFE_active_thickness=1,
+        NFE_module_length=3,
+        NFE_boundary_layer_thickness=5,
+        NFE_membrane_thickness=5,
     )
+    # TODO: debug numerical scaling at higher NFE_module_length
 
     # add product blocks for retentate and permeate
     m.fs.retentate_block = Product(property_package=m.fs.stream_properties)
@@ -71,20 +73,21 @@ def main():
     dt = DiagnosticsToolbox(m)
     dt.assert_no_structural_warnings()
 
-    # # solve model
-    # solve_model(m)
+    # solve model
+    solve_model(m)
 
-    # # check numerical warnings
-    # dt.assert_no_numerical_warnings()
+    # check numerical warnings
+    dt.assert_no_numerical_warnings()
+    # dt.report_numerical_issues()
+    # dt.display_constraints_with_large_residuals()
 
-    # # visualize the results
-    # overall_results_plot = plot_results(m)
-    # membrane_results_plot = plot_membrane_results(m)
+    # visualize the results
+    overall_results_plot = plot_results(m)
+    membrane_results_plot = plot_membrane_results(m)
 
-    # print(overall_results_plot)
+    # m.fs.membrane.display()
 
-    # return (m, overall_results_plot, membrane_results_plot)
-    return m
+    return (m, overall_results_plot, membrane_results_plot)
 
 
 def build_membrane_parameters(m):
@@ -103,16 +106,11 @@ def fix_variables(m):
     m.fs.membrane.total_membrane_length.fix()
     m.fs.membrane.applied_pressure.fix()
 
-    # fix degrees of freedom in the flowsheet
     m.fs.membrane.feed_flow_volume.fix()
-    m.fs.membrane.feed_conc_mol_comp[0, "Li"].fix()
-    m.fs.membrane.feed_conc_mol_comp[0, "Co"].fix()
-    m.fs.membrane.feed_conc_mol_comp[0, "Cl"].fix()
+    m.fs.membrane.feed_conc_mol_comp.fix()
 
     m.fs.membrane.diafiltrate_flow_volume.fix()
-    m.fs.membrane.diafiltrate_conc_mol_comp[0, "Li"].fix()
-    m.fs.membrane.diafiltrate_conc_mol_comp[0, "Co"].fix()
-    m.fs.membrane.diafiltrate_conc_mol_comp[0, "Cl"].fix()
+    m.fs.membrane.diafiltrate_conc_mol_comp.fix()
 
 
 def add_and_connect_streams(m):
@@ -165,10 +163,14 @@ def plot_results(m):
 
     # store values for concentration of lithium in the retentate
     conc_ret_lith = []
+    # store values for concentration of lithium at interface of BL and M
+    conc_int_lith = []
     # store values for concentration of lithium in the permeate
     conc_perm_lith = []
     # store values for concentration of cobalt in the retentate
     conc_ret_cob = []
+    # store values for concentration of lithium at interface of BL and M
+    conc_int_cob = []
     # store values for concentration of cobalt in the permeate
     conc_perm_cob = []
 
@@ -176,18 +178,20 @@ def plot_results(m):
     water_flux = []
     # store values for mol flux of lithium across membrane
     lithium_flux = []
+    # store values for mol flux of cobalt across membrane
+    cobalt_flux = []
 
     # store values for percent recovery
     percent_recovery = []
 
-    # store values for lithium rejection
-    lithium_rejection = []
-    # store values for lithium solute passage
-    lithium_sieving = []
-    # store values for cobalt rejection
-    cobalt_rejection = []
-    # store values for cobalt solute passage
-    cobalt_sieving = []
+    # store values for lithium rejection (oberved)
+    lithium_rejection_obs = []
+    # store values for lithium rejection (actual)
+    lithium_rejection_act = []
+    # store values for cobalt rejection (oberved)
+    cobalt_rejection_obs = []
+    # store values for cobalt rejection (actual)
+    cobalt_rejection_act = []
 
     for x_val in m.fs.membrane.dimensionless_module_length:
         if x_val != 0:
@@ -195,20 +199,27 @@ def plot_results(m):
             conc_ret_lith.append(
                 value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Li"])
             )
+            conc_int_lith.append(
+                value(m.fs.membrane.boundary_layer_conc_mol_comp[0, x_val, 1, "Li"])
+            )
             conc_perm_lith.append(
                 value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Li"])
             )
             conc_ret_cob.append(
                 value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Co"])
             )
+            conc_int_cob.append(
+                value(m.fs.membrane.boundary_layer_conc_mol_comp[0, x_val, 1, "Co"])
+            )
             conc_perm_cob.append(
                 value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
             )
 
-            water_flux.append(value(m.fs.membrane.volume_flux_water[x_val]))
-            lithium_flux.append(value(m.fs.membrane.mol_flux_lithium[x_val]))
+            water_flux.append(value(m.fs.membrane.volume_flux_water[0, x_val]))
+            lithium_flux.append(value(m.fs.membrane.molar_ion_flux[0, x_val, "Li"]))
+            cobalt_flux.append(value(m.fs.membrane.molar_ion_flux[0, x_val, "Co"]))
 
-            lithium_rejection.append(
+            lithium_rejection_obs.append(
                 (
                     1
                     - (
@@ -218,13 +229,21 @@ def plot_results(m):
                 )
                 * 100
             )
-            lithium_sieving.append(
+            lithium_rejection_act.append(
                 (
-                    value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Li"])
-                    / value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Li"])
+                    1
+                    - (
+                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Li"])
+                        / value(
+                            m.fs.membrane.boundary_layer_conc_mol_comp[
+                                0, x_val, 1, "Li"
+                            ]
+                        )
+                    )
                 )
+                * 100
             )
-            cobalt_rejection.append(
+            cobalt_rejection_obs.append(
                 (
                     1
                     - (
@@ -234,11 +253,19 @@ def plot_results(m):
                 )
                 * 100
             )
-            cobalt_sieving.append(
+            cobalt_rejection_act.append(
                 (
-                    value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
-                    / value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Co"])
+                    1
+                    - (
+                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
+                        / value(
+                            m.fs.membrane.boundary_layer_conc_mol_comp[
+                                0, x_val, 1, "Co"
+                            ]
+                        )
+                    )
                 )
+                * 100
             )
 
             percent_recovery.append(
@@ -257,6 +284,7 @@ def plot_results(m):
     )
 
     ax1.plot(x_axis_values, conc_ret_lith, linewidth=2, label="retentate")
+    ax1.plot(x_axis_values, conc_int_lith, linewidth=2, label="interface")
     ax1.plot(x_axis_values, conc_perm_lith, linewidth=2, label="permeate")
     ax1.set_ylabel(
         "Lithium Concentration (mol/m$^3$)",
@@ -267,6 +295,7 @@ def plot_results(m):
     ax1.legend()
 
     ax2.plot(x_axis_values, conc_ret_cob, linewidth=2, label="retentate")
+    ax2.plot(x_axis_values, conc_int_cob, linewidth=2, label="interface")
     ax2.plot(x_axis_values, conc_perm_cob, linewidth=2, label="permeate")
     ax2.set_ylabel(
         "Cobalt Concentration (mol/m$^3$)",
@@ -281,13 +310,29 @@ def plot_results(m):
     ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=10, fontweight="bold")
     ax3.tick_params(direction="in", labelsize=10)
 
-    ax4.plot(x_axis_values, lithium_flux, linewidth=2)
+    ax4.plot(x_axis_values, lithium_flux, linewidth=2, label="lithium")
+    ax4.plot(x_axis_values, cobalt_flux, linewidth=2, label="cobalt")
     ax4.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax4.set_ylabel("Lithium Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
+    ax4.set_ylabel("Solute Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
     ax4.tick_params(direction="in", labelsize=10)
+    ax4.legend()
 
-    ax5.plot(x_axis_values, lithium_rejection, linewidth=2, label="lithium")
-    ax5.plot(x_axis_values, cobalt_rejection, linewidth=2, label="cobalt")
+    ax5.plot(
+        x_axis_values, lithium_rejection_obs, linewidth=2, label="lithium (observed)"
+    )
+    ax5.plot(
+        x_axis_values,
+        lithium_rejection_act,
+        "--",
+        linewidth=2,
+        label="lithium (actual)",
+    )
+    ax5.plot(
+        x_axis_values, cobalt_rejection_obs, linewidth=2, label="cobalt (observed)"
+    )
+    ax5.plot(
+        x_axis_values, cobalt_rejection_act, "--", linewidth=2, label="cobalt (actual)"
+    )
     ax5.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
     ax5.set_ylabel("Solute Rejection (%)", fontsize=10, fontweight="bold")
     ax5.tick_params(direction="in", labelsize=10)
@@ -334,13 +379,13 @@ def plot_membrane_results(m):
         for x_val in m.fs.membrane.dimensionless_module_length:
             if x_val != 0:
                 conc_mem_lith.append(
-                    value(m.fs.membrane.membrane_conc_mol_lithium[x_val, z_val])
+                    value(m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "Li"])
                 )
                 conc_mem_cob.append(
-                    value(m.fs.membrane.membrane_conc_mol_cobalt[x_val, z_val])
+                    value(m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "Co"])
                 )
                 conc_mem_chl.append(
-                    value(m.fs.membrane.membrane_conc_mol_chloride[x_val, z_val])
+                    value(m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "Cl"])
                 )
 
         conc_mem_lith_dict[f"{z_val}"] = conc_mem_lith

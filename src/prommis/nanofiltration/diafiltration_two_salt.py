@@ -281,13 +281,19 @@ and used when constructing these,
     CONFIG.declare(
         "NFE_module_length",
         ConfigValue(
-            doc="Number of discretization points in the x-direction (across module length)",
+            doc="Number of discretization points across module length (in the x-direction)",
         ),
     )
     CONFIG.declare(
-        "NFE_active_thickness",  # TODO update name to be more descriptive
+        "NFE_boundary_layer_thickness",
         ConfigValue(
-            doc="Number of discretization points in the z-direction (across the boundary layer and membrane thicknesses)",
+            doc="Number of discretization points across the boundary layer (in the z-direction)",
+        ),
+    )
+    CONFIG.declare(
+        "NFE_membrane_thickness",  # TODO update name to be more descriptive
+        ConfigValue(
+            doc="Number of discretization points across the membrane thickness (in the z-direction)",
         ),
     )
 
@@ -365,23 +371,8 @@ and used when constructing these,
         """
         # define length scales
         self.dimensionless_module_length = ContinuousSet(bounds=(0, 1))
-
-        def _dimensionless_boundary_layer_membrane_transition_point(blk):
-            return blk.total_boundary_layer_thickness / (
-                blk.total_boundary_layer_thickness + blk.total_membrane_thickness
-            )
-
-        self.dimensionless_boundary_layer_membrane_transition_point = Expression(
-            rule=_dimensionless_boundary_layer_membrane_transition_point
-        )
-
-        self.dimensionless_active_thickness = ContinuousSet(
-            initialize=[
-                0,
-                value(self.dimensionless_boundary_layer_membrane_transition_point),
-                1,
-            ]
-        )  # TODO update name to be more descriptive
+        self.dimensionless_boundary_layer_thickness = ContinuousSet(bounds=(0, 1))
+        self.dimensionless_membrane_thickness = ContinuousSet(bounds=(0, 1))
 
         # add a time index since the property package variables are indexed over time
         self.time = Set(initialize=[0])
@@ -526,15 +517,15 @@ and used when constructing these,
             doc="Osmostic pressure difference across the membrane",
         )
 
-        # add variables dependent on dimensionless_module_length and dimensionless_active_thickness
+        # add variables dependent on dimensionless_module_length and dimensionless_boundary_layer_thickness or dimensionless_membrane_thickness
         def initialize_boundary_layer_conc_mol_comp(m, t, w, l, j):
-            vals = {"Li": 109, "Co": 18, "Cl": 4.5}
+            vals = {"Li": 200, "Co": 250, "Cl": 700}
             return vals[j]
 
         self.boundary_layer_conc_mol_comp = Var(
             self.time,
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_boundary_layer_thickness,
             self.solutes,
             initialize=initialize_boundary_layer_conc_mol_comp,
             units=units.mol / units.m**3,  # mM
@@ -549,7 +540,7 @@ and used when constructing these,
         self.membrane_conc_mol_comp = Var(
             self.time,
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_membrane_thickness,
             self.solutes,
             initialize=initialize_membrane_conc_mol_comp,
             units=units.mol / units.m**3,  # mM
@@ -559,7 +550,7 @@ and used when constructing these,
         self.boundary_layer_D_tilde = Var(
             self.time,
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_boundary_layer_thickness,
             initialize=620,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D * c
             doc="Denominator of diffusion and convection coefficients in boundary layer",
@@ -574,7 +565,7 @@ and used when constructing these,
         self.boundary_layer_cross_diffusion_coefficient_bilinear = Var(
             self.time,
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_boundary_layer_thickness,
             self.cations,
             self.cations,
             initialize=initialize_boundary_layer_cross_diffusion_coefficient_bilinear,
@@ -584,13 +575,13 @@ and used when constructing these,
         )
 
         def initialize_boundary_layer_cross_diffusion_coefficient(m, t, w, l, j, k):
-            vals = {"Li": {"Li": -6, "Co": -6}, "Co": {"Li": -0.5, "Co": -4}}
+            vals = {"Li": {"Li": -4, "Co": -0.3}, "Co": {"Li": -0.7, "Co": -4}}
             return vals[j][k]
 
         self.boundary_layer_cross_diffusion_coefficient = Var(
             self.time,
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_boundary_layer_thickness,
             self.cations,
             self.cations,
             initialize=initialize_boundary_layer_cross_diffusion_coefficient,
@@ -601,7 +592,7 @@ and used when constructing these,
         self.membrane_D_tilde = Var(
             self.time,
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_membrane_thickness,
             initialize=620,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D * c
             doc="Denominator of diffusion and convection coefficients in membrane",
@@ -614,7 +605,7 @@ and used when constructing these,
         self.membrane_cross_diffusion_coefficient_bilinear = Var(
             self.time,
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_membrane_thickness,
             self.cations,
             self.cations,
             initialize=initialize_membrane_cross_diffusion_coefficient_bilinear,
@@ -630,7 +621,7 @@ and used when constructing these,
         self.membrane_convection_coefficient_bilinear = Var(
             self.time,
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_membrane_thickness,
             self.cations,
             initialize=initialize_membrane_convection_coefficient_bilinear,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D,tilde
@@ -644,7 +635,7 @@ and used when constructing these,
         self.membrane_cross_diffusion_coefficient = Var(
             self.time,
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_membrane_thickness,
             self.cations,
             self.cations,
             initialize=initialize_membrane_cross_diffusion_coefficient,
@@ -659,7 +650,7 @@ and used when constructing these,
         self.membrane_convection_coefficient = Var(
             self.time,
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_membrane_thickness,
             self.cations,
             initialize=initialize_membrane_convection_coefficient,
             units=units.dimensionless,
@@ -687,13 +678,13 @@ and used when constructing these,
         )
         self.d_boundary_layer_conc_mol_comp_dz = DerivativeVar(
             self.boundary_layer_conc_mol_comp,
-            wrt=self.dimensionless_active_thickness,
+            wrt=self.dimensionless_boundary_layer_thickness,
             units=units.mol / units.m**3,  # mM
             doc="Solute concentration gradient wrt z in the boundary layer",
         )
         self.d_membrane_conc_mol_comp_dz = DerivativeVar(
             self.membrane_conc_mol_comp,
-            wrt=self.dimensionless_active_thickness,
+            wrt=self.dimensionless_membrane_thickness,
             units=units.mol / units.m**3,  # mM
             doc="Solute concentration gradient wrt z in the membrane",
         )
@@ -779,9 +770,7 @@ and used when constructing these,
         )
 
         def _boundary_layer_D_tilde_calculation(blk, x, z):
-            if x == 0 or z > value(
-                blk.dimensionless_boundary_layer_membrane_transition_point
-            ):
+            if x == 0:
                 return Constraint.Skip
             return blk.boundary_layer_D_tilde[0, x, z] == sum(
                 (
@@ -807,16 +796,14 @@ and used when constructing these,
 
         self.boundary_layer_D_tilde_calculation = Constraint(
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_boundary_layer_thickness,
             rule=_boundary_layer_D_tilde_calculation,
         )
 
         def _boundary_layer_cross_diffusion_coefficient_bilinear_calculation(
             blk, x, z, k, j
         ):
-            if x == 0 or z > value(
-                blk.dimensionless_boundary_layer_membrane_transition_point
-            ):
+            if x == 0:
                 return Constraint.Skip
             return (
                 blk.boundary_layer_cross_diffusion_coefficient_bilinear[0, x, z, k, j]
@@ -827,7 +814,7 @@ and used when constructing these,
         self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation = (
             Constraint(
                 self.dimensionless_module_length,
-                self.dimensionless_active_thickness,
+                self.dimensionless_boundary_layer_thickness,
                 self.cations,
                 self.cations,
                 rule=_boundary_layer_cross_diffusion_coefficient_bilinear_calculation,
@@ -835,9 +822,7 @@ and used when constructing these,
         )
 
         def _boundary_layer_cross_diffusion_coefficient_calculation(blk, x, z, k, j):
-            if x == 0 or z > value(
-                blk.dimensionless_boundary_layer_membrane_transition_point
-            ):
+            if x == 0:
                 return Constraint.Skip
             # off-diagonal
             if k != j:
@@ -933,16 +918,14 @@ and used when constructing these,
 
         self.boundary_layer_cross_diffusion_coefficient_calculation = Constraint(
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_boundary_layer_thickness,
             self.cations,
             self.cations,
             rule=_boundary_layer_cross_diffusion_coefficient_calculation,
         )
 
         def _membrane_D_tilde_calculation(blk, x, z):
-            if x == 0 or z < value(
-                blk.dimensionless_boundary_layer_membrane_transition_point
-            ):
+            if x == 0:
                 return Constraint.Skip
             return blk.membrane_D_tilde[0, x, z] == (
                 sum(
@@ -975,14 +958,12 @@ and used when constructing these,
 
         self.membrane_D_tilde_calculation = Constraint(
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_membrane_thickness,
             rule=_membrane_D_tilde_calculation,
         )
 
         def _membrane_cross_diffusion_coefficient_bilinear_calculation(blk, x, z, k, j):
-            if x == 0 or z < value(
-                blk.dimensionless_boundary_layer_membrane_transition_point
-            ):
+            if x == 0:
                 return Constraint.Skip
             return (
                 blk.membrane_cross_diffusion_coefficient_bilinear[0, x, z, k, j]
@@ -992,16 +973,14 @@ and used when constructing these,
 
         self.membrane_cross_diffusion_coefficient_bilinear_calculation = Constraint(
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_membrane_thickness,
             self.cations,
             self.cations,
             rule=_membrane_cross_diffusion_coefficient_bilinear_calculation,
         )
 
         def _membrane_convection_coefficient_bilinear_calculation(blk, x, z, k):
-            if x == 0 or z < value(
-                blk.dimensionless_boundary_layer_membrane_transition_point
-            ):
+            if x == 0:
                 return Constraint.Skip
             return (
                 blk.membrane_convection_coefficient_bilinear[0, x, z, k]
@@ -1011,15 +990,13 @@ and used when constructing these,
 
         self.membrane_convection_coefficient_bilinear_calculation = Constraint(
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_membrane_thickness,
             self.cations,
             rule=_membrane_convection_coefficient_bilinear_calculation,
         )
 
         def _membrane_cross_diffusion_coefficient_calculation(blk, x, z, k, j):
-            if x == 0 or z < value(
-                blk.dimensionless_boundary_layer_membrane_transition_point
-            ):
+            if x == 0:
                 return Constraint.Skip
             # off-diagonal
             if k != j:
@@ -1119,16 +1096,14 @@ and used when constructing these,
 
         self.membrane_cross_diffusion_coefficient_calculation = Constraint(
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_membrane_thickness,
             self.cations,
             self.cations,
             rule=_membrane_cross_diffusion_coefficient_calculation,
         )
 
         def _membrane_convection_coefficient_calculation(blk, x, z, k):
-            if x == 0 or z < value(
-                blk.dimensionless_boundary_layer_membrane_transition_point
-            ):
+            if x == 0:
                 return Constraint.Skip
             return blk.membrane_convection_coefficient_bilinear[0, x, z, k] == (
                 blk.membrane_D_tilde[0, x, z]
@@ -1141,17 +1116,13 @@ and used when constructing these,
 
         self.membrane_convection_coefficient_calculation = Constraint(
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_membrane_thickness,
             self.cations,
             rule=_membrane_convection_coefficient_calculation,
         )
 
         def _cation_flux_boundary_layer(blk, x, z, k):
-            if (
-                x == 0
-                or z == 0
-                or z > value(blk.dimensionless_boundary_layer_membrane_transition_point)
-            ):
+            if x == 0 or z == 0:
                 return Constraint.Skip
             return blk.molar_ion_flux[0, x, k] == (
                 (
@@ -1166,10 +1137,7 @@ and used when constructing these,
                             ],
                             to_units=units.m**2 / units.h,
                         )
-                        / (
-                            blk.total_membrane_thickness
-                            + blk.total_boundary_layer_thickness
-                        )
+                        / (blk.total_boundary_layer_thickness)
                         * (
                             blk.d_boundary_layer_conc_mol_comp_dz[0, x, z, i]
                             + blk.d_boundary_layer_conc_mol_comp_dx[0, x, z, i]
@@ -1181,15 +1149,13 @@ and used when constructing these,
 
         self.cation_flux_boundary_layer = Constraint(
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_boundary_layer_thickness,
             self.cations,
             rule=_cation_flux_boundary_layer,
         )
 
         def _cation_flux_membrane(blk, x, z, k):
-            if x == 0 or z <= value(
-                blk.dimensionless_boundary_layer_membrane_transition_point
-            ):
+            if x == 0:
                 return Constraint.Skip
             return blk.molar_ion_flux[0, x, k] == (
                 (
@@ -1203,10 +1169,7 @@ and used when constructing these,
                             blk.membrane_cross_diffusion_coefficient[0, x, z, k, i],
                             to_units=units.m**2 / units.h,
                         )
-                        / (
-                            blk.total_membrane_thickness
-                            + blk.total_boundary_layer_thickness
-                        )
+                        / (blk.total_membrane_thickness)
                         * blk.d_membrane_conc_mol_comp_dz[0, x, z, i]
                     )
                     for i in blk.cations
@@ -1215,7 +1178,7 @@ and used when constructing these,
 
         self.cation_flux_membrane = Constraint(
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_membrane_thickness,
             self.cations,
             rule=_cation_flux_membrane,
         )
@@ -1245,7 +1208,13 @@ and used when constructing these,
                             blk.config.property_package.num_solutes[j]
                             * blk.config.property_package.sigma[j]
                             * (
-                                blk.retentate_conc_mol_comp[0, x, j]
+                                # blk.retentate_conc_mol_comp[0, x, j]
+                                blk.boundary_layer_conc_mol_comp[
+                                    0,
+                                    x,
+                                    1,
+                                    j,
+                                ]
                                 - blk.permeate_conc_mol_comp[0, x, j]
                             )
                         )
@@ -1271,9 +1240,7 @@ and used when constructing these,
         )
 
         def _electroneutrality_boundary_layer(blk, x, z):
-            if x == 0 or z > value(
-                blk.dimensionless_boundary_layer_membrane_transition_point
-            ):
+            if x == 0:
                 return Constraint.Skip
             return 0 == sum(
                 blk.config.property_package.charge[j]
@@ -1283,14 +1250,12 @@ and used when constructing these,
 
         self.electroneutrality_boundary_layer = Constraint(
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_boundary_layer_thickness,
             rule=_electroneutrality_boundary_layer,
         )
 
         def _electroneutrality_membrane(blk, x, z):
-            if x == 0 or z < value(
-                blk.dimensionless_boundary_layer_membrane_transition_point
-            ):
+            if x == 0:
                 return Constraint.Skip
             return 0 == (
                 sum(
@@ -1303,7 +1268,7 @@ and used when constructing these,
 
         self.electroneutrality_membrane = Constraint(
             self.dimensionless_module_length,
-            self.dimensionless_active_thickness,
+            self.dimensionless_membrane_thickness,
             rule=_electroneutrality_membrane,
         )
 
@@ -1351,9 +1316,7 @@ and used when constructing these,
                     blk.boundary_layer_conc_mol_comp[
                         0,
                         x,
-                        value(
-                            blk.dimensionless_boundary_layer_membrane_transition_point
-                        ),
+                        1,
                         k,
                     ]
                     ** (-blk.config.property_package.charge["Cl"])
@@ -1362,9 +1325,7 @@ and used when constructing these,
                     blk.boundary_layer_conc_mol_comp[
                         0,
                         x,
-                        value(
-                            blk.dimensionless_boundary_layer_membrane_transition_point
-                        ),
+                        1,
                         "Cl",
                     ]
                     ** blk.config.property_package.charge[k]
@@ -1458,8 +1419,14 @@ and used when constructing these,
         )
         discretizer.apply_to(
             self,
-            wrt=self.dimensionless_active_thickness,
-            nfe=self.config.NFE_active_thickness,
+            wrt=self.dimensionless_boundary_layer_thickness,
+            nfe=self.config.NFE_boundary_layer_thickness,
+            scheme="BACKWARD",
+        )
+        discretizer.apply_to(
+            self,
+            wrt=self.dimensionless_membrane_thickness,
+            nfe=self.config.NFE_membrane_thickness,
             scheme="BACKWARD",
         )
 
@@ -1490,11 +1457,13 @@ and used when constructing these,
             )
             self.molar_ion_flux[0, 0, j].fix(value(self.numerical_zero_tolerance))
 
-        for z in self.dimensionless_active_thickness:
+        for z in self.dimensionless_boundary_layer_thickness:
             for j in self.solutes:
                 self.boundary_layer_conc_mol_comp[0, 0, z, j].fix(
                     value(self.numerical_zero_tolerance)
                 )
+        for z in self.dimensionless_membrane_thickness:
+            for j in self.solutes:
                 self.membrane_conc_mol_comp[0, 0, z, j].fix(
                     value(self.numerical_zero_tolerance)
                 )
@@ -1509,52 +1478,6 @@ and used when constructing these,
                 value(self.numerical_zero_tolerance)
             )
 
-        # boundary layer and membrane concentrations are not both needed across all z
-        # fix to reduce number of variables
-        for x in self.dimensionless_module_length:
-            for z in self.dimensionless_active_thickness:
-                if z > value(
-                    self.dimensionless_boundary_layer_membrane_transition_point
-                ):
-                    for j in self.solutes:
-                        self.boundary_layer_conc_mol_comp[0, x, z, j].fix(
-                            value(self.numerical_zero_tolerance)
-                        )
-                    for k in self.cations:
-                        self.d_boundary_layer_conc_mol_comp_dx[0, x, z, k].fix(
-                            value(self.numerical_zero_tolerance)
-                        )
-                        self.d_boundary_layer_conc_mol_comp_dz[0, x, z, k].fix(
-                            value(self.numerical_zero_tolerance)
-                        )
-                        self.d_boundary_layer_conc_mol_comp_dz_disc_eq[
-                            0, x, z, k
-                        ].deactivate()
-
-                    if x != 0:
-                        for k in self.cations:
-                            self.d_boundary_layer_conc_mol_comp_dx_disc_eq[
-                                0, x, z, k
-                            ].deactivate()
-
-                if z < value(
-                    self.dimensionless_boundary_layer_membrane_transition_point
-                ):
-                    for j in self.solutes:
-                        self.membrane_conc_mol_comp[0, x, z, j].fix(
-                            value(self.numerical_zero_tolerance)
-                        )
-                    for k in self.cations:
-                        self.d_membrane_conc_mol_comp_dz[0, x, z, k].fix(
-                            value(self.numerical_zero_tolerance)
-                        )
-
-                    if z != 0:
-                        for k in self.cations:
-                            self.d_membrane_conc_mol_comp_dz_disc_eq[
-                                0, x, z, k
-                            ].deactivate()
-
     def add_scaling_factors(self):
         """
         Assigns scaling factors to certain variables and constraints to
@@ -1562,8 +1485,29 @@ and used when constructing these,
         """
         self.scaling_factor = Suffix(direction=Suffix.EXPORT)
 
-        # Add scaling factors for poorly scaled constraints
-        constraint_autoscale_large_jac(self)
+        self.scaling_factor[self.volume_flux_water] = 1e3
+        self.scaling_factor[self.boundary_layer_D_tilde] = 1e-2
+        self.scaling_factor[
+            self.boundary_layer_cross_diffusion_coefficient_bilinear
+        ] = 1e-4
+        self.scaling_factor[self.membrane_D_tilde] = 1e-2
+        self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = 1e-2
+
+        for x in self.dimensionless_module_length:
+            if x != 0:
+                self.scaling_factor[self.lumped_water_flux[x]] = 1e3
+                self.scaling_factor[
+                    self.cation_equilibrium_boundary_layer_membrane_interface[x, "Co"]
+                ] = 1e-2
+                self.scaling_factor[
+                    self.cation_equilibrium_boundary_layer_membrane_interface[x, "Li"]
+                ] = 1e-3
+                self.scaling_factor[
+                    self.cation_equilibrium_membrane_permeate_interface[x, "Co"]
+                ] = 1e-2
+                self.scaling_factor[
+                    self.cation_equilibrium_membrane_permeate_interface[x, "Li"]
+                ] = 1e-3
 
     def add_ports(self):
         self.feed_inlet = Port(doc="Feed Inlet Port")
