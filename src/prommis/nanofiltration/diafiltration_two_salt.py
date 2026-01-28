@@ -931,6 +931,14 @@ and used when constructing these,
                     )
                 )
 
+        self.boundary_layer_cross_diffusion_coefficient_calculation = Constraint(
+            self.dimensionless_module_length,
+            self.dimensionless_active_thickness,
+            self.cations,
+            self.cations,
+            rule=_boundary_layer_cross_diffusion_coefficient_calculation,
+        )
+
         def _membrane_D_tilde_calculation(blk, x, z):
             if x == 0 or z < value(
                 blk.dimensionless_boundary_layer_membrane_transition_point

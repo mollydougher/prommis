@@ -69,10 +69,7 @@ def main():
 
     # check structural warnings
     dt = DiagnosticsToolbox(m)
-    # dt.assert_no_structural_warnings()
-    dt.report_structural_issues()
-    dt.display_underconstrained_set()
-    # TODO: debug DOF
+    dt.assert_no_structural_warnings()
 
     # # solve model
     # solve_model(m)
