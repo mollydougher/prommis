@@ -82,12 +82,13 @@ def main():
     # dt.display_constraints_with_large_residuals()
 
     # visualize the results
-    overall_results_plot = plot_results(m)
-    membrane_results_plot = plot_membrane_results(m)
+    overall_results_plot = plot_results_by_length(m)
+    boundary_layer_results_plot = plot_results_by_thickness(m, phase="Boundary Layer")
+    membrane_results_plot = plot_results_by_thickness(m, phase="Membrane")
 
     # m.fs.membrane.display()
 
-    return (m, overall_results_plot, membrane_results_plot)
+    return (m, overall_results_plot, boundary_layer_results_plot, membrane_results_plot)
 
 
 def build_membrane_parameters(m):
@@ -151,7 +152,7 @@ def solve_model(m):
     scaling.propagate_solution(scaled_model, m)
 
 
-def plot_results(m):
+def plot_results_by_length(m):
     """
     Plots concentration and flux variables across the length of the membrane module.
 
@@ -348,9 +349,9 @@ def plot_results(m):
     return fig
 
 
-def plot_membrane_results(m):
+def plot_results_by_thickness(m, phase):
     """
-    Plots concentrations within the membrane.
+    Plots concentrations within the boundary layer or membrane.
 
     Args:
         m: Pyomo model
@@ -358,77 +359,125 @@ def plot_membrane_results(m):
     x_axis_values = []
     z_axis_values = []
 
+    # store values for concentration of lithium
+    conc_lith = []
+    conc_lith_dict = {}
+    # store values for concentration of cobalt
+    conc_cob = []
+    conc_cob_dict = {}
+    # store values for concentration of chloride
+    conc_chl = []
+    conc_chl_dict = {}
+
     for x_val in m.fs.membrane.dimensionless_module_length:
         if x_val != 0:
             x_axis_values.append(x_val * value(m.fs.membrane.total_module_length))
-    for z_val in m.fs.membrane.dimensionless_membrane_thickness:
-        z_axis_values.append(
-            z_val * value(m.fs.membrane.total_membrane_thickness) * 1e9
-        )
-    # store values for concentration of lithium in the membrane
-    conc_mem_lith = []
-    conc_mem_lith_dict = {}
-    # store values for concentration of cobalt in the membrane
-    conc_mem_cob = []
-    conc_mem_cob_dict = {}
-    # store values for concentration of chloride in the membrane
-    conc_mem_chl = []
-    conc_mem_chl_dict = {}
 
-    for z_val in m.fs.membrane.dimensionless_membrane_thickness:
-        for x_val in m.fs.membrane.dimensionless_module_length:
-            if x_val != 0:
-                conc_mem_lith.append(
-                    value(m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "Li"])
-                )
-                conc_mem_cob.append(
-                    value(m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "Co"])
-                )
-                conc_mem_chl.append(
-                    value(m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "Cl"])
-                )
+    if phase == "Boundary Layer":
+        for z_val in m.fs.membrane.dimensionless_boundary_layer_thickness:
+            z_axis_values.append(
+                z_val * value(m.fs.membrane.total_boundary_layer_thickness) * 1e6
+            )
+            for x_val in m.fs.membrane.dimensionless_module_length:
+                if x_val != 0:
+                    conc_lith.append(
+                        value(
+                            m.fs.membrane.boundary_layer_conc_mol_comp[
+                                0, x_val, z_val, "Li"
+                            ]
+                        )
+                    )
+                    conc_cob.append(
+                        value(
+                            m.fs.membrane.boundary_layer_conc_mol_comp[
+                                0, x_val, z_val, "Co"
+                            ]
+                        )
+                    )
+                    conc_chl.append(
+                        value(
+                            m.fs.membrane.boundary_layer_conc_mol_comp[
+                                0, x_val, z_val, "Cl"
+                            ]
+                        )
+                    )
 
-        conc_mem_lith_dict[f"{z_val}"] = conc_mem_lith
-        conc_mem_cob_dict[f"{z_val}"] = conc_mem_cob
-        conc_mem_chl_dict[f"{z_val}"] = conc_mem_chl
-        conc_mem_lith = []
-        conc_mem_cob = []
-        conc_mem_chl = []
+            conc_lith_dict[f"{z_val}"] = conc_lith
+            conc_cob_dict[f"{z_val}"] = conc_cob
+            conc_chl_dict[f"{z_val}"] = conc_chl
+            conc_lith = []
+            conc_cob = []
+            conc_chl = []
 
-    conc_mem_lith_df = DataFrame(index=x_axis_values, data=conc_mem_lith_dict)
-    conc_mem_cob_df = DataFrame(index=x_axis_values, data=conc_mem_cob_dict)
-    conc_mem_chl_df = DataFrame(index=x_axis_values, data=conc_mem_chl_dict)
+    elif phase == "Membrane":
+        for z_val in m.fs.membrane.dimensionless_membrane_thickness:
+            z_axis_values.append(
+                z_val * value(m.fs.membrane.total_membrane_thickness) * 1e9
+            )
+            for x_val in m.fs.membrane.dimensionless_module_length:
+                if x_val != 0:
+                    conc_lith.append(
+                        value(
+                            m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "Li"]
+                        )
+                    )
+                    conc_cob.append(
+                        value(
+                            m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "Co"]
+                        )
+                    )
+                    conc_chl.append(
+                        value(
+                            m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "Cl"]
+                        )
+                    )
+
+            conc_lith_dict[f"{z_val}"] = conc_lith
+            conc_cob_dict[f"{z_val}"] = conc_cob
+            conc_chl_dict[f"{z_val}"] = conc_chl
+            conc_lith = []
+            conc_cob = []
+            conc_chl = []
+
+    conc_lith_df = DataFrame(index=x_axis_values, data=conc_lith_dict)
+    conc_cob_df = DataFrame(index=x_axis_values, data=conc_cob_dict)
+    conc_chl_df = DataFrame(index=x_axis_values, data=conc_chl_dict)
 
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi=125, figsize=(15, 7))
-    lithium_plot = ax1.pcolor(
-        z_axis_values, x_axis_values, conc_mem_lith_df, cmap="Greens"
-    )
-    ax1.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
+    lithium_plot = ax1.pcolor(z_axis_values, x_axis_values, conc_lith_df, cmap="Greens")
+    if phase == "Boundary Layer":
+        ax1.set_xlabel("Boundary Layer Thickness (um)", fontsize=10, fontweight="bold")
+    elif phase == "Membrane":
+        ax1.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
     ax1.set_ylabel("Module Length (m)", fontsize=10, fontweight="bold")
     ax1.set_title(
-        "Lithium Concentration\n in Membrane (mol/m$^3$)",
+        f"Lithium Concentration\n in {phase} (mol/m$^3$)",
         fontsize=10,
         fontweight="bold",
     )
     ax1.tick_params(direction="in", labelsize=10)
     fig.colorbar(lithium_plot, ax=ax1)
 
-    cobalt_plot = ax2.pcolor(
-        z_axis_values, x_axis_values, conc_mem_cob_df, cmap="Blues"
-    )
-    ax2.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
+    cobalt_plot = ax2.pcolor(z_axis_values, x_axis_values, conc_cob_df, cmap="Blues")
+    if phase == "Boundary Layer":
+        ax2.set_xlabel("Boundary Layer Thickness (um)", fontsize=10, fontweight="bold")
+    elif phase == "Membrane":
+        ax2.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
     ax2.set_title(
-        "Cobalt Concentration\n in Membrane (mol/m$^3$)", fontsize=10, fontweight="bold"
+        f"Cobalt Concentration\n in {phase} (mol/m$^3$)", fontsize=10, fontweight="bold"
     )
     ax2.tick_params(direction="in", labelsize=10)
     fig.colorbar(cobalt_plot, ax=ax2)
 
     chloride_plot = ax3.pcolor(
-        z_axis_values, x_axis_values, conc_mem_chl_df, cmap="Oranges"
+        z_axis_values, x_axis_values, conc_chl_df, cmap="Oranges"
     )
-    ax3.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
+    if phase == "Boundary Layer":
+        ax3.set_xlabel("Boundary Layer Thickness (um)", fontsize=10, fontweight="bold")
+    elif phase == "Membrane":
+        ax3.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
     ax3.set_title(
-        "Chloride Concentration\n in Membrane (mol/m$^3$)",
+        f"Chloride Concentration\n in {phase} (mol/m$^3$)",
         fontsize=10,
         fontweight="bold",
     )
