@@ -226,7 +226,6 @@ from pyomo.common.config import ConfigBlock, ConfigValue
 from pyomo.dae import ContinuousSet, DerivativeVar
 from pyomo.environ import (
     Constraint,
-    Expression,
     Param,
     Reference,
     Set,
@@ -241,7 +240,6 @@ from pyomo.network import Port
 from idaes.core import UnitModelBlockData, declare_process_block_class, useDefault
 from idaes.core.util.config import is_physical_parameter_block
 from idaes.core.util.constants import Constants
-from idaes.core.util.scaling import constraint_autoscale_large_jac
 
 
 @declare_process_block_class("TwoSaltDiafiltration")
@@ -291,7 +289,7 @@ and used when constructing these,
         ),
     )
     CONFIG.declare(
-        "NFE_membrane_thickness",  # TODO update name to be more descriptive
+        "NFE_membrane_thickness",
         ConfigValue(
             doc="Number of discretization points across the membrane thickness (in the z-direction)",
         ),
@@ -370,11 +368,13 @@ and used when constructing these,
         Assumes 4 modules in series.
         """
         # define length scales
+        # x-direction
         self.dimensionless_module_length = ContinuousSet(bounds=(0, 1))
+        # z-directions
         self.dimensionless_boundary_layer_thickness = ContinuousSet(bounds=(0, 1))
         self.dimensionless_membrane_thickness = ContinuousSet(bounds=(0, 1))
 
-        # add a time index since the property package variables are indexed over time
+        # add a time index
         self.time = Set(initialize=[0])
 
         # add components
@@ -467,14 +467,14 @@ and used when constructing these,
         self.retentate_flow_volume = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=6.7,
+            initialize=5.5,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the retentate, x-dependent",
         )
 
         def initialize_retentate_conc_mol_comp(m, t, p, j):
-            vals = {"Li": 198, "Co": 241, "Cl": 680}
+            vals = {"Li": 687, "Co": 817, "Cl": 2320}
             return vals[j]
 
         self.retentate_conc_mol_comp = Var(
@@ -489,14 +489,14 @@ and used when constructing these,
         self.permeate_flow_volume = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=9.5,
+            initialize=9.4,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the permeate, x-dependent",
         )
 
         def initialize_permeate_conc_mol_comp(m, t, p, j):
-            vals = {"Li": 191, "Co": 220, "Cl": 632}
+            vals = {"Li": 204, "Co": 232, "Cl": 670}
             return vals[j]
 
         self.permeate_conc_mol_comp = Var(
@@ -551,7 +551,7 @@ and used when constructing these,
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_boundary_layer_thickness,
-            initialize=620,
+            initialize=8700,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D * c
             doc="Denominator of diffusion and convection coefficients in boundary layer",
         )
@@ -559,7 +559,10 @@ and used when constructing these,
         def initialize_boundary_layer_cross_diffusion_coefficient_bilinear(
             m, t, w, l, j, k
         ):
-            vals = {"Li": {"Li": -3800, "Co": -3800}, "Co": {"Li": -340, "Co": -2500}}
+            vals = {
+                "Li": {"Li": -35000, "Co": -7300},
+                "Co": {"Li": -4800, "Co": -36000},
+            }
             return vals[j][k]
 
         self.boundary_layer_cross_diffusion_coefficient_bilinear = Var(
@@ -575,7 +578,7 @@ and used when constructing these,
         )
 
         def initialize_boundary_layer_cross_diffusion_coefficient(m, t, w, l, j, k):
-            vals = {"Li": {"Li": -4, "Co": -0.3}, "Co": {"Li": -0.7, "Co": -4}}
+            vals = {"Li": {"Li": -4, "Co": -0.8}, "Co": {"Li": -0.6, "Co": -4}}
             return vals[j][k]
 
         self.boundary_layer_cross_diffusion_coefficient = Var(
@@ -593,13 +596,13 @@ and used when constructing these,
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=620,
+            initialize=630,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D * c
             doc="Denominator of diffusion and convection coefficients in membrane",
         )
 
         def initialize_membrane_cross_diffusion_coefficient_bilinear(m, t, w, l, j, k):
-            vals = {"Li": {"Li": -3800, "Co": -3800}, "Co": {"Li": -340, "Co": -2500}}
+            vals = {"Li": {"Li": -3800, "Co": -3800}, "Co": {"Li": -330, "Co": -2500}}
             return vals[j][k]
 
         self.membrane_cross_diffusion_coefficient_bilinear = Var(
@@ -615,7 +618,7 @@ and used when constructing these,
         )
 
         def initialize_membrane_convection_coefficient_bilinear(m, t, w, l, j):
-            vals = {"Li": 105, "Co": -115}
+            vals = {"Li": 108, "Co": -112}
             return vals[j]
 
         self.membrane_convection_coefficient_bilinear = Var(
@@ -1485,13 +1488,28 @@ and used when constructing these,
         """
         self.scaling_factor = Suffix(direction=Suffix.EXPORT)
 
+        self.scaling_factor[self.feed_conc_mol_comp] = 1e-1
+        self.scaling_factor[self.retentate_conc_mol_comp] = 1e-1
+        self.scaling_factor[self.boundary_layer_conc_mol_comp] = 1e-1
+        # self.scaling_factor[self.membrane_conc_mol_comp] = 1e-1
+        self.scaling_factor[self.permeate_conc_mol_comp] = 1e-1
+
         self.scaling_factor[self.volume_flux_water] = 1e3
-        self.scaling_factor[self.boundary_layer_D_tilde] = 1e-2
+        self.scaling_factor[self.boundary_layer_D_tilde] = 1e-3
         self.scaling_factor[
             self.boundary_layer_cross_diffusion_coefficient_bilinear
         ] = 1e-4
-        self.scaling_factor[self.membrane_D_tilde] = 1e-2
+        self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = 1e1
+        self.scaling_factor[self.membrane_D_tilde] = 1e-1
         self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = 1e-2
+        self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e-1
+        self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e1
+        self.scaling_factor[self.membrane_convection_coefficient] = 1e2
+
+        self.scaling_factor[self.d_retentate_conc_mol_comp_dx] = 1e-1
+        self.scaling_factor[self.d_boundary_layer_conc_mol_comp_dx] = 1e-1
+        self.scaling_factor[self.d_boundary_layer_conc_mol_comp_dz] = 1e-1
+        self.scaling_factor[self.d_membrane_conc_mol_comp_dz] = 1e2
 
         for x in self.dimensionless_module_length:
             if x != 0:

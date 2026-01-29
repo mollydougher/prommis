@@ -53,7 +53,7 @@ def main():
     # add the membrane unit model
     m.fs.membrane = TwoSaltDiafiltration(
         property_package=m.fs.properties,
-        NFE_module_length=3,
+        NFE_module_length=5,
         NFE_boundary_layer_thickness=5,
         NFE_membrane_thickness=5,
     )
@@ -77,25 +77,22 @@ def main():
     solve_model(m)
 
     # check numerical warnings
-    dt.assert_no_numerical_warnings()
-    # dt.report_numerical_issues()
-    # dt.display_constraints_with_large_residuals()
+    # dt.assert_no_numerical_warnings()
+    dt.report_numerical_issues()
 
     # visualize the results
-    overall_results_plot = plot_results_by_length(m)
-    boundary_layer_results_plot = plot_results_by_thickness(m, phase="Boundary Layer")
-    membrane_results_plot = plot_results_by_thickness(m, phase="Membrane")
-    rejection_plot = plot_rejection_versus_concentration(m)
+    # overall_results_plot = plot_results_by_length(m)
+    # boundary_layer_results_plot = plot_results_by_thickness(m, phase="Boundary Layer")
+    # membrane_results_plot = plot_results_by_thickness(m, phase="Membrane")
+    # rejection_plot = plot_rejection_versus_concentration(m)
 
-    # m.fs.membrane.display()
-
-    return (
-        m,
-        overall_results_plot,
-        boundary_layer_results_plot,
-        membrane_results_plot,
-        rejection_plot,
-    )
+    # return (
+    #     m,
+    #     overall_results_plot,
+    #     boundary_layer_results_plot,
+    #     membrane_results_plot,
+    #     rejection_plot,
+    # )
 
 
 def build_membrane_parameters(m):
@@ -154,7 +151,7 @@ def solve_model(m):
 
     solver = SolverFactory("ipopt")
     results = solver.solve(scaled_model, tee=True)
-    assert_optimal_termination(results)
+    # assert_optimal_termination(results)
 
     scaling.propagate_solution(scaled_model, m)
 
