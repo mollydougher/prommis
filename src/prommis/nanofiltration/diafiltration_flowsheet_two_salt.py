@@ -53,11 +53,10 @@ def main():
     # add the membrane unit model
     m.fs.membrane = TwoSaltDiafiltration(
         property_package=m.fs.properties,
-        NFE_module_length=5,
-        NFE_boundary_layer_thickness=5,
-        NFE_membrane_thickness=5,
+        NFE_module_length=20,
+        NFE_boundary_layer_thickness=10,
+        NFE_membrane_thickness=10,
     )
-    # TODO: debug numerical scaling at higher NFE_module_length
 
     # add product blocks for retentate and permeate
     m.fs.retentate_block = Product(property_package=m.fs.stream_properties)
@@ -77,22 +76,22 @@ def main():
     solve_model(m)
 
     # check numerical warnings
-    # dt.assert_no_numerical_warnings()
+    dt.assert_no_numerical_warnings()
     dt.report_numerical_issues()
 
     # visualize the results
-    # overall_results_plot = plot_results_by_length(m)
-    # boundary_layer_results_plot = plot_results_by_thickness(m, phase="Boundary Layer")
-    # membrane_results_plot = plot_results_by_thickness(m, phase="Membrane")
-    # rejection_plot = plot_rejection_versus_concentration(m)
+    overall_results_plot = plot_results_by_length(m)
+    boundary_layer_results_plot = plot_results_by_thickness(m, phase="Boundary Layer")
+    membrane_results_plot = plot_results_by_thickness(m, phase="Membrane")
+    rejection_plot = plot_rejection_versus_concentration(m)
 
-    # return (
-    #     m,
-    #     overall_results_plot,
-    #     boundary_layer_results_plot,
-    #     membrane_results_plot,
-    #     rejection_plot,
-    # )
+    return (
+        m,
+        overall_results_plot,
+        boundary_layer_results_plot,
+        membrane_results_plot,
+        rejection_plot,
+    )
 
 
 def build_membrane_parameters(m):

@@ -673,12 +673,6 @@ and used when constructing these,
             units=units.m**3 / units.h,
             doc="Volume flow gradient in the retentate",
         )
-        self.d_boundary_layer_conc_mol_comp_dx = DerivativeVar(
-            self.boundary_layer_conc_mol_comp,
-            wrt=self.dimensionless_module_length,
-            units=units.mol / units.m**3,  # mM
-            doc="Solute concentration gradient wrt x in the boundary layer",
-        )
         self.d_boundary_layer_conc_mol_comp_dz = DerivativeVar(
             self.boundary_layer_conc_mol_comp,
             wrt=self.dimensionless_boundary_layer_thickness,
@@ -1141,10 +1135,7 @@ and used when constructing these,
                             to_units=units.m**2 / units.h,
                         )
                         / (blk.total_boundary_layer_thickness)
-                        * (
-                            blk.d_boundary_layer_conc_mol_comp_dz[0, x, z, i]
-                            + blk.d_boundary_layer_conc_mol_comp_dx[0, x, z, i]
-                        )
+                        * blk.d_boundary_layer_conc_mol_comp_dz[0, x, z, i]
                     )
                     for i in self.cations
                 )
@@ -1488,11 +1479,10 @@ and used when constructing these,
         """
         self.scaling_factor = Suffix(direction=Suffix.EXPORT)
 
-        self.scaling_factor[self.feed_conc_mol_comp] = 1e-1
-        self.scaling_factor[self.retentate_conc_mol_comp] = 1e-1
-        self.scaling_factor[self.boundary_layer_conc_mol_comp] = 1e-1
-        # self.scaling_factor[self.membrane_conc_mol_comp] = 1e-1
-        self.scaling_factor[self.permeate_conc_mol_comp] = 1e-1
+        self.scaling_factor[self.retentate_conc_mol_comp] = 1e-2
+        self.scaling_factor[self.boundary_layer_conc_mol_comp] = 1e-2
+        self.scaling_factor[self.membrane_conc_mol_comp] = 1e-1
+        self.scaling_factor[self.permeate_conc_mol_comp] = 1e-2
 
         self.scaling_factor[self.volume_flux_water] = 1e3
         self.scaling_factor[self.boundary_layer_D_tilde] = 1e-3
@@ -1505,27 +1495,6 @@ and used when constructing these,
         self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e-1
         self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e1
         self.scaling_factor[self.membrane_convection_coefficient] = 1e2
-
-        self.scaling_factor[self.d_retentate_conc_mol_comp_dx] = 1e-1
-        self.scaling_factor[self.d_boundary_layer_conc_mol_comp_dx] = 1e-1
-        self.scaling_factor[self.d_boundary_layer_conc_mol_comp_dz] = 1e-1
-        self.scaling_factor[self.d_membrane_conc_mol_comp_dz] = 1e2
-
-        for x in self.dimensionless_module_length:
-            if x != 0:
-                self.scaling_factor[self.lumped_water_flux[x]] = 1e3
-                self.scaling_factor[
-                    self.cation_equilibrium_boundary_layer_membrane_interface[x, "Co"]
-                ] = 1e-2
-                self.scaling_factor[
-                    self.cation_equilibrium_boundary_layer_membrane_interface[x, "Li"]
-                ] = 1e-3
-                self.scaling_factor[
-                    self.cation_equilibrium_membrane_permeate_interface[x, "Co"]
-                ] = 1e-2
-                self.scaling_factor[
-                    self.cation_equilibrium_membrane_permeate_interface[x, "Li"]
-                ] = 1e-3
 
     def add_ports(self):
         self.feed_inlet = Port(doc="Feed Inlet Port")
