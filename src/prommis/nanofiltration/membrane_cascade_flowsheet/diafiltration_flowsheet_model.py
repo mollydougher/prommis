@@ -1193,7 +1193,15 @@ class DiafiltrationModel:
                     },
                 )
 
-        m.fs.costing.cost_process()
+        product_dict = {
+            "Li2CO3": m.prec_mass_li,
+            # "cobalt": m.prec_mass_co,
+        }
+
+        m.fs.costing.aggregate_costs()
+        m.fs.costing.build_process_costs(
+            pure_product_output_rates=product_dict,
+        )
 
     def add_costing_scaling(self, m, NS, simple_costing):
         """

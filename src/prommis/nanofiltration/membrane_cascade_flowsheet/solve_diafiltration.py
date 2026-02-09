@@ -140,6 +140,7 @@ def main(args):
     m.prec_perc_li.display()
 
     m.fs.costing.total_annualized_cost.display()
+    m.fs.costing.total_sales_revenue.display()
 
     # Print all relevant flow information
     vals = utils.report_values(m)

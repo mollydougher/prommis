@@ -32,6 +32,9 @@ from prommis.nanofiltration.costing.diafiltration_cost_block import (
 class DiafiltrationCostingData(DiafiltrationCostingBlockData):
     """
     Costing block for the diafiltration flowsheet
+
+    References for default market prices:
+        Na2CO3 and Li2CO3, 2021 data: https://pubs.usgs.gov/periodicals/mcs2024/mcs2024.pdf
     """
 
     def build_global_params(self):
@@ -61,11 +64,15 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
 
     def build_process_costs(
         self,
+        pure_product_output_rates=None,
     ):
         """
         Builds the process-wide costing
 
         Costing method is based off of the WaterTAP costing methods
+
+        Arguments:
+            pure_product_output_rates: dictionary of flow rates for final product flowrates
         """
         # initialize the common global parameters
         self._build_common_global_params()
@@ -135,6 +142,25 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
                 + self.total_operating_cost
             ),
             doc="Total annualized cost of operation",
+        )
+
+        default_market_prices = {
+            "Na2CO3": 0.13 * units.USD_2021 / units.kg,  # soda ash
+            # TODO: add raw material for retentate precipitator
+            "Li2CO3": 12 * units.USD_2021 / units.kg,  # lithium carbonate
+            # TODO: add cobalt product
+        }
+
+        # TODO: enforce purity constraints at respective selling prices
+        self.total_sales_revenue = Expression(
+            expr=units.convert(
+                sum(
+                    pure_product_output_rates[p] * default_market_prices[p]
+                    for p in pure_product_output_rates.keys()
+                ),
+                to_units=self.base_currency / self.base_period,
+            ),
+            doc="Calculation of total sales revenue",
         )
 
     @staticmethod
