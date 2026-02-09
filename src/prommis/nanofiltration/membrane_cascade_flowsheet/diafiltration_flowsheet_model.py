@@ -1183,19 +1183,47 @@ class DiafiltrationModel:
 
         # precipitator cost blocks
         if precipitate:
-            for prod in ["retentate", "permeate"]:
-                m.fs.precipitator[prod].costing = UnitModelCostingBlock(
-                    flowsheet_costing_block=m.fs.costing,
-                    costing_method=DiafiltrationCostingData.cost_precipitator,
-                    costing_method_arguments={
-                        "precip_volume": m.fs.precipitator[prod].volume,
-                        "simple_costing": simple_costing,
-                    },
-                )
+            # retentate raw materials
+            # TODO: add proper cost values
+            # assumes 1:1 stoichiometry of (NH4)2C2O4:CoC2O4
+            molar_mass_cobalt_oxalate = 0.147  # kg/mol
+            molar_mass_ammonium_oxalate = 0.124  # kg/mol
+            retentate_raw_materials = {
+                "(NH4)2C2O4": m.prec_mass_co
+                * molar_mass_ammonium_oxalate
+                / molar_mass_cobalt_oxalate,
+            }
+            m.fs.precipitator["retentate"].costing = UnitModelCostingBlock(
+                flowsheet_costing_block=m.fs.costing,
+                costing_method=DiafiltrationCostingData.cost_precipitator,
+                costing_method_arguments={
+                    "precip_volume": m.fs.precipitator["retentate"].volume,
+                    "material_inlet_rates": retentate_raw_materials,
+                    "simple_costing": simple_costing,
+                },
+            )
+            # permeate raw materials
+            # assumes 1:1 stoichiometry of Na2CO3:Li2CO3
+            molar_mass_lithium_carbonate = 0.0739  # kg/mol
+            molar_mass_soda_ash = 0.106  # kg/mol
+            permeate_raw_materials = {
+                "Na2CO3": m.prec_mass_li
+                * molar_mass_soda_ash
+                / molar_mass_lithium_carbonate,
+            }
+            m.fs.precipitator["permeate"].costing = UnitModelCostingBlock(
+                flowsheet_costing_block=m.fs.costing,
+                costing_method=DiafiltrationCostingData.cost_precipitator,
+                costing_method_arguments={
+                    "precip_volume": m.fs.precipitator["permeate"].volume,
+                    "material_inlet_rates": permeate_raw_materials,
+                    "simple_costing": simple_costing,
+                },
+            )
 
         product_dict = {
             "Li2CO3": m.prec_mass_li,
-            # "cobalt": m.prec_mass_co,
+            "CoC2O4": m.prec_mass_co,
         }
 
         m.fs.costing.aggregate_costs()

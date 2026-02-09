@@ -62,6 +62,15 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
         )
         self.operating_hours_per_year.fix()
 
+        self.default_market_prices = {
+            "Na2CO3": 0.13 * units.USD_2021 / units.kg,  # soda ash
+            "(NH4)2C2O4": 1
+            * units.USD_2021
+            / units.kg,  # TODO: add ammonium oxalate cost
+            "Li2CO3": 12 * units.USD_2021 / units.kg,  # lithium carbonate
+            "CoC2O4": 1 * units.USD_2021 / units.kg,  # TODO: add cobalt oxalate price
+        }
+
     def build_process_costs(
         self,
         pure_product_output_rates=None,
@@ -144,18 +153,11 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
             doc="Total annualized cost of operation",
         )
 
-        default_market_prices = {
-            "Na2CO3": 0.13 * units.USD_2021 / units.kg,  # soda ash
-            # TODO: add raw material for retentate precipitator
-            "Li2CO3": 12 * units.USD_2021 / units.kg,  # lithium carbonate
-            # TODO: add cobalt product
-        }
-
         # TODO: enforce purity constraints at respective selling prices
         self.total_sales_revenue = Expression(
             expr=units.convert(
                 sum(
-                    pure_product_output_rates[p] * default_market_prices[p]
+                    pure_product_output_rates[p] * self.default_market_prices[p]
                     for p in pure_product_output_rates.keys()
                 ),
                 to_units=self.base_currency / self.base_period,
@@ -594,6 +596,7 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
         blk,
         precip_volume,
         precip_headspace=1.2,
+        material_inlet_rates=None,
         simple_costing=False,
     ):
         """
@@ -621,6 +624,7 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
         Args:
             precip_volume: volume of the precipitator as calculated by the unit model (m3)
             precip_headspace: precipitator headspace percentage; default value is 20%
+            material_inlet_rates: dictionary of flow rates for raw material flowrates
             simple_costing: Boolean to determine which costing method is implemented (default=False)
         """
 
@@ -733,3 +737,23 @@ class DiafiltrationCostingData(DiafiltrationCostingBlockData):
                     + blk.precipitator_base_cost_capital,
                     to_units=blk.costing_package.base_currency,
                 )
+
+        # either cost model
+        blk.variable_operating_cost = Var(
+            initialize=1e5,
+            domain=NonNegativeReals,
+            units=blk.costing_package.base_currency / blk.costing_package.base_period,
+            doc="Unit variable operating cost",
+        )
+
+        @blk.Constraint()
+        def variable_operating_cost_constraint(blk):
+            return blk.variable_operating_cost == units.convert(
+                sum(
+                    material_inlet_rates[p]
+                    * blk.costing_package.default_market_prices[p]
+                    for p in material_inlet_rates.keys()
+                ),
+                to_units=blk.costing_package.base_currency
+                / blk.costing_package.base_period,
+            )
