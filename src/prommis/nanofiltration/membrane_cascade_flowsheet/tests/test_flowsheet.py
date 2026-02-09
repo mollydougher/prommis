@@ -468,8 +468,6 @@ class TestFlowsheetCosting(object):
             m_simple,
             NS=3,
             flux=flux,
-            feed=feed,
-            diaf=diaf,
             precipitate=use_precipitators,
             atmospheric_pressure=101.325,  # ambient pressure, kPa
             operating_pressure=145,  # nanofiltration operating pressure, psi
@@ -625,7 +623,7 @@ class TestFlowsheetCosting(object):
             ],
             "diafiltrate_pump_capex": [
                 value(m_simple.fs.diafiltrate_pump.costing.capital_cost),
-                6152.30,
+                41015.35,
             ],
             "feed_pump_opex": [
                 value(m_simple.fs.feed_pump.costing.variable_operating_cost),
@@ -633,7 +631,7 @@ class TestFlowsheetCosting(object):
             ],
             "diafiltrate_pump_opex": [
                 value(m_simple.fs.diafiltrate_pump.costing.variable_operating_cost),
-                8445.10,
+                56300.66,
             ],
             "retentate_precipitator_capex": [
                 value(m_simple.fs.precipitator["retentate"].costing.capital_cost),
@@ -645,19 +643,19 @@ class TestFlowsheetCosting(object):
             ],
             "mainentance_and_labor": [
                 value(m_simple.fs.costing.maintenance_labor_chemical_operating_cost),
-                26223.14,
+                28314.92,
             ],
             "total_capex": [
                 value(m_simple.fs.costing.total_capital_cost),
-                874104.54,
+                943830.62,
             ],
             "total_opex": [
                 value(m_simple.fs.costing.total_operating_cost),
-                88724.28,
+                138671.62,
             ],
             "total_annualized_cost": [
                 value(m_simple.fs.costing.total_annualized_cost),
-                176134.73,
+                233054.69,
             ],
         }
 
@@ -680,8 +678,6 @@ class TestFlowsheetCosting(object):
             m_default,
             NS=3,
             flux=flux,
-            feed=feed,
-            diaf=diaf,
             precipitate=use_precipitators,
             atmospheric_pressure=101.325,  # ambient pressure, kPa
             operating_pressure=145,  # nanofiltration operating pressure, psi
@@ -819,40 +815,40 @@ class TestFlowsheetCosting(object):
         test_dict = {
             "lithium_recovery": [value(m_default.prec_perc_li), 0.8],
             "cobalt_recovery": [value(m_default.prec_perc_co), 0.8],
-            "stage_1_area": [value(m_default.fs.stage[1].length), 1106.92],
-            "stage_2_area": [value(m_default.fs.stage[2].length), 1106.92],
-            "stage_3_area": [value(m_default.fs.stage[3].length), 1106.92],
+            "stage_1_area": [value(m_default.fs.stage[1].length), 1702.15],
+            "stage_2_area": [value(m_default.fs.stage[2].length), 1702.15],
+            "stage_3_area": [value(m_default.fs.stage[3].length), 1702.15],
             "retentate_precipitator_volume": [
                 value(m_default.fs.precipitator["retentate"].volume),
-                88.733,
+                44.033,
             ],
             "permeate_precipitator_volume": [
                 value(m_default.fs.precipitator["permeate"].volume),
-                112.44,
+                112.92,
             ],
             "stage_1_capex": [
                 value(m_default.fs.stage[1].costing.capital_cost),
-                55346.07,
+                85107.65,
             ],
             "stage_2_capex": [
                 value(m_default.fs.stage[2].costing.capital_cost),
-                55346.07,
+                85107.65,
             ],
             "stage_3_capex": [
                 value(m_default.fs.stage[3].costing.capital_cost),
-                55346.07,
+                85107.65,
             ],
             "stage_1_opex": [
                 value(m_default.fs.stage[1].costing.fixed_operating_cost),
-                11069.21,
+                17021.53,
             ],
             "stage_2_opex": [
                 value(m_default.fs.stage[2].costing.fixed_operating_cost),
-                11069.21,
+                17021.53,
             ],
             "stage_3_opex": [
                 value(m_default.fs.stage[3].costing.fixed_operating_cost),
-                11069.21,
+                17021.53,
             ],
             "casacde_opex": [
                 value(m_default.fs.cascade.costing.variable_operating_cost),
@@ -864,7 +860,7 @@ class TestFlowsheetCosting(object):
             ],
             "diafiltrate_pump_capex": [
                 value(m_default.fs.diafiltrate_pump.costing.capital_cost),
-                26352.39,
+                44825.25,
             ],
             "feed_pump_opex": [
                 value(m_default.fs.feed_pump.costing.variable_operating_cost),
@@ -872,31 +868,31 @@ class TestFlowsheetCosting(object):
             ],
             "diafiltrate_pump_opex": [
                 value(m_default.fs.diafiltrate_pump.costing.variable_operating_cost),
-                14731.84,
+                57517.81,
             ],
             "retentate_precipitator_capex": [
                 value(m_default.fs.precipitator["retentate"].costing.capital_cost),
-                209492.90,
+                126141.09,
             ],
             "permeate_precipitator_capex": [
                 value(m_default.fs.precipitator["permeate"].costing.capital_cost),
-                251679.20,
+                252518.85,
             ],
             "mainentance_and_labor": [
                 value(m_default.fs.costing.maintenance_labor_chemical_operating_cost),
-                53253.30,
+                52708.52,
             ],
             "total_capex": [
                 value(m_default.fs.costing.total_capital_cost),
-                1775109.96,
+                1756950.71,
             ],
             "total_opex": [
                 value(m_default.fs.costing.total_operating_cost),
-                215637.78,
+                275735.92,
             ],
             "total_annualized_cost": [
                 value(m_default.fs.costing.total_annualized_cost),
-                393148.78,
+                451430.99,
             ],
         }
 

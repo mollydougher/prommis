@@ -102,8 +102,6 @@ def main(args):
             m,
             NS=num_s,
             flux=flux,
-            feed=feed,
-            diaf=diaf,
             precipitate=precipitate,
             atmospheric_pressure=atmospheric_pressure,
             operating_pressure=operating_pressure,
