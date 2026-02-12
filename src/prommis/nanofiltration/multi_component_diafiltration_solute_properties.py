@@ -235,7 +235,9 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             )
             initialize_boundary_layer_diffusion_coefficient_dict.update(
                 {
-                    self.config.cation_list[i]: boundary_layer_diffusion_coefficient_dict[
+                    self.config.cation_list[
+                        i
+                    ]: boundary_layer_diffusion_coefficient_dict[
                         self.config.cation_list[i]
                     ]
                 }

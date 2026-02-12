@@ -101,7 +101,6 @@ def main():
 
     # check numerical warnings
     dt.assert_no_numerical_warnings()
-    dt.report_numerical_issues()
 
     # visualize the results
     overall_results_plot = plot_results_by_length(m)
@@ -174,7 +173,7 @@ def solve_model(m):
 
     solver = SolverFactory("ipopt")
     results = solver.solve(scaled_model, tee=True)
-    # assert_optimal_termination(results)
+    assert_optimal_termination(results)
 
     scaling.propagate_solution(scaled_model, m)
 
@@ -225,34 +224,40 @@ def plot_results_by_length(m):
         if x_val != 0:
             x_axis_values.append(x_val * value(m.fs.membrane.total_module_length))
             conc_ret_lith.append(
-                value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Li"])
+                value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "lithium"])
             )
             conc_int_lith.append(
-                value(m.fs.membrane.boundary_layer_conc_mol_comp[0, x_val, 1, "Li"])
+                value(
+                    m.fs.membrane.boundary_layer_conc_mol_comp[0, x_val, 1, "lithium"]
+                )
             )
             conc_perm_lith.append(
-                value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Li"])
+                value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "lithium"])
             )
             conc_ret_cob.append(
-                value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Co"])
+                value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "cobalt"])
             )
             conc_int_cob.append(
-                value(m.fs.membrane.boundary_layer_conc_mol_comp[0, x_val, 1, "Co"])
+                value(m.fs.membrane.boundary_layer_conc_mol_comp[0, x_val, 1, "cobalt"])
             )
             conc_perm_cob.append(
-                value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
+                value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "cobalt"])
             )
 
             water_flux.append(value(m.fs.membrane.volume_flux_water[0, x_val]))
-            lithium_flux.append(value(m.fs.membrane.molar_ion_flux[0, x_val, "Li"]))
-            cobalt_flux.append(value(m.fs.membrane.molar_ion_flux[0, x_val, "Co"]))
+            lithium_flux.append(
+                value(m.fs.membrane.molar_ion_flux[0, x_val, "lithium"])
+            )
+            cobalt_flux.append(value(m.fs.membrane.molar_ion_flux[0, x_val, "cobalt"]))
 
             lithium_rejection_obs.append(
                 (
                     1
                     - (
-                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Li"])
-                        / value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Li"])
+                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "lithium"])
+                        / value(
+                            m.fs.membrane.retentate_conc_mol_comp[0, x_val, "lithium"]
+                        )
                     )
                 )
                 * 100
@@ -261,10 +266,10 @@ def plot_results_by_length(m):
                 (
                     1
                     - (
-                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Li"])
+                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "lithium"])
                         / value(
                             m.fs.membrane.boundary_layer_conc_mol_comp[
-                                0, x_val, 1, "Li"
+                                0, x_val, 1, "lithium"
                             ]
                         )
                     )
@@ -275,8 +280,10 @@ def plot_results_by_length(m):
                 (
                     1
                     - (
-                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
-                        / value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Co"])
+                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "cobalt"])
+                        / value(
+                            m.fs.membrane.retentate_conc_mol_comp[0, x_val, "cobalt"]
+                        )
                     )
                 )
                 * 100
@@ -285,10 +292,10 @@ def plot_results_by_length(m):
                 (
                     1
                     - (
-                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
+                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "cobalt"])
                         / value(
                             m.fs.membrane.boundary_layer_conc_mol_comp[
-                                0, x_val, 1, "Co"
+                                0, x_val, 1, "cobalt"
                             ]
                         )
                     )
@@ -410,21 +417,21 @@ def plot_results_by_thickness(m, phase):
                     conc_lith.append(
                         value(
                             m.fs.membrane.boundary_layer_conc_mol_comp[
-                                0, x_val, z_val, "Li"
+                                0, x_val, z_val, "lithium"
                             ]
                         )
                     )
                     conc_cob.append(
                         value(
                             m.fs.membrane.boundary_layer_conc_mol_comp[
-                                0, x_val, z_val, "Co"
+                                0, x_val, z_val, "cobalt"
                             ]
                         )
                     )
                     conc_chl.append(
                         value(
                             m.fs.membrane.boundary_layer_conc_mol_comp[
-                                0, x_val, z_val, "Cl"
+                                0, x_val, z_val, "chloride"
                             ]
                         )
                     )
@@ -445,17 +452,23 @@ def plot_results_by_thickness(m, phase):
                 if x_val != 0:
                     conc_lith.append(
                         value(
-                            m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "Li"]
+                            m.fs.membrane.membrane_conc_mol_comp[
+                                0, x_val, z_val, "lithium"
+                            ]
                         )
                     )
                     conc_cob.append(
                         value(
-                            m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "Co"]
+                            m.fs.membrane.membrane_conc_mol_comp[
+                                0, x_val, z_val, "cobalt"
+                            ]
                         )
                     )
                     conc_chl.append(
                         value(
-                            m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "Cl"]
+                            m.fs.membrane.membrane_conc_mol_comp[
+                                0, x_val, z_val, "chloride"
+                            ]
                         )
                     )
 
@@ -548,30 +561,34 @@ def plot_rejection_versus_concentration(m):
     for x_val in m.fs.membrane.dimensionless_module_length:
         if x_val != 0:
             conc_ret_lith.append(
-                value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Li"])
+                value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "lithium"])
             )
             conc_int_lith.append(
-                value(m.fs.membrane.boundary_layer_conc_mol_comp[0, x_val, 1, "Li"])
+                value(
+                    m.fs.membrane.boundary_layer_conc_mol_comp[0, x_val, 1, "lithium"]
+                )
             )
             conc_perm_lith.append(
-                value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Li"])
+                value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "lithium"])
             )
             conc_ret_cob.append(
-                value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Co"])
+                value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "cobalt"])
             )
             conc_int_cob.append(
-                value(m.fs.membrane.boundary_layer_conc_mol_comp[0, x_val, 1, "Co"])
+                value(m.fs.membrane.boundary_layer_conc_mol_comp[0, x_val, 1, "cobalt"])
             )
             conc_perm_cob.append(
-                value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
+                value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "cobalt"])
             )
 
             lithium_rejection_obs.append(
                 (
                     1
                     - (
-                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Li"])
-                        / value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Li"])
+                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "lithium"])
+                        / value(
+                            m.fs.membrane.retentate_conc_mol_comp[0, x_val, "lithium"]
+                        )
                     )
                 )
                 * 100
@@ -580,10 +597,10 @@ def plot_rejection_versus_concentration(m):
                 (
                     1
                     - (
-                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Li"])
+                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "lithium"])
                         / value(
                             m.fs.membrane.boundary_layer_conc_mol_comp[
-                                0, x_val, 1, "Li"
+                                0, x_val, 1, "lithium"
                             ]
                         )
                     )
@@ -594,8 +611,10 @@ def plot_rejection_versus_concentration(m):
                 (
                     1
                     - (
-                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
-                        / value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "Co"])
+                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "cobalt"])
+                        / value(
+                            m.fs.membrane.retentate_conc_mol_comp[0, x_val, "cobalt"]
+                        )
                     )
                 )
                 * 100
@@ -604,10 +623,10 @@ def plot_rejection_versus_concentration(m):
                 (
                     1
                     - (
-                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
+                        value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "cobalt"])
                         / value(
                             m.fs.membrane.boundary_layer_conc_mol_comp[
-                                0, x_val, 1, "Co"
+                                0, x_val, 1, "cobalt"
                             ]
                         )
                     )

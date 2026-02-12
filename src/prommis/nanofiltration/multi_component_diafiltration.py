@@ -579,8 +579,9 @@ and used when constructing these,
 
         # add variables dependent on dimensionless_module_length and dimensionless_membrane_thickness
         def initialize_boundary_layer_conc_mol_comp(m, t, w, l, j):
-            vals = {"Li": 200, "Co": 250, "Cl": 700}
-            return vals[j]
+            vals = self.config.inlet_concentration["feed"]
+            reduced_vals = {key: value * 0.5 for key, value in vals.items()}
+            return reduced_vals[j]
 
         self.boundary_layer_conc_mol_comp = Var(
             self.time,
@@ -592,7 +593,7 @@ and used when constructing these,
             bounds=[1e-11, None],
             doc="Mole concentration of solutes in the boundary layer, x- and z-dependent",
         )
-        
+
         def initialize_membrane_conc_mol_comp(m, t, w, l, j):
             vals = self.config.inlet_concentration["feed"]
             reduced_vals = {key: value * 0.1 for key, value in vals.items()}
@@ -621,8 +622,11 @@ and used when constructing these,
             m, t, w, l, j, k
         ):
             vals = {
-                "Li": {"Li": -35000, "Co": -7300},
-                "Co": {"Li": -4800, "Co": -36000},
+                self.config.cation_list[k]: {
+                    self.config.cation_list[j]: -3000
+                    for j in range(len(self.config.cation_list))
+                }
+                for k in range(len(self.config.cation_list))
             }
             return vals[j][k]
 
@@ -639,7 +643,13 @@ and used when constructing these,
         )
 
         def initialize_boundary_layer_cross_diffusion_coefficient(m, t, w, l, j, k):
-            vals = {"Li": {"Li": -4, "Co": -0.8}, "Co": {"Li": -0.6, "Co": -4}}
+            vals = {
+                self.config.cation_list[k]: {
+                    self.config.cation_list[j]: -5
+                    for j in range(len(self.config.cation_list))
+                }
+                for k in range(len(self.config.cation_list))
+            }
             return vals[j][k]
 
         self.boundary_layer_cross_diffusion_coefficient = Var(
@@ -850,10 +860,10 @@ and used when constructing these,
             self.time, self.dimensionless_module_length, rule=_lumped_water_flux
         )
 
-        def _boundary_layer_D_tilde_calculation(blk, x, z):
+        def _boundary_layer_D_tilde_calculation(blk, t, x, z):
             if x == 0:
                 return Constraint.Skip
-            return blk.boundary_layer_D_tilde[0, x, z] == sum(
+            return blk.boundary_layer_D_tilde[t, x, z] == sum(
                 (
                     (
                         (
@@ -864,36 +874,40 @@ and used when constructing these,
                         )
                         - (
                             blk.config.property_package.charge[k]
-                            * blk.config.property_package.charge["Cl"]
+                            * blk.config.property_package.charge[
+                                self.config.anion_list[0]
+                            ]
                             * blk.config.property_package.boundary_layer_diffusion_coefficient[
-                                "Cl"
+                                self.config.anion_list[0]
                             ]
                         )
                     )
-                    * blk.boundary_layer_conc_mol_comp[0, x, z, k]
+                    * blk.boundary_layer_conc_mol_comp[t, x, z, k]
                 )
                 for k in self.cations
             )
 
         self.boundary_layer_D_tilde_calculation = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.dimensionless_boundary_layer_thickness,
             rule=_boundary_layer_D_tilde_calculation,
         )
 
         def _boundary_layer_cross_diffusion_coefficient_bilinear_calculation(
-            blk, x, z, k, j
+            blk, t, x, z, k, j
         ):
             if x == 0:
                 return Constraint.Skip
             return (
-                blk.boundary_layer_cross_diffusion_coefficient_bilinear[0, x, z, k, j]
-                == blk.boundary_layer_cross_diffusion_coefficient[0, x, z, k, j]
-                * blk.boundary_layer_D_tilde[0, x, z]
+                blk.boundary_layer_cross_diffusion_coefficient_bilinear[t, x, z, k, j]
+                == blk.boundary_layer_cross_diffusion_coefficient[t, x, z, k, j]
+                * blk.boundary_layer_D_tilde[t, x, z]
             )
 
         self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation = (
             Constraint(
+                self.time,
                 self.dimensionless_module_length,
                 self.dimensionless_boundary_layer_thickness,
                 self.cations,
@@ -902,13 +916,13 @@ and used when constructing these,
             )
         )
 
-        def _boundary_layer_cross_diffusion_coefficient_calculation(blk, x, z, k, j):
+        def _boundary_layer_cross_diffusion_coefficient_calculation(blk, t, x, z, k, j):
             if x == 0:
                 return Constraint.Skip
             # off-diagonal
             if k != j:
                 return blk.boundary_layer_cross_diffusion_coefficient_bilinear[
-                    0, x, z, k, j
+                    t, x, z, k, j
                 ] == (
                     (
                         (
@@ -928,28 +942,30 @@ and used when constructing these,
                                 k
                             ]
                             * blk.config.property_package.boundary_layer_diffusion_coefficient[
-                                "Cl"
+                                self.config.anion_list[0]
                             ]
                         )
                     )
-                    * blk.boundary_layer_conc_mol_comp[0, x, z, k]
+                    * blk.boundary_layer_conc_mol_comp[t, x, z, k]
                 )
             # diagonal
             if k == j:
                 return blk.boundary_layer_cross_diffusion_coefficient_bilinear[
-                    0, x, z, k, j
+                    t, x, z, k, j
                 ] == (
                     sum(
                         (
                             (
                                 (
                                     blk.config.property_package.charge[i]
-                                    * blk.config.property_package.charge["Cl"]
+                                    * blk.config.property_package.charge[
+                                        self.config.anion_list[0]
+                                    ]
                                     * blk.config.property_package.boundary_layer_diffusion_coefficient[
                                         k
                                     ]
                                     * blk.config.property_package.boundary_layer_diffusion_coefficient[
-                                        "Cl"
+                                        self.config.anion_list[0]
                                     ]
                                 )
                                 - (
@@ -962,7 +978,7 @@ and used when constructing these,
                                     ]
                                 )
                             )
-                            * blk.boundary_layer_conc_mol_comp[0, x, z, i]
+                            * blk.boundary_layer_conc_mol_comp[t, x, z, i]
                         )
                         for i in blk.cations
                         if k != i
@@ -972,12 +988,14 @@ and used when constructing these,
                             (
                                 (
                                     blk.config.property_package.charge[i]
-                                    * blk.config.property_package.charge["Cl"]
+                                    * blk.config.property_package.charge[
+                                        self.config.anion_list[0]
+                                    ]
                                     * blk.config.property_package.boundary_layer_diffusion_coefficient[
                                         k
                                     ]
                                     * blk.config.property_package.boundary_layer_diffusion_coefficient[
-                                        "Cl"
+                                        self.config.anion_list[0]
                                     ]
                                 )
                                 - (
@@ -986,11 +1004,11 @@ and used when constructing these,
                                         i
                                     ]
                                     * blk.config.property_package.boundary_layer_diffusion_coefficient[
-                                        "Cl"
+                                        self.config.anion_list[0]
                                     ]
                                 )
                             )
-                            * blk.boundary_layer_conc_mol_comp[0, x, z, i]
+                            * blk.boundary_layer_conc_mol_comp[t, x, z, i]
                         )
                         for i in blk.cations
                         if k == i
@@ -998,6 +1016,7 @@ and used when constructing these,
                 )
 
         self.boundary_layer_cross_diffusion_coefficient_calculation = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.dimensionless_boundary_layer_thickness,
             self.cations,
@@ -1014,14 +1033,16 @@ and used when constructing these,
                         (
                             (
                                 (blk.config.property_package.charge[k] ** 2)
-                                * blk.config.property_package.diffusion_coefficient[k]
+                                * blk.config.property_package.membrane_diffusion_coefficient[
+                                    k
+                                ]
                             )
                             - (
                                 blk.config.property_package.charge[k]
                                 * blk.config.property_package.charge[
                                     self.config.anion_list[0]
                                 ]
-                                * blk.config.property_package.diffusion_coefficient[
+                                * blk.config.property_package.membrane_diffusion_coefficient[
                                     self.config.anion_list[0]
                                 ]
                             )
@@ -1032,7 +1053,7 @@ and used when constructing these,
                 )
                 - (
                     blk.config.property_package.charge[self.config.anion_list[0]]
-                    * blk.config.property_package.diffusion_coefficient[
+                    * blk.config.property_package.membrane_diffusion_coefficient[
                         self.config.anion_list[0]
                     ]
                     * blk.membrane_fixed_charge
@@ -1095,14 +1116,20 @@ and used when constructing these,
                         (
                             blk.config.property_package.charge[k]
                             * blk.config.property_package.charge[j]
-                            * blk.config.property_package.diffusion_coefficient[k]
-                            * blk.config.property_package.diffusion_coefficient[j]
+                            * blk.config.property_package.membrane_diffusion_coefficient[
+                                k
+                            ]
+                            * blk.config.property_package.membrane_diffusion_coefficient[
+                                j
+                            ]
                         )
                         - (
                             blk.config.property_package.charge[k]
                             * blk.config.property_package.charge[j]
-                            * blk.config.property_package.diffusion_coefficient[k]
-                            * blk.config.property_package.diffusion_coefficient[
+                            * blk.config.property_package.membrane_diffusion_coefficient[
+                                k
+                            ]
+                            * blk.config.property_package.membrane_diffusion_coefficient[
                                 self.config.anion_list[0]
                             ]
                         )
@@ -1122,19 +1149,19 @@ and used when constructing these,
                                     * blk.config.property_package.charge[
                                         self.config.anion_list[0]
                                     ]
-                                    * blk.config.property_package.diffusion_coefficient[
+                                    * blk.config.property_package.membrane_diffusion_coefficient[
                                         k
                                     ]
-                                    * blk.config.property_package.diffusion_coefficient[
+                                    * blk.config.property_package.membrane_diffusion_coefficient[
                                         self.config.anion_list[0]
                                     ]
                                 )
                                 - (
                                     blk.config.property_package.charge[i] ** 2
-                                    * blk.config.property_package.diffusion_coefficient[
+                                    * blk.config.property_package.membrane_diffusion_coefficient[
                                         i
                                     ]
-                                    * blk.config.property_package.diffusion_coefficient[
+                                    * blk.config.property_package.membrane_diffusion_coefficient[
                                         k
                                     ]
                                 )
@@ -1152,19 +1179,19 @@ and used when constructing these,
                                     * blk.config.property_package.charge[
                                         self.config.anion_list[0]
                                     ]
-                                    * blk.config.property_package.diffusion_coefficient[
+                                    * blk.config.property_package.membrane_diffusion_coefficient[
                                         k
                                     ]
-                                    * blk.config.property_package.diffusion_coefficient[
+                                    * blk.config.property_package.membrane_diffusion_coefficient[
                                         self.config.anion_list[0]
                                     ]
                                 )
                                 - (
                                     blk.config.property_package.charge[i] ** 2
-                                    * blk.config.property_package.diffusion_coefficient[
+                                    * blk.config.property_package.membrane_diffusion_coefficient[
                                         i
                                     ]
-                                    * blk.config.property_package.diffusion_coefficient[
+                                    * blk.config.property_package.membrane_diffusion_coefficient[
                                         self.config.anion_list[0]
                                     ]
                                 )
@@ -1175,8 +1202,8 @@ and used when constructing these,
                         if k == i
                     )
                     + blk.config.property_package.charge[self.config.anion_list[0]]
-                    * blk.config.property_package.diffusion_coefficient[k]
-                    * blk.config.property_package.diffusion_coefficient[
+                    * blk.config.property_package.membrane_diffusion_coefficient[k]
+                    * blk.config.property_package.membrane_diffusion_coefficient[
                         self.config.anion_list[0]
                     ]
                     * blk.membrane_fixed_charge
@@ -1198,7 +1225,7 @@ and used when constructing these,
                 blk.membrane_D_tilde[t, x, z]
                 + (
                     blk.config.property_package.charge[k]
-                    * blk.config.property_package.diffusion_coefficient[k]
+                    * blk.config.property_package.membrane_diffusion_coefficient[k]
                     * blk.membrane_fixed_charge
                 )
             )
@@ -1211,30 +1238,31 @@ and used when constructing these,
             rule=_membrane_convection_coefficient_calculation,
         )
 
-        def _cation_flux_boundary_layer(blk, x, z, k):
+        def _cation_flux_boundary_layer(blk, t, x, z, k):
             if x == 0 or z == 0:
                 return Constraint.Skip
-            return blk.molar_ion_flux[0, x, k] == (
+            return blk.molar_ion_flux[t, x, k] == (
                 (
-                    blk.boundary_layer_conc_mol_comp[0, x, z, k]
-                    * blk.volume_flux_water[0, x]
+                    blk.boundary_layer_conc_mol_comp[t, x, z, k]
+                    * blk.volume_flux_water[t, x]
                 )
                 + sum(
                     (
                         units.convert(
                             blk.boundary_layer_cross_diffusion_coefficient[
-                                0, x, z, k, i
+                                t, x, z, k, i
                             ],
                             to_units=units.m**2 / units.h,
                         )
                         / (blk.total_boundary_layer_thickness)
-                        * blk.d_boundary_layer_conc_mol_comp_dz[0, x, z, i]
+                        * blk.d_boundary_layer_conc_mol_comp_dz[t, x, z, i]
                     )
                     for i in self.cations
                 )
             )
 
         self.cation_flux_boundary_layer = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.dimensionless_boundary_layer_thickness,
             self.cations,
@@ -1284,10 +1312,10 @@ and used when constructing these,
         )
 
         # other physical constraints
-        def _osmotic_pressure_calculation(blk, x):
+        def _osmotic_pressure_calculation(blk, t, x):
             if x == 0:
                 return Constraint.Skip
-            return blk.osmotic_pressure[0, x] == units.convert(
+            return blk.osmotic_pressure[t, x] == units.convert(
                 (
                     Constants.gas_constant  # J / mol / K
                     * blk.temperature
@@ -1296,14 +1324,13 @@ and used when constructing these,
                             blk.config.property_package.num_solutes[j]
                             * blk.config.property_package.sigma[j]
                             * (
-                                # blk.retentate_conc_mol_comp[0, x, j]
                                 blk.boundary_layer_conc_mol_comp[
-                                    0,
+                                    t,
                                     x,
                                     1,
                                     j,
                                 ]
-                                - blk.permeate_conc_mol_comp[0, x, j]
+                                - blk.permeate_conc_mol_comp[t, x, j]
                             )
                         )
                         for j in blk.solutes
@@ -1313,7 +1340,9 @@ and used when constructing these,
             )
 
         self.osmotic_pressure_calculation = Constraint(
-            self.dimensionless_module_length, rule=_osmotic_pressure_calculation
+            self.time,
+            self.dimensionless_module_length,
+            rule=_osmotic_pressure_calculation,
         )
 
         def _electroneutrality_retentate(blk, t, x):
@@ -1329,16 +1358,17 @@ and used when constructing these,
             rule=_electroneutrality_retentate,
         )
 
-        def _electroneutrality_boundary_layer(blk, x, z):
+        def _electroneutrality_boundary_layer(blk, t, x, z):
             if x == 0:
                 return Constraint.Skip
             return 0 == sum(
                 blk.config.property_package.charge[j]
-                * blk.boundary_layer_conc_mol_comp[0, x, z, j]
+                * blk.boundary_layer_conc_mol_comp[t, x, z, j]
                 for j in blk.solutes
             )
 
         self.electroneutrality_boundary_layer = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.dimensionless_boundary_layer_thickness,
             rule=_electroneutrality_boundary_layer,
@@ -1379,62 +1409,66 @@ and used when constructing these,
         )
 
         # partitioning equations
-        def _retentate_boundary_layer_interface(blk, x, k):
+        def _retentate_boundary_layer_interface(blk, t, x, k):
             if x == 0:
                 return Constraint.Skip
             return (
-                blk.retentate_conc_mol_comp[0, x, k]
-                == blk.boundary_layer_conc_mol_comp[0, x, 0, k]
+                blk.retentate_conc_mol_comp[t, x, k]
+                == blk.boundary_layer_conc_mol_comp[t, x, 0, k]
             )
 
         self.retentate_boundary_layer_interface = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.cations,
             rule=_retentate_boundary_layer_interface,
         )
 
-        def _cation_equilibrium_boundary_layer_membrane_interface(blk, x, k):
+        def _cation_equilibrium_boundary_layer_membrane_interface(blk, t, x, k):
             if x == 0:
                 return Constraint.Skip
             return (
                 (
                     blk.config.property_package.partition_coefficient_retentate[k]
-                    ** (-blk.config.property_package.charge["Cl"])
+                    ** (-blk.config.property_package.charge[self.config.anion_list[0]])
                 )
                 * (
-                    blk.config.property_package.partition_coefficient_retentate["Cl"]
+                    blk.config.property_package.partition_coefficient_retentate[
+                        self.config.anion_list[0]
+                    ]
                     ** blk.config.property_package.charge[k]
                 )
                 * (
                     blk.boundary_layer_conc_mol_comp[
-                        0,
+                        t,
                         x,
                         1,
                         k,
                     ]
-                    ** (-blk.config.property_package.charge["Cl"])
+                    ** (-blk.config.property_package.charge[self.config.anion_list[0]])
                 )
                 * (
                     blk.boundary_layer_conc_mol_comp[
-                        0,
+                        t,
                         x,
                         1,
-                        "Cl",
+                        self.config.anion_list[0],
                     ]
                     ** blk.config.property_package.charge[k]
                 )
             ) == (
                 (
-                    blk.membrane_conc_mol_comp[0, x, 0, k]
-                    ** (-blk.config.property_package.charge["Cl"])
+                    blk.membrane_conc_mol_comp[t, x, 0, k]
+                    ** (-blk.config.property_package.charge[self.config.anion_list[0]])
                 )
                 * (
-                    blk.membrane_conc_mol_comp[0, x, 0, "Cl"]
+                    blk.membrane_conc_mol_comp[t, x, 0, self.config.anion_list[0]]
                     ** blk.config.property_package.charge[k]
                 )
             )
 
         self.cation_equilibrium_boundary_layer_membrane_interface = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.cations,
             rule=_cation_equilibrium_boundary_layer_membrane_interface,
@@ -1503,6 +1537,19 @@ and used when constructing these,
 
         self.retentate_conc_mol_comp_boundary_condition = Constraint(
             self.time, self.cations, rule=_retentate_conc_mol_comp_boundary_condition
+        )
+
+        def _boundary_layer_conc_mol_comp_boundary_condition(blk, t, z, k):
+            return (
+                blk.boundary_layer_conc_mol_comp[t, 0, z, k]
+                == self.numerical_zero_tolerance * units.mol / units.m**3
+            )
+
+        self.boundary_layer_conc_mol_comp_boundary_condition = Constraint(
+            self.time,
+            self.dimensionless_boundary_layer_thickness,
+            self.cations,
+            rule=_boundary_layer_conc_mol_comp_boundary_condition,
         )
 
         def _membrane_conc_mol_comp_boundary_condition(blk, t, z, k):
@@ -1620,6 +1667,17 @@ and used when constructing these,
                         t, x, self.config.anion_list[0]
                     ].deactivate()
 
+                for z in self.dimensionless_boundary_layer_thickness:
+                    # chloride concentration gradient in boundary layer variable is created by default but
+                    # is not needed in model; fix to reduce number of variables
+                    self.d_boundary_layer_conc_mol_comp_dz[
+                        t, x, z, self.config.anion_list[0]
+                    ].fix(value(self.numerical_zero_tolerance))
+                    # associated discretization equation not needed in model
+                    if z != 0:
+                        self.d_boundary_layer_conc_mol_comp_dz_disc_eq[
+                            t, x, z, self.config.anion_list[0]
+                        ].deactivate()
                 for z in self.dimensionless_membrane_thickness:
                     # chloride concentration gradient in membrane variable is created by default but
                     # is not needed in model; fix to reduce number of variables
@@ -1657,7 +1715,7 @@ and used when constructing these,
                     if x != 0:
                         self.scaling_factor[self.lumped_water_flux[t, x]] = 1e3
                         self.scaling_factor[
-                            self.cation_equilibrium_retentate_membrane_interface[
+                            self.cation_equilibrium_boundary_layer_membrane_interface[
                                 t, x, self.config.cation_list[0]
                             ]
                         ] = 1e-3
@@ -1669,7 +1727,7 @@ and used when constructing these,
                         for k in range(len(self.config.cation_list)):
                             if k != 0:
                                 self.scaling_factor[
-                                    self.cation_equilibrium_retentate_membrane_interface[
+                                    self.cation_equilibrium_boundary_layer_membrane_interface[
                                         t, x, self.config.cation_list[k]
                                     ]
                                 ] = 1e-5
