@@ -14,8 +14,8 @@ from idaes.core import FlowsheetBlock
 
 import pytest
 
-from prommis.nanofiltration.diafiltration_solute_properties import (
-    SoluteParameter,
+from prommis.nanofiltration.multi_component_diafiltration_stream_properties import (
+    DiafiltrationStreamParameter,
 )
 
 
@@ -23,34 +23,28 @@ from prommis.nanofiltration.diafiltration_solute_properties import (
 def model():
     m = ConcreteModel()
     m.fs = FlowsheetBlock(dynamic=False)
-    m.fs.product_properties = SoluteParameter()
+    m.fs.feed_properties = DiafiltrationStreamParameter()
 
     return m
 
 
 @pytest.mark.unit
 def test_parameters(model):
-    assert len(model.fs.product_properties.phase_list) == 1
-    for k in model.fs.product_properties.phase_list:
+    assert len(model.fs.feed_properties.phase_list) == 1
+    for k in model.fs.feed_properties.phase_list:
         assert k == "liquid"
 
-    for j in model.fs.product_properties.component_list:
+    for j in model.fs.feed_properties.component_list:
         assert j in [
             "Li",
             "Co",
             "Cl",
         ]
-        assert j in model.fs.product_properties.charge
-        assert j in model.fs.product_properties.diffusion_coefficient
-        assert j in model.fs.product_properties.sigma
-        assert j in model.fs.product_properties.partition_coefficient_retentate
-        assert j in model.fs.product_properties.partition_coefficient_permeate
-        assert j in model.fs.product_properties.num_solutes
 
 
 @pytest.mark.unit
 def test_build(model):
-    model.fs.state = model.fs.product_properties.build_state_block(model.fs.time)
+    model.fs.state = model.fs.feed_properties.build_state_block(model.fs.time)
 
     assert len(model.fs.state) == 1
 
@@ -58,11 +52,11 @@ def test_build(model):
     assert isinstance(model.fs.state[0].conc_mol_comp, Var)
 
     model.fs.state[0].flow_vol.set_value(10)
-    for j in model.fs.product_properties.component_list:
+    for j in model.fs.feed_properties.component_list:
         model.fs.state[0].conc_mol_comp[j].set_value(1)
 
     model.fs.state.fix_initialization_states()
 
     assert model.fs.state[0].flow_vol.fixed
-    for j in model.fs.product_properties.component_list:
+    for j in model.fs.feed_properties.component_list:
         assert model.fs.state[0].conc_mol_comp[j].fixed
