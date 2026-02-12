@@ -5,39 +5,56 @@
 # Please see the files COPYRIGHT.md and LICENSE.md for full copyright and license information.
 #####################################################################################################
 r"""
-Two-Salt Diafiltration Unit Model
-=================================
+Multi-Component Diafiltration Unit Model
+========================================
 
 Author: Molly Dougher
 
-This membrane unit model is for the multi-component diafiltration of a two-salt system with a common anion. The membrane is designed for use in a diafiltration cascade, i.e., the model represents one spiral-wound membrane module.
+This membrane unit model is for the multi-component diafiltration of a multi-salt system with a common anion. Currently, the model and property packages support one, two, and three salt systems; however, the model can be extended to :math:`n` salts by supplying the appropriate properties and arguments (see below). The membrane is designed for use in a diafiltration cascade, i.e., the model represents one spiral-wound membrane module piece within a cascade of several membranes.
 
 Configuration Arguments
 -----------------------
 
-The Two-Salt Diafiltration unit model requires a property package that provides the valency (:math:`z_i`), single solute diffusion coefficient (:math:`D_i`) in :math:`\mathrm{mm}^2 \, \mathrm{h}^{-1}`, reflection coefficient (:math:`\sigma_i`), partition coefficients (:math:`H_{i,r}` and :math:`H_{i,p}`) at the retentate-membrane and membrane-permeate interfaces, and number of dissolved species (:math:`n_i`) for each ion :math:`i` in solution. When used in a flowsheet, the user can provide separate property packages for the feed and product streams.
+The Multi-Component Diafiltration unit model requires a property package that provides the valency (:math:`z_i`), infinite dilution diffusion coefficient (:math:`D_i`) in :math:`\mathrm{mm}^2 \, \mathrm{h}^{-1}`, thermodynamic reflection coefficient (:math:`\sigma_i`), partition coefficients (:math:`H_{i,r}` and :math:`H_{i,p}`) at the retentate-membrane and membrane-permeate interfaces, and number of dissolved species (:math:`n_i`) for each ion :math:`i` in solution. When used in a flowsheet, the user can provide separate property packages for the feed and product streams.
 
-There are two required arguments, ``NFE_module_length`` and ``NFE_membrane_thickness``, to specify the desired number of finite elements across the width (module length) and thickness of the membrane, respectively.
+There are six required arguments:
+
+#. ``cation_list`` (list of cations present in the system)
+
+    ``default=["lithium", "cobalt"]``
+
+#. ``anion_list`` (list of anions present in the system)
+
+    ``default=["chloride"]``
+
+#. ``inlet_flow_volume`` (dictionary of feed and diafiltrate flow rate information)
+
+    ``default={"feed": 12.5, "diafiltrate": 3.75}``
+
+#. ``inlet_concentration`` (dictionary of feed and diafiltrate concentration information)
+
+    ``default={"feed": {"lithium": 245, "cobalt": 288, "chloride": 822}, "diafiltrate": {"lithium": 14, "cobalt": 3, "chloride": 21}}``
+
+#. ``NFE_module_length`` (the desired number of finite elements across the width of the membrane (i.e., the module length))
+#. ``NFE_membrane_thickness`` (the desired number of finite elements across the thickness of the membrane)
 
 Degrees of Freedom
 ------------------
 
-The Two-Salt Diafiltration unit model has nine degrees of freedom (variable names and default values are provided in parentheses):
+The Multi-Component Diafiltration unit model has :math:`5+2n` degrees of freedom, where :math:`n` is the number of cations in the system:
 
-#. the length of the membrane module (``total_module_length``; :math:`4 \, \mathrm{m}`)
-#. the length of the membrane (``total_membrane_length``; :math:`41 \, \mathrm{m}`)
-#. the pressure applied to the membrane system (``applied_pressure``; :math:`10 \, \mathrm{bar}`)
-#. the volumetric flow rate of the feed (``feed_flow_volume``; :math:`12.5 \, \mathrm{m}^3 \, \mathrm{h}^{-1}`)
-#. the lithium concentration in the feed (``feed_conc_mol_comp[t,"Li"]``; :math:`245 \, \mathrm{mol} \, \mathrm{m}^{-3}`)
-#. the cobalt concentration in the feed (``feed_conc_mol_comp[t,"Co"]``; :math:`288 \, \mathrm{mol} \, \mathrm{m}^{-3}`)
-#. the volumetric flow rate of the diafiltrate (``diafiltrate_flow_volume``; :math:`3.75 \, \mathrm{m}^3 \, \mathrm{h}^{-1}`)
-#. the lithium concentration in the diafiltrate (``diafiltrate_conc_mol_comp[t,"Li"]``; :math:`14 \, \mathrm{mol} \, \mathrm{m}^{-3}`)
-#. the cobalt concentration in the diafiltrate (``diafiltrate_conc_mol_comp[t,"Co"]``; :math:`3 \, \mathrm{mol} \, \mathrm{m}^{-3}`)
+#. the length of the membrane module (``total_module_length``)
+#. the length of the membrane (``total_membrane_length``)
+#. the pressure applied to the membrane system (``applied_pressure``)
+#. the volumetric flow rate of the feed (``feed_flow_volume``)
+#. the cation concentration in the feed (``feed_conc_mol_comp[t,k]``)
+#. the volumetric flow rate of the diafiltrate (``diafiltrate_flow_volume``)
+#. the cation concentration in the diafiltrate (``diafiltrate_conc_mol_comp[t,k]``)
 
 Model Structure
 ---------------
 
-There are three phases in the Two-Salt Diafiltration model: the retentate, the membrane, and the permeate. The retentate and the permeate are only discretized with respect to :math:`x` (parallel to the membrane surface), while the membrane is discretized with respect to both :math:`x` and :math:`z` (perpendicular to the membrane surface). The resulting system of partial differential algebraic equations is solved by discretizing with the backward finite difference method.
+There are three phases in the Multi-Component Diafiltration model: the retentate, the membrane, and the permeate. The retentate and the permeate are only discretized with respect to :math:`x` (parallel to the membrane surface), while the membrane is discretized with respect to both :math:`x` and :math:`z` (perpendicular to the membrane surface). The resulting system of partial differential algebraic equations is solved by discretizing with the backward finite difference method.
 
 Assumptions
 -----------
@@ -46,7 +63,7 @@ The membrane module dimensions, maximum applied pressure, and inlet flow rates a
 
 The partitioning relationships, which describe how the solutes transition (partition) across the solution-membrane interfaces, are derived assuming Donnan equilibrium. The partitioning coefficients incorporate both steric and Donnan effects.
 
-The default value for the membrane's surface charge (:math:`-140 \, \mathrm{mM}`), was calculated using zeta potential measurements for NF270 membranes. (See `this reference <https://doi.org/10.1021/acs.iecr.4c04763>`_). Currently, the default property package only supports negatively charged membranes.
+The default value for the membrane's surface charge (:math:`-44 \, \mathrm{mM}`), was calculated using zeta potential measurements for NF270 membranes. (See `this reference <https://doi.org/10.1021/acs.iecr.4c04763>`_). Currently, the default property package only supports negatively charged membranes.
 
 The membrane is assumed to be :math:`100 \, \mathrm{nm}` thick.
 
@@ -61,12 +78,14 @@ The transport mechanisms modeled within the membrane are convection, diffusion, 
 Sets
 ----
 
-The Two-Salt Diafiltration model defines the following discrete sets for solutes and cations in the system, respectively:
+The Multi-Component Diafiltration model defines the following discrete sets for solutes and cations in the system, respectively:
 
-.. math:: \mathcal{I}=\{\mathrm{Li,Co,Cl}\}
-.. math:: \mathcal{K}=\{\mathrm{Li,Co}\}
+.. math:: \mathcal{I}=\{\mathrm{cation_1, cation_2, ..., cation_n, anion}\}
+.. math:: \mathcal{K}=\{\mathrm{cation_1, cation_2, ..., cation_n}\}
 
-There are 2 continuous sets for each length dimension: ``dimensionless_module_length`` (in the :math:`x`-direction parallel to the membrane surface) and ``dimensionless_membrane_thickness`` (in the :math:`z`-direction perpendicular to the membrane surface). :math:`x` and :math:`z` are non-dimensionalized (denoted as :math:`\bar{x}` and :math:`\bar{z}`, respectively) using the module length or (:math:`w`) and membrane thickness (:math:`l`), respectively, to improve numerics.
+where :math:`n` is the desired number of cations.
+
+There are 2 continuous sets for each length dimension: ``dimensionless_module_length`` (in the :math:`x`-direction parallel to the membrane surface) and ``dimensionless_membrane_thickness`` (in the :math:`z`-direction perpendicular to the membrane surface). :math:`x` and :math:`z` are non-dimensionalized (denoted as :math:`\bar{x}` and :math:`\bar{z}`, respectively) using the module length (:math:`w`) and membrane thickness (:math:`l`), respectively, to improve numerical stability.
 
 .. math:: \bar{x} \in \mathbb{R} \| 0 \leq \bar{x} \leq 1
 .. math:: \bar{z} \in \mathbb{R} \| 0 \leq \bar{z} \leq 1
@@ -78,7 +97,7 @@ Some variables have a time domain to be compatible with the property package, ev
 Default Model Parameters
 ------------------------
 
-The Two-Salt Diafiltration model has the following parameters.
+The Multi-Component Diafiltration model has the following parameters.
 
 ================ =============================================== ============================ ============= ==========================================================
 Parameter        Description                                     Name                         Default Value Units
@@ -93,37 +112,37 @@ Parameter        Description                                     Name           
 Variables
 ---------
 
-The Two-Salt Diafiltration model adds the following variables.
+The Multi-Component Diafiltration model adds the following variables.
 
-=========================== ============================================================== ================================================= =========================================================================== =================================================================================================
+=========================== ============================================================== ================================================= =========================================================================== =====================================================================================================
 Variable                    Description                                                    Name                                              Units                                                                       Indexed over
-=========================== ============================================================== ================================================= =========================================================================== =================================================================================================
+=========================== ============================================================== ================================================= =========================================================================== =====================================================================================================
 :math:`c_{i,d}`             ion concentration in the diafiltrate                           ``diafiltrate_conc_mol_comp``                     :math:`\mathrm{mol} \, \mathrm{m}^{-3}`                                     :math:`t` and :math:`i \in \mathcal{I}`
 :math:`c_{i,f}`             ion concentration in the feed                                  ``feed_conc_mol_comp``                            :math:`\mathrm{mol} \, \mathrm{m}^{-3}`                                     :math:`t` and :math:`i \in \mathcal{I}`
-:math:`c_{i,m}`             ion concentration in the membrane                              ``membrane_conc_mol_comp``                        :math:`\mathrm{mol} \, \mathrm{m}^{-3}`                                     :math:`t`, math:`\bar{x}`, :math:`\bar{z}`, amd :math:`i \in \mathcal{I}`
+:math:`c_{i,m}`             ion concentration in the membrane                              ``membrane_conc_mol_comp``                        :math:`\mathrm{mol} \, \mathrm{m}^{-3}`                                     :math:`t`, :math:`\bar{x}`, :math:`\bar{z}`, amd :math:`i \in \mathcal{I}`
 :math:`c_{i,p}`             ion concentration in the permeate                              ``permeate_conc_mol_comp``                        :math:`\mathrm{mol} \, \mathrm{m}^{-3}`                                     :math:`t`, :math:`\bar{x}`, amd :math:`i \in \mathcal{I}`
 :math:`c_{i,r}`             ion concentration in the retentate                             ``retentate_conc_mol_comp``                       :math:`\mathrm{mol} \, \mathrm{m}^{-3}`                                     :math:`t`, :math:`\bar{x}`, amd :math:`i \in \mathcal{I}`
 :math:`\tilde{D}`           diffusion & convection coefficient denominator in the membrane ``membrane_D_tilde``                              :math:`\mathrm{mm}^2 \, \mathrm{h}^{-1} \, \mathrm{mol} \, \mathrm{m}^{-3}` :math:`t`, :math:`\bar{x}`, and :math:`\bar{z}`
-:math:`D_{i,j}^{bilinear}`  bilinear cross-diffusion coefficient in the membrane           ``membrane_cross_diffusion_coefficient_bilinear`` :math:`\mathrm{mm}^4 \, \mathrm{h}^{-2} \, \mathrm{mol} \, \mathrm{m}^{-3}` :math:`t`, :math:`\bar{x}`, :math:`\bar{z}`, :math:`i \in \mathcal{I}`, :math:`j \in \mathcal{I}`
-:math:`\alpha_i^{bilinear}` bilinear convection coefficient in the membrane                ``membrane_convection_coefficient_bilinear``      :math:`\mathrm{mm}^2 \, \mathrm{h}^{-1} \, \mathrm{mol} \, \mathrm{m}^{-3}` :math:`t`, :math:`\bar{x}`, :math:`\bar{z}`, and :math:`i \in \mathcal{I}`
-:math:`D_{i,j}`             cross-diffusion coefficient in the membrane                    ``membrane_cross_diffusion_coefficient``          :math:`\mathrm{mm}^2 \, \mathrm{h}^{-1}`                                    :math:`t`, :math:`\bar{x}`, :math:`\bar{z}`, :math:`i \in \mathcal{I}`, :math:`j \in \mathcal{I}`
-:math:`\alpha_i`            convection coefficient in the membrane                         ``membrnane_convection_coefficient``              :math:`\mathrm{dimensionless}`                                              :math:`t`, :math:`\bar{x}` and :math:`\bar{z}`
+:math:`D_{kj}^{bilinear}`   bilinear cross-diffusion coefficient in the membrane           ``membrane_cross_diffusion_coefficient_bilinear`` :math:`\mathrm{mm}^4 \, \mathrm{h}^{-2} \, \mathrm{mol} \, \mathrm{m}^{-3}` :math:`t`, :math:`\bar{x}`, :math:`\bar{z}`, :math:`k \in \mathcal{K}`, and :math:`j \in \mathcal{K}`
+:math:`\alpha_k^{bilinear}` bilinear convection coefficient in the membrane                ``membrane_convection_coefficient_bilinear``      :math:`\mathrm{mm}^2 \, \mathrm{h}^{-1} \, \mathrm{mol} \, \mathrm{m}^{-3}` :math:`t`, :math:`\bar{x}`, :math:`\bar{z}`, and :math:`k \in \mathcal{K}`
+:math:`D_{kj}`              cross-diffusion coefficient in the membrane                    ``membrane_cross_diffusion_coefficient``          :math:`\mathrm{mm}^2 \, \mathrm{h}^{-1}`                                    :math:`t`, :math:`\bar{x}`, :math:`\bar{z}`, :math:`k \in \mathcal{K}`, and :math:`j \in \mathcal{K}`
+:math:`\alpha_k`            convection coefficient in the membrane                         ``membrnane_convection_coefficient``              :math:`\mathrm{dimensionless}`                                              :math:`t`, :math:`\bar{x}`, :math:`\bar{z}`, and :math:`k \in \mathcal{K}`
 :math:`j_i`                 molar flux of ions across the membrane                         ``molar_ion_flux``                                :math:`\mathrm{mol} \, \mathrm{m}^{-2} \, \mathrm{h}^{-1}`                  :math:`t`, :math:`\bar{x}`, amd :math:`i \in \mathcal{I}`
 :math:`J_w`                 water flux across the membrane                                 ``volume_flux_water``                             :math:`\mathrm{m}^3 \, \mathrm{m}^{-2} \, \mathrm{h}^{-1}`                  :math:`t` and :math:`\bar{x}`
 :math:`L`                   length of the membrane                                         ``total_membrane_length``                         :math:`\mathrm{m}`
 :math:`\Delta \pi`          osmotic pressure of feed-side fluid                            ``osmotic_pressure``                              :math:`\mathrm{bar}`                                                        :math:`t` and :math:`\bar{x}`
-:math:`\Delta P`            applied pressure to the membrane                               ``applied_pressure``                              :math:`\mathrm{bar}`
+:math:`\Delta P`            applied pressure to the membrane                               ``applied_pressure``                              :math:`\mathrm{bar}`                                                        :math:`t`
 :math:`q_d`                 volumetric flow rate of the diafiltrate                        ``diafiltrate_flow_volume``                       :math:`\mathrm{m}^3 \, \mathrm{h}^{-1}`                                     :math:`t`
 :math:`q_f`                 volumetric flow rate of the feed                               ``feed_flow_volume``                              :math:`\mathrm{m}^3 \, \mathrm{h}^{-1}`                                     :math:`t`
 :math:`q_p`                 volumetric flow rate of the permeate                           ``permeate_flow_volume``                          :math:`\mathrm{m}^3 \, \mathrm{h}^{-1}`                                     :math:`t` and :math:`\bar{x}`
 :math:`q_r`                 volumetric flow rate of the retentate                          ``retentate_flow_volume``                         :math:`\mathrm{m}^3 \, \mathrm{h}^{-1}`                                     :math:`t` and :math:`\bar{x}`
 :math:`w`                   length of the membrane module                                  ``total_module_length``                           :math:`\mathrm{m}`
-=========================== ============================================================== ================================================= =========================================================================== =================================================================================================
+=========================== ============================================================== ================================================= =========================================================================== =====================================================================================================
 
 Derivative Variables
 --------------------
 
-The Two-Salt Diafiltration model adds the following derivative variables.
+The Multi-Component Diafiltration model adds the following derivative variables.
 
 =================================================== =========================================== ================================= ======================================= ==========================================================================
 Variable                                            Description                                 Name                              Units                                   Indexed over
@@ -136,88 +155,88 @@ Variable                                            Description                 
 Constraints
 -----------
 
-Differential mole balances:
+**Differential mole balances:**
 
-.. math:: \frac{\mathrm{d}q_r(\bar{x})}{\mathrm{d}\bar{x}} = - J_w(\bar{x}) wL  \qquad \forall \, \bar{x} \neq 0
-.. math:: q_r(\bar{x}) \frac{\mathrm{d}c_{\mathrm{Li},r}(\bar{x})}{\mathrm{d}\bar{x}} = wL (J_w(\bar{x}) c_{\mathrm{Li},r}(\bar{x}) - j_{\mathrm{Li}}(\bar{x}))  \qquad \forall \, \bar{x} \neq 0
-.. math:: q_r(\bar{x}) \frac{\mathrm{d}c_{\mathrm{Co},r}(\bar{x})}{\mathrm{d}\bar{x}} = wL (J_w(\bar{x}) c_{\mathrm{Co},r}(\bar{x}) - j_{\mathrm{Co}}(\bar{x}))  \qquad \forall \, \bar{x} \neq 0
+.. math:: \frac{\mathrm{d}q_r(\bar{x})}{\mathrm{d}\bar{x}} = - J_w(\bar{x}) wL  \qquad \forall \, \bar{x} \in (0, 1]
+.. math:: q_r(\bar{x}) \frac{\mathrm{d}c_{k,r}(\bar{x})}{\mathrm{d}\bar{x}} = wL (J_w(\bar{x}) c_{k,r}(\bar{x}) - j_{k}(\bar{x}))  \qquad \forall \, \bar{x} \in (0, 1], \, k \in \mathcal{K}
 
-Bulk flux balances:
+**Bulk flux balances:**
 
-.. math:: q_p(\bar{x}) = \bar{x} wL J_w(\bar{x}) \qquad \forall \, \bar{x} \neq 0
-.. math:: j_{\mathrm{Li}}(\bar{x}) = c_{\mathrm{Li},p}(\bar{x}) J_w(\bar{x}) \qquad \forall \, \bar{x} \neq 0
-.. math:: j_{\mathrm{Co}}(\bar{x}) = c_{\mathrm{Co},p}(\bar{x}) J_w(\bar{x}) \qquad \forall \, \bar{x} \neq 0
+.. math:: q_p(\bar{x}) = \bar{x} wL J_w(\bar{x}) \qquad \forall \, \bar{x} \in (0, 1]
+.. math:: j_{k}(\bar{x}) = c_{k,p}(\bar{x}) J_w(\bar{x}) \qquad \forall \, \bar{x} \in (0, 1], \, k \in \mathcal{K}
 
-Overall water flux through the membrane:
+**Overall water flux through the membrane:**
 
-.. math:: J_w (\bar{x}) = L_p (\Delta P - \Delta \pi (\bar{x})) \qquad \forall \, \bar{x} \neq 0
-.. math:: \Delta \pi (\bar{x}) = \mathrm{R} \mathrm{T} \sum_{i \in \mathcal{I}} n_i \sigma_i (c_{i,r}(\bar{x})-c_{i,p}(\bar{x})) \qquad \forall \, \bar{x} \neq 0
+.. math:: J_w (\bar{x}) = L_p (\Delta P - \Delta \pi (\bar{x})) \qquad \forall \, \bar{x} \in (0, 1]
+.. math:: \Delta \pi (\bar{x}) = \mathrm{R} \mathrm{T} \sum_{i \in \mathcal{I}} n_i \sigma_i (c_{i,r}(\bar{x})-c_{i,p}(\bar{x})) \qquad \forall \, \bar{x} \in (0, 1]
 
-Solute flux through the membrane (extended Nernst-Planck equation):
+**Cation flux through the membrane:**
 
-.. math:: j_{\mathrm{Li}}(\bar{x}) = \alpha_{Li}(\bar{x},\bar{z}) c_{\mathrm{Li},m}(\bar{x},\bar{z}) J_w(\bar{x}) + \frac{D_{\mathrm{Li,Li}}(\bar{x},\bar{z})}{l} \frac{\partial c_{\mathrm{Li},m}(\bar{x},\bar{z})}{\partial \bar{z}} + \frac{D_{\mathrm{Li,Co}}(\bar{x},\bar{z})}{l} \frac{\partial c_{\mathrm{Co},m}(\bar{x},\bar{z})}{\partial \bar{z}} \qquad \forall \, \bar{z} \neq 0
-.. math:: j_{\mathrm{Co}}(\bar{x}) = \alpha_{Co}(\bar{x},\bar{z}) c_{\mathrm{Co},m}(\bar{x},\bar{z}) J_w(\bar{x}) + \frac{D_{\mathrm{Co,Li}}(\bar{x},\bar{z})}{l} \frac{\partial c_{\mathrm{Li},m}(\bar{x},\bar{z})}{\partial \bar{z}} + \frac{D_{\mathrm{Co,Co}}(\bar{x},\bar{z})}{l} \frac{\partial c_{\mathrm{Co},m}(\bar{x},\bar{z})}{\partial \bar{z}} \qquad \forall \, \bar{z} \neq 0
+*Derived from the extended Nernst-Planck equation*
 
-Note that the single solute diffusion coefficients are provided in :math:`\mathrm{mm}^2\ \, \mathrm{h}^{-1}` to improve numerical stability, but the diffusion coefficients in the Nernst-Planck equations must be converted to :math:`\mathrm{m}^2\ \, \mathrm{h}^{-1}`. The convection and cross-diffusion coefficients are defined as:
+.. math:: j_k(\bar{x}) = \alpha_k(\bar{x},\bar{z}) c_{k,m}(\bar{x},\bar{z}) J_w(\bar{x}) + \frac{1}{l} \sum_{j \in \mathcal{K}} \left(D_{kj} (\hat{x},\hat{z}) \nabla c_{j,m} (\hat{x},\hat{z}) \right) \qquad \forall \, \bar{x} \in (0, 1], \, k \in \mathcal{K}
 
-.. math:: \tilde{D}(\bar{x},\bar{z}) = z_{\mathrm{Li}}(z_{\mathrm{Li}} D_{\mathrm{Li}} - z_{\mathrm{Cl}} D_{\mathrm{Cl}})c_{\mathrm{Li},m}(\bar{x},\bar{z}) + z_{\mathrm{Co}}(z_{\mathrm{Co}} D_{\mathrm{Co}} - z_{\mathrm{Cl}} D_{\mathrm{Cl}})c_{\mathrm{Co},m}(\bar{x},\bar{z}) - z_{\mathrm{Cl}} D_{\mathrm{Cl}} \chi \qquad \forall \, \bar{x} \neq 0
-.. math:: \alpha_{\mathrm{Li}}(\bar{x},\bar{z}) = 1 + \frac{z_{\mathrm{Li}} D_{\mathrm{Li}} \chi}{\tilde{D}(\bar{x},\bar{z})} \qquad \forall \, \bar{x} \neq 0
-.. math:: \alpha_{\mathrm{Co}}(\bar{x},\bar{z}) = 1 + \frac{z_{\mathrm{Co}} D_{\mathrm{Co}} \chi}{\tilde{D}(\bar{x},\bar{z})} \qquad \forall \, \bar{x} \neq 0
-.. math:: D_{\mathrm{Li,Li}}(\bar{x},\bar{z}) = \frac{z_{\mathrm{Li}} D_{\mathrm{Li}} D_{\mathrm{Cl}}(z_{\mathrm{Cl}} - z_{\mathrm{Li}})c_{\mathrm{Li},m}(\bar{x},\bar{z}) + z_{\mathrm{Co}} D_{\mathrm{Li}}(z_{\mathrm{Cl}} D_{\mathrm{Cl}} - z_{\mathrm{Co}} D_{\mathrm{Co}})c_{\mathrm{Co},m}(\bar{x},\bar{z}) + z_{\mathrm{Cl}} D_{\mathrm{Li}} D_{\mathrm{Cl}} \chi}{\tilde{D}(\bar{x},\bar{z})} \qquad \forall \, \bar{x} \neq 0
-.. math:: D_{\mathrm{Li,Co}}(\bar{x},\bar{z}) = \frac{z_{\mathrm{Li}} z_{\mathrm{Co}} D_{\mathrm{Li}}(D_{\mathrm{Co}} - D_{\mathrm{Cl}})c_{\mathrm{Li},m}(\bar{x},\bar{z})}{\tilde{D}(\bar{x},\bar{z})} \qquad \forall \, \bar{x} \neq 0
-.. math:: D_{\mathrm{Co,Li}}(\bar{x},\bar{z}) = \frac{z_{\mathrm{Li}} z_{\mathrm{Co}} D_{\mathrm{Co}}(D_{\mathrm{Li}} - D_{\mathrm{Cl}})c_{\mathrm{Co},m}(\bar{x},\bar{z})}{\tilde{D}(\bar{x},\bar{z})} \qquad \forall \, \bar{x} \neq 0
-.. math:: D_{\mathrm{Co,Co}}(\bar{x},\bar{z}) = \frac{z_{\mathrm{Li}} D_{\mathrm{Co}} (z_{\mathrm{Cl}} D_{\mathrm{Cl}} - z_{\mathrm{Li}} D_{\mathrm{Li}})c_{\mathrm{Li},m}(\bar{x},\bar{z}) + z_{\mathrm{Co}} D_{\mathrm{Co}} D_{\mathrm{Cl}} (z_{\mathrm{Cl}} - z_{\mathrm{Co}})c_{\mathrm{Co},m}(\bar{x},\bar{z}) + z_{\mathrm{Cl}} D_{\mathrm{Co}} D_{\mathrm{Cl}} \chi}{\tilde{D}(\bar{x},\bar{z})} \qquad \forall \, \bar{x} \neq 0
+where
+
+.. math:: \alpha_k(\bar{x},\bar{z}) = 1 + \dfrac{z_k D_k \chi}{\tilde{D} (\hat{x},\hat{z})}
+.. math:: 
+    D_{kj}(\bar{x},\bar{z}) = 
+    \begin{cases}
+        \dfrac{(z_k z_j D_k D_j - z_k z_j D_k D_a)c_{k,m} (\hat{x},\hat{z})}{\tilde{D} (\hat{x},\hat{z})},& \text{if } k \neq j \\
+        \dfrac{\sum_{t \in \mathcal{C}} \left((z_t z_a D_k D_a - \beta_{kt})c_{t,m} (\hat{x},\hat{z}) \right) + z_a D_k D_a \chi}{\tilde{D} (\hat{x},\hat{z})} ,& \text{if } k=j \\
+    \end{cases}
+.. math::
+    \beta_{kt} = 
+    \begin{cases}
+        z_t^2 D_t D_k ,& \text{if } k\neq t \\
+        z_t^2 D_t D_a ,& \text{if } k=t \\
+    \end{cases}
+.. math:: \tilde{D} (\hat{x},\hat{z}) = \sum_{j \in \mathcal{K}} \left((z_j^2 D_j - z_j z_a D_a)c_{j,m} (\hat{x},\hat{z}) \right) - z_a D_a \chi
+.. math:: \nabla c_{k,m} (\hat{x},\hat{z})= \dfrac{\partial c_{k,m}(\hat{x},\hat{z})}{\partial \hat{z}}
+
+where the subscript :math:`a` represents the anion in solution.
 
 The diffusion and convection coefficients are reformulated to bilinear constraints:
 
-.. math:: \alpha_{\mathrm{Li}}^{bilinear}(\bar{x},\bar{z}) = \alpha_{\mathrm{Li}}(\bar{x},\bar{z}) \tilde{D}(\bar{x},\bar{z}) = \tilde{D}(\bar{x},\bar{z}) + z_{\mathrm{Li}} D_{\mathrm{Li}} \chi \qquad \forall \, \bar{x} \neq 0
-.. math:: \alpha_{\mathrm{Co}}^{bilinear}(\bar{x},\bar{z}) = \alpha_{\mathrm{Co}}(\bar{x},\bar{z}) \tilde{D}(\bar{x},\bar{z}) = \tilde{D}(\bar{x},\bar{z}) + z_{\mathrm{Co}} D_{\mathrm{Co}} \chi \qquad \forall \, \bar{x} \neq 0
-.. math:: D_{\mathrm{Li,Li}}^{bilinear}(\bar{x},\bar{z}) = D_{\mathrm{Li,Li}}(\bar{x},\bar{z}) \tilde{D}(\bar{x},\bar{z}) = z_{\mathrm{Li}} D_{\mathrm{Li}} D_{\mathrm{Cl}}(z_{\mathrm{Cl}} - z_{\mathrm{Li}})c_{\mathrm{Li},m}(\bar{x},\bar{z}) + z_{\mathrm{Co}} D_{\mathrm{Li}}(z_{\mathrm{Cl}} D_{\mathrm{Cl}} - z_{\mathrm{Co}} D_{\mathrm{Co}})c_{\mathrm{Co},m}(\bar{x},\bar{z}) + z_{\mathrm{Cl}} D_{\mathrm{Li}} D_{\mathrm{Cl}} \chi \qquad \forall \, \bar{x} \neq 0
-.. math:: D_{\mathrm{Li,Co}}^{bilinear}(\bar{x},\bar{z}) = D_{\mathrm{Li,Co}}(\bar{x},\bar{z}) \tilde{D}(\bar{x},\bar{z}) = z_{\mathrm{Li}} z_{\mathrm{Co}} D_{\mathrm{Li}}(D_{\mathrm{Co}} - D_{\mathrm{Cl}})c_{\mathrm{Li},m}(\bar{x},\bar{z}) \qquad \forall \, \bar{x} \neq 0
-.. math:: D_{\mathrm{Co,Li}}^{bilinear}(\bar{x},\bar{z}) = D_{\mathrm{Co,Li}}(\bar{x},\bar{z}) \tilde{D}(\bar{x},\bar{z}) = z_{\mathrm{Li}} z_{\mathrm{Co}} D_{\mathrm{Co}}(D_{\mathrm{Li}} - D_{\mathrm{Cl}})c_{\mathrm{Co},m}(\bar{x},\bar{z}) \qquad \forall \, \bar{x} \neq 0
-.. math:: D_{\mathrm{Co,Co}}^{bilinear}(\bar{x},\bar{z}) = D_{\mathrm{Co,Co}}(\bar{x},\bar{z}) \tilde{D}(\bar{x},\bar{z}) = z_{\mathrm{Li}} D_{\mathrm{Co}} (z_{\mathrm{Cl}} D_{\mathrm{Cl}} - z_{\mathrm{Li}} D_{\mathrm{Li}})c_{\mathrm{Li},m}(\bar{x},\bar{z}) + z_{\mathrm{Co}} D_{\mathrm{Co}} D_{\mathrm{Cl}} (z_{\mathrm{Cl}} - z_{\mathrm{Co}})c_{\mathrm{Co},m}(\bar{x},\bar{z}) + z_{\mathrm{Cl}} D_{\mathrm{Co}} D_{\mathrm{Cl}} \chi \qquad \forall \, \bar{x} \neq 0
+.. math:: \alpha_k^{bilinear}(\bar{x},\bar{z}) = \alpha_k(\bar{x},\bar{z}) \tilde{D}(\bar{x},\bar{z}) = \tilde{D}(\bar{x},\bar{z}) + z_k D_k \chi
+.. math:: D_{kj}^{bilinear}(\bar{x},\bar{z}) = D_{kj}(\bar{x},\bar{z}) \tilde{D}(\bar{x},\bar{z})
 
-No applied potential on the system:
+*Note that the single solute diffusion coefficients are provided in* :math:`\mathrm{mm}^2\ \, \mathrm{h}^{-1}` *to improve numerical stability, but the diffusion coefficients in the Nernst-Planck equations must be converted to* :math:`\mathrm{m}^2\ \, \mathrm{h}^{-1}`.
 
-.. math:: 0 = \sum_{i \in \mathcal{I}} z_i j_i(\bar{x}) \qquad \forall \, \bar{x} \neq 0
+**No applied potential on the system:**
 
-Electroneutrality:
+.. math:: 0 = \sum_{i \in \mathcal{I}} z_i j_i(\bar{x}) \qquad \forall \, \bar{x} \in (0, 1]
+
+**Electroneutrality:**
 
 .. math:: 0 = \sum_{i \in \mathcal{I}} z_i c_{i,r}(\bar{x})
-.. math:: 0 = \chi + \sum_{i \in \mathcal{I}} z_i c_{i,m}(\bar{x},\bar{z}) \qquad \forall \, \bar{z} \neq 0
-.. math:: 0 = \sum_{i \in \mathcal{I}} z_i c_{i,p}(\bar{x})
+.. math:: 0 = \chi + \sum_{i \in \mathcal{I}} z_i c_{i,m}(\bar{x},\bar{z}) \qquad \forall \, \bar{x} \in (0, 1]
+.. math:: 0 = \sum_{i \in \mathcal{I}} z_i c_{i,p}(\bar{x}) \qquad \forall \, \bar{x} \in (0, 1]
 
-Partitioning at the retentate-membrane interface:
+**Partitioning:**
 
-.. math:: H_{\mathrm{Li}} H_{\mathrm{Cl}} c_{\mathrm{Li},r}(\bar{x}) c_{\mathrm{Cl},r}(\bar{x}) = c_{\mathrm{Li},m}(\bar{x},\bar{z}=0) c_{\mathrm{Cl},m}(\bar{x},\bar{z}=0) \qquad \forall \, \bar{x} \neq 0
-.. math:: H_{\mathrm{Co}} H_{\mathrm{Cl}}^{z_{\mathrm{Co}}} c_{\mathrm{Co},r}(\bar{x}) c_{\mathrm{Cl},r}(\bar{x})^{z_{\mathrm{Co}}} =c_{\mathrm{Co},m}(\bar{x},\bar{z}=0) c_{\mathrm{Cl},m}(\bar{x},\bar{z}=0)^{z_{\mathrm{Co}}} \qquad \forall \, \bar{x} \neq 0
+At the the retentate-membrane interface:
 
-Partitioning at the membrane-permeate interface:
+.. math:: H_k^{-z_a} H_a^{z_k} = \left(\frac{c_{k,m} (\hat{x},\hat{z}=0)}{c_{k,r} (\hat{x})}\right)^{-z_a} \left(\frac{c_{a,m} (\hat{x},\hat{z}=0)}{c_{a,r}(\hat{x})}\right)^{z_k} \qquad \forall \, \bar{x} \in (0, 1], \, k \in \mathcal{K}
 
-.. math:: H_{\mathrm{Li}} H_{\mathrm{Cl}} c_{\mathrm{Li},p}(\bar{x}) c_{\mathrm{Cl},p}(\bar{x}) = c_{\mathrm{Li},m}(\bar{x},\bar{z}=1) c_{\mathrm{Cl},m}(\bar{x},\bar{z}=1) \qquad \forall \, \bar{x} \neq 0
-.. math:: H_{\mathrm{Co}} H_{\mathrm{Cl}}^{z_{\mathrm{Co}}} c_{\mathrm{Co},p}(\bar{x}) c_{\mathrm{Cl},p}(\bar{x})^{z_{\mathrm{Co}}} =c_{\mathrm{Co},m}(\bar{x},\bar{z}=1) c_{\mathrm{Cl},m}(\bar{x},\bar{z}=1)^{z_{\mathrm{Co}}} \qquad \forall \, \bar{x} \neq 0
+At the membrane-permeate interface:
 
-The following boundary conditions complete the model:
+.. math:: H_k^{-z_a} H_a^{z_k} = \left(\frac{c_{k,m} (\hat{x},\hat{z}=1)}{c_{k,p} (\hat{x})}\right)^{-z_a} \left(\frac{c_{a,m} (\hat{x},\hat{z}=1)}{c_{a,p}(\hat{x})}\right)^{z_k} \qquad \forall \, \bar{x} \in (0, 1], \, k \in \mathcal{K}
+
+**Boundary conditions:**
 
 .. math:: q_r(\bar{x}=0) = q_f + q_d
-.. math:: c_{\mathrm{Li},r}(\bar{x}=0) = \frac{q_f c_{\mathrm{Li},f} + q_d c_{\mathrm{Li},d}}{q_f + q_d}
-.. math:: c_{\mathrm{Co},r}(\bar{x}=0) = \frac{q_f c_{\mathrm{Co},f} + q_d c_{\mathrm{Co},d}}{q_f + q_d}
+.. math:: c_{k,r}(\bar{x}=0) = \frac{q_f c_{k,f} + q_d c_{k,d}}{q_f + q_d} \qquad \forall \, k \in \mathcal{K}
+.. math:: c_{k,m} (\bar{x}=0,\bar{z}) = 0 \qquad \forall \, \bar{z}, \, k \in \mathcal{K}
 
-The following boundary conditions (which are expected to be zero) are fixed to improve numerical stability (with the appropriate constraints deactivated as described above):
+The following constraints (which are expected to be zero) are enforced to improve numerical stability (with the appropriate constraints deactivated as described above):
 
 .. math:: q_p(\bar{x}=0) = \epsilon
-.. math:: c_{\mathrm{Li},p}(\bar{x}=0) = \epsilon
-.. math:: c_{\mathrm{Co},p}(\bar{x}=0) = \epsilon
-.. math:: c_{\mathrm{Li},m} (\bar{x}=0,\bar{z}) = \epsilon \qquad \forall \, \bar{z}
-.. math:: c_{\mathrm{Co},m} (\bar{x}=0,\bar{z}) = \epsilon \qquad \forall \, \bar{z}
-.. math:: c_{\mathrm{Cl},m} (\bar{x}=0,\bar{z}) = \epsilon \qquad \forall \, \bar{z}
+.. math:: c_{i,p}(\bar{x}=0) = \epsilon \qquad \forall \, i \in \mathcal{I}
 .. math:: \frac{\mathrm{d}q_r(\bar{x})}{\mathrm{d}\bar{x}}(\bar{x}=0)=\epsilon
-.. math:: \frac{\mathrm{d}c_{\mathrm{Li},r}(\bar{x})}{\mathrm{d}\bar{x}}(\bar{x}=0)=\epsilon
-.. math:: \frac{\mathrm{d}c_{\mathrm{Co},r}(\bar{x})}{\mathrm{d}\bar{x}}(\bar{x}=0)=\epsilon
+.. math:: \frac{\mathrm{d}c_{k,r}(\bar{x})}{\mathrm{d}\bar{x}}(\bar{x}=0)=\epsilon \qquad \forall \, k \in \mathcal{K}
 .. math:: J_w(\bar{x}=0) = \epsilon
-.. math:: j_{\mathrm{Li}}(\bar{x}=0) = \epsilon
-.. math:: j_{\mathrm{Co}}(\bar{x}=0) = \epsilon
-.. math:: j_{\mathrm{Cl}}(\bar{x}=0) = \epsilon
+.. math:: j_i(\bar{x}=0) = \epsilon \qquad \forall \, i \in \mathcal{I}
 """
 
 # TODO: update documentation to include boundary layer
@@ -242,10 +261,10 @@ from idaes.core.util.config import is_physical_parameter_block
 from idaes.core.util.constants import Constants
 
 
-@declare_process_block_class("TwoSaltDiafiltration")
-class TwoSaltDiafiltrationData(UnitModelBlockData):
+@declare_process_block_class("MultiComponentDiafiltration")
+class MultiComponentDiafiltrationData(UnitModelBlockData):
     """
-    Two-Salt Diafiltration Unit Model Class.
+    Multi-Component Diafiltration Unit Model Class.
     """
 
     CONFIG = UnitModelBlockData.CONFIG()
@@ -277,6 +296,37 @@ and used when constructing these,
         ),
     )
     CONFIG.declare(
+        "cation_list",
+        ConfigValue(
+            default=["lithium", "cobalt"],
+            doc="List of cations present in the system",
+        ),
+    )
+    CONFIG.declare(
+        "anion_list",
+        ConfigValue(
+            default=["chloride"],
+            doc="List of anions present in the system",
+        ),
+    )
+    CONFIG.declare(
+        "inlet_flow_volume",
+        ConfigValue(
+            default={"feed": 12.5, "diafiltrate": 3.75},
+            doc="Feed and diafiltrate flow rate information",
+        ),
+    )
+    CONFIG.declare(
+        "inlet_concentration",
+        ConfigValue(
+            default={
+                "feed": {"lithium": 245, "cobalt": 288, "chloride": 822},
+                "diafiltrate": {"lithium": 14, "cobalt": 3, "chloride": 21},
+            },
+            doc="Feed and diafiltrate concentration information",
+        ),
+    )
+    CONFIG.declare(
         "NFE_module_length",
         ConfigValue(
             doc="Number of discretization points across module length (in the x-direction)",
@@ -297,23 +347,28 @@ and used when constructing these,
 
     def build(self):
         """
-        Build method for the two salt diafiltration unit model
+        Build method for the multi-component diafiltration unit model.
         """
         super().build()
 
-        # TODO: generalize to any 2 cations and 1 anion
+        try:
+            assert len(self.config.anion_list) == 1
+        except Exception:
+            print(
+                "The multi-component diafiltration unit model only supports systems with a common anion"
+            )
 
         self.add_mutable_parameters()
         self.add_variables()
         self.add_constraints()
         self.discretize_model()
-        self.fix_boundary_values()
+        self.deactivate_unnecessary_objects()
         self.add_scaling_factors()
         self.add_ports()
 
     def add_mutable_parameters(self):
         """
-        Adds default parameters for the two salt diafiltration unit model.
+        Adds default parameters for the multi-component diafiltration unit model.
 
         Values can be changed by the user during implementation.
 
@@ -340,7 +395,7 @@ and used when constructing these,
             doc="Thickness of membrane (z-direction)",
         )
         self.membrane_fixed_charge = Param(
-            initialize=-140,
+            initialize=-44,
             mutable=True,
             units=units.mol / units.m**3,  # mM
             doc="Fixed charge on the membrane",
@@ -360,7 +415,7 @@ and used when constructing these,
 
     def add_variables(self):
         """
-        Adds variables for the two salt diafiltration unit model.
+        Adds variables for the multi-component diafiltration unit model.
 
         Membrane module dimensions and maximum flowrate (17 m3/h) are
         estimated from NF270-440 modules.
@@ -368,18 +423,16 @@ and used when constructing these,
         Assumes 4 modules in series.
         """
         # define length scales
-        # x-direction
         self.dimensionless_module_length = ContinuousSet(bounds=(0, 1))
-        # z-directions
         self.dimensionless_boundary_layer_thickness = ContinuousSet(bounds=(0, 1))
         self.dimensionless_membrane_thickness = ContinuousSet(bounds=(0, 1))
 
-        # add a time index
+        # add a time index since the property package variables are indexed over time
         self.time = Set(initialize=[0])
 
         # add components
-        self.solutes = Set(initialize=["Li", "Co", "Cl"])
-        self.cations = Set(initialize=["Li", "Co"])
+        self.solutes = Set(initialize=self.config.cation_list + self.config.anion_list)
+        self.cations = Set(initialize=self.config.cation_list)
 
         # add global variables
         self.total_module_length = Var(
@@ -395,6 +448,7 @@ and used when constructing these,
             doc="Length of the membrane, wound radially",
         )
         self.applied_pressure = Var(
+            self.time,
             initialize=10,
             units=units.bar,
             bounds=[1e-11, 41],  # maximum operating presssure (NF270-440)
@@ -402,14 +456,14 @@ and used when constructing these,
         )
         self.feed_flow_volume = Var(
             self.time,
-            initialize=12.5,
+            initialize=self.config.inlet_flow_volume["feed"],
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the feed",
         )
 
         def initialize_feed_conc_mol_comp(m, t, j):
-            vals = {"Li": 245, "Co": 288, "Cl": 822}
+            vals = self.config.inlet_concentration["feed"]
             return vals[j]
 
         self.feed_conc_mol_comp = Var(
@@ -422,14 +476,14 @@ and used when constructing these,
         )
         self.diafiltrate_flow_volume = Var(
             self.time,
-            initialize=3.75,
+            initialize=self.config.inlet_flow_volume["diafiltrate"],
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the diafiltrate",
         )
 
         def initialize_diafiltrate_conc_mol_comp(m, t, j):
-            vals = {"Li": 14, "Co": 3, "Cl": 21}
+            vals = self.config.inlet_concentration["diafiltrate"]
             return vals[j]
 
         self.diafiltrate_conc_mol_comp = Var(
@@ -452,7 +506,11 @@ and used when constructing these,
         )
 
         def initialize_molar_ion_flux(m, t, w, j):
-            vals = {"Li": 11, "Co": 13, "Cl": 37}
+            vals = {
+                self.config.cation_list[k]: 10
+                for k in range(len(self.config.cation_list))
+            }
+            vals.update({self.config.anion_list[0]: 30})
             return vals[j]
 
         self.molar_ion_flux = Var(
@@ -467,15 +525,16 @@ and used when constructing these,
         self.retentate_flow_volume = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=5.5,
+            initialize=6.75,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the retentate, x-dependent",
         )
 
-        def initialize_retentate_conc_mol_comp(m, t, p, j):
-            vals = {"Li": 687, "Co": 817, "Cl": 2320}
-            return vals[j]
+        def initialize_retentate_conc_mol_comp(m, t, w, j):
+            vals = self.config.inlet_concentration["feed"]
+            reduced_vals = {key: value * 0.95 for key, value in vals.items()}
+            return reduced_vals[j]
 
         self.retentate_conc_mol_comp = Var(
             self.time,
@@ -489,15 +548,16 @@ and used when constructing these,
         self.permeate_flow_volume = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=9.4,
+            initialize=10,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the permeate, x-dependent",
         )
 
-        def initialize_permeate_conc_mol_comp(m, t, p, j):
-            vals = {"Li": 204, "Co": 232, "Cl": 670}
-            return vals[j]
+        def initialize_permeate_conc_mol_comp(m, t, w, j):
+            vals = self.config.inlet_concentration["feed"]
+            reduced_vals = {key: value * 0.95 for key, value in vals.items()}
+            return reduced_vals[j]
 
         self.permeate_conc_mol_comp = Var(
             self.time,
@@ -517,7 +577,7 @@ and used when constructing these,
             doc="Osmostic pressure difference across the membrane",
         )
 
-        # add variables dependent on dimensionless_module_length and dimensionless_boundary_layer_thickness or dimensionless_membrane_thickness
+        # add variables dependent on dimensionless_module_length and dimensionless_membrane_thickness
         def initialize_boundary_layer_conc_mol_comp(m, t, w, l, j):
             vals = {"Li": 200, "Co": 250, "Cl": 700}
             return vals[j]
@@ -532,10 +592,11 @@ and used when constructing these,
             bounds=[1e-11, None],
             doc="Mole concentration of solutes in the boundary layer, x- and z-dependent",
         )
-
+        
         def initialize_membrane_conc_mol_comp(m, t, w, l, j):
-            vals = {"Li": 109, "Co": 18, "Cl": 4.5}
-            return vals[j]
+            vals = self.config.inlet_concentration["feed"]
+            reduced_vals = {key: value * 0.1 for key, value in vals.items()}
+            return reduced_vals[j]
 
         self.membrane_conc_mol_comp = Var(
             self.time,
@@ -591,18 +652,23 @@ and used when constructing these,
             units=units.mm**2 / units.h,
             doc="Cross diffusion coefficient for cations in boundary layer",
         )
-
         self.membrane_D_tilde = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=630,
+            initialize=620,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D * c
             doc="Denominator of diffusion and convection coefficients in membrane",
         )
 
         def initialize_membrane_cross_diffusion_coefficient_bilinear(m, t, w, l, j, k):
-            vals = {"Li": {"Li": -3800, "Co": -3800}, "Co": {"Li": -330, "Co": -2500}}
+            vals = {
+                self.config.cation_list[k]: {
+                    self.config.cation_list[j]: -3000
+                    for j in range(len(self.config.cation_list))
+                }
+                for k in range(len(self.config.cation_list))
+            }
             return vals[j][k]
 
         self.membrane_cross_diffusion_coefficient_bilinear = Var(
@@ -618,7 +684,10 @@ and used when constructing these,
         )
 
         def initialize_membrane_convection_coefficient_bilinear(m, t, w, l, j):
-            vals = {"Li": 108, "Co": -112}
+            vals = {
+                self.config.cation_list[k]: 100
+                for k in range(len(self.config.cation_list))
+            }
             return vals[j]
 
         self.membrane_convection_coefficient_bilinear = Var(
@@ -632,7 +701,13 @@ and used when constructing these,
         )
 
         def initialize_membrane_cross_diffusion_coefficient(m, t, w, l, j, k):
-            vals = {"Li": {"Li": -6, "Co": -6}, "Co": {"Li": -0.5, "Co": -4}}
+            vals = {
+                self.config.cation_list[k]: {
+                    self.config.cation_list[j]: -5
+                    for j in range(len(self.config.cation_list))
+                }
+                for k in range(len(self.config.cation_list))
+            }
             return vals[j][k]
 
         self.membrane_cross_diffusion_coefficient = Var(
@@ -647,7 +722,10 @@ and used when constructing these,
         )
 
         def initialize_membrane_convection_coefficient(m, t, w, l, j):
-            vals = {"Li": 0.17, "Co": -0.18}
+            vals = {
+                self.config.cation_list[k]: 0.2
+                for k in range(len(self.config.cation_list))
+            }
             return vals[j]
 
         self.membrane_convection_coefficient = Var(
@@ -683,87 +761,93 @@ and used when constructing these,
             self.membrane_conc_mol_comp,
             wrt=self.dimensionless_membrane_thickness,
             units=units.mol / units.m**3,  # mM
-            doc="Solute concentration gradient wrt z in the membrane",
+            doc="Solute concentration gradient wrt membrane thickness",
         )
 
     def add_constraints(self):
         """
-        Adds model constraints for the two salt diafiltration unit model.
+        Adds model constraints for the multi-component diafiltration unit model.
         """
 
         # mol balance constraints
-        def _overall_mol_balance(blk, x):
+        def _overall_mol_balance(blk, t, x):
             if x == 0:
                 return Constraint.Skip
-            return blk.d_retentate_flow_volume_dx[0, x] == (
-                -blk.volume_flux_water[0, x]
+            return blk.d_retentate_flow_volume_dx[t, x] == (
+                -blk.volume_flux_water[t, x]
                 * blk.total_membrane_length
                 * blk.total_module_length
             )
 
         self.overall_mol_balance = Constraint(
-            self.dimensionless_module_length, rule=_overall_mol_balance
+            self.time, self.dimensionless_module_length, rule=_overall_mol_balance
         )
 
-        def _cation_mol_balance(blk, x, k):
+        def _cation_mol_balance(blk, t, x, k):
             if x == 0:
                 return Constraint.Skip
             return (
-                blk.retentate_flow_volume[0, x]
-                * blk.d_retentate_conc_mol_comp_dx[0, x, k]
+                blk.retentate_flow_volume[t, x]
+                * blk.d_retentate_conc_mol_comp_dx[t, x, k]
             ) == (
                 (
-                    blk.volume_flux_water[0, x] * blk.retentate_conc_mol_comp[0, x, k]
-                    - blk.molar_ion_flux[0, x, k]
+                    blk.volume_flux_water[t, x] * blk.retentate_conc_mol_comp[t, x, k]
+                    - blk.molar_ion_flux[t, x, k]
                 )
                 * blk.total_membrane_length
                 * blk.total_module_length
             )
 
         self.cation_mol_balance = Constraint(
-            self.dimensionless_module_length, self.cations, rule=_cation_mol_balance
+            self.time,
+            self.dimensionless_module_length,
+            self.cations,
+            rule=_cation_mol_balance,
         )
 
         # bulk flux balance constraints
-        def _overall_bulk_flux_equation(blk, x):
+        def _overall_bulk_flux_equation(blk, t, x):
             if x == 0:
                 return Constraint.Skip
             return (
-                blk.permeate_flow_volume[0, x]
-                == blk.volume_flux_water[0, x]
+                blk.permeate_flow_volume[t, x]
+                == blk.volume_flux_water[t, x]
                 * x
                 * blk.total_membrane_length
                 * blk.total_module_length
             )
 
         self.overall_bulk_flux_equation = Constraint(
-            self.dimensionless_module_length, rule=_overall_bulk_flux_equation
+            self.time,
+            self.dimensionless_module_length,
+            rule=_overall_bulk_flux_equation,
         )
 
-        def _cation_bulk_flux_equation(blk, x, k):
+        def _cation_bulk_flux_equation(blk, t, x, k):
             if x == 0:
                 return Constraint.Skip
-            return blk.molar_ion_flux[0, x, k] == (
-                blk.permeate_conc_mol_comp[0, x, k] * blk.volume_flux_water[0, x]
+            return blk.molar_ion_flux[t, x, k] == (
+                blk.permeate_conc_mol_comp[t, x, k] * blk.volume_flux_water[t, x]
             )
 
         self.cation_bulk_flux_equation = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.cations,
             rule=_cation_bulk_flux_equation,
         )
 
         # transport constraints (first principles)
-        def _lumped_water_flux(blk, x):
+        def _lumped_water_flux(blk, t, x):
             if x == 0:
                 return Constraint.Skip
-            return blk.volume_flux_water[0, x] == (
+            return blk.volume_flux_water[t, x] == (
                 blk.membrane_permeability
-                * (blk.applied_pressure - blk.osmotic_pressure[0, x])
+                * (blk.applied_pressure[t] - blk.osmotic_pressure[t, x])
             )
 
         self.lumped_water_flux = Constraint(
-            self.dimensionless_module_length, rule=_lumped_water_flux
+            self.time, self.dimensionless_module_length, rule=_lumped_water_flux
         )
 
         def _boundary_layer_D_tilde_calculation(blk, x, z):
@@ -921,54 +1005,60 @@ and used when constructing these,
             rule=_boundary_layer_cross_diffusion_coefficient_calculation,
         )
 
-        def _membrane_D_tilde_calculation(blk, x, z):
+        def _membrane_D_tilde_calculation(blk, t, x, z):
             if x == 0:
                 return Constraint.Skip
-            return blk.membrane_D_tilde[0, x, z] == (
+            return blk.membrane_D_tilde[t, x, z] == (
                 sum(
                     (
                         (
                             (
                                 (blk.config.property_package.charge[k] ** 2)
-                                * blk.config.property_package.membrane_diffusion_coefficient[
-                                    k
-                                ]
+                                * blk.config.property_package.diffusion_coefficient[k]
                             )
                             - (
                                 blk.config.property_package.charge[k]
-                                * blk.config.property_package.charge["Cl"]
-                                * blk.config.property_package.membrane_diffusion_coefficient[
-                                    "Cl"
+                                * blk.config.property_package.charge[
+                                    self.config.anion_list[0]
+                                ]
+                                * blk.config.property_package.diffusion_coefficient[
+                                    self.config.anion_list[0]
                                 ]
                             )
                         )
-                        * blk.membrane_conc_mol_comp[0, x, z, k]
+                        * blk.membrane_conc_mol_comp[t, x, z, k]
                     )
-                    for k in self.cations
+                    for k in blk.cations
                 )
                 - (
-                    blk.config.property_package.charge["Cl"]
-                    * blk.config.property_package.membrane_diffusion_coefficient["Cl"]
+                    blk.config.property_package.charge[self.config.anion_list[0]]
+                    * blk.config.property_package.diffusion_coefficient[
+                        self.config.anion_list[0]
+                    ]
                     * blk.membrane_fixed_charge
                 )
             )
 
         self.membrane_D_tilde_calculation = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             rule=_membrane_D_tilde_calculation,
         )
 
-        def _membrane_cross_diffusion_coefficient_bilinear_calculation(blk, x, z, k, j):
+        def _membrane_cross_diffusion_coefficient_bilinear_calculation(
+            blk, t, x, z, k, j
+        ):
             if x == 0:
                 return Constraint.Skip
             return (
-                blk.membrane_cross_diffusion_coefficient_bilinear[0, x, z, k, j]
-                == blk.membrane_cross_diffusion_coefficient[0, x, z, k, j]
-                * blk.membrane_D_tilde[0, x, z]
+                blk.membrane_cross_diffusion_coefficient_bilinear[t, x, z, k, j]
+                == blk.membrane_cross_diffusion_coefficient[t, x, z, k, j]
+                * blk.membrane_D_tilde[t, x, z]
             )
 
         self.membrane_cross_diffusion_coefficient_bilinear_calculation = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.cations,
@@ -976,83 +1066,80 @@ and used when constructing these,
             rule=_membrane_cross_diffusion_coefficient_bilinear_calculation,
         )
 
-        def _membrane_convection_coefficient_bilinear_calculation(blk, x, z, k):
+        def _membrane_convection_coefficient_bilinear_calculation(blk, t, x, z, k):
             if x == 0:
                 return Constraint.Skip
             return (
-                blk.membrane_convection_coefficient_bilinear[0, x, z, k]
-                == blk.membrane_convection_coefficient[0, x, z, k]
-                * blk.membrane_D_tilde[0, x, z]
+                blk.membrane_convection_coefficient_bilinear[t, x, z, k]
+                == blk.membrane_convection_coefficient[t, x, z, k]
+                * blk.membrane_D_tilde[t, x, z]
             )
 
         self.membrane_convection_coefficient_bilinear_calculation = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.cations,
             rule=_membrane_convection_coefficient_bilinear_calculation,
         )
 
-        def _membrane_cross_diffusion_coefficient_calculation(blk, x, z, k, j):
+        def _membrane_cross_diffusion_coefficient_calculation(blk, t, x, z, k, j):
             if x == 0:
                 return Constraint.Skip
             # off-diagonal
             if k != j:
                 return blk.membrane_cross_diffusion_coefficient_bilinear[
-                    0, x, z, k, j
+                    t, x, z, k, j
                 ] == (
                     (
                         (
                             blk.config.property_package.charge[k]
                             * blk.config.property_package.charge[j]
-                            * blk.config.property_package.membrane_diffusion_coefficient[
-                                k
-                            ]
-                            * blk.config.property_package.membrane_diffusion_coefficient[
-                                j
-                            ]
+                            * blk.config.property_package.diffusion_coefficient[k]
+                            * blk.config.property_package.diffusion_coefficient[j]
                         )
                         - (
                             blk.config.property_package.charge[k]
                             * blk.config.property_package.charge[j]
-                            * blk.config.property_package.membrane_diffusion_coefficient[
-                                k
-                            ]
-                            * blk.config.property_package.membrane_diffusion_coefficient[
-                                "Cl"
+                            * blk.config.property_package.diffusion_coefficient[k]
+                            * blk.config.property_package.diffusion_coefficient[
+                                self.config.anion_list[0]
                             ]
                         )
                     )
-                    * blk.membrane_conc_mol_comp[0, x, z, k]
+                    * blk.membrane_conc_mol_comp[t, x, z, k]
                 )
             # diagonal
             if k == j:
                 return blk.membrane_cross_diffusion_coefficient_bilinear[
-                    0, x, z, k, j
+                    t, x, z, k, j
                 ] == (
                     sum(
                         (
                             (
                                 (
                                     blk.config.property_package.charge[i]
-                                    * blk.config.property_package.charge["Cl"]
-                                    * blk.config.property_package.membrane_diffusion_coefficient[
+                                    * blk.config.property_package.charge[
+                                        self.config.anion_list[0]
+                                    ]
+                                    * blk.config.property_package.diffusion_coefficient[
                                         k
                                     ]
-                                    * blk.config.property_package.membrane_diffusion_coefficient[
-                                        "Cl"
+                                    * blk.config.property_package.diffusion_coefficient[
+                                        self.config.anion_list[0]
                                     ]
                                 )
                                 - (
                                     blk.config.property_package.charge[i] ** 2
-                                    * blk.config.property_package.membrane_diffusion_coefficient[
+                                    * blk.config.property_package.diffusion_coefficient[
                                         i
                                     ]
-                                    * blk.config.property_package.membrane_diffusion_coefficient[
+                                    * blk.config.property_package.diffusion_coefficient[
                                         k
                                     ]
                                 )
                             )
-                            * blk.membrane_conc_mol_comp[0, x, z, i]
+                            * blk.membrane_conc_mol_comp[t, x, z, i]
                         )
                         for i in blk.cations
                         if k != i
@@ -1062,36 +1149,41 @@ and used when constructing these,
                             (
                                 (
                                     blk.config.property_package.charge[i]
-                                    * blk.config.property_package.charge["Cl"]
-                                    * blk.config.property_package.membrane_diffusion_coefficient[
+                                    * blk.config.property_package.charge[
+                                        self.config.anion_list[0]
+                                    ]
+                                    * blk.config.property_package.diffusion_coefficient[
                                         k
                                     ]
-                                    * blk.config.property_package.membrane_diffusion_coefficient[
-                                        "Cl"
+                                    * blk.config.property_package.diffusion_coefficient[
+                                        self.config.anion_list[0]
                                     ]
                                 )
                                 - (
                                     blk.config.property_package.charge[i] ** 2
-                                    * blk.config.property_package.membrane_diffusion_coefficient[
+                                    * blk.config.property_package.diffusion_coefficient[
                                         i
                                     ]
-                                    * blk.config.property_package.membrane_diffusion_coefficient[
-                                        "Cl"
+                                    * blk.config.property_package.diffusion_coefficient[
+                                        self.config.anion_list[0]
                                     ]
                                 )
                             )
-                            * blk.membrane_conc_mol_comp[0, x, z, i]
+                            * blk.membrane_conc_mol_comp[t, x, z, i]
                         )
                         for i in blk.cations
                         if k == i
                     )
-                    + blk.config.property_package.charge["Cl"]
-                    * blk.config.property_package.membrane_diffusion_coefficient[k]
-                    * blk.config.property_package.membrane_diffusion_coefficient["Cl"]
+                    + blk.config.property_package.charge[self.config.anion_list[0]]
+                    * blk.config.property_package.diffusion_coefficient[k]
+                    * blk.config.property_package.diffusion_coefficient[
+                        self.config.anion_list[0]
+                    ]
                     * blk.membrane_fixed_charge
                 )
 
         self.membrane_cross_diffusion_coefficient_calculation = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.cations,
@@ -1099,19 +1191,20 @@ and used when constructing these,
             rule=_membrane_cross_diffusion_coefficient_calculation,
         )
 
-        def _membrane_convection_coefficient_calculation(blk, x, z, k):
+        def _membrane_convection_coefficient_calculation(blk, t, x, z, k):
             if x == 0:
                 return Constraint.Skip
-            return blk.membrane_convection_coefficient_bilinear[0, x, z, k] == (
-                blk.membrane_D_tilde[0, x, z]
+            return blk.membrane_convection_coefficient_bilinear[t, x, z, k] == (
+                blk.membrane_D_tilde[t, x, z]
                 + (
                     blk.config.property_package.charge[k]
-                    * blk.config.property_package.membrane_diffusion_coefficient[k]
+                    * blk.config.property_package.diffusion_coefficient[k]
                     * blk.membrane_fixed_charge
                 )
             )
 
         self.membrane_convection_coefficient_calculation = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.cations,
@@ -1148,45 +1241,46 @@ and used when constructing these,
             rule=_cation_flux_boundary_layer,
         )
 
-        def _cation_flux_membrane(blk, x, z, k):
+        def _cation_flux_membrane(blk, t, x, z, k):
             if x == 0:
                 return Constraint.Skip
-            return blk.molar_ion_flux[0, x, k] == (
+            return blk.molar_ion_flux[t, x, k] == (
                 (
-                    blk.membrane_convection_coefficient[0, x, z, k]
-                    * blk.membrane_conc_mol_comp[0, x, z, k]
-                    * blk.volume_flux_water[0, x]
+                    blk.membrane_convection_coefficient[t, x, z, k]
+                    * blk.membrane_conc_mol_comp[t, x, z, k]
+                    * blk.volume_flux_water[t, x]
                 )
                 + sum(
                     (
                         units.convert(
-                            blk.membrane_cross_diffusion_coefficient[0, x, z, k, i],
+                            blk.membrane_cross_diffusion_coefficient[t, x, z, k, i],
                             to_units=units.m**2 / units.h,
                         )
-                        / (blk.total_membrane_thickness)
-                        * blk.d_membrane_conc_mol_comp_dz[0, x, z, i]
+                        / blk.total_membrane_thickness
+                        * blk.d_membrane_conc_mol_comp_dz[t, x, z, i]
                     )
                     for i in blk.cations
                 )
             )
 
         self.cation_flux_membrane = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.cations,
             rule=_cation_flux_membrane,
         )
 
-        def _chloride_flux(blk, x):
+        def _chloride_flux_membrane(blk, t, x):
             if x == 0:
                 return Constraint.Skip
             return 0 == sum(
-                blk.config.property_package.charge[j] * blk.molar_ion_flux[0, x, j]
+                blk.config.property_package.charge[j] * blk.molar_ion_flux[t, x, j]
                 for j in blk.solutes
             )
 
-        self.chloride_flux = Constraint(
-            self.dimensionless_module_length, rule=_chloride_flux
+        self.chloride_flux_membrane = Constraint(
+            self.time, self.dimensionless_module_length, rule=_chloride_flux_membrane
         )
 
         # other physical constraints
@@ -1222,15 +1316,17 @@ and used when constructing these,
             self.dimensionless_module_length, rule=_osmotic_pressure_calculation
         )
 
-        def _electroneutrality_retentate(blk, x):
+        def _electroneutrality_retentate(blk, t, x):
             return 0 == sum(
                 blk.config.property_package.charge[j]
-                * blk.retentate_conc_mol_comp[0, x, j]
+                * blk.retentate_conc_mol_comp[t, x, j]
                 for j in blk.solutes
             )
 
         self.electroneutrality_retentate = Constraint(
-            self.dimensionless_module_length, rule=_electroneutrality_retentate
+            self.time,
+            self.dimensionless_module_length,
+            rule=_electroneutrality_retentate,
         )
 
         def _electroneutrality_boundary_layer(blk, x, z):
@@ -1248,35 +1344,38 @@ and used when constructing these,
             rule=_electroneutrality_boundary_layer,
         )
 
-        def _electroneutrality_membrane(blk, x, z):
+        def _electroneutrality_membrane(blk, t, x, z):
             if x == 0:
                 return Constraint.Skip
             return 0 == (
                 sum(
                     blk.config.property_package.charge[j]
-                    * blk.membrane_conc_mol_comp[0, x, z, j]
+                    * blk.membrane_conc_mol_comp[t, x, z, j]
                     for j in blk.solutes
                 )
                 + blk.membrane_fixed_charge
             )
 
         self.electroneutrality_membrane = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             rule=_electroneutrality_membrane,
         )
 
-        def _electroneutrality_permeate(blk, x):
+        def _electroneutrality_permeate(blk, t, x):
             if x == 0:
                 return Constraint.Skip
             return 0 == sum(
                 blk.config.property_package.charge[j]
-                * blk.permeate_conc_mol_comp[0, x, j]
+                * blk.permeate_conc_mol_comp[t, x, j]
                 for j in blk.solutes
             )
 
         self.electroneutrality_permeate = Constraint(
-            self.dimensionless_module_length, rule=_electroneutrality_permeate
+            self.time,
+            self.dimensionless_module_length,
+            rule=_electroneutrality_permeate,
         )
 
         # partitioning equations
@@ -1341,66 +1440,145 @@ and used when constructing these,
             rule=_cation_equilibrium_boundary_layer_membrane_interface,
         )
 
-        def _cation_equilibrium_membrane_permeate_interface(blk, x, k):
+        def _cation_equilibrium_membrane_permeate_interface(blk, t, x, k):
             if x == 0:
                 return Constraint.Skip
             return (
                 (
                     blk.config.property_package.partition_coefficient_permeate[k]
-                    ** (-blk.config.property_package.charge["Cl"])
+                    ** (-blk.config.property_package.charge[self.config.anion_list[0]])
                 )
                 * (
-                    blk.config.property_package.partition_coefficient_permeate["Cl"]
+                    blk.config.property_package.partition_coefficient_permeate[
+                        self.config.anion_list[0]
+                    ]
                     ** blk.config.property_package.charge[k]
                 )
                 * (
-                    blk.permeate_conc_mol_comp[0, x, k]
-                    ** (-blk.config.property_package.charge["Cl"])
+                    blk.permeate_conc_mol_comp[t, x, k]
+                    ** (-blk.config.property_package.charge[self.config.anion_list[0]])
                 )
                 * (
-                    blk.permeate_conc_mol_comp[0, x, "Cl"]
+                    blk.permeate_conc_mol_comp[t, x, self.config.anion_list[0]]
                     ** blk.config.property_package.charge[k]
                 )
             ) == (
                 (
-                    blk.membrane_conc_mol_comp[0, x, 1, k]
-                    ** (-blk.config.property_package.charge["Cl"])
+                    blk.membrane_conc_mol_comp[t, x, 1, k]
+                    ** (-blk.config.property_package.charge[self.config.anion_list[0]])
                 )
                 * (
-                    blk.membrane_conc_mol_comp[0, x, 1, "Cl"]
+                    blk.membrane_conc_mol_comp[t, x, 1, self.config.anion_list[0]]
                     ** blk.config.property_package.charge[k]
                 )
             )
 
         self.cation_equilibrium_membrane_permeate_interface = Constraint(
+            self.time,
             self.dimensionless_module_length,
             self.cations,
             rule=_cation_equilibrium_membrane_permeate_interface,
         )
 
         # boundary conditions
-        def _retentate_flow_volume_boundary_condition(blk):
+        def _retentate_flow_volume_boundary_condition(blk, t):
             return (
-                blk.retentate_flow_volume[0, 0]
-                == blk.feed_flow_volume[0] + blk.diafiltrate_flow_volume[0]
+                blk.retentate_flow_volume[t, 0]
+                == blk.feed_flow_volume[t] + blk.diafiltrate_flow_volume[t]
             )
 
         self.retentate_flow_volume_boundary_condition = Constraint(
-            rule=_retentate_flow_volume_boundary_condition
+            self.time, rule=_retentate_flow_volume_boundary_condition
         )
 
-        def _retentate_conc_mol_comp_boundary_condition(blk, k):
-            return blk.retentate_conc_mol_comp[0, 0, k] == (
+        def _retentate_conc_mol_comp_boundary_condition(blk, t, k):
+            return blk.retentate_conc_mol_comp[t, 0, k] == (
                 (
-                    blk.feed_flow_volume[0] * blk.feed_conc_mol_comp[0, k]
-                    + blk.diafiltrate_flow_volume[0]
-                    * blk.diafiltrate_conc_mol_comp[0, k]
+                    blk.feed_flow_volume[t] * blk.feed_conc_mol_comp[t, k]
+                    + blk.diafiltrate_flow_volume[t]
+                    * blk.diafiltrate_conc_mol_comp[t, k]
                 )
-                / (blk.feed_flow_volume[0] + blk.diafiltrate_flow_volume[0])
+                / (blk.feed_flow_volume[t] + blk.diafiltrate_flow_volume[t])
             )
 
         self.retentate_conc_mol_comp_boundary_condition = Constraint(
-            self.cations, rule=_retentate_conc_mol_comp_boundary_condition
+            self.time, self.cations, rule=_retentate_conc_mol_comp_boundary_condition
+        )
+
+        def _membrane_conc_mol_comp_boundary_condition(blk, t, z, k):
+            return (
+                blk.membrane_conc_mol_comp[t, 0, z, k]
+                == self.numerical_zero_tolerance * units.mol / units.m**3
+            )
+
+        self.membrane_conc_mol_comp_boundary_condition = Constraint(
+            self.time,
+            self.dimensionless_membrane_thickness,
+            self.cations,
+            rule=_membrane_conc_mol_comp_boundary_condition,
+        )
+
+        # constraints to improve numerical stability
+        def _permeate_flow_volume_boundary_condition(blk, t):
+            return (
+                blk.permeate_flow_volume[t, 0]
+                == self.numerical_zero_tolerance * units.m**3 / units.h
+            )
+
+        self.permeate_flow_volume_boundary_condition = Constraint(
+            self.time, rule=_permeate_flow_volume_boundary_condition
+        )
+
+        def _permeate_conc_mol_comp_boundary_condition(blk, t, j):
+            return (
+                blk.permeate_conc_mol_comp[t, 0, j]
+                == self.numerical_zero_tolerance * units.mol / units.m**3
+            )
+
+        self.permeate_conc_mol_comp_boundary_condition = Constraint(
+            self.time, self.solutes, rule=_permeate_conc_mol_comp_boundary_condition
+        )
+
+        def _d_retentate_flow_volume_dx_boundary_condition(blk, t):
+            return (
+                blk.d_retentate_flow_volume_dx[t, 0]
+                == self.numerical_zero_tolerance * units.m**3 / units.h
+            )
+
+        self.d_retentate_flow_volume_dx_boundary_condition = Constraint(
+            self.time, rule=_d_retentate_flow_volume_dx_boundary_condition
+        )
+
+        def _d_retentate_conc_mol_comp_dx_boundary_condition(blk, t, k):
+            return (
+                blk.d_retentate_conc_mol_comp_dx[t, 0, k]
+                == self.numerical_zero_tolerance * units.mol / units.m**3
+            )
+
+        self.d_retentate_conc_mol_comp_dx_boundary_condition = Constraint(
+            self.time,
+            self.cations,
+            rule=_d_retentate_conc_mol_comp_dx_boundary_condition,
+        )
+
+        def _volume_flux_water_boundary_condition(blk, t):
+            return (
+                blk.volume_flux_water[t, 0]
+                == self.numerical_zero_tolerance * units.m / units.h
+            )
+
+        self.volume_flux_water_boundary_condition = Constraint(
+            self.time, rule=_volume_flux_water_boundary_condition
+        )
+
+        def _molar_ion_flux_boundary_condition(blk, t, j):
+            return (
+                blk.molar_ion_flux[t, 0, j]
+                == self.numerical_zero_tolerance * units.mol / units.m**2 / units.h
+            )
+
+        self.molar_ion_flux_boundary_condition = Constraint(
+            self.time, self.solutes, rule=_molar_ion_flux_boundary_condition
         )
 
     def discretize_model(self):
@@ -1424,53 +1602,35 @@ and used when constructing these,
             scheme="BACKWARD",
         )
 
-    def fix_boundary_values(self):
+    def deactivate_unnecessary_objects(self):
         """
-        Fix boundary values for the two salt diafiltration unit model.
+        Deactivates variables and constraints not needed in the multi-component
+        diafiltration unit model.
         """
-        for x in self.dimensionless_module_length:
-            # chloride concentration gradient in retentate variable is created by default but
-            # is not needed in model; fix to reduce number of variables
-            self.d_retentate_conc_mol_comp_dx[0, x, "Cl"].fix(
-                value(self.numerical_zero_tolerance)
-            )
-            # associated discretization equation not needed in model
-            if x != 0:
-                self.d_retentate_conc_mol_comp_dx_disc_eq[0, x, "Cl"].deactivate()
-
-        # set "zero" boundary values to a sufficiently small value
-        # these quantities are known to be zero
-        # setting them to (numerical) zero improves numerical stability
-        self.permeate_flow_volume[0, 0].fix(value(self.numerical_zero_tolerance))
-        self.d_retentate_flow_volume_dx[0, 0].fix(value(self.numerical_zero_tolerance))
-        self.volume_flux_water[0, 0].fix(value(self.numerical_zero_tolerance))
-
-        for j in self.solutes:
-            self.permeate_conc_mol_comp[0, 0, j].fix(
-                value(self.numerical_zero_tolerance)
-            )
-            self.molar_ion_flux[0, 0, j].fix(value(self.numerical_zero_tolerance))
-
-        for z in self.dimensionless_boundary_layer_thickness:
-            for j in self.solutes:
-                self.boundary_layer_conc_mol_comp[0, 0, z, j].fix(
+        for t in self.time:
+            for x in self.dimensionless_module_length:
+                # chloride concentration gradient in retentate variable is created by default but
+                # is not needed in model; fix to reduce number of variables
+                self.d_retentate_conc_mol_comp_dx[t, x, self.config.anion_list[0]].fix(
                     value(self.numerical_zero_tolerance)
                 )
-        for z in self.dimensionless_membrane_thickness:
-            for j in self.solutes:
-                self.membrane_conc_mol_comp[0, 0, z, j].fix(
-                    value(self.numerical_zero_tolerance)
-                )
-        for x in self.dimensionless_module_length:
-            for k in self.cations:
-                self.d_boundary_layer_conc_mol_comp_dz[0, x, 0, k].fix(
-                    value(self.numerical_zero_tolerance)
-                )
+                # associated discretization equation not needed in model
+                if x != 0:
+                    self.d_retentate_conc_mol_comp_dx_disc_eq[
+                        t, x, self.config.anion_list[0]
+                    ].deactivate()
 
-        for k in self.cations:
-            self.d_retentate_conc_mol_comp_dx[0, 0, k].fix(
-                value(self.numerical_zero_tolerance)
-            )
+                for z in self.dimensionless_membrane_thickness:
+                    # chloride concentration gradient in membrane variable is created by default but
+                    # is not needed in model; fix to reduce number of variables
+                    self.d_membrane_conc_mol_comp_dz[
+                        t, x, z, self.config.anion_list[0]
+                    ].fix(value(self.numerical_zero_tolerance))
+                    # associated discretization equation not needed in model
+                    if z != 0:
+                        self.d_membrane_conc_mol_comp_dz_disc_eq[
+                            t, x, z, self.config.anion_list[0]
+                        ].deactivate()
 
     def add_scaling_factors(self):
         """
@@ -1479,12 +1639,7 @@ and used when constructing these,
         """
         self.scaling_factor = Suffix(direction=Suffix.EXPORT)
 
-        self.scaling_factor[self.retentate_conc_mol_comp] = 1e-2
-        self.scaling_factor[self.boundary_layer_conc_mol_comp] = 1e-2
-        self.scaling_factor[self.membrane_conc_mol_comp] = 1e-1
-        self.scaling_factor[self.permeate_conc_mol_comp] = 1e-2
-
-        self.scaling_factor[self.volume_flux_water] = 1e3
+        self.scaling_factor[self.volume_flux_water] = 1e2
         self.scaling_factor[self.boundary_layer_D_tilde] = 1e-3
         self.scaling_factor[
             self.boundary_layer_cross_diffusion_coefficient_bilinear
@@ -1494,7 +1649,35 @@ and used when constructing these,
         self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = 1e-2
         self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e-1
         self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e1
-        self.scaling_factor[self.membrane_convection_coefficient] = 1e2
+        self.scaling_factor[self.membrane_convection_coefficient] = 1e1
+
+        if len(self.config.cation_list) >= 2:
+            for t in self.time:
+                for x in self.dimensionless_module_length:
+                    if x != 0:
+                        self.scaling_factor[self.lumped_water_flux[t, x]] = 1e3
+                        self.scaling_factor[
+                            self.cation_equilibrium_retentate_membrane_interface[
+                                t, x, self.config.cation_list[0]
+                            ]
+                        ] = 1e-3
+                        self.scaling_factor[
+                            self.cation_equilibrium_membrane_permeate_interface[
+                                t, x, self.config.cation_list[0]
+                            ]
+                        ] = 1e-3
+                        for k in range(len(self.config.cation_list)):
+                            if k != 0:
+                                self.scaling_factor[
+                                    self.cation_equilibrium_retentate_membrane_interface[
+                                        t, x, self.config.cation_list[k]
+                                    ]
+                                ] = 1e-5
+                                self.scaling_factor[
+                                    self.cation_equilibrium_membrane_permeate_interface[
+                                        t, x, self.config.cation_list[k]
+                                    ]
+                                ] = 1e-5
 
     def add_ports(self):
         self.feed_inlet = Port(doc="Feed Inlet Port")

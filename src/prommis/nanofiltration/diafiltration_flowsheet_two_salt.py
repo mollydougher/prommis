@@ -5,7 +5,7 @@
 # Please see the files COPYRIGHT.md and LICENSE.md for full copyright and license information.
 #####################################################################################################
 """
-Sample flowsheet for the two-salt diafiltration cascade.
+Sample flowsheet for the multi-component diafiltration cascade.
 
 Author: Molly Dougher
 """
@@ -27,36 +27,60 @@ import matplotlib.pyplot as plt
 from pandas import DataFrame
 
 from prommis.nanofiltration.multi_component_diafiltration_stream_properties import (
-    DiafiltrationStreamParameter,
+    MultiComponentDiafiltrationStreamParameter,
 )
-from prommis.nanofiltration.multi_component_diafiltration_solute_properties import SoluteParameter
-from prommis.nanofiltration.multi_component_diafiltration import TwoSaltDiafiltration
+from prommis.nanofiltration.multi_component_diafiltration_solute_properties import (
+    MultiComponentDiafiltrationSoluteParameter,
+)
+from prommis.nanofiltration.multi_component_diafiltration import (
+    MultiComponentDiafiltration,
+)
 
 
 def main():
     """
-    Builds and solves flowsheet with two-salt diafiltration unit model.
+    Builds and solves flowsheet with multi-component diafiltration unit model
+    for a two-salt (lithium chloride and cobalt chloride) solution.
     """
     # build flowsheet
     m = ConcreteModel()
     m.fs = FlowsheetBlock(dynamic=False)
-    m.fs.stream_properties = DiafiltrationStreamParameter()
-    m.fs.properties = SoluteParameter()
 
-    # update parameter inputs if desired
-    build_membrane_parameters(m)
+    cation_list = ["lithium", "cobalt"]
+    anion_list = ["chloride"]
+    inlet_flow_volume = {"feed": 12.5, "diafiltrate": 3.75}
+    inlet_concentration = {
+        "feed": {"lithium": 245, "cobalt": 288, "chloride": 821},
+        "diafiltrate": {"lithium": 14, "cobalt": 3, "chloride": 20},
+    }
+
+    m.fs.stream_properties = MultiComponentDiafiltrationStreamParameter(
+        cation_list=cation_list,
+        anion_list=anion_list,
+    )
+    m.fs.properties = MultiComponentDiafiltrationSoluteParameter(
+        cation_list=cation_list,
+        anion_list=anion_list,
+    )
 
     # add feed blocks for feed and diafiltrate
     m.fs.feed_block = Feed(property_package=m.fs.stream_properties)
     m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
 
     # add the membrane unit model
-    m.fs.membrane = TwoSaltDiafiltration(
+    m.fs.membrane = MultiComponentDiafiltration(
         property_package=m.fs.properties,
-        NFE_module_length=20,
-        NFE_boundary_layer_thickness=10,
-        NFE_membrane_thickness=10,
+        cation_list=cation_list,
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration=inlet_concentration,
+        NFE_module_length=10,
+        NFE_boundary_layer_thickness=5,
+        NFE_membrane_thickness=5,
     )
+
+    # update parameter inputs if desired
+    build_membrane_parameters(m)
 
     # add product blocks for retentate and permeate
     m.fs.retentate_block = Product(property_package=m.fs.stream_properties)
@@ -96,7 +120,7 @@ def main():
 
 def build_membrane_parameters(m):
     """
-    Updates parameters needed in two salt diafiltration unit model if desired
+    Updates parameters needed in multi-component diafiltration unit model if desired.
 
     Args:
         m: Pyomo model

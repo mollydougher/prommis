@@ -5,7 +5,7 @@
 # Please see the files COPYRIGHT.md and LICENSE.md for full copyright and license information.
 #####################################################################################################
 """
-Diagnostic tests for the two-salt diafiltration property model for feed streams.
+Diagnostic tests for the multi-component diafiltration property model for streams.
 """
 
 from pyomo.environ import ConcreteModel, Var
@@ -15,48 +15,131 @@ from idaes.core import FlowsheetBlock
 import pytest
 
 from prommis.nanofiltration.multi_component_diafiltration_stream_properties import (
-    DiafiltrationStreamParameter,
+    MultiComponentDiafiltrationStreamParameter,
 )
 
 
+# Test single-salt model
 @pytest.fixture
-def model():
+def model_single_salt():
+    cation_list = ["lithium"]
+    anion_list = ["chloride"]
+
     m = ConcreteModel()
     m.fs = FlowsheetBlock(dynamic=False)
-    m.fs.feed_properties = DiafiltrationStreamParameter()
+    m.fs.stream_properties = MultiComponentDiafiltrationStreamParameter(
+        cation_list=cation_list,
+        anion_list=anion_list,
+    )
 
     return m
 
 
 @pytest.mark.unit
-def test_parameters(model):
-    assert len(model.fs.feed_properties.phase_list) == 1
-    for k in model.fs.feed_properties.phase_list:
+def test_parameters_single_salt(model_single_salt):
+    assert len(model_single_salt.fs.stream_properties.phase_list) == 1
+    for k in model_single_salt.fs.stream_properties.phase_list:
         assert k == "liquid"
 
-    for j in model.fs.feed_properties.component_list:
+    for j in model_single_salt.fs.stream_properties.component_list:
         assert j in [
-            "Li",
-            "Co",
-            "Cl",
+            "lithium",
+            "chloride",
         ]
 
 
 @pytest.mark.unit
-def test_build(model):
-    model.fs.state = model.fs.feed_properties.build_state_block(model.fs.time)
+def test_build(model_single_salt):
+    assert len(model_single_salt.fs.stream_properties.config) == 3
 
-    assert len(model.fs.state) == 1
+    model_single_salt.fs.state = (
+        model_single_salt.fs.stream_properties.build_state_block(
+            model_single_salt.fs.time
+        )
+    )
 
-    assert isinstance(model.fs.state[0].flow_vol, Var)
-    assert isinstance(model.fs.state[0].conc_mol_comp, Var)
+    assert len(model_single_salt.fs.state) == 1
 
-    model.fs.state[0].flow_vol.set_value(10)
-    for j in model.fs.feed_properties.component_list:
-        model.fs.state[0].conc_mol_comp[j].set_value(1)
+    assert isinstance(model_single_salt.fs.state[0].flow_vol, Var)
+    assert isinstance(model_single_salt.fs.state[0].conc_mol_comp, Var)
 
-    model.fs.state.fix_initialization_states()
+    model_single_salt.fs.state[0].flow_vol.set_value(10)
+    for j in model_single_salt.fs.stream_properties.component_list:
+        model_single_salt.fs.state[0].conc_mol_comp[j].set_value(1)
 
-    assert model.fs.state[0].flow_vol.fixed
-    for j in model.fs.feed_properties.component_list:
-        assert model.fs.state[0].conc_mol_comp[j].fixed
+    model_single_salt.fs.state.fix_initialization_states()
+
+    assert model_single_salt.fs.state[0].flow_vol.fixed
+    for j in model_single_salt.fs.stream_properties.component_list:
+        assert model_single_salt.fs.state[0].conc_mol_comp[j].fixed
+
+
+# Test two-salt model
+@pytest.fixture
+def model_two_salt():
+    cation_list = ["lithium", "cobalt"]
+    anion_list = ["chloride"]
+
+    m = ConcreteModel()
+    m.fs = FlowsheetBlock(dynamic=False)
+    m.fs.stream_properties = MultiComponentDiafiltrationStreamParameter(
+        cation_list=cation_list,
+        anion_list=anion_list,
+    )
+
+    return m
+
+
+@pytest.mark.unit
+def test_parameters_two_salt(model_two_salt):
+    assert len(model_two_salt.fs.stream_properties.phase_list) == 1
+    for k in model_two_salt.fs.stream_properties.phase_list:
+        assert k == "liquid"
+
+    for j in model_two_salt.fs.stream_properties.component_list:
+        assert j in [
+            "lithium",
+            "cobalt",
+            "chloride",
+        ]
+
+
+@pytest.mark.unit
+def test_build_two_salt(model_two_salt):
+    test_build(model_two_salt)
+
+
+# Test three-salt model
+@pytest.fixture
+def model_three_salt():
+    cation_list = ["lithium", "cobalt", "aluminum"]
+    anion_list = ["chloride"]
+
+    m = ConcreteModel()
+    m.fs = FlowsheetBlock(dynamic=False)
+    m.fs.stream_properties = MultiComponentDiafiltrationStreamParameter(
+        cation_list=cation_list,
+        anion_list=anion_list,
+    )
+
+    return m
+
+
+@pytest.mark.unit
+def test_parameters_three_salt(model_three_salt):
+    assert len(model_three_salt.fs.stream_properties.phase_list) == 1
+    for k in model_three_salt.fs.stream_properties.phase_list:
+        assert k == "liquid"
+
+    for j in model_three_salt.fs.stream_properties.component_list:
+        assert j in [
+            "lithium",
+            "cobalt",
+            "aluminum",
+            "chloride",
+        ]
+
+
+@pytest.mark.unit
+def test_build_three_salt(model_three_salt):
+    test_build(model_three_salt)
