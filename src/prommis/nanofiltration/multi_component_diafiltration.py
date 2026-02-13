@@ -613,7 +613,7 @@ and used when constructing these,
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_boundary_layer_thickness,
-            initialize=8700,
+            initialize=1000,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D * c
             doc="Denominator of diffusion and convection coefficients in boundary layer",
         )

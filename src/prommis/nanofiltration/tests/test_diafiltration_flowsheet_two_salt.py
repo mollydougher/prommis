@@ -25,7 +25,13 @@ def test_main():
     """
     Tests the execution of the main function in diafiltration.py
     """
-    m, overall_results_plot, membrane_results_plot = main()
+    (
+        m,
+        overall_results_plot,
+        boundary_layer_results_plot,
+        membrane_results_plot,
+        rejection_plot,
+    ) = main()
     dt = DiagnosticsToolbox(m)
     dt.assert_no_numerical_warnings()
 
@@ -52,40 +58,42 @@ def test_main():
 
     # verify plots exist
     assert isinstance(overall_results_plot, plt.Figure)
+    assert isinstance(boundary_layer_results_plot, plt.Figure)
     assert isinstance(membrane_results_plot, plt.Figure)
+    assert isinstance(rejection_plot, plt.Figure)
 
     test_dict = {
         "retentate_final": [
             value(m.fs.membrane.retentate_flow_volume[0, 1]),
-            6.6914,
+            6.0854,
         ],
         "lithium_retentate_final": [
             value(m.fs.membrane.retentate_conc_mol_comp[0, 1, "lithium"]),
-            197.90,
+            190.89,
         ],
         "cobalt_retentate_final": [
             value(m.fs.membrane.retentate_conc_mol_comp[0, 1, "cobalt"]),
-            241.11,
+            239.83,
         ],
         "chloride_retentate_final": [
             value(m.fs.membrane.retentate_conc_mol_comp[0, 1, "chloride"]),
-            680.12,
+            670.55,
         ],
         "permeate_final": [
             value(m.fs.membrane.permeate_flow_volume[0, 1]),
-            9.4615,
+            10.035,
         ],
         "lithium_permeate_final": [
             value(m.fs.membrane.permeate_conc_mol_comp[0, 1, "lithium"]),
-            191.35,
+            191.70,
         ],
         "cobalt_permeate_final": [
             value(m.fs.membrane.permeate_conc_mol_comp[0, 1, "cobalt"]),
-            220.46,
+            222.48,
         ],
         "chloride_permeate_final": [
             value(m.fs.membrane.permeate_conc_mol_comp[0, 1, "chloride"]),
-            632.27,
+            636.67,
         ],
     }
 
