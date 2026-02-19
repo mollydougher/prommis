@@ -17,7 +17,7 @@ Configuration Arguments
 
 The Multi-Component Diafiltration unit model requires a property package that provides the valency (:math:`z_i`), infinite dilution diffusion coefficient (:math:`D_i`) in :math:`\mathrm{mm}^2 \, \mathrm{h}^{-1}`, thermodynamic reflection coefficient (:math:`\sigma_i`), partition coefficients (:math:`H_{i,r}` and :math:`H_{i,p}`) at the retentate-membrane and membrane-permeate interfaces, and number of dissolved species (:math:`n_i`) for each ion :math:`i` in solution. When used in a flowsheet, the user can provide separate property packages for the feed and product streams.
 
-There are six required arguments:
+There are four required arguments:
 
 #. ``cation_list`` (list of cations present in the system)
 
@@ -26,14 +26,6 @@ There are six required arguments:
 #. ``anion_list`` (list of anions present in the system)
 
     ``default=["chloride"]``
-
-#. ``inlet_flow_volume`` (dictionary of feed and diafiltrate flow rate information)
-
-    ``default={"feed": 12.5, "diafiltrate": 3.75}``
-
-#. ``inlet_concentration`` (dictionary of feed and diafiltrate concentration information)
-
-    ``default={"feed": {"lithium": 245, "cobalt": 288, "chloride": 822}, "diafiltrate": {"lithium": 14, "cobalt": 3, "chloride": 21}}``
 
 #. ``NFE_module_length`` (the desired number of finite elements across the width of the membrane (i.e., the module length))
 #. ``NFE_membrane_thickness`` (the desired number of finite elements across the thickness of the membrane)
@@ -241,7 +233,7 @@ The following constraints (which are expected to be zero) are enforced to improv
 
 # TODO: update documentation to include boundary layer
 
-from pyomo.common.config import ConfigBlock, ConfigValue
+from pyomo.common.config import ConfigBlock, ConfigValue, ListOf
 from pyomo.dae import ContinuousSet, DerivativeVar
 from pyomo.environ import (
     Constraint,
@@ -259,6 +251,7 @@ from pyomo.network import Port
 from idaes.core import UnitModelBlockData, declare_process_block_class, useDefault
 from idaes.core.util.config import is_physical_parameter_block
 from idaes.core.util.constants import Constants
+from idaes.core.util.exceptions import ConfigurationError
 
 
 @declare_process_block_class("MultiComponentDiafiltration")
@@ -298,6 +291,7 @@ and used when constructing these,
     CONFIG.declare(
         "cation_list",
         ConfigValue(
+            domain=ListOf(str),
             default=["lithium", "cobalt"],
             doc="List of cations present in the system",
         ),
@@ -305,25 +299,9 @@ and used when constructing these,
     CONFIG.declare(
         "anion_list",
         ConfigValue(
+            domain=ListOf(str),
             default=["chloride"],
             doc="List of anions present in the system",
-        ),
-    )
-    CONFIG.declare(
-        "inlet_flow_volume",
-        ConfigValue(
-            default={"feed": 12.5, "diafiltrate": 3.75},
-            doc="Feed and diafiltrate flow rate information",
-        ),
-    )
-    CONFIG.declare(
-        "inlet_concentration",
-        ConfigValue(
-            default={
-                "feed": {"lithium": 245, "cobalt": 288, "chloride": 822},
-                "diafiltrate": {"lithium": 14, "cobalt": 3, "chloride": 21},
-            },
-            doc="Feed and diafiltrate concentration information",
         ),
     )
     CONFIG.declare(
@@ -351,10 +329,8 @@ and used when constructing these,
         """
         super().build()
 
-        try:
-            assert len(self.config.anion_list) == 1
-        except Exception:
-            print(
+        if len(self.config.anion_list) > 1:
+            raise ConfigurationError(
                 "The multi-component diafiltration unit model only supports systems with a common anion"
             )
 
@@ -456,14 +432,18 @@ and used when constructing these,
         )
         self.feed_flow_volume = Var(
             self.time,
-            initialize=self.config.inlet_flow_volume["feed"],
+            initialize=12.5,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the feed",
         )
 
         def initialize_feed_conc_mol_comp(m, t, j):
-            vals = self.config.inlet_concentration["feed"]
+            vals = {
+                self.config.cation_list[k]: 200
+                for k in range(len(self.config.cation_list))
+            }
+            vals.update({self.config.anion_list[0]: 600})
             return vals[j]
 
         self.feed_conc_mol_comp = Var(
@@ -476,14 +456,18 @@ and used when constructing these,
         )
         self.diafiltrate_flow_volume = Var(
             self.time,
-            initialize=self.config.inlet_flow_volume["diafiltrate"],
+            initialize=3.75,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the diafiltrate",
         )
 
         def initialize_diafiltrate_conc_mol_comp(m, t, j):
-            vals = self.config.inlet_concentration["diafiltrate"]
+            vals = {
+                self.config.cation_list[k]: 10
+                for k in range(len(self.config.cation_list))
+            }
+            vals.update({self.config.anion_list[0]: 30})
             return vals[j]
 
         self.diafiltrate_conc_mol_comp = Var(
@@ -532,9 +516,10 @@ and used when constructing these,
         )
 
         def initialize_retentate_conc_mol_comp(m, t, w, j):
-            vals = self.config.inlet_concentration["feed"]
-            reduced_vals = {key: value * 0.95 for key, value in vals.items()}
-            return reduced_vals[j]
+            vals = {
+                i: 0.95 * initialize_feed_conc_mol_comp(m, t, i) for i in self.solutes
+            }
+            return vals[j]
 
         self.retentate_conc_mol_comp = Var(
             self.time,
@@ -555,9 +540,10 @@ and used when constructing these,
         )
 
         def initialize_permeate_conc_mol_comp(m, t, w, j):
-            vals = self.config.inlet_concentration["feed"]
-            reduced_vals = {key: value * 0.95 for key, value in vals.items()}
-            return reduced_vals[j]
+            vals = {
+                i: 0.75 * initialize_feed_conc_mol_comp(m, t, i) for i in self.solutes
+            }
+            return vals[j]
 
         self.permeate_conc_mol_comp = Var(
             self.time,
@@ -595,9 +581,10 @@ and used when constructing these,
         )
 
         def initialize_membrane_conc_mol_comp(m, t, w, l, j):
-            vals = self.config.inlet_concentration["feed"]
-            reduced_vals = {key: value * 0.1 for key, value in vals.items()}
-            return reduced_vals[j]
+            vals = {
+                i: 0.1 * initialize_feed_conc_mol_comp(m, t, i) for i in self.solutes
+            }
+            return vals[j]
 
         self.membrane_conc_mol_comp = Var(
             self.time,
@@ -1769,3 +1756,32 @@ and used when constructing these,
             self.permeate_conc_mol_comp[:, self.dimensionless_module_length.last(), :]
         )
         self.permeate_outlet.add(self._permeate_conc_mol_comp_ref, "conc_mol_comp")
+
+    def initialize_streams(self):
+        """
+        Re-initializes the retentate and permeate flow rates and the
+        retentate, membrane, and permeate concentration variables.
+
+        Intended to be called on the flowsheet level after the user
+        inputs updated feed information.
+        """
+        for t in self.time:
+            for x in self.dimensionless_module_length:
+                self.retentate_flow_volume[t, x].set_value(
+                    value(self.feed_flow_volume[t]) * 1 / 3
+                )
+                self.permeate_flow_volume[t, x].set_value(
+                    value(self.feed_flow_volume[t]) * 2 / 3
+                )
+                for j in self.solutes:
+                    self.retentate_conc_mol_comp[t, x, j].set_value(
+                        value(self.feed_conc_mol_comp[t, j]) * 0.95
+                    )
+                    self.permeate_conc_mol_comp[t, x, j].set_value(
+                        value(self.feed_conc_mol_comp[t, j]) * 0.75
+                    )
+                for z in self.dimensionless_membrane_thickness:
+                    for j in self.solutes:
+                        self.membrane_conc_mol_comp[t, x, z, j].set_value(
+                            value(self.feed_conc_mol_comp[t, j]) * 0.1
+                        )
