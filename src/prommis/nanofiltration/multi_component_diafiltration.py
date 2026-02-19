@@ -262,8 +262,8 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
 
     def initialization_routine(self, model):
         """
-        Initializes the retentate and permeate streams, membrane concentration,
-        and un-initialized derivative variables.
+        Initializes the retentate and permeate streams, membrane and boundary
+        layer concentrations, and un-initialized derivative variables.
 
         Note: derivative variables are initialized to an arbitrary value.
 
@@ -289,6 +289,10 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                     )
                 for z in model.dimensionless_membrane_thickness:
                     for j in model.solutes:
+                        model.boundary_layer_conc_mol_comp[t, x, z, j].set_value(
+                            value(model.feed_conc_mol_comp[t, j]) * 1
+                        )
+                        model.d_boundary_layer_conc_mol_comp_dz[t, x, z, j].set_value(1)
                         model.membrane_conc_mol_comp[t, x, z, j].set_value(
                             value(model.feed_conc_mol_comp[t, j]) * 0.1
                         )
@@ -485,10 +489,7 @@ and used when constructing these,
         )
 
         def initialize_feed_conc_mol_comp(m, t, j):
-            vals = {
-                self.config.cation_list[k]: 200
-                for k in range(len(self.config.cation_list))
-            }
+            vals = {k: 200 for k in self.config.cation_list}
             vals.update({self.config.anion_list[0]: 600})
             return vals[j]
 
@@ -509,10 +510,7 @@ and used when constructing these,
         )
 
         def initialize_diafiltrate_conc_mol_comp(m, t, j):
-            vals = {
-                self.config.cation_list[k]: 10
-                for k in range(len(self.config.cation_list))
-            }
+            vals = {k: 10 for k in self.config.cation_list}
             vals.update({self.config.anion_list[0]: 30})
             return vals[j]
 
@@ -536,10 +534,7 @@ and used when constructing these,
         )
 
         def initialize_molar_ion_flux(m, t, w, j):
-            vals = {
-                self.config.cation_list[k]: 10
-                for k in range(len(self.config.cation_list))
-            }
+            vals = {k: 10 for k in self.config.cation_list}
             vals.update({self.config.anion_list[0]: 30})
             return vals[j]
 
@@ -587,7 +582,7 @@ and used when constructing these,
 
         def initialize_permeate_conc_mol_comp(m, t, w, j):
             vals = {
-                i: 0.75 * initialize_feed_conc_mol_comp(m, t, i) for i in self.solutes
+                i: 0.8 * initialize_feed_conc_mol_comp(m, t, i) for i in self.solutes
             }
             return vals[j]
 
@@ -611,9 +606,10 @@ and used when constructing these,
 
         # add variables dependent on dimensionless_module_length and dimensionless_membrane_thickness
         def initialize_boundary_layer_conc_mol_comp(m, t, w, l, j):
-            vals = self.config.inlet_concentration["feed"]
-            reduced_vals = {key: value * 0.5 for key, value in vals.items()}
-            return reduced_vals[j]
+            vals = {
+                i: 0.5 * initialize_feed_conc_mol_comp(m, t, i) for i in self.solutes
+            }
+            return vals[j]
 
         self.boundary_layer_conc_mol_comp = Var(
             self.time,
@@ -655,11 +651,8 @@ and used when constructing these,
             m, t, w, l, j, k
         ):
             vals = {
-                self.config.cation_list[k]: {
-                    self.config.cation_list[j]: -3000
-                    for j in range(len(self.config.cation_list))
-                }
-                for k in range(len(self.config.cation_list))
+                k: {j: -3000 for j in self.config.cation_list}
+                for k in self.config.cation_list
             }
             return vals[j][k]
 
@@ -677,11 +670,8 @@ and used when constructing these,
 
         def initialize_boundary_layer_cross_diffusion_coefficient(m, t, w, l, j, k):
             vals = {
-                self.config.cation_list[k]: {
-                    self.config.cation_list[j]: -5
-                    for j in range(len(self.config.cation_list))
-                }
-                for k in range(len(self.config.cation_list))
+                k: {j: -5 for j in self.config.cation_list}
+                for k in self.config.cation_list
             }
             return vals[j][k]
 
@@ -706,11 +696,8 @@ and used when constructing these,
 
         def initialize_membrane_cross_diffusion_coefficient_bilinear(m, t, w, l, j, k):
             vals = {
-                self.config.cation_list[k]: {
-                    self.config.cation_list[j]: -3000
-                    for j in range(len(self.config.cation_list))
-                }
-                for k in range(len(self.config.cation_list))
+                k: {j: -3000 for j in self.config.cation_list}
+                for k in self.config.cation_list
             }
             return vals[j][k]
 
@@ -727,10 +714,7 @@ and used when constructing these,
         )
 
         def initialize_membrane_convection_coefficient_bilinear(m, t, w, l, j):
-            vals = {
-                self.config.cation_list[k]: 100
-                for k in range(len(self.config.cation_list))
-            }
+            vals = {k: 100 for k in self.config.cation_list}
             return vals[j]
 
         self.membrane_convection_coefficient_bilinear = Var(
@@ -745,11 +729,8 @@ and used when constructing these,
 
         def initialize_membrane_cross_diffusion_coefficient(m, t, w, l, j, k):
             vals = {
-                self.config.cation_list[k]: {
-                    self.config.cation_list[j]: -5
-                    for j in range(len(self.config.cation_list))
-                }
-                for k in range(len(self.config.cation_list))
+                k: {j: -5 for j in self.config.cation_list}
+                for k in self.config.cation_list
             }
             return vals[j][k]
 
@@ -765,10 +746,7 @@ and used when constructing these,
         )
 
         def initialize_membrane_convection_coefficient(m, t, w, l, j):
-            vals = {
-                self.config.cation_list[k]: 0.2
-                for k in range(len(self.config.cation_list))
-            }
+            vals = {k: 0.2 for k in self.config.cation_list}
             return vals[j]
 
         self.membrane_convection_coefficient = Var(
@@ -1747,28 +1725,28 @@ and used when constructing these,
                 for x in self.dimensionless_module_length:
                     if x != 0:
                         self.scaling_factor[self.lumped_water_flux[t, x]] = 1e3
-                        self.scaling_factor[
-                            self.cation_equilibrium_boundary_layer_membrane_interface[
-                                t, x, self.config.cation_list[0]
-                            ]
-                        ] = 1e-3
-                        self.scaling_factor[
-                            self.cation_equilibrium_membrane_permeate_interface[
-                                t, x, self.config.cation_list[0]
-                            ]
-                        ] = 1e-3
-                        for k in range(len(self.config.cation_list)):
-                            if k != 0:
-                                self.scaling_factor[
-                                    self.cation_equilibrium_boundary_layer_membrane_interface[
-                                        t, x, self.config.cation_list[k]
-                                    ]
-                                ] = 1e-5
-                                self.scaling_factor[
-                                    self.cation_equilibrium_membrane_permeate_interface[
-                                        t, x, self.config.cation_list[k]
-                                    ]
-                                ] = 1e-5
+                        # self.scaling_factor[
+                        #     self.cation_equilibrium_boundary_layer_membrane_interface[
+                        #         t, x, self.config.cation_list[0]
+                        #     ]
+                        # ] = 1e-3
+                        # self.scaling_factor[
+                        #     self.cation_equilibrium_membrane_permeate_interface[
+                        #         t, x, self.config.cation_list[0]
+                        #     ]
+                        # ] = 1e-3
+                        # for k in range(len(self.config.cation_list)):
+                        #     if k != 0:
+                        #         self.scaling_factor[
+                        #             self.cation_equilibrium_boundary_layer_membrane_interface[
+                        #                 t, x, self.config.cation_list[k]
+                        #             ]
+                        #         ] = 1e-5
+                        #         self.scaling_factor[
+                        #             self.cation_equilibrium_membrane_permeate_interface[
+                        #                 t, x, self.config.cation_list[k]
+                        #             ]
+                        #         ] = 1e-5
 
     def add_ports(self):
         self.feed_inlet = Port(doc="Feed Inlet Port")
