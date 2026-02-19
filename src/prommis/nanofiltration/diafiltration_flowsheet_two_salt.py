@@ -73,6 +73,7 @@ def main():
         property_package=m.fs.properties,
         cation_list=cation_list,
         anion_list=anion_list,
+        include_boundary_layer=True,
         NFE_module_length=10,
         NFE_boundary_layer_thickness=5,
         NFE_membrane_thickness=5,
