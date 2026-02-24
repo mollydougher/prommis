@@ -25,6 +25,7 @@ from idaes.models.unit_models import Feed, Product
 
 import matplotlib.pyplot as plt
 import numpy as np
+from pandas import DataFrame
 
 from prommis.nanofiltration.multi_component_diafiltration_stream_properties import (
     MultiComponentDiafiltrationStreamParameter,
@@ -168,8 +169,8 @@ def main():
 
     # plot individual results
     for results_dict in dict_names:
-        plot_results(results_dict)
-        # plot_membrane_results(model)
+        plot_results_by_length(results_dict)
+        plot_results_by_thickness(results_dict)
 
     # plot_relative_rejections_compact(
     #     m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl
@@ -293,13 +294,19 @@ def solve_model(m):
 
 def extract_and_store_results(m):
     """
-    Extracts relevent results and stores in dictionary
+    Extracts relevant results and stores in dictionary
 
     Args:
         m: Pyomo model
     """
     # store values for x-coordinate (module length)
     x_axis_values = []
+
+    # store values for z-coordinate (boundary layer)
+    z_boundary_layer_values = []
+
+    # store values for z-coordinate (membrane)
+    z_membrane_values = []
 
     # store values for concentration in the retentate
     conc_ret_cation_1 = []
@@ -315,6 +322,20 @@ def extract_and_store_results(m):
     conc_perm_cation_1 = []
     if len(m.fs.membrane.config.cation_list) > 1:
         conc_perm_cation_2 = []
+
+    # store values for concentration in the boundary layer (2D)
+    conc_bl_cation_1 = []
+    conc_bl_cation_1_dict = {}
+    if len(m.fs.membrane.config.cation_list) > 1:
+        conc_bl_cation_2 = []
+        conc_bl_cation_2_dict = {}
+
+    # store values for concentration in the membrane (2D)
+    conc_mem_cation_1 = []
+    conc_mem_cation_1_dict = {}
+    if len(m.fs.membrane.config.cation_list) > 1:
+        conc_mem_cation_2 = []
+        conc_mem_cation_2_dict = {}
 
     # store values for water flux across membrane
     water_flux = []
@@ -427,13 +448,71 @@ def extract_and_store_results(m):
                 )
             )
 
+    # boundary layer
+    for z_val in m.fs.membrane.dimensionless_boundary_layer_thickness:
+        z_boundary_layer_values.append(
+            z_val * value(m.fs.membrane.total_boundary_layer_thickness) * 1e6
+        )
+        for x_val in m.fs.membrane.dimensionless_module_length:
+            if x_val != 0:
+                conc_bl_cation_1_val = value(
+                    m.fs.membrane.boundary_layer_conc_mol_comp[
+                        0, x_val, z_val, m.fs.membrane.config.cation_list[0]
+                    ]
+                )
+                conc_bl_cation_1.append(conc_bl_cation_1_val)
+                if len(m.fs.membrane.config.cation_list) > 1:
+                    conc_bl_cation_2_val = value(
+                        m.fs.membrane.boundary_layer_conc_mol_comp[
+                            0, x_val, z_val, m.fs.membrane.config.cation_list[1]
+                        ]
+                    )
+                    conc_bl_cation_2.append(conc_bl_cation_2_val)
+
+        conc_bl_cation_1_dict[f"{z_val}"] = conc_bl_cation_1
+        conc_bl_cation_1 = []
+        if len(m.fs.membrane.config.cation_list) > 1:
+            conc_bl_cation_2_dict[f"{z_val}"] = conc_bl_cation_2
+            conc_bl_cation_2 = []
+
+    # membrane
+    for z_val in m.fs.membrane.dimensionless_membrane_thickness:
+        z_membrane_values.append(
+            z_val * value(m.fs.membrane.total_membrane_thickness) * 1e9
+        )
+        for x_val in m.fs.membrane.dimensionless_module_length:
+            if x_val != 0:
+                conc_mem_cation_1_val = value(
+                    m.fs.membrane.membrane_conc_mol_comp[
+                        0, x_val, z_val, m.fs.membrane.config.cation_list[0]
+                    ]
+                )
+                conc_mem_cation_1.append(conc_mem_cation_1_val)
+                if len(m.fs.membrane.config.cation_list) > 1:
+                    conc_mem_cation_2_val = value(
+                        m.fs.membrane.membrane_conc_mol_comp[
+                            0, x_val, z_val, m.fs.membrane.config.cation_list[1]
+                        ]
+                    )
+                    conc_mem_cation_2.append(conc_mem_cation_2_val)
+
+        conc_mem_cation_1_dict[f"{z_val}"] = conc_mem_cation_1
+        conc_mem_cation_1 = []
+        if len(m.fs.membrane.config.cation_list) > 1:
+            conc_mem_cation_2_dict[f"{z_val}"] = conc_mem_cation_2
+            conc_mem_cation_2 = []
+
     results_dict = {
         "cation_list": m.fs.membrane.config.cation_list,
         "cation_1": m.fs.membrane.config.cation_list[0],
         "x_values": x_axis_values,
+        "z_bl_values": z_boundary_layer_values,
+        "z_mem_values": z_membrane_values,
         "cation_1_retentate_concentration": conc_ret_cation_1,
         "cation_1_interface_concentration": conc_int_cation_1,
         "cation_1_permeate_concentration": conc_perm_cation_1,
+        "cation_1_boundary_layer_concentration": conc_bl_cation_1_dict,
+        "cation_1_membrane_concentration": conc_mem_cation_1_dict,
         "water_flux": water_flux,
         "cation_1_flux": cation_1_flux,
         "percent_recovery": percent_recovery,
@@ -447,6 +526,8 @@ def extract_and_store_results(m):
                 "cation_2_retentate_concentration": conc_ret_cation_2,
                 "cation_2_interface_concentration": conc_int_cation_2,
                 "cation_2_permeate_concentration": conc_perm_cation_2,
+                "cation_2_boundary_layer_concentration": conc_bl_cation_2_dict,
+                "cation_2_membrane_concentration": conc_mem_cation_2_dict,
                 "cation_2_flux": cation_2_flux,
                 "cation_2_rejection_observed": cation_2_rejection_observed,
                 "cation_2_rejection_actual": cation_2_rejection_actual,
@@ -456,7 +537,7 @@ def extract_and_store_results(m):
     return results_dict
 
 
-def plot_results(results_dict):
+def plot_results_by_length(results_dict):
     """
     Plots concentration and flux variables across the length of the membrane module.
     """
@@ -488,7 +569,7 @@ def plot_results(results_dict):
     ax1.plot(x_axis_values, conc_int_cation_1, linewidth=2, label="interface")
     ax1.plot(x_axis_values, conc_perm_cation_1, linewidth=2, label="permeate")
     ax1.set_ylabel(
-        f"{cation_1} Concentration \n(mol/m$^3$)",
+        f"{cation_1.capitalize()} Concentration \n(mol/m$^3$)",
         fontsize=10,
         fontweight="bold",
     )
@@ -500,7 +581,7 @@ def plot_results(results_dict):
         ax2.plot(x_axis_values, conc_int_cation_2, linewidth=2, label="interface")
         ax2.plot(x_axis_values, conc_perm_cation_2, linewidth=2, label="permeate")
         ax2.set_ylabel(
-            f"{cation_2} Concentration \n(mol/m$^3$)",
+            f"{cation_2.capitalize()} Concentration \n(mol/m$^3$)",
             fontsize=10,
             fontweight="bold",
         )
@@ -516,14 +597,14 @@ def plot_results(results_dict):
         x_axis_values,
         cation_1_flux,
         linewidth=2,
-        label=f"{cation_1}",
+        label=f"{cation_1.capitalize()}",
     )
     if len(cation_list) > 1:
         ax4.plot(
             x_axis_values,
             cation_2_flux,
             linewidth=2,
-            label=f"{cation_2}",
+            label=f"{cation_2.capitalize()}",
         )
     ax4.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
     ax4.set_ylabel("Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
@@ -533,26 +614,26 @@ def plot_results(results_dict):
         x_axis_values,
         cation_1_rejection_observed,
         linewidth=2,
-        label=f"{cation_1} (observed)",
+        label=f"{cation_1.capitalize()} (observed)",
     )
     ax5.plot(
         x_axis_values,
         cation_1_rejection_actual,
         linewidth=2,
-        label=f"{cation_1} (actual)",
+        label=f"{cation_1.capitalize()} (actual)",
     )
     if len(cation_list) > 1:
         ax5.plot(
             x_axis_values,
             cation_2_rejection_observed,
             linewidth=2,
-            label=f"{cation_2} (observed)",
+            label=f"{cation_2.capitalize()} (observed)",
         )
         ax5.plot(
             x_axis_values,
             cation_2_rejection_actual,
             linewidth=2,
-            label=f"{cation_2} (actual)",
+            label=f"{cation_2.capitalize()} (actual)",
         )
     ax5.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
     ax5.set_ylabel("Solute Rejection (%)", fontsize=10, fontweight="bold")
@@ -569,110 +650,86 @@ def plot_results(results_dict):
     return fig
 
 
-def plot_membrane_results(m, single_salt=False):
+def plot_results_by_thickness(results_dict):
     """
-    Plots concentrations within the membrane.
-
-    Args:
-        m: Pyomo model
+    Plots concentrations within the boundary layer or membrane.
     """
-    x_axis_values = []
-    z_axis_values = []
 
-    for x_val in m.fs.membrane.dimensionless_module_length:
-        if x_val != 0:
-            x_axis_values.append(x_val * value(m.fs.membrane.total_module_length))
-    for z_val in m.fs.membrane.dimensionless_membrane_thickness:
-        z_axis_values.append(
-            z_val * value(m.fs.membrane.total_membrane_thickness) * 1e9
+    cation_list = results_dict["cation_list"]
+    cation_1 = results_dict["cation_1"]
+    x_axis_values = results_dict["x_values"]
+    z_bl_axis_values = results_dict["z_bl_values"]
+    z_mem_axis_values = results_dict["z_mem_values"]
+    conc_bl_cation_1_dict = results_dict["cation_1_boundary_layer_concentration"]
+    conc_mem_cation_1_dict = results_dict["cation_1_membrane_concentration"]
+    if len(cation_list) > 1:
+        cation_2 = results_dict["cation_2"]
+        conc_bl_cation_2_dict = results_dict["cation_2_boundary_layer_concentration"]
+        conc_mem_cation_2_dict = results_dict["cation_2_membrane_concentration"]
+
+    conc_bl_cation_1_df = DataFrame(index=x_axis_values, data=conc_bl_cation_1_dict)
+    conc_mem_cation_1_df = DataFrame(index=x_axis_values, data=conc_mem_cation_1_dict)
+    if len(cation_list) > 1:
+        conc_bl_cation_2_df = DataFrame(index=x_axis_values, data=conc_bl_cation_2_dict)
+        conc_mem_cation_2_df = DataFrame(
+            index=x_axis_values, data=conc_mem_cation_2_dict
         )
-    # store values for concentration of lithium in the membrane
-    conc_mem_lith = []
-    conc_mem_lith_dict = {}
-    # store values for concentration of cobalt in the membrane
-    conc_mem_cob = []
-    conc_mem_cob_dict = {}
-    # store values for concentration of chloride in the membrane
-    conc_mem_chl = []
-    conc_mem_chl_dict = {}
 
-    for z_val in m.fs.membrane.dimensionless_membrane_thickness:
-        for x_val in m.fs.membrane.dimensionless_module_length:
-            if x_val != 0:
-                conc_mem_lith.append(
-                    value(
-                        m.fs.membrane.membrane_conc_mol_comp[
-                            0, x_val, z_val, "cation_1"
-                        ]
-                    )
-                )
-                if not single_salt:
-                    conc_mem_cob.append(
-                        value(
-                            m.fs.membrane.membrane_conc_mol_comp[
-                                0, x_val, z_val, "cation_2"
-                            ]
-                        )
-                    )
-                conc_mem_chl.append(
-                    value(
-                        m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "anion"]
-                    )
-                )
-
-        conc_mem_lith_dict[f"{z_val}"] = conc_mem_lith
-        conc_mem_cob_dict[f"{z_val}"] = conc_mem_cob
-        conc_mem_chl_dict[f"{z_val}"] = conc_mem_chl
-        conc_mem_lith = []
-        conc_mem_cob = []
-        conc_mem_chl = []
-
-    conc_mem_lith_df = DataFrame(index=x_axis_values, data=conc_mem_lith_dict)
-    if not single_salt:
-        conc_mem_cob_df = DataFrame(index=x_axis_values, data=conc_mem_cob_dict)
-    conc_mem_chl_df = DataFrame(index=x_axis_values, data=conc_mem_chl_dict)
-
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi=125, figsize=(15, 7))
-    lithium_plot = ax1.pcolor(
-        z_axis_values, x_axis_values, conc_mem_lith_df, cmap="Greens"
-    )
-    ax1.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
+    fig1, (ax1, ax2) = plt.subplots(1, 2, dpi=125, figsize=(15, 7))
+    cation_1_plot_bl = ax1.pcolor(z_bl_axis_values, x_axis_values, conc_bl_cation_1_df)
+    ax1.set_xlabel("Boundary Layer Thickness (um)", fontsize=10, fontweight="bold")
     ax1.set_ylabel("Module Length (m)", fontsize=10, fontweight="bold")
     ax1.set_title(
-        "Lithium Concentration\n in Membrane (mol/m$^3$)",
+        f"{cation_1.capitalize()} Concentration\n in Boundary Layer (mol/m$^3$)",
         fontsize=10,
         fontweight="bold",
     )
     ax1.tick_params(direction="in", labelsize=10)
-    fig.colorbar(lithium_plot, ax=ax1)
-
-    if not single_salt:
-        cobalt_plot = ax2.pcolor(
-            z_axis_values, x_axis_values, conc_mem_cob_df, cmap="Blues"
+    fig1.colorbar(cation_1_plot_bl, ax=ax1)
+    if len(cation_list) > 1:
+        cation_2_plot_bl = ax2.pcolor(
+            z_bl_axis_values, x_axis_values, conc_bl_cation_2_df
         )
-    ax2.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
-    ax2.set_title(
-        "Cobalt Concentration\n in Membrane (mol/m$^3$)", fontsize=10, fontweight="bold"
-    )
-    ax2.tick_params(direction="in", labelsize=10)
-    if not single_salt:
-        fig.colorbar(cobalt_plot, ax=ax2)
+        ax2.set_xlabel("Boundary Layer Thickness (um)", fontsize=10, fontweight="bold")
+        ax2.set_ylabel("Module Length (m)", fontsize=10, fontweight="bold")
+        ax2.set_title(
+            f"{cation_2.capitalize()} Concentration\n in Boundary Layer (mol/m$^3$)",
+            fontsize=10,
+            fontweight="bold",
+        )
+        ax2.tick_params(direction="in", labelsize=10)
+        fig1.colorbar(cation_2_plot_bl, ax=ax2)
 
-    chloride_plot = ax3.pcolor(
-        z_axis_values, x_axis_values, conc_mem_chl_df, cmap="Oranges"
+    fig2, (ax3, ax4) = plt.subplots(1, 2, dpi=125, figsize=(15, 7))
+    cation_1_plot_mem = ax3.pcolor(
+        z_mem_axis_values, x_axis_values, conc_mem_cation_1_df
     )
     ax3.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
+    ax3.set_ylabel("Module Length (m)", fontsize=10, fontweight="bold")
     ax3.set_title(
-        "Chloride Concentration\n in Membrane (mol/m$^3$)",
+        f"{cation_1.capitalize()} Concentration\n in Membrane (mol/m$^3$)",
         fontsize=10,
         fontweight="bold",
     )
     ax3.tick_params(direction="in", labelsize=10)
-    fig.colorbar(chloride_plot, ax=ax3)
+    fig2.colorbar(cation_1_plot_mem, ax=ax3)
+
+    if len(cation_list) > 1:
+        cation_2_plot_mem = ax4.pcolor(
+            z_mem_axis_values, x_axis_values, conc_mem_cation_2_df
+        )
+        ax4.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
+        ax4.set_title(
+            f"{cation_2.capitalize()} Concentration\n in Membrane (mol/m$^3$)",
+            fontsize=10,
+            fontweight="bold",
+        )
+        ax4.tick_params(direction="in", labelsize=10)
+        fig2.colorbar(cation_2_plot_mem, ax=ax4)
 
     plt.show()
 
-    return fig
+    # return fig
 
 
 def plot_relative_rejections_compact(
@@ -1664,7 +1721,7 @@ def plot_relative_rejections_by_component(
     ax2.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl3")
     ax2.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl2 + AlCl3")
     ax2.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
-    ax2.plot([], [], "rs", alpha=0.25, markersize=8, label="Oberved")
+    ax2.plot([], [], "rs", alpha=0.25, markersize=8, label="Observed")
     ax2.plot([], [], "rs", markersize=8, label="Actual")
     ax2.legend(
         loc="best", title="Solution (linestyle)"
@@ -1758,7 +1815,7 @@ def plot_relative_rejections_by_component(
     ax4.plot([], [], "k:", linewidth=2, label="CoCl2 + AlCl3")
     ax4.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl2 + AlCl3")
     ax4.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
-    ax4.plot([], [], "bs", alpha=0.25, markersize=8, label="Oberved")
+    ax4.plot([], [], "bs", alpha=0.25, markersize=8, label="Observed")
     ax4.plot([], [], "bs", markersize=8, label="Actual")
     ax4.legend(
         loc="best", title="Solution (linestyle)"
@@ -1856,7 +1913,7 @@ def plot_relative_rejections_by_component(
     ax6.plot([], [], "k:", linewidth=2, label="CoCl2 + AlCl3")
     ax6.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl2 + AlCl3")
     ax6.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
-    ax6.plot([], [], "gs", alpha=0.25, markersize=8, label="Oberved")
+    ax6.plot([], [], "gs", alpha=0.25, markersize=8, label="Observed")
     ax6.plot([], [], "gs", markersize=8, label="Actual")
     ax6.legend(
         loc="best", title="Solution (linestyle)"
@@ -2220,7 +2277,7 @@ def plot_rejection_versus_concentration(
     ax1.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl3")
     ax1.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl2 + AlCl3")
     ax1.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
-    ax1.plot([], [], "rs", alpha=0.25, markersize=8, label="Oberved")
+    ax1.plot([], [], "rs", alpha=0.25, markersize=8, label="Observed")
     ax1.plot([], [], "rs", markersize=8, label="Actual")
     ax1.legend(loc="best", title="Solution (linestyle)")
 
@@ -2288,7 +2345,7 @@ def plot_rejection_versus_concentration(
     ax2.plot([], [], "k:", linewidth=2, label="CoCl2 + AlCl3")
     ax2.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl2 + AlCl3")
     ax2.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
-    ax2.plot([], [], "bs", alpha=0.25, markersize=8, label="Oberved")
+    ax2.plot([], [], "bs", alpha=0.25, markersize=8, label="Observed")
     ax2.plot([], [], "bs", markersize=8, label="Actual")
     ax2.legend(loc="best", title="Solution (linestyle)")
 
@@ -2357,7 +2414,7 @@ def plot_rejection_versus_concentration(
     ax3.plot([], [], "k:", linewidth=2, label="CoCl2 + AlCl3")
     ax3.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl2 + AlCl3")
     ax3.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
-    ax3.plot([], [], "gs", alpha=0.25, markersize=8, label="Oberved")
+    ax3.plot([], [], "gs", alpha=0.25, markersize=8, label="Observed")
     ax3.plot([], [], "gs", markersize=8, label="Actual")
     ax3.legend(loc="best", title="Solution (linestyle)")
 
