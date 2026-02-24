@@ -61,9 +61,6 @@ def main():
         NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
         NFE_membrane_thickness=NFE_membrane_thickness,
     )
-    solve_model(m_li_cl)
-    # plot_membrane_results(m_li_cl, single_salt=True)
-    # plot_results(m_li_cl, single_salt=True)
 
     # cobalt chloride
     m_co_cl = build_model(
@@ -79,9 +76,6 @@ def main():
         NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
         NFE_membrane_thickness=NFE_membrane_thickness,
     )
-    solve_model(m_co_cl)
-    # # plot_membrane_results(m_co_cl, single_salt=True)
-    # # plot_results(m_co_cl, single_salt=True)
 
     # aluminum chloride
     m_al_cl = build_model(
@@ -97,9 +91,6 @@ def main():
         NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
         NFE_membrane_thickness=NFE_membrane_thickness,
     )
-    solve_model(m_al_cl)
-    # # plot_membrane_results(m_al_cl, single_salt=True)
-    # # plot_results(m_al_cl, single_salt=True)
 
     # two salt systems
     # lithium chloride + cobalt chloride
@@ -116,9 +107,6 @@ def main():
         NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
         NFE_membrane_thickness=NFE_membrane_thickness,
     )
-    solve_model(m_li_co_cl)
-    # # plot_membrane_results(m_li_co_cl)
-    # plot_results(m_li_co_cl)
 
     # lithium chloride + aluminum chloride
     m_li_al_cl = build_model(
@@ -134,9 +122,6 @@ def main():
         NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
         NFE_membrane_thickness=NFE_membrane_thickness,
     )
-    solve_model(m_li_al_cl)
-    # # # plot_membrane_results(m_li_al_cl)
-    # # # plot_results(m_li_al_cl)
 
     # cobalt chloride + aluminum chloride
     m_co_al_cl = build_model(
@@ -152,14 +137,17 @@ def main():
         NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
         NFE_membrane_thickness=NFE_membrane_thickness,
     )
-    solve_model(m_co_al_cl)
-    # # plot_membrane_results(m_co_al_cl)
-    # # plot_results(m_co_al_cl)
 
     # m_li_co_al_cl = build_model(
     #     num_salts=3, salt_system="lithium_cobalt_aluminum_chloride"
     # )
-    # solve_model(m_li_co_al_cl)
+
+    # solve models and plot individual results
+    model_list = [m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl]
+    for model in model_list:
+        solve_model(model)
+        plot_results(model)
+        # plot_membrane_results(model)
 
     # plot_relative_rejections_compact(
     #     m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl
@@ -2274,115 +2262,131 @@ def plot_concentrations(m2, m3):
     plt.show()
 
 
-def plot_results(m, single_salt=False):
+def plot_results(m):
     """
     Plots concentration and flux variables across the length of the membrane module.
 
     Args:
         m: Pyomo model
     """
-    # store values for x-coordinate
+    # store values for x-coordinate (module length)
     x_axis_values = []
 
-    # store values for concentration of lithium in the retentate
-    conc_ret_lith = []
-    # store values for concentration of lithium in the permeate
-    conc_perm_lith = []
-    # store values for concentration of cobalt in the retentate
-    conc_ret_cob = []
-    # store values for concentration of cobalt in the permeate
-    conc_perm_cob = []
+    # store values for concentration in the retentate
+    conc_ret_cation_1 = []
+    if len(m.fs.membrane.config.cation_list) > 1:
+        conc_ret_cation_2 = []
+
+    # store values for concentration at solution-membrane interface
+    conc_int_cation_1 = []
+    if len(m.fs.membrane.config.cation_list) > 1:
+        conc_int_cation_2 = []
+
+    # store values for concentration in the permeate
+    conc_perm_cation_1 = []
+    if len(m.fs.membrane.config.cation_list) > 1:
+        conc_perm_cation_2 = []
 
     # store values for water flux across membrane
     water_flux = []
-    # store values for mol flux of lithium across membrane
-    lithium_flux = []
+
+    # store values for mol flux across membrane
+    cation_1_flux = []
+    if len(m.fs.membrane.config.cation_list) > 1:
+        cation_2_flux = []
 
     # store values for percent recovery
     percent_recovery = []
 
-    # store values for lithium rejection
-    lithium_rejection = []
-    # store values for lithium solute passage
-    lithium_sieving = []
-    # store values for cobalt rejection
-    cobalt_rejection = []
-    # store values for cobalt solute passage
-    cobalt_sieving = []
+    # store values for rejection
+    cation_1_rejection_observed = []
+    cation_1_rejection_actual = []
+    if len(m.fs.membrane.config.cation_list) > 1:
+        cation_2_rejection_observed = []
+        cation_2_rejection_actual = []
 
     for x_val in m.fs.membrane.dimensionless_module_length:
         if x_val != 0:
+            # x-coordinate
             x_axis_values.append(x_val * value(m.fs.membrane.total_module_length))
-            conc_ret_lith.append(
-                value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_1"])
+
+            # concentrations
+            conc_ret_cation_1_val = value(
+                m.fs.membrane.retentate_conc_mol_comp[
+                    0, x_val, m.fs.membrane.config.cation_list[0]
+                ]
             )
-            conc_perm_lith.append(
-                value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"])
+            conc_int_cation_1_val = value(
+                m.fs.membrane.boundary_layer_conc_mol_comp[
+                    0, x_val, 1, m.fs.membrane.config.cation_list[0]
+                ]
             )
-            if not single_salt:
-                conc_ret_cob.append(
-                    value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_2"])
+            conc_perm_cation_1_val = value(
+                m.fs.membrane.permeate_conc_mol_comp[
+                    0, x_val, m.fs.membrane.config.cation_list[0]
+                ]
+            )
+
+            conc_ret_cation_1.append(conc_ret_cation_1_val)
+            conc_int_cation_1.append(conc_int_cation_1_val)
+            conc_perm_cation_1.append(conc_perm_cation_1_val)
+
+            if len(m.fs.membrane.config.cation_list) > 1:
+                conc_ret_cation_2_val = value(
+                    m.fs.membrane.retentate_conc_mol_comp[
+                        0, x_val, m.fs.membrane.config.cation_list[1]
+                    ]
                 )
-                conc_perm_cob.append(
-                    value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_2"])
+                conc_int_cation_2_val = value(
+                    m.fs.membrane.boundary_layer_conc_mol_comp[
+                        0, x_val, 1, m.fs.membrane.config.cation_list[1]
+                    ]
+                )
+                conc_perm_cation_2_val = value(
+                    m.fs.membrane.permeate_conc_mol_comp[
+                        0, x_val, m.fs.membrane.config.cation_list[1]
+                    ]
                 )
 
+                conc_ret_cation_2.append(conc_ret_cation_2_val)
+                conc_int_cation_2.append(conc_int_cation_2_val)
+                conc_perm_cation_2.append(conc_perm_cation_2_val)
+
+            # flux
             water_flux.append(value(m.fs.membrane.volume_flux_water[0, x_val]))
-            lithium_flux.append(
-                value(m.fs.membrane.molar_ion_flux[0, x_val, "cation_1"])
-            )
 
-            lithium_rejection.append(
-                (
-                    1
-                    - (
-                        value(
-                            m.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-                        )
-                        / value(
-                            m.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_1"]
-                        )
-                    )
-                )
-                * 100
-            )
-            lithium_sieving.append(
-                (
-                    value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"])
-                    / value(m.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_1"])
+            cation_1_flux.append(
+                value(
+                    m.fs.membrane.molar_ion_flux[
+                        0, x_val, m.fs.membrane.config.cation_list[0]
+                    ]
                 )
             )
-            if not single_salt:
-                cobalt_rejection.append(
-                    (
-                        1
-                        - (
-                            value(
-                                m.fs.membrane.permeate_conc_mol_comp[
-                                    0, x_val, "cation_2"
-                                ]
-                            )
-                            / value(
-                                m.fs.membrane.retentate_conc_mol_comp[
-                                    0, x_val, "cation_2"
-                                ]
-                            )
-                        )
-                    )
-                    * 100
-                )
-            if not single_salt:
-                cobalt_sieving.append(
-                    (
-                        value(
-                            m.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_2"]
-                        )
-                        / value(
-                            m.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_2"]
-                        )
+            if len(m.fs.membrane.config.cation_list) > 1:
+                cation_2_flux.append(
+                    value(
+                        m.fs.membrane.molar_ion_flux[
+                            0, x_val, m.fs.membrane.config.cation_list[1]
+                        ]
                     )
                 )
 
+            # rejection
+            cation_1_rejection_observed.append(
+                (1 - (conc_perm_cation_1_val / conc_ret_cation_1_val)) * 100
+            )
+            cation_1_rejection_actual.append(
+                (1 - (conc_perm_cation_1_val / conc_int_cation_1_val)) * 100
+            )
+            if len(m.fs.membrane.config.cation_list) > 1:
+                cation_2_rejection_observed.append(
+                    (1 - (conc_perm_cation_2_val / conc_ret_cation_2_val)) * 100
+                )
+                cation_2_rejection_actual.append(
+                    (1 - (conc_perm_cation_2_val / conc_int_cation_2_val)) * 100
+                )
+
+            # recovery
             percent_recovery.append(
                 (
                     value(m.fs.membrane.permeate_flow_volume[0, x_val])
@@ -2394,54 +2398,89 @@ def plot_results(m, single_salt=False):
                 )
             )
 
-    # fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
-    #     3, 2, dpi=100, figsize=(12, 10)
-    # )
-    fig, ((ax1), (ax2), (ax5)) = plt.subplots(3, 1, dpi=100, figsize=(12, 10))
+    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
+        3, 2, dpi=100, figsize=(12, 10)
+    )
 
-    ax1.plot(x_axis_values, conc_ret_lith, linewidth=2, label="retentate")
-    ax1.plot(x_axis_values, conc_perm_lith, linewidth=2, label="permeate")
+    ax1.plot(x_axis_values, conc_ret_cation_1, linewidth=2, label="retentate")
+    ax1.plot(x_axis_values, conc_int_cation_1, linewidth=2, label="interface")
+    ax1.plot(x_axis_values, conc_perm_cation_1, linewidth=2, label="permeate")
     ax1.set_ylabel(
-        "Lithium Concentration \n(mol/m$^3$)",
+        f"{m.fs.membrane.config.cation_list[0]} Concentration \n(mol/m$^3$)",
         fontsize=10,
         fontweight="bold",
     )
     ax1.tick_params(direction="in", labelsize=10)
     ax1.legend()
 
-    if not single_salt:
-        ax2.plot(x_axis_values, conc_ret_cob, linewidth=2, label="retentate")
-        ax2.plot(x_axis_values, conc_perm_cob, linewidth=2, label="permeate")
-    ax2.set_ylabel(
-        "Cobalt Concentration \n(mol/m$^3$)",
-        fontsize=10,
-        fontweight="bold",
+    if len(m.fs.membrane.config.cation_list) > 1:
+        ax2.plot(x_axis_values, conc_ret_cation_2, linewidth=2, label="retentate")
+        ax2.plot(x_axis_values, conc_int_cation_2, linewidth=2, label="interface")
+        ax2.plot(x_axis_values, conc_perm_cation_2, linewidth=2, label="permeate")
+        ax2.set_ylabel(
+            f"{m.fs.membrane.config.cation_list[1]} Concentration \n(mol/m$^3$)",
+            fontsize=10,
+            fontweight="bold",
+        )
+        ax2.tick_params(direction="in", labelsize=10)
+        ax2.legend()
+
+    ax3.plot(x_axis_values, water_flux, linewidth=2)
+    ax3.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=10, fontweight="bold")
+    ax3.tick_params(direction="in", labelsize=10)
+
+    ax4.plot(
+        x_axis_values,
+        cation_1_flux,
+        linewidth=2,
+        label=f"{m.fs.membrane.config.cation_list[0]}",
     )
-    ax2.tick_params(direction="in", labelsize=10)
-    ax2.legend()
+    if len(m.fs.membrane.config.cation_list) > 1:
+        ax4.plot(
+            x_axis_values,
+            cation_2_flux,
+            linewidth=2,
+            label=f"{m.fs.membrane.config.cation_list[1]}",
+        )
+    ax4.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax4.set_ylabel("Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
+    ax4.tick_params(direction="in", labelsize=10)
 
-    # ax3.plot(x_axis_values, water_flux, linewidth=2)
-    # ax3.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    # ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=10, fontweight="bold")
-    # ax3.tick_params(direction="in", labelsize=10)
-
-    # ax4.plot(x_axis_values, lithium_flux, linewidth=2)
-    # ax4.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    # ax4.set_ylabel("Lithium Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
-    # ax4.tick_params(direction="in", labelsize=10)
-
-    ax5.plot(x_axis_values, lithium_rejection, linewidth=2, label="lithium")
-    if not single_salt:
-        ax5.plot(x_axis_values, cobalt_rejection, linewidth=2, label="cobalt")
+    ax5.plot(
+        x_axis_values,
+        cation_1_rejection_observed,
+        linewidth=2,
+        label=f"{m.fs.membrane.config.cation_list[0]} (observed)",
+    )
+    ax5.plot(
+        x_axis_values,
+        cation_1_rejection_actual,
+        linewidth=2,
+        label=f"{m.fs.membrane.config.cation_list[0]} (actual)",
+    )
+    if len(m.fs.membrane.config.cation_list) > 1:
+        ax5.plot(
+            x_axis_values,
+            cation_2_rejection_observed,
+            linewidth=2,
+            label=f"{m.fs.membrane.config.cation_list[1]} (observed)",
+        )
+        ax5.plot(
+            x_axis_values,
+            cation_2_rejection_actual,
+            linewidth=2,
+            label=f"{m.fs.membrane.config.cation_list[1]} (actual)",
+        )
     ax5.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
     ax5.set_ylabel("Solute Rejection (%)", fontsize=10, fontweight="bold")
     ax5.tick_params(direction="in", labelsize=10)
     ax5.legend()
 
-    # ax6.plot(x_axis_values, percent_recovery, linewidth=2)
-    # ax6.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    # ax6.set_ylabel("Percent Recovery (%)", fontsize=10, fontweight="bold")
-    # ax6.tick_params(direction="in", labelsize=10)
+    ax6.plot(x_axis_values, percent_recovery, linewidth=2)
+    ax6.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax6.set_ylabel("Percent Recovery (%)", fontsize=10, fontweight="bold")
+    ax6.tick_params(direction="in", labelsize=10)
 
     plt.show()
 
