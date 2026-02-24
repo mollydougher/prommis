@@ -15,73 +15,161 @@ from pyomo.environ import (
     SolverFactory,
     TransformationFactory,
     assert_optimal_termination,
-    units,
     value,
 )
 from pyomo.network import Arc
 
 from idaes.core import FlowsheetBlock
-from idaes.core.util.constants import Constants
 from idaes.core.util.model_diagnostics import DiagnosticsToolbox
 from idaes.models.unit_models import Feed, Product
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from prommis.nanofiltration.diafiltration_stream_properties import (
-    DiafiltrationStreamParameter as DiafiltrationTwoSaltStreamParameter,
+from prommis.nanofiltration.multi_component_diafiltration_stream_properties import (
+    MultiComponentDiafiltrationStreamParameter,
 )
-from prommis.nanofiltration.diafiltration_solute_properties import (
-    SoluteParameter as SoluteTwoSaltParameter,
+from prommis.nanofiltration.multi_component_diafiltration_solute_properties import (
+    MultiComponentDiafiltrationSoluteParameter,
 )
-from prommis.nanofiltration.diafiltration_two_salt import TwoSaltDiafiltration
+from prommis.nanofiltration.multi_component_diafiltration import (
+    MultiComponentDiafiltration,
+)
 
 
 def main():
-    m_li_cl = build_model(num_salts=1, salt_system="lithium_chloride")
+    # set default arguments
+    anion_list = ["chloride"]
+    inlet_flow_volume = {"feed": 12.5, "diafiltrate": 3.75}
+    include_boundary_layer = True
+    NFE_module_length = 10
+    NFE_boundary_layer_thickness = 5
+    NFE_membrane_thickness = 5
+
+    # single salt systems
+    # lithium chloride
+    m_li_cl = build_model(
+        cation_list=["lithium"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"lithium": 245, "cobalt": 288, "chloride": 821},
+            "diafiltrate": {"lithium": 14, "cobalt": 3, "chloride": 20},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
     solve_model(m_li_cl)
     # plot_membrane_results(m_li_cl, single_salt=True)
     # plot_results(m_li_cl, single_salt=True)
 
-    m_co_cl = build_model(num_salts=1, salt_system="cobalt_chloride")
+    # cobalt chloride
+    m_co_cl = build_model(
+        cation_list=["cobalt"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"cobalt": 288, "chloride": 576},
+            "diafiltrate": {"cobalt": 3, "chloride": 6},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
     solve_model(m_co_cl)
     # # plot_membrane_results(m_co_cl, single_salt=True)
     # # plot_results(m_co_cl, single_salt=True)
 
-    m_al_cl = build_model(num_salts=1, salt_system="aluminum_chloride")
+    # aluminum chloride
+    m_al_cl = build_model(
+        cation_list=["aluminum"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"aluminum": 20, "chloride": 60},
+            "diafiltrate": {"aluminum": 3, "chloride": 9},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
     solve_model(m_al_cl)
     # # plot_membrane_results(m_al_cl, single_salt=True)
     # # plot_results(m_al_cl, single_salt=True)
 
-    m_li_co_cl = build_model(salt_system="lithium_cobalt_chloride")
+    # two salt systems
+    # lithium chloride + cobalt chloride
+    m_li_co_cl = build_model(
+        cation_list=["lithium", "cobalt"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"lithium": 245, "cobalt": 288, "chloride": 821},
+            "diafiltrate": {"lithium": 14, "cobalt": 3, "chloride": 20},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
     solve_model(m_li_co_cl)
     # # plot_membrane_results(m_li_co_cl)
     # plot_results(m_li_co_cl)
 
-    m_li_al_cl = build_model(salt_system="lithium_aluminum_chloride")
+    # lithium chloride + aluminum chloride
+    m_li_al_cl = build_model(
+        cation_list=["lithium", "aluminum"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"lithium": 245, "aluminum": 20, "chloride": 305},
+            "diafiltrate": {"lithium": 14, "aluminum": 3, "chloride": 23},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
     solve_model(m_li_al_cl)
     # # # plot_membrane_results(m_li_al_cl)
     # # # plot_results(m_li_al_cl)
 
-    m_co_al_cl = build_model(salt_system="cobalt_aluminum_chloride")
+    # cobalt chloride + aluminum chloride
+    m_co_al_cl = build_model(
+        cation_list=["cobalt", "aluminum"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"cobalt": 288, "aluminum": 20, "chloride": 636},
+            "diafiltrate": {"cobalt": 3, "aluminum": 3, "chloride": 15},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
     solve_model(m_co_al_cl)
     # # plot_membrane_results(m_co_al_cl)
     # # plot_results(m_co_al_cl)
 
-    m_li_co_al_cl = build_model(
-        num_salts=3, salt_system="lithium_cobalt_aluminum_chloride"
-    )
-    solve_model(m_li_co_al_cl)
+    # m_li_co_al_cl = build_model(
+    #     num_salts=3, salt_system="lithium_cobalt_aluminum_chloride"
+    # )
+    # solve_model(m_li_co_al_cl)
 
     # plot_relative_rejections_compact(
     #     m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl
     # )
-    plot_relative_rejections_by_component(
-        m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl, m_li_co_al_cl
-    )
-    plot_rejection_versus_concentration(
-        m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl, m_li_co_al_cl
-    )
+    # plot_relative_rejections_by_component(
+    #     m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl, m_li_co_al_cl
+    # )
+    # plot_rejection_versus_concentration(
+    #     m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl, m_li_co_al_cl
+    # )
 
 
 def plot_relative_rejections_compact(
@@ -2185,6 +2273,7 @@ def plot_concentrations(m2, m3):
 
     plt.show()
 
+
 def plot_results(m, single_salt=False):
     """
     Plots concentration and flux variables across the length of the membrane module.
@@ -2464,13 +2553,28 @@ def plot_membrane_results(m, single_salt=False):
 
     return fig
 
-def build_model(num_salts=2, salt_system="lithium_cobalt_chloride"):
+
+def build_model(
+    cation_list,
+    anion_list,
+    inlet_flow_volume,
+    inlet_concentration,
+    include_boundary_layer,
+    NFE_module_length,
+    NFE_boundary_layer_thickness,
+    NFE_membrane_thickness,
+):
     # build flowsheet
     m = ConcreteModel()
     m.fs = FlowsheetBlock(dynamic=False)
-    m.fs.stream_properties = DiafiltrationTwoSaltStreamParameter(num_salts=num_salts)
-    m.fs.properties = SoluteTwoSaltParameter(
-        num_salts=num_salts, salt_system=salt_system
+
+    m.fs.stream_properties = MultiComponentDiafiltrationStreamParameter(
+        cation_list=cation_list,
+        anion_list=anion_list,
+    )
+    m.fs.properties = MultiComponentDiafiltrationSoluteParameter(
+        cation_list=cation_list,
+        anion_list=anion_list,
     )
 
     # add feed blocks for feed and diafiltrate
@@ -2478,12 +2582,14 @@ def build_model(num_salts=2, salt_system="lithium_cobalt_chloride"):
     m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
 
     # add the membrane unit model
-    m.fs.membrane = TwoSaltDiafiltration(
+    m.fs.membrane = MultiComponentDiafiltration(
         property_package=m.fs.properties,
-        num_salts=num_salts,
-        NFE_module_length=20,
-        NFE_boundary_layer_thickness=10,
-        NFE_membrane_thickness=10,
+        cation_list=cation_list,
+        anion_list=anion_list,
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
     )
 
     # add product blocks for retentate and permeate
@@ -2494,20 +2600,18 @@ def build_model(num_salts=2, salt_system="lithium_cobalt_chloride"):
     m.fs.membrane.total_module_length.fix()
     m.fs.membrane.total_membrane_length.fix()
     m.fs.membrane.applied_pressure.fix()
-    m.fs.membrane.feed_flow_volume.fix()
-    m.fs.membrane.feed_conc_mol_comp[0, "anion"].fix()
-    m.fs.membrane.feed_conc_mol_comp[0, "cation_1"].fix(200)
-    if num_salts > 1:
-        m.fs.membrane.feed_conc_mol_comp[0, "cation_2"].fix(200)
-    if num_salts > 2:
-        m.fs.membrane.feed_conc_mol_comp[0, "cation_3"].fix(200)
-    m.fs.membrane.diafiltrate_flow_volume.fix()
-    m.fs.membrane.diafiltrate_conc_mol_comp[0, "anion"].fix()
-    m.fs.membrane.diafiltrate_conc_mol_comp[0, "cation_1"].fix(10)
-    if num_salts > 1:
-        m.fs.membrane.diafiltrate_conc_mol_comp[0, "cation_2"].fix(10)
-    if num_salts > 2:
-        m.fs.membrane.diafiltrate_conc_mol_comp[0, "cation_3"].fix(10)
+    m.fs.membrane.feed_flow_volume.fix(inlet_flow_volume["feed"])
+    m.fs.membrane.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
+    for t in m.fs.membrane.time:
+        for j in m.fs.membrane.solutes:
+            m.fs.membrane.feed_conc_mol_comp[t, j].fix(inlet_concentration["feed"][j])
+            m.fs.membrane.diafiltrate_conc_mol_comp[t, j].fix(
+                inlet_concentration["diafiltrate"][j]
+            )
+
+    # initialize membrane model
+    initialized_membrane_model = m.fs.membrane.default_initializer()
+    initialized_membrane_model.initialize(m.fs.membrane)
 
     # add and connect flowsheet streams
     m.fs.feed_stream = Arc(
@@ -2552,11 +2656,9 @@ def solve_model(m):
 
     scaling.propagate_solution(scaled_model, m)
 
-    dt = DiagnosticsToolbox(m)
     # check numerical warnings
+    dt = DiagnosticsToolbox(m)
     dt.assert_no_numerical_warnings()
-    # dt.report_numerical_issues()
-    # dt.display_variables_at_or_outside_bounds()
 
     return results
 
