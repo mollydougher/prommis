@@ -149,14 +149,14 @@ def main():
         solve_model(model)
 
     # store results
-    m_li_cl_results_dict = {}
-    m_co_cl_results_dict = {}
-    m_al_cl_results_dict = {}
-    m_li_co_cl_results_dict = {}
-    m_li_al_cl_results_dict = {}
-    m_co_al_cl_results_dict = {}
+    m_li_cl_results_dict = extract_and_store_results(m_li_cl)
+    m_co_cl_results_dict = extract_and_store_results(m_co_cl)
+    m_al_cl_results_dict = extract_and_store_results(m_al_cl)
+    m_li_co_cl_results_dict = extract_and_store_results(m_li_co_cl)
+    m_li_al_cl_results_dict = extract_and_store_results(m_li_al_cl)
+    m_co_al_cl_results_dict = extract_and_store_results(m_co_al_cl)
 
-    dict_names = [
+    dict_list = [
         m_li_cl_results_dict,
         m_co_cl_results_dict,
         m_al_cl_results_dict,
@@ -164,23 +164,41 @@ def main():
         m_li_al_cl_results_dict,
         m_co_al_cl_results_dict,
     ]
-    for i in range(len(dict_names)):
-        dict_names[i] = extract_and_store_results(model_list[i])
 
     # plot individual results
-    for results_dict in dict_names:
-        plot_results_by_length(results_dict)
-        plot_results_by_thickness(results_dict)
+    plot_individual = False
+    if plot_individual:
+        for results_dict in dict_list:
+            plot_results_by_length(results_dict)
+            plot_results_by_thickness(results_dict)
 
-    # plot_relative_rejections_compact(
-    #     m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl
-    # )
-    # plot_relative_rejections_by_component(
-    #     m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl, m_li_co_al_cl
-    # )
-    # plot_rejection_versus_concentration(
-    #     m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl, m_li_co_al_cl
-    # )
+    # plot overall results
+    plot_overall = True
+    if plot_overall:
+        plot_rejection_versus_area(
+            m_li_cl_results_dict,
+            m_co_cl_results_dict,
+            m_al_cl_results_dict,
+            m_li_co_cl_results_dict,
+            m_li_al_cl_results_dict,
+            m_co_al_cl_results_dict,
+            compact=True,
+        )
+        plot_rejection_versus_area(
+            m_li_cl_results_dict,
+            m_co_cl_results_dict,
+            m_al_cl_results_dict,
+            m_li_co_cl_results_dict,
+            m_li_al_cl_results_dict,
+            m_co_al_cl_results_dict,
+            compact=False,
+        )
+        # plot_relative_rejections_by_component(
+        #     m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl, m_li_co_al_cl
+        # )
+        # plot_rejection_versus_concentration(
+        #     m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl, m_li_co_al_cl
+        # )
 
 
 def build_model(
@@ -301,6 +319,7 @@ def extract_and_store_results(m):
     """
     # store values for x-coordinate (module length)
     x_axis_values = []
+    membrane_area_values = []
 
     # store values for z-coordinate (boundary layer)
     z_boundary_layer_values = []
@@ -359,6 +378,11 @@ def extract_and_store_results(m):
         if x_val != 0:
             # x-coordinate
             x_axis_values.append(x_val * value(m.fs.membrane.total_module_length))
+            membrane_area_values.append(
+                x_val
+                * value(m.fs.membrane.total_module_length)
+                * value(m.fs.membrane.total_membrane_length)
+            )
 
             # concentrations
             conc_ret_cation_1_val = value(
@@ -506,6 +530,7 @@ def extract_and_store_results(m):
         "cation_list": m.fs.membrane.config.cation_list,
         "cation_1": m.fs.membrane.config.cation_list[0],
         "x_values": x_axis_values,
+        "membrane_area_values": membrane_area_values,
         "z_bl_values": z_boundary_layer_values,
         "z_mem_values": z_membrane_values,
         "cation_1_retentate_concentration": conc_ret_cation_1,
@@ -570,10 +595,10 @@ def plot_results_by_length(results_dict):
     ax1.plot(x_axis_values, conc_perm_cation_1, linewidth=2, label="permeate")
     ax1.set_ylabel(
         f"{cation_1.capitalize()} Concentration \n(mol/m$^3$)",
-        fontsize=10,
+        fontsize=12,
         fontweight="bold",
     )
-    ax1.tick_params(direction="in", labelsize=10)
+    ax1.tick_params(direction="in", labelsize=12)
     ax1.legend()
 
     if len(cation_list) > 1:
@@ -582,16 +607,16 @@ def plot_results_by_length(results_dict):
         ax2.plot(x_axis_values, conc_perm_cation_2, linewidth=2, label="permeate")
         ax2.set_ylabel(
             f"{cation_2.capitalize()} Concentration \n(mol/m$^3$)",
-            fontsize=10,
+            fontsize=12,
             fontweight="bold",
         )
-        ax2.tick_params(direction="in", labelsize=10)
+        ax2.tick_params(direction="in", labelsize=12)
         ax2.legend()
 
     ax3.plot(x_axis_values, water_flux, linewidth=2)
-    ax3.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=10, fontweight="bold")
-    ax3.tick_params(direction="in", labelsize=10)
+    ax3.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
+    ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=12, fontweight="bold")
+    ax3.tick_params(direction="in", labelsize=12)
 
     ax4.plot(
         x_axis_values,
@@ -606,9 +631,9 @@ def plot_results_by_length(results_dict):
             linewidth=2,
             label=f"{cation_2.capitalize()}",
         )
-    ax4.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax4.set_ylabel("Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
-    ax4.tick_params(direction="in", labelsize=10)
+    ax4.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
+    ax4.set_ylabel("Molar Flux (mol/m$^2$/h)", fontsize=12, fontweight="bold")
+    ax4.tick_params(direction="in", labelsize=12)
 
     ax5.plot(
         x_axis_values,
@@ -635,15 +660,15 @@ def plot_results_by_length(results_dict):
             linewidth=2,
             label=f"{cation_2.capitalize()} (actual)",
         )
-    ax5.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax5.set_ylabel("Solute Rejection (%)", fontsize=10, fontweight="bold")
-    ax5.tick_params(direction="in", labelsize=10)
+    ax5.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
+    ax5.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
+    ax5.tick_params(direction="in", labelsize=12)
     ax5.legend()
 
     ax6.plot(x_axis_values, percent_recovery, linewidth=2)
-    ax6.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax6.set_ylabel("Percent Recovery (%)", fontsize=10, fontweight="bold")
-    ax6.tick_params(direction="in", labelsize=10)
+    ax6.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
+    ax6.set_ylabel("Percent Recovery (%)", fontsize=12, fontweight="bold")
+    ax6.tick_params(direction="in", labelsize=12)
 
     plt.show()
 
@@ -677,54 +702,54 @@ def plot_results_by_thickness(results_dict):
 
     fig1, (ax1, ax2) = plt.subplots(1, 2, dpi=125, figsize=(15, 7))
     cation_1_plot_bl = ax1.pcolor(z_bl_axis_values, x_axis_values, conc_bl_cation_1_df)
-    ax1.set_xlabel("Boundary Layer Thickness (um)", fontsize=10, fontweight="bold")
-    ax1.set_ylabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax1.set_xlabel("Boundary Layer Thickness (um)", fontsize=12, fontweight="bold")
+    ax1.set_ylabel("Module Length (m)", fontsize=12, fontweight="bold")
     ax1.set_title(
         f"{cation_1.capitalize()} Concentration\n in Boundary Layer (mol/m$^3$)",
-        fontsize=10,
+        fontsize=12,
         fontweight="bold",
     )
-    ax1.tick_params(direction="in", labelsize=10)
+    ax1.tick_params(direction="in", labelsize=12)
     fig1.colorbar(cation_1_plot_bl, ax=ax1)
     if len(cation_list) > 1:
         cation_2_plot_bl = ax2.pcolor(
             z_bl_axis_values, x_axis_values, conc_bl_cation_2_df
         )
-        ax2.set_xlabel("Boundary Layer Thickness (um)", fontsize=10, fontweight="bold")
-        ax2.set_ylabel("Module Length (m)", fontsize=10, fontweight="bold")
+        ax2.set_xlabel("Boundary Layer Thickness (um)", fontsize=12, fontweight="bold")
+        ax2.set_ylabel("Module Length (m)", fontsize=12, fontweight="bold")
         ax2.set_title(
             f"{cation_2.capitalize()} Concentration\n in Boundary Layer (mol/m$^3$)",
-            fontsize=10,
+            fontsize=12,
             fontweight="bold",
         )
-        ax2.tick_params(direction="in", labelsize=10)
+        ax2.tick_params(direction="in", labelsize=12)
         fig1.colorbar(cation_2_plot_bl, ax=ax2)
 
     fig2, (ax3, ax4) = plt.subplots(1, 2, dpi=125, figsize=(15, 7))
     cation_1_plot_mem = ax3.pcolor(
         z_mem_axis_values, x_axis_values, conc_mem_cation_1_df
     )
-    ax3.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
-    ax3.set_ylabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax3.set_xlabel("Membrane Thickness (nm)", fontsize=12, fontweight="bold")
+    ax3.set_ylabel("Module Length (m)", fontsize=12, fontweight="bold")
     ax3.set_title(
         f"{cation_1.capitalize()} Concentration\n in Membrane (mol/m$^3$)",
-        fontsize=10,
+        fontsize=12,
         fontweight="bold",
     )
-    ax3.tick_params(direction="in", labelsize=10)
+    ax3.tick_params(direction="in", labelsize=12)
     fig2.colorbar(cation_1_plot_mem, ax=ax3)
 
     if len(cation_list) > 1:
         cation_2_plot_mem = ax4.pcolor(
             z_mem_axis_values, x_axis_values, conc_mem_cation_2_df
         )
-        ax4.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
+        ax4.set_xlabel("Membrane Thickness (nm)", fontsize=12, fontweight="bold")
         ax4.set_title(
             f"{cation_2.capitalize()} Concentration\n in Membrane (mol/m$^3$)",
-            fontsize=10,
+            fontsize=12,
             fontweight="bold",
         )
-        ax4.tick_params(direction="in", labelsize=10)
+        ax4.tick_params(direction="in", labelsize=12)
         fig2.colorbar(cation_2_plot_mem, ax=ax4)
 
     plt.show()
@@ -732,763 +757,82 @@ def plot_results_by_thickness(results_dict):
     # return fig
 
 
-def plot_relative_rejections_compact(
-    m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl
+def plot_rejection_versus_area(
+    m_li_cl_results_dict,
+    m_co_cl_results_dict,
+    m_al_cl_results_dict,
+    m_li_co_cl_results_dict,
+    m_li_al_cl_results_dict,
+    m_co_al_cl_results_dict,
+    # m_li_co_al_cl_results_dict,
+    compact=False,
 ):
     """
     Plots relative solute rejection across the length of the membrane module.
     Rejections normalized to initial rejection (x=0).
     Compares models.
-
-    Args:
-        m: Pyomo model
     """
-    # store values for x-coordinate
-    x_axis_values = []
+    membrane_area_values = m_li_cl_results_dict["membrane_area_values"]
 
-    # store values for rejection
-    lithium_rejection_li = []
-    lithium_rejection_li_co = []
-    lithium_rejection_li_al = []
-
-    cobalt_rejection_co = []
-    cobalt_rejection_li_co = []
-    cobalt_rejection_co_al = []
-
-    aluminum_rejection_al = []
-    aluminum_rejection_li_al = []
-    aluminum_rejection_co_al = []
-
-    for x_val in m_li_co_cl.fs.membrane.dimensionless_module_length:
-        if x_val != 0:
-            x_axis_values.append(
-                x_val
-                * value(m_li_co_cl.fs.membrane.total_module_length)
-                * value(m_li_co_cl.fs.membrane.total_membrane_length)
-            )
-
-            lithium_rej_li = (
-                1
-                - (
-                    value(
-                        m_li_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-                    )
-                    / value(
-                        m_li_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            cobalt_rej_co = (
-                1
-                - (
-                    value(
-                        m_co_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-                    )
-                    / value(
-                        m_co_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            aluminum_rej_al = (
-                1
-                - (
-                    value(
-                        m_al_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-                    )
-                    / value(
-                        m_al_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            lithium_rej_li_co = (
-                1
-                - (
-                    value(
-                        m_li_co_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                    / value(
-                        m_li_co_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            cobalt_rej_li_co = (
-                1
-                - (
-                    value(
-                        m_li_co_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                    / value(
-                        m_li_co_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                )
-            ) * 100
-
-            lithium_rej_li_al = (
-                1
-                - (
-                    value(
-                        m_li_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                    / value(
-                        m_li_al_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            aluminum_rej_li_al = (
-                1
-                - (
-                    value(
-                        m_li_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                    / value(
-                        m_li_al_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                )
-            ) * 100
-
-            cobalt_rej_co_al = (
-                1
-                - (
-                    value(
-                        m_co_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                    / value(
-                        m_co_al_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-            aluminum_rej_co_al = (
-                1
-                - (
-                    value(
-                        m_co_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                    / value(
-                        m_co_al_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                )
-            ) * 100
-
-            lithium_rejection_li.append(lithium_rej_li)
-            lithium_rejection_li_co.append(lithium_rej_li_co)
-            lithium_rejection_li_al.append(lithium_rej_li_al)
-            cobalt_rejection_co.append(cobalt_rej_co)
-            cobalt_rejection_li_co.append(cobalt_rej_li_co)
-            cobalt_rejection_co_al.append(cobalt_rej_co_al)
-            aluminum_rejection_al.append(aluminum_rej_al)
-            aluminum_rejection_li_al.append(aluminum_rej_li_al)
-            aluminum_rejection_co_al.append(aluminum_rej_co_al)
-
-    lithium_rejection_li_norm = [
-        (i - lithium_rejection_li[0]) / abs(lithium_rejection_li[0]) * 100
-        for i in lithium_rejection_li
+    # lithium rejections
+    observed_lithium_rejection_li = m_li_cl_results_dict["cation_1_rejection_observed"]
+    actual_lithium_rejection_li = m_li_cl_results_dict["cation_1_rejection_actual"]
+    observed_lithium_rejection_li_co = m_li_co_cl_results_dict[
+        "cation_1_rejection_observed"
     ]
-    lithium_rejection_li_co_norm = [
-        (i - lithium_rejection_li_co[0]) / abs(lithium_rejection_li_co[0]) * 100
-        for i in lithium_rejection_li_co
+    actual_lithium_rejection_li_co = m_li_co_cl_results_dict[
+        "cation_1_rejection_actual"
     ]
-    lithium_rejection_li_al_norm = [
-        (i - lithium_rejection_li_al[0]) / abs(lithium_rejection_li_al[0]) * 100
-        for i in lithium_rejection_li_al
+    observed_lithium_rejection_li_al = m_li_al_cl_results_dict[
+        "cation_1_rejection_observed"
     ]
-    cobalt_rejection_co_norm = [
-        (i - cobalt_rejection_co[0]) / abs(cobalt_rejection_co[0]) * 100
-        for i in cobalt_rejection_co
+    actual_lithium_rejection_li_al = m_li_al_cl_results_dict[
+        "cation_1_rejection_actual"
     ]
-    cobalt_rejection_li_co_norm = [
-        (i - cobalt_rejection_li_co[0]) / abs(cobalt_rejection_li_co[0]) * 100
-        for i in cobalt_rejection_li_co
+    # observed_lithium_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_1_rejection_observed"
+    # ]
+    # actual_lithium_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_1_rejection_actual"
+    # ]
+
+    # cobalt rejections
+    observed_cobalt_rejection_co = m_co_cl_results_dict["cation_1_rejection_observed"]
+    actual_cobalt_rejection_co = m_co_cl_results_dict["cation_1_rejection_actual"]
+    observed_cobalt_rejection_li_co = m_li_co_cl_results_dict[
+        "cation_2_rejection_observed"
     ]
-    cobalt_rejection_co_al_norm = [
-        (i - cobalt_rejection_co_al[0]) / abs(cobalt_rejection_co_al[0]) * 100
-        for i in cobalt_rejection_co_al
+    actual_cobalt_rejection_li_co = m_li_co_cl_results_dict["cation_2_rejection_actual"]
+    observed_cobalt_rejection_co_al = m_co_al_cl_results_dict[
+        "cation_1_rejection_observed"
     ]
-    aluminum_rejection_al_norm = [
-        (i - aluminum_rejection_al[0]) / abs(aluminum_rejection_al[0]) * 100
-        for i in aluminum_rejection_al
+    actual_cobalt_rejection_co_al = m_co_al_cl_results_dict["cation_1_rejection_actual"]
+    # observed_cobalt_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_2_rejection_observed"
+    # ]
+    # actual_cobalt_rejection_li_co_al = m_li_co_al_cl_results_dict["cation_2_rejection_actual"]
+
+    # aluminum rejections
+    observed_aluminum_rejection_al = m_al_cl_results_dict["cation_1_rejection_observed"]
+    actual_aluminum_rejection_al = m_al_cl_results_dict["cation_1_rejection_actual"]
+    observed_aluminum_rejection_li_al = m_li_al_cl_results_dict[
+        "cation_2_rejection_observed"
     ]
-    aluminum_rejection_li_al_norm = [
-        (i - aluminum_rejection_li_al[0]) / abs(aluminum_rejection_li_al[0]) * 100
-        for i in aluminum_rejection_li_al
+    actual_aluminum_rejection_li_al = m_li_al_cl_results_dict[
+        "cation_2_rejection_actual"
     ]
-    aluminum_rejection_co_al_norm = [
-        (i - aluminum_rejection_co_al[0]) / abs(aluminum_rejection_co_al[0]) * 100
-        for i in aluminum_rejection_co_al
+    observed_aluminum_rejection_co_al = m_co_al_cl_results_dict[
+        "cation_2_rejection_observed"
     ]
-
-    fig1, (ax1, ax2) = plt.subplots(1, 2, dpi=100, figsize=(10, 5))
-
-    ax1.plot(
-        x_axis_values, lithium_rejection_li, "m-", linewidth=2
-    )  # , label="Lithium (Li)")
-    ax1.plot(
-        x_axis_values, cobalt_rejection_co, "c-", linewidth=2
-    )  # , label="Cobalt (Co)")
-    ax1.plot(
-        x_axis_values, aluminum_rejection_al, "g-", linewidth=2
-    )  # , label="Aluminum (Al)")
-    ax1.plot(
-        x_axis_values, lithium_rejection_li_co, "m--", linewidth=2
-    )  # , label="Lithium (Li-Co)")
-    ax1.plot(
-        x_axis_values, cobalt_rejection_li_co, "c--", linewidth=2
-    )  # , label="Cobalt (Li-Co)")
-    ax1.plot(
-        x_axis_values, lithium_rejection_li_al, "m-.", linewidth=2
-    )  # , label="Lithium (Li-Al)")
-    ax1.plot(
-        x_axis_values, aluminum_rejection_li_al, "g-.", linewidth=2
-    )  # , label="Aluminum (Li-Al)")
-    ax1.plot(
-        x_axis_values, cobalt_rejection_co_al, "c:", linewidth=2
-    )  # , label="Cobalt (Co-Al)")
-    ax1.plot(
-        x_axis_values, aluminum_rejection_co_al, "g:", linewidth=2
-    )  # , label="Aluminum (Co-Al)")
-    ax1.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
-    ax1.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
-    ax1.tick_params(direction="in", labelsize=10)
-    # ax1.legend()
-
-    ax2.plot(
-        x_axis_values, lithium_rejection_li_norm, "m-", linewidth=2
-    )  # , label="Lithium (Li)")
-    ax2.plot(
-        x_axis_values, cobalt_rejection_co_norm, "c-", linewidth=2
-    )  # , label="Cobalt (Co)")
-    ax2.plot(
-        x_axis_values, aluminum_rejection_al_norm, "g-", linewidth=2
-    )  # , label="Aluminum (Al)")
-    ax2.plot(
-        x_axis_values, lithium_rejection_li_co_norm, "m--", linewidth=2
-    )  # , label="Lithium (Li-Co)")
-    ax2.plot(
-        x_axis_values, cobalt_rejection_li_co_norm, "c--", linewidth=2
-    )  # , label="Cobalt (Li-Co)")
-    ax2.plot(
-        x_axis_values, lithium_rejection_li_al_norm, "m-.", linewidth=2
-    )  # , label="Lithium (Li-Al)")
-    ax2.plot(
-        x_axis_values, aluminum_rejection_li_al_norm, "g-.", linewidth=2
-    )  # , label="Aluminum (Li-Al)")
-    ax2.plot(
-        x_axis_values, cobalt_rejection_co_al_norm, "c:", linewidth=2
-    )  # , label="Cobalt (Co-Al)")
-    ax2.plot(
-        x_axis_values, aluminum_rejection_co_al_norm, "g:", linewidth=2
-    )  # , label="Aluminum (Co-Al)")
-    ax2.set_xlabel("Membrane Area (m$^2$)", fontsize=10, fontweight="bold")
-    ax2.set_ylabel(
-        "Percent Change in Solute Rejection (%)", fontsize=10, fontweight="bold"
-    )
-    ax2.tick_params(direction="in", top=True, right=True, labelsize=10)
-
-    ax2.plot([0, 164], [0, 0], "k-", linewidth=0.5)
-
-    # ax2.set_xlim(0, 164)
-    # ax2.set_ylim(-12, 2)
-
-    # ax2.set_ylim(-50, 2)
-
-    # legend points
-    # ax2.plot([],[], marker='None', linestyle='None', label="Solution (linestyle)")
-    ax2.plot([], [], "k-", linewidth=2, label="Li-Co")
-    ax2.plot([], [], "k--", linewidth=2, label="Li-Al")
-    ax2.plot([], [], "k-.", linewidth=2, label="Co-Al")
-    ax2.plot([], [], marker="None", linestyle="None", label="Solute (color)")
-    ax2.plot([], [], "ms", markersize=8, label="Lithium")
-    ax2.plot([], [], "cs", markersize=8, label="Cobalt")
-    ax2.plot([], [], "gs", markersize=8, label="Aluminum")
-
-    ax2.legend(
-        loc="best", title="Solution (linestyle)"
-    )  # , bbox_to_anchor=(0.43, 0.54))
-
-    plt.tight_layout()
-
-    plt.show()
-
-
-def plot_relative_rejections_by_component(
-    m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl, m_li_co_al_cl
-):
-    """
-    Plots relative solute rejection across the length of the membrane module.
-    Rejections normalized to initial rejection (x=0).
-    Compares models.
-
-    Args:
-        m: Pyomo model
-    """
-    # store values for x-coordinate
-    x_axis_values = []
-
-    # store values for rejection
-    observed_lithium_rejection_li = []
-    observed_lithium_rejection_li_co = []
-    observed_lithium_rejection_li_al = []
-    observed_lithium_rejection_li_co_al = []
-
-    observed_cobalt_rejection_co = []
-    observed_cobalt_rejection_li_co = []
-    observed_cobalt_rejection_co_al = []
-    observed_cobalt_rejection_li_co_al = []
-
-    observed_aluminum_rejection_al = []
-    observed_aluminum_rejection_li_al = []
-    observed_aluminum_rejection_co_al = []
-    observed_aluminum_rejection_li_co_al = []
-
-    actual_lithium_rejection_li = []
-    actual_lithium_rejection_li_co = []
-    actual_lithium_rejection_li_al = []
-    actual_lithium_rejection_li_co_al = []
-
-    actual_cobalt_rejection_co = []
-    actual_cobalt_rejection_li_co = []
-    actual_cobalt_rejection_co_al = []
-    actual_cobalt_rejection_li_co_al = []
-
-    actual_aluminum_rejection_al = []
-    actual_aluminum_rejection_li_al = []
-    actual_aluminum_rejection_co_al = []
-    actual_aluminum_rejection_li_co_al = []
-
-    for x_val in m_li_co_cl.fs.membrane.dimensionless_module_length:
-        if x_val != 0:
-            x_axis_values.append(
-                x_val
-                * value(m_li_co_cl.fs.membrane.total_module_length)
-                * value(m_li_co_cl.fs.membrane.total_membrane_length)
-            )
-
-            observed_lithium_rej_li = (
-                1
-                - (
-                    value(
-                        m_li_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-                    )
-                    / value(
-                        m_li_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            observed_cobalt_rej_co = (
-                1
-                - (
-                    value(
-                        m_co_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-                    )
-                    / value(
-                        m_co_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            observed_aluminum_rej_al = (
-                1
-                - (
-                    value(
-                        m_al_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-                    )
-                    / value(
-                        m_al_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            observed_lithium_rej_li_co = (
-                1
-                - (
-                    value(
-                        m_li_co_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                    / value(
-                        m_li_co_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            observed_cobalt_rej_li_co = (
-                1
-                - (
-                    value(
-                        m_li_co_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                    / value(
-                        m_li_co_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                )
-            ) * 100
-
-            observed_lithium_rej_li_al = (
-                1
-                - (
-                    value(
-                        m_li_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                    / value(
-                        m_li_al_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            observed_aluminum_rej_li_al = (
-                1
-                - (
-                    value(
-                        m_li_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                    / value(
-                        m_li_al_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                )
-            ) * 100
-
-            observed_cobalt_rej_co_al = (
-                1
-                - (
-                    value(
-                        m_co_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                    / value(
-                        m_co_al_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-            observed_aluminum_rej_co_al = (
-                1
-                - (
-                    value(
-                        m_co_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                    / value(
-                        m_co_al_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                )
-            ) * 100
-
-            observed_lithium_rej_li_co_al = (
-                1
-                - (
-                    value(
-                        m_li_co_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                    / value(
-                        m_li_co_al_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-            observed_cobalt_rej_li_co_al = (
-                1
-                - (
-                    value(
-                        m_li_co_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                    / value(
-                        m_li_co_al_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                )
-            ) * 100
-            observed_aluminum_rej_li_co_al = (
-                1
-                - (
-                    value(
-                        m_li_co_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_3"
-                        ]
-                    )
-                    / value(
-                        m_li_co_al_cl.fs.membrane.retentate_conc_mol_comp[
-                            0, x_val, "cation_3"
-                        ]
-                    )
-                )
-            ) * 100
-
-            #############
-            actual_lithium_rej_li = (
-                1
-                - (
-                    value(
-                        m_li_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-                    )
-                    / value(
-                        m_li_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                            0, x_val, 1, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            actual_cobalt_rej_co = (
-                1
-                - (
-                    value(
-                        m_co_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-                    )
-                    / value(
-                        m_co_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                            0, x_val, 1, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            actual_aluminum_rej_al = (
-                1
-                - (
-                    value(
-                        m_al_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-                    )
-                    / value(
-                        m_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                            0, x_val, 1, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            actual_lithium_rej_li_co = (
-                1
-                - (
-                    value(
-                        m_li_co_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                    / value(
-                        m_li_co_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                            0, x_val, 1, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            actual_cobalt_rej_li_co = (
-                1
-                - (
-                    value(
-                        m_li_co_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                    / value(
-                        m_li_co_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                            0, x_val, 1, "cation_2"
-                        ]
-                    )
-                )
-            ) * 100
-
-            actual_lithium_rej_li_al = (
-                1
-                - (
-                    value(
-                        m_li_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                    / value(
-                        m_li_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                            0, x_val, 1, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-
-            actual_aluminum_rej_li_al = (
-                1
-                - (
-                    value(
-                        m_li_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                    / value(
-                        m_li_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                            0, x_val, 1, "cation_2"
-                        ]
-                    )
-                )
-            ) * 100
-
-            actual_cobalt_rej_co_al = (
-                1
-                - (
-                    value(
-                        m_co_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                    / value(
-                        m_co_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                            0, x_val, 1, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-            actual_aluminum_rej_co_al = (
-                1
-                - (
-                    value(
-                        m_co_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                    / value(
-                        m_co_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                            0, x_val, 1, "cation_2"
-                        ]
-                    )
-                )
-            ) * 100
-
-            actual_lithium_rej_li_co_al = (
-                1
-                - (
-                    value(
-                        m_li_co_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_1"
-                        ]
-                    )
-                    / value(
-                        m_li_co_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                            0, x_val, 1, "cation_1"
-                        ]
-                    )
-                )
-            ) * 100
-            actual_cobalt_rej_li_co_al = (
-                1
-                - (
-                    value(
-                        m_li_co_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_2"
-                        ]
-                    )
-                    / value(
-                        m_li_co_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                            0, x_val, 1, "cation_2"
-                        ]
-                    )
-                )
-            ) * 100
-            actual_aluminum_rej_li_co_al = (
-                1
-                - (
-                    value(
-                        m_li_co_al_cl.fs.membrane.permeate_conc_mol_comp[
-                            0, x_val, "cation_3"
-                        ]
-                    )
-                    / value(
-                        m_li_co_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                            0, x_val, 1, "cation_3"
-                        ]
-                    )
-                )
-            ) * 100
-
-            observed_lithium_rejection_li.append(observed_lithium_rej_li)
-            observed_lithium_rejection_li_co.append(observed_lithium_rej_li_co)
-            observed_lithium_rejection_li_al.append(observed_lithium_rej_li_al)
-            observed_lithium_rejection_li_co_al.append(observed_lithium_rej_li_co_al)
-            observed_cobalt_rejection_co.append(observed_cobalt_rej_co)
-            observed_cobalt_rejection_li_co.append(observed_cobalt_rej_li_co)
-            observed_cobalt_rejection_co_al.append(observed_cobalt_rej_co_al)
-            observed_cobalt_rejection_li_co_al.append(observed_cobalt_rej_li_co_al)
-            observed_aluminum_rejection_al.append(observed_aluminum_rej_al)
-            observed_aluminum_rejection_li_al.append(observed_aluminum_rej_li_al)
-            observed_aluminum_rejection_co_al.append(observed_aluminum_rej_co_al)
-            observed_aluminum_rejection_li_co_al.append(observed_aluminum_rej_li_co_al)
-
-            actual_lithium_rejection_li.append(actual_lithium_rej_li)
-            actual_lithium_rejection_li_co.append(actual_lithium_rej_li_co)
-            actual_lithium_rejection_li_al.append(actual_lithium_rej_li_al)
-            actual_lithium_rejection_li_co_al.append(actual_lithium_rej_li_co_al)
-            actual_cobalt_rejection_co.append(actual_cobalt_rej_co)
-            actual_cobalt_rejection_li_co.append(actual_cobalt_rej_li_co)
-            actual_cobalt_rejection_co_al.append(actual_cobalt_rej_co_al)
-            actual_cobalt_rejection_li_co_al.append(actual_cobalt_rej_li_co_al)
-            actual_aluminum_rejection_al.append(actual_aluminum_rej_al)
-            actual_aluminum_rejection_li_al.append(actual_aluminum_rej_li_al)
-            actual_aluminum_rejection_co_al.append(actual_aluminum_rej_co_al)
-            actual_aluminum_rejection_li_co_al.append(actual_aluminum_rej_li_co_al)
+    actual_aluminum_rejection_co_al = m_co_al_cl_results_dict[
+        "cation_2_rejection_actual"
+    ]
+    # observed_aluminum_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_3_rejection_observed"
+    # ]
+    # actual_aluminum_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_3_rejection_actual"
+    # ]
 
     observed_lithium_rejection_li_norm = [
         (i - observed_lithium_rejection_li[0])
@@ -1508,12 +852,35 @@ def plot_relative_rejections_by_component(
         * 100
         for i in observed_lithium_rejection_li_al
     ]
-    observed_lithium_rejection_li_co_al_norm = [
-        (i - observed_lithium_rejection_li_co_al[0])
-        / abs(observed_lithium_rejection_li_co_al[0])
-        * 100
-        for i in observed_lithium_rejection_li_co_al
+    # observed_lithium_rejection_li_co_al_norm = [
+    #     (i - observed_lithium_rejection_li_co_al[0])
+    #     / abs(observed_lithium_rejection_li_co_al[0])
+    #     * 100
+    #     for i in observed_lithium_rejection_li_co_al
+    # ]
+    actual_lithium_rejection_li_norm = [
+        (i - actual_lithium_rejection_li[0]) / abs(actual_lithium_rejection_li[0]) * 100
+        for i in actual_lithium_rejection_li
     ]
+    actual_lithium_rejection_li_co_norm = [
+        (i - actual_lithium_rejection_li_co[0])
+        / abs(actual_lithium_rejection_li_co[0])
+        * 100
+        for i in actual_lithium_rejection_li_co
+    ]
+    actual_lithium_rejection_li_al_norm = [
+        (i - actual_lithium_rejection_li_al[0])
+        / abs(actual_lithium_rejection_li_al[0])
+        * 100
+        for i in actual_lithium_rejection_li_al
+    ]
+    # actual_lithium_rejection_li_co_al_norm = [
+    #     (i - actual_lithium_rejection_li_co_al[0])
+    #     / abs(actual_lithium_rejection_li_co_al[0])
+    #     * 100
+    #     for i in actual_lithium_rejection_li_co_al
+    # ]
+
     observed_cobalt_rejection_co_norm = [
         (i - observed_cobalt_rejection_co[0])
         / abs(observed_cobalt_rejection_co[0])
@@ -1532,12 +899,35 @@ def plot_relative_rejections_by_component(
         * 100
         for i in observed_cobalt_rejection_co_al
     ]
-    observed_cobalt_rejection_li_co_al_norm = [
-        (i - observed_cobalt_rejection_li_co_al[0])
-        / abs(observed_cobalt_rejection_li_co_al[0])
-        * 100
-        for i in observed_cobalt_rejection_li_co_al
+    # observed_cobalt_rejection_li_co_al_norm = [
+    #     (i - observed_cobalt_rejection_li_co_al[0])
+    #     / abs(observed_cobalt_rejection_li_co_al[0])
+    #     * 100
+    #     for i in observed_cobalt_rejection_li_co_al
+    # ]
+    actual_cobalt_rejection_co_norm = [
+        (i - actual_cobalt_rejection_co[0]) / abs(actual_cobalt_rejection_co[0]) * 100
+        for i in actual_cobalt_rejection_co
     ]
+    actual_cobalt_rejection_li_co_norm = [
+        (i - actual_cobalt_rejection_li_co[0])
+        / abs(actual_cobalt_rejection_li_co[0])
+        * 100
+        for i in actual_cobalt_rejection_li_co
+    ]
+    actual_cobalt_rejection_co_al_norm = [
+        (i - actual_cobalt_rejection_co_al[0])
+        / abs(actual_cobalt_rejection_co_al[0])
+        * 100
+        for i in actual_cobalt_rejection_co_al
+    ]
+    # actual_cobalt_rejection_li_o_al_norm = [
+    #     (i - actual_cobalt_rejection_li_co_al[0])
+    #     / abs(actual_cobalt_rejection_li_co_al[0])
+    #     * 100
+    #     for i in actual_cobalt_rejection_li_co_al
+    # ]
+
     observed_aluminum_rejection_al_norm = [
         (i - observed_aluminum_rejection_al[0])
         / abs(observed_aluminum_rejection_al[0])
@@ -1556,58 +946,12 @@ def plot_relative_rejections_by_component(
         * 100
         for i in observed_aluminum_rejection_co_al
     ]
-    observed_aluminum_rejection_li_co_al_norm = [
-        (i - observed_aluminum_rejection_li_co_al[0])
-        / abs(observed_aluminum_rejection_li_co_al[0])
-        * 100
-        for i in observed_aluminum_rejection_li_co_al
-    ]
-
-    #########
-    actual_lithium_rejection_li_norm = [
-        (i - actual_lithium_rejection_li[0]) / abs(actual_lithium_rejection_li[0]) * 100
-        for i in actual_lithium_rejection_li
-    ]
-    actual_lithium_rejection_li_co_norm = [
-        (i - actual_lithium_rejection_li_co[0])
-        / abs(actual_lithium_rejection_li_co[0])
-        * 100
-        for i in actual_lithium_rejection_li_co
-    ]
-    actual_lithium_rejection_li_al_norm = [
-        (i - actual_lithium_rejection_li_al[0])
-        / abs(actual_lithium_rejection_li_al[0])
-        * 100
-        for i in actual_lithium_rejection_li_al
-    ]
-    actual_lithium_rejection_li_co_al_norm = [
-        (i - actual_lithium_rejection_li_co_al[0])
-        / abs(actual_lithium_rejection_li_co_al[0])
-        * 100
-        for i in actual_lithium_rejection_li_co_al
-    ]
-    actual_cobalt_rejection_co_norm = [
-        (i - actual_cobalt_rejection_co[0]) / abs(actual_cobalt_rejection_co[0]) * 100
-        for i in actual_cobalt_rejection_co
-    ]
-    actual_cobalt_rejection_li_co_norm = [
-        (i - actual_cobalt_rejection_li_co[0])
-        / abs(actual_cobalt_rejection_li_co[0])
-        * 100
-        for i in actual_cobalt_rejection_li_co
-    ]
-    actual_cobalt_rejection_co_al_norm = [
-        (i - actual_cobalt_rejection_co_al[0])
-        / abs(actual_cobalt_rejection_co_al[0])
-        * 100
-        for i in actual_cobalt_rejection_co_al
-    ]
-    actual_cobalt_rejection_li_co_al_norm = [
-        (i - actual_cobalt_rejection_li_co_al[0])
-        / abs(actual_cobalt_rejection_li_co_al[0])
-        * 100
-        for i in actual_cobalt_rejection_li_co_al
-    ]
+    # observed_aluminum_rejection_li_co_al_norm = [
+    #     (i - observed_aluminum_rejection_li_co_al[0])
+    #     / abs(observed_aluminum_rejection_li_co_al[0])
+    #     * 100
+    #     for i in observed_aluminum_rejection_li_co_al
+    # ]
     actual_aluminum_rejection_al_norm = [
         (i - actual_aluminum_rejection_al[0])
         / abs(actual_aluminum_rejection_al[0])
@@ -1626,298 +970,363 @@ def plot_relative_rejections_by_component(
         * 100
         for i in actual_aluminum_rejection_co_al
     ]
-    actual_aluminum_rejection_li_co_al_norm = [
-        (i - actual_aluminum_rejection_li_co_al[0])
-        / abs(actual_aluminum_rejection_li_co_al[0])
-        * 100
-        for i in actual_aluminum_rejection_li_co_al
-    ]
+    # actual_aluminum_rejection_li_co_al_norm = [
+    #     (i - actual_aluminum_rejection_li_co_al[0])
+    #     / abs(actual_aluminum_rejection_li_co_al[0])
+    #     * 100
+    #     for i in actual_aluminum_rejection_li_co_al
+    # ]
 
     fig1, (ax1, ax2) = plt.subplots(1, 2, dpi=100, figsize=(10, 5))
-    fig1.suptitle("Lithium Rejection")
+    if not compact:
+        fig1.suptitle("Lithium Rejection")
+        fig2, (ax3, ax4) = plt.subplots(1, 2, dpi=100, figsize=(10, 5))
+        fig2.suptitle("Cobalt Rejection")
+        fig3, (ax5, ax6) = plt.subplots(1, 2, dpi=100, figsize=(10, 5))
+        fig3.suptitle("Aluminum Rejection")
+
+        axis_cobalt = ax3
+        axis_cobalt_norm = ax4
+        axis_aluminum = ax5
+        axis_aluminum_norm = ax6
+
+        # legend points
+        ax2.plot([], [], "k-", linewidth=2, label="LiCl")
+        ax2.plot([], [], "k--", linewidth=2, label="LiCl + CoCl$_2$")
+        ax2.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl$_3$")
+        ax2.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl$_2$ + AlCl$_3$")
+        ax2.plot(
+            [], [], marker="None", linestyle="None", label="Rejection (transparency)"
+        )
+        ax2.plot([], [], "rs", alpha=0.25, markersize=8, label="Observed")
+        ax2.plot([], [], "rs", markersize=8, label="Actual")
+
+        ax4.plot([], [], "k-", linewidth=2, label="CoCl$_2$")
+        ax4.plot([], [], "k--", linewidth=2, label="LiCl + CoCl$_2$")
+        ax4.plot([], [], "k:", linewidth=2, label="CoCl$_2$ + AlCl$_3$")
+        ax4.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl$_2$ + AlCl$_3$")
+        ax4.plot(
+            [], [], marker="None", linestyle="None", label="Rejection (transparency)"
+        )
+        ax4.plot([], [], "bs", alpha=0.25, markersize=8, label="Observed")
+        ax4.plot([], [], "bs", markersize=8, label="Actual")
+
+        ax6.plot([], [], "k-", linewidth=2, label="AlCl$_3$")
+        ax6.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl$_3$")
+        ax6.plot([], [], "k:", linewidth=2, label="CoCl$_2$ + AlCl$_3$")
+        ax6.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl$_2$ + AlCl$_3$")
+        ax6.plot(
+            [], [], marker="None", linestyle="None", label="Rejection (transparency)"
+        )
+        ax6.plot([], [], "gs", alpha=0.25, markersize=8, label="Observed")
+        ax6.plot([], [], "gs", markersize=8, label="Actual")
+
+        for ax in [ax1, ax3, ax5]:
+            ax.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
+            ax.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
+            ax.tick_params(direction="in", labelsize=12)
+            ax.set_xlim(membrane_area_values[0], membrane_area_values[-1])
+
+        for ax in [ax2, ax4, ax6]:
+            ax.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
+            ax.set_ylabel(
+                "Percent Change in Solute Rejection (%)", fontsize=12, fontweight="bold"
+            )
+            ax.tick_params(direction="in", top=True, right=True, labelsize=12)
+            ax.legend(
+                loc="best", title="Solution (linestyle)"
+            )  # , bbox_to_anchor=(0.43, 0.54))
+
+    else:
+        axis_cobalt = ax1
+        axis_cobalt_norm = ax2
+        axis_aluminum = ax1
+        axis_aluminum_norm = ax2
+
+        ax1.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
+        ax1.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
+        ax1.tick_params(direction="in", labelsize=12)
+        ax1.set_xlim(membrane_area_values[0], membrane_area_values[-1])
+
+        ax2.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
+        ax2.set_ylabel(
+            "Percent Change in Solute Rejection (%)", fontsize=12, fontweight="bold"
+        )
+        ax2.tick_params(direction="in", top=True, right=True, labelsize=12)
+
+        ax2.plot(
+            [membrane_area_values[0], membrane_area_values[-1]],
+            [0, 0],
+            "k-",
+            linewidth=0.5,
+        )
+        ax2.set_xlim(membrane_area_values[0], membrane_area_values[-1])
+
+        # legend points
+        # ax2.plot([],[], marker='None', linestyle='None', label="Solution (linestyle)")
+        ax2.plot([], [], "k-", linewidth=2, label="Single Salt")
+        ax2.plot([], [], "k--", linewidth=2, label="LiCl + CoCl$_2$")
+        ax2.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl$_3$")
+        ax2.plot([], [], "k:", linewidth=2, label="CoCl$_2$ + AlCl$_3$")
+        ax2.plot(
+            [], [], marker="None", linestyle="None", label="Rejection (transparency)"
+        )
+        ax2.plot([], [], "ks", alpha=0.25, markersize=8, label="Observed")
+        ax2.plot([], [], "ks", markersize=8, label="Actual")
+        ax2.plot([], [], marker="None", linestyle="None", label="Solute (color)")
+        ax2.plot([], [], "rs", markersize=8, label="Lithium")
+        ax2.plot([], [], "bs", markersize=8, label="Cobalt")
+        ax2.plot([], [], "gs", markersize=8, label="Aluminum")
+
+        ax2.legend(
+            loc="best", title="Solution (linestyle)"
+        )  # , bbox_to_anchor=(0.43, 0.54))
+
     ax1.plot(
-        x_axis_values, observed_lithium_rejection_li, "r-", alpha=0.25, linewidth=2
-    )  # , label="Lithium (Li)")
-    ax1.plot(
-        x_axis_values, observed_lithium_rejection_li_co, "r--", alpha=0.25, linewidth=2
-    )  # , label="Lithium (Li-Co)")
-    ax1.plot(
-        x_axis_values, observed_lithium_rejection_li_al, "r-.", alpha=0.25, linewidth=2
-    )  # , label="Lithium (Li-Al)")
-    ax1.plot(
-        x_axis_values,
-        observed_lithium_rejection_li_co_al,
-        "r.-",
-        alpha=0.25,
+        membrane_area_values,
+        observed_lithium_rejection_li,
+        "r-",
         linewidth=2,
-    )  # , label="Lithium (Li-Co-Al)")
-    ax1.plot(
-        x_axis_values, actual_lithium_rejection_li, "r-", linewidth=2
+        alpha=0.25,
     )  # , label="Lithium (Li)")
     ax1.plot(
-        x_axis_values, actual_lithium_rejection_li_co, "r--", linewidth=2
+        membrane_area_values, actual_lithium_rejection_li, "r-", linewidth=2
+    )  # , label="Lithium (Li)")
+    ax1.plot(
+        membrane_area_values,
+        observed_lithium_rejection_li_co,
+        "r--",
+        linewidth=2,
+        alpha=0.25,
     )  # , label="Lithium (Li-Co)")
     ax1.plot(
-        x_axis_values, actual_lithium_rejection_li_al, "r-.", linewidth=2
+        membrane_area_values, actual_lithium_rejection_li_co, "r--", linewidth=2
+    )  # , label="Lithium (Li-Co)")
+    ax1.plot(
+        membrane_area_values,
+        observed_lithium_rejection_li_al,
+        "r-.",
+        linewidth=2,
+        alpha=0.25,
     )  # , label="Lithium (Li-Al)")
     ax1.plot(
-        x_axis_values, actual_lithium_rejection_li_co_al, "r.-", linewidth=2
-    )  # , label="Lithium (Li-Co-Al)")
+        membrane_area_values, actual_lithium_rejection_li_al, "r-.", linewidth=2
+    )  # , label="Lithium (Li-Al)")
+    # ax1.plot(
+    #     membrane_area_values,
+    #     observed_lithium_rejection_li_co_al,
+    #     "r.-",
+    #     alpha=0.25,
+    #     linewidth=2,
+    # )  # , label="Lithium (Li-Co-Al)")
+    # ax1.plot(
+    #     membrane_area_values, actual_lithium_rejection_li_co_al, "r.-", linewidth=2
+    # )  # , label="Lithium (Li-Co-Al)")
 
-    ax1.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
-    ax1.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
-    ax1.tick_params(direction="in", labelsize=10)
+    axis_cobalt.plot(
+        membrane_area_values,
+        observed_cobalt_rejection_co,
+        "b-",
+        linewidth=2,
+        alpha=0.25,
+    )  # , label="Cobalt (Co)")
+    axis_cobalt.plot(
+        membrane_area_values, actual_cobalt_rejection_co, "b-", linewidth=2
+    )  # , label="Cobalt (Co)")
+    axis_cobalt.plot(
+        membrane_area_values,
+        observed_cobalt_rejection_li_co,
+        "b--",
+        linewidth=2,
+        alpha=0.25,
+    )  # , label="Cobalt (Li-Co)")
+    axis_cobalt.plot(
+        membrane_area_values, actual_cobalt_rejection_li_co, "b--", linewidth=2
+    )  # , label="Cobalt (Li-Co)")
+    axis_cobalt.plot(
+        membrane_area_values,
+        observed_cobalt_rejection_co_al,
+        "b:",
+        linewidth=2,
+        alpha=0.25,
+    )  # , label="Cobalt (Co-Al)")
+    axis_cobalt.plot(
+        membrane_area_values, actual_cobalt_rejection_co_al, "b:", linewidth=2
+    )  # , label="Cobalt (Co-Al)")
+    # axis_cobalt.plot(
+    #     membrane_area_values,
+    #     observed_cobalt_rejection_li_co_al,
+    #     "b.-",
+    #     alpha=0.25,
+    #     linewidth=2,
+    # )  # , label="Cobalt (Li-Co-Al)")
+    # axis_cobalt.plot(
+    #     membrane_area_values, actual_cobalt_rejection_li_co_al, "b.-", linewidth=2
+    # )  # , label="Cobalt (Li-Co-Al)")
+
+    axis_aluminum.plot(
+        membrane_area_values,
+        observed_aluminum_rejection_al,
+        "g-",
+        linewidth=2,
+        alpha=0.25,
+    )  # , label="Aluminum (Al)")
+    axis_aluminum.plot(
+        membrane_area_values, actual_aluminum_rejection_al, "g-", linewidth=2
+    )  # , label="Aluminum (Al)")
+    axis_aluminum.plot(
+        membrane_area_values,
+        observed_aluminum_rejection_li_al,
+        "g-.",
+        linewidth=2,
+        alpha=0.25,
+    )  # , label="Aluminum (Li-Al)")
+    axis_aluminum.plot(
+        membrane_area_values, actual_aluminum_rejection_li_al, "g-.", linewidth=2
+    )  # , label="Aluminum (Li-Al)")
+    axis_aluminum.plot(
+        membrane_area_values,
+        observed_aluminum_rejection_co_al,
+        "g:",
+        linewidth=2,
+        alpha=0.25,
+    )  # , label="Aluminum (Co-Al)")
+    axis_aluminum.plot(
+        membrane_area_values, actual_aluminum_rejection_co_al, "g:", linewidth=2
+    )  # , label="Aluminum (Co-Al)")
+    # axis_aluminum.plot(
+    #     membrane_area_values,
+    #     observed_aluminum_rejection_li_co_al,
+    #     "g.-",
+    #     alpha=0.25,
+    #     linewidth=2,
+    # )  # , label="Aluminum (Li-Co-Al)")
+    # axis_aluminum.plot(
+    #     membrane_area_values, actual_aluminum_rejection_li_co_al, "g.-", linewidth=2
+    # )  # , label="Aluminum (Li-(o-Al)")
 
     ax2.plot(
-        x_axis_values, observed_lithium_rejection_li_norm, "r-", alpha=0.25, linewidth=2
+        membrane_area_values,
+        observed_lithium_rejection_li_norm,
+        "r-",
+        linewidth=2,
+        alpha=0.25,
     )  # , label="Lithium (Li)")
     ax2.plot(
-        x_axis_values,
+        membrane_area_values, actual_lithium_rejection_li_norm, "r-", linewidth=2
+    )  # , label="Lithium (Li)")
+    ax2.plot(
+        membrane_area_values,
         observed_lithium_rejection_li_co_norm,
         "r--",
-        alpha=0.25,
         linewidth=2,
+        alpha=0.25,
     )  # , label="Lithium (Li-Co)")
     ax2.plot(
-        x_axis_values,
+        membrane_area_values, actual_lithium_rejection_li_co_norm, "r--", linewidth=2
+    )  # , label="Lithium (Li-Co)")
+    ax2.plot(
+        membrane_area_values,
         observed_lithium_rejection_li_al_norm,
         "r-.",
-        alpha=0.25,
         linewidth=2,
+        alpha=0.25,
     )  # , label="Lithium (Li-Al)")
     ax2.plot(
-        x_axis_values,
-        observed_lithium_rejection_li_co_al_norm,
-        "r.-",
-        alpha=0.25,
-        linewidth=2,
-    )  # , label="Lithium (Li-Co-Al)")
-    ax2.plot(
-        x_axis_values, actual_lithium_rejection_li_norm, "r-", linewidth=2
-    )  # , label="Lithium (Li)")
-    ax2.plot(
-        x_axis_values, actual_lithium_rejection_li_co_norm, "r--", linewidth=2
-    )  # , label="Lithium (Li-Co)")
-    ax2.plot(
-        x_axis_values, actual_lithium_rejection_li_al_norm, "r-.", linewidth=2
+        membrane_area_values, actual_lithium_rejection_li_al_norm, "r-.", linewidth=2
     )  # , label="Lithium (Li-Al)")
-    ax2.plot(
-        x_axis_values, actual_lithium_rejection_li_co_al_norm, "r.-", linewidth=2
-    )  # , label="Lithium (Li-Co-Al)")
+    # ax2.plot(
+    #     membrane_area_values,
+    #     observed_lithium_rejection_li_co_al_norm,
+    #     "r.-",
+    #     alpha=0.25,
+    #     linewidth=2,
+    # )  # , label="Lithium (Li-Co-Al)")
+    # ax2.plot(
+    #     membrane_area_values, actual_lithium_rejection_li_co_al_norm, "r.-", linewidth=2
+    # )  # , label="Lithium (Li-Co-Al)")
 
-    ax2.set_xlabel("Membrane Area (m$^2$)", fontsize=10, fontweight="bold")
-    ax2.set_ylabel(
-        "Percent Change in Solute Rejection (%)", fontsize=10, fontweight="bold"
-    )
-    ax2.tick_params(direction="in", top=True, right=True, labelsize=10)
-
-    ax2.plot([0, 164], [0, 0], "k-", linewidth=0.5)
-    ax2.set_xlim(0, 164)
-    # ax1.set_ylim(0, 18)
-
-    # legend points
-    ax2.plot([], [], "k-", linewidth=2, label="LiCl")
-    ax2.plot([], [], "k--", linewidth=2, label="LiCl + CoCl2")
-    ax2.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl3")
-    ax2.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl2 + AlCl3")
-    ax2.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
-    ax2.plot([], [], "rs", alpha=0.25, markersize=8, label="Observed")
-    ax2.plot([], [], "rs", markersize=8, label="Actual")
-    ax2.legend(
-        loc="best", title="Solution (linestyle)"
-    )  # , bbox_to_anchor=(0.43, 0.54))
-
-    fig2, (ax3, ax4) = plt.subplots(1, 2, dpi=100, figsize=(10, 5))
-    fig2.suptitle("Cobalt Rejection")
-    ax3.plot(
-        x_axis_values, observed_cobalt_rejection_co, "b-", alpha=0.25, linewidth=2
-    )  # , label="Cobalt (Co)")
-    ax3.plot(
-        x_axis_values, observed_cobalt_rejection_li_co, "b--", alpha=0.25, linewidth=2
-    )  # , label="Cobalt (Li-Co)")
-    ax3.plot(
-        x_axis_values, observed_cobalt_rejection_co_al, "b:", alpha=0.25, linewidth=2
-    )  # , label="Cobalt (Co-Al)")
-    ax3.plot(
-        x_axis_values,
-        observed_cobalt_rejection_li_co_al,
-        "b.-",
-        alpha=0.25,
+    axis_cobalt_norm.plot(
+        membrane_area_values,
+        observed_cobalt_rejection_co_norm,
+        "b-",
         linewidth=2,
-    )  # , label="Cobalt (Li-Co-Al)")
-    ax3.plot(
-        x_axis_values, actual_cobalt_rejection_co, "b-", linewidth=2
+        alpha=0.25,
     )  # , label="Cobalt (Co)")
-    ax3.plot(
-        x_axis_values, actual_cobalt_rejection_li_co, "b--", linewidth=2
-    )  # , label="Cobalt (Li-Co)")
-    ax3.plot(
-        x_axis_values, actual_cobalt_rejection_co_al, "b:", linewidth=2
-    )  # , label="Cobalt (Co-Al)")
-    ax3.plot(
-        x_axis_values, actual_cobalt_rejection_li_co_al, "b.-", linewidth=2
-    )  # , label="Cobalt (Li-Co-Al)")
-
-    ax3.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
-    ax3.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
-    ax3.tick_params(direction="in", labelsize=10)
-
-    ax4.plot(
-        x_axis_values, observed_cobalt_rejection_co_norm, "b-", alpha=0.25, linewidth=2
+    axis_cobalt_norm.plot(
+        membrane_area_values, actual_cobalt_rejection_co_norm, "b-", linewidth=2
     )  # , label="Cobalt (Co)")
-    ax4.plot(
-        x_axis_values,
+    axis_cobalt_norm.plot(
+        membrane_area_values,
         observed_cobalt_rejection_li_co_norm,
         "b--",
-        alpha=0.25,
         linewidth=2,
+        alpha=0.25,
     )  # , label="Cobalt (Li-Co)")
-    ax4.plot(
-        x_axis_values,
+    axis_cobalt_norm.plot(
+        membrane_area_values, actual_cobalt_rejection_li_co_norm, "b--", linewidth=2
+    )  # , label="Cobalt (Li-Co)")
+    axis_cobalt_norm.plot(
+        membrane_area_values,
         observed_cobalt_rejection_co_al_norm,
         "b:",
-        alpha=0.25,
         linewidth=2,
+        alpha=0.25,
     )  # , label="Cobalt (Co-Al)")
-    ax4.plot(
-        x_axis_values,
-        observed_cobalt_rejection_li_co_al_norm,
-        "b.-",
-        alpha=0.25,
-        linewidth=2,
-    )  # , label="Cobalt (Li-Co-Al)")
-    ax4.plot(
-        x_axis_values, actual_cobalt_rejection_co_norm, "b-", linewidth=2
-    )  # , label="Cobalt (Co)")
-    ax4.plot(
-        x_axis_values, actual_cobalt_rejection_li_co_norm, "b--", linewidth=2
-    )  # , label="Cobalt (Li-Co)")
-    ax4.plot(
-        x_axis_values, actual_cobalt_rejection_co_al_norm, "b:", linewidth=2
+    axis_cobalt_norm.plot(
+        membrane_area_values, actual_cobalt_rejection_co_al_norm, "b:", linewidth=2
     )  # , label="Cobalt (Co-Al)")
-    ax4.plot(
-        x_axis_values, actual_cobalt_rejection_li_co_al_norm, "b.-", linewidth=2
-    )  # , label="Cobalt (Li-Co-Al)")
+    # axis_cobalt_norm.plot(
+    #     membrane_area_values,
+    #     observed_cobalt_rejection_li_co_al_norm,
+    #     "b.-",
+    #     alpha=0.25,
+    #     linewidth=2,
+    # )  # , label="Cobalt (Li-Co-Al)")
+    # axis_cobalt_norm.plot(
+    #     membrane_area_values, actual_cobalt_rejection_li_co_al_norm, "b.-", linewidth=2
+    # )  # , label="Cobalt (Li-Co-Al)")
 
-    ax4.set_xlabel("Membrane Area (m$^2$)", fontsize=10, fontweight="bold")
-    ax4.set_ylabel(
-        "Percent Change in Solute Rejection (%)", fontsize=10, fontweight="bold"
-    )
-    ax4.tick_params(direction="in", top=True, right=True, labelsize=10)
-
-    ax4.plot([0, 164], [0, 0], "k-", linewidth=0.5)
-    ax4.set_xlim(0, 164)
-    # ax3.set_ylim(0, 18)
-
-    # legend points
-    ax4.plot([], [], "k-", linewidth=2, label="CoCl2")
-    ax4.plot([], [], "k--", linewidth=2, label="LiCl + CoCl2")
-    ax4.plot([], [], "k:", linewidth=2, label="CoCl2 + AlCl3")
-    ax4.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl2 + AlCl3")
-    ax4.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
-    ax4.plot([], [], "bs", alpha=0.25, markersize=8, label="Observed")
-    ax4.plot([], [], "bs", markersize=8, label="Actual")
-    ax4.legend(
-        loc="best", title="Solution (linestyle)"
-    )  # , bbox_to_anchor=(0.43, 0.54))
-
-    fig3, (ax5, ax6) = plt.subplots(1, 2, dpi=100, figsize=(10, 5))
-    fig3.suptitle("Aluminum Rejection")
-    ax5.plot(
-        x_axis_values, observed_aluminum_rejection_al, "g-", alpha=0.25, linewidth=2
-    )  # , label="Aluminum (Al)")
-    ax5.plot(
-        x_axis_values, observed_aluminum_rejection_li_al, "g-.", alpha=0.25, linewidth=2
-    )  # , label="Aluminum (Li-Al)")
-    ax5.plot(
-        x_axis_values, observed_aluminum_rejection_co_al, "g:", alpha=0.25, linewidth=2
-    )  # , label="Aluminum (Co-Al)")
-    ax5.plot(
-        x_axis_values,
-        observed_aluminum_rejection_li_co_al,
-        "g.-",
-        alpha=0.25,
-        linewidth=2,
-    )  # , label="Aluminum Li-(Co-Al)")
-    ax5.plot(
-        x_axis_values, actual_aluminum_rejection_al, "g-", linewidth=2
-    )  # , label="Aluminum (Al)")
-    ax5.plot(
-        x_axis_values, actual_aluminum_rejection_li_al, "g-.", linewidth=2
-    )  # , label="Aluminum (Li-Al)")
-    ax5.plot(
-        x_axis_values, actual_aluminum_rejection_co_al, "g:", linewidth=2
-    )  # , label="Aluminum (Co-Al)")
-    ax5.plot(
-        x_axis_values, actual_aluminum_rejection_li_co_al, "g.-", linewidth=2
-    )  # , label="Aluminum Li-(Co-Al)")
-
-    ax5.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
-    ax5.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
-    ax5.tick_params(direction="in", labelsize=10)
-
-    ax6.plot(
-        x_axis_values,
+    axis_aluminum_norm.plot(
+        membrane_area_values,
         observed_aluminum_rejection_al_norm,
         "g-",
-        alpha=0.25,
         linewidth=2,
+        alpha=0.25,
     )  # , label="Aluminum (Al)")
-    ax6.plot(
-        x_axis_values,
+    axis_aluminum_norm.plot(
+        membrane_area_values, actual_aluminum_rejection_al_norm, "g-", linewidth=2
+    )  # , label="Aluminum (Al)")
+    axis_aluminum_norm.plot(
+        membrane_area_values,
         observed_aluminum_rejection_li_al_norm,
         "g-.",
-        alpha=0.25,
         linewidth=2,
+        alpha=0.25,
     )  # , label="Aluminum (Li-Al)")
-    ax6.plot(
-        x_axis_values,
+    axis_aluminum_norm.plot(
+        membrane_area_values, actual_aluminum_rejection_li_al_norm, "g-.", linewidth=2
+    )  # , label="Aluminum (Li-Al)")
+    axis_aluminum_norm.plot(
+        membrane_area_values,
         observed_aluminum_rejection_co_al_norm,
         "g:",
-        alpha=0.25,
         linewidth=2,
-    )  # , label="Aluminum (Co-Al)")
-    ax6.plot(
-        x_axis_values,
-        observed_aluminum_rejection_li_co_al_norm,
-        "g.-",
         alpha=0.25,
-        linewidth=2,
-    )  # , label="Aluminum (Li-Co-Al)")
-    ax6.plot(
-        x_axis_values, actual_aluminum_rejection_al_norm, "g-", linewidth=2
-    )  # , label="Aluminum (Al)")
-    ax6.plot(
-        x_axis_values, actual_aluminum_rejection_li_al_norm, "g-.", linewidth=2
-    )  # , label="Aluminum (Li-Al)")
-    ax6.plot(
-        x_axis_values, actual_aluminum_rejection_co_al_norm, "g:", linewidth=2
     )  # , label="Aluminum (Co-Al)")
-    ax6.plot(
-        x_axis_values, actual_aluminum_rejection_li_co_al_norm, "g.-", linewidth=2
-    )  # , label="Aluminum (Li-Co-Al)")
-
-    ax6.set_xlabel("Membrane Area (m$^2$)", fontsize=10, fontweight="bold")
-    ax6.set_ylabel(
-        "Percent Change in Solute Rejection (%)", fontsize=10, fontweight="bold"
-    )
-    ax6.tick_params(direction="in", top=True, right=True, labelsize=10)
-
-    ax6.plot([0, 164], [0, 0], "k-", linewidth=0.5)
-    ax6.set_xlim(0, 164)
-    # ax5.set_ylim(0, 18)
-
-    # legend points
-    ax6.plot([], [], "k-", linewidth=2, label="AlCl3")
-    ax6.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl3")
-    ax6.plot([], [], "k:", linewidth=2, label="CoCl2 + AlCl3")
-    ax6.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl2 + AlCl3")
-    ax6.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
-    ax6.plot([], [], "gs", alpha=0.25, markersize=8, label="Observed")
-    ax6.plot([], [], "gs", markersize=8, label="Actual")
-    ax6.legend(
-        loc="best", title="Solution (linestyle)"
-    )  # , bbox_to_anchor=(0.43, 0.54))
+    axis_aluminum_norm.plot(
+        membrane_area_values, actual_aluminum_rejection_co_al_norm, "g:", linewidth=2
+    )  # , label="Aluminum (Co-Al)")
+    # axis_aluminum_norm.plot(
+    #     membrane_area_values,
+    #     observed_aluminum_rejection_li_co_al_norm,
+    #     "g.-",
+    #     alpha=0.25,
+    #     linewidth=2,
+    # )  # , label="Aluminum (Li-Co-Al)")
+    # axis_aluminum_norm.plot(
+    #     membrane_area_values, actual_aluminum_rejection_li_co_al_norm, "g.-", linewidth=2
+    # )  # , label="Aluminum (Li-Co-Al)")
 
     plt.tight_layout()
 
@@ -2267,15 +1676,15 @@ def plot_rejection_versus_concentration(
     )
     ax1.set_xlabel(
         "Lithium Concentration (Interface) (mol/m$^3$)",
-        fontsize=10,
+        fontsize=12,
         fontweight="bold",
     )
-    ax1.set_ylabel("Percent Rejection (%)", fontsize=10, fontweight="bold")
-    ax1.tick_params(direction="in", labelsize=10)
+    ax1.set_ylabel("Percent Rejection (%)", fontsize=12, fontweight="bold")
+    ax1.tick_params(direction="in", labelsize=12)
     ax1.plot([], [], "k-", linewidth=2, label="LiCl")
-    ax1.plot([], [], "k--", linewidth=2, label="LiCl + CoCl2")
-    ax1.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl3")
-    ax1.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl2 + AlCl3")
+    ax1.plot([], [], "k--", linewidth=2, label="LiCl + CoCl$_2$")
+    ax1.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl$_3$")
+    ax1.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl$_2$ + AlCl$_3$")
     ax1.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
     ax1.plot([], [], "rs", alpha=0.25, markersize=8, label="Observed")
     ax1.plot([], [], "rs", markersize=8, label="Actual")
@@ -2335,15 +1744,15 @@ def plot_rejection_versus_concentration(
     )
     ax2.set_xlabel(
         "Cobalt Concentration (Interface) (mol/m$^3$)",
-        fontsize=10,
+        fontsize=12,
         fontweight="bold",
     )
-    ax2.set_ylabel("Percent Rejection (%)", fontsize=10, fontweight="bold")
-    ax2.tick_params(direction="in", labelsize=10)
-    ax2.plot([], [], "k-", linewidth=2, label="CoCl2")
-    ax2.plot([], [], "k--", linewidth=2, label="LiCl + CoCl2")
-    ax2.plot([], [], "k:", linewidth=2, label="CoCl2 + AlCl3")
-    ax2.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl2 + AlCl3")
+    ax2.set_ylabel("Percent Rejection (%)", fontsize=12, fontweight="bold")
+    ax2.tick_params(direction="in", labelsize=12)
+    ax2.plot([], [], "k-", linewidth=2, label="CoCl$_2$")
+    ax2.plot([], [], "k--", linewidth=2, label="LiCl + CoCl$_2$")
+    ax2.plot([], [], "k:", linewidth=2, label="CoCl$_2$ + AlCl$_3$")
+    ax2.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl$_2$ + AlCl$_3$")
     ax2.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
     ax2.plot([], [], "bs", alpha=0.25, markersize=8, label="Observed")
     ax2.plot([], [], "bs", markersize=8, label="Actual")
@@ -2403,16 +1812,16 @@ def plot_rejection_versus_concentration(
     )
     ax3.set_xlabel(
         "Aluminum Concentration (Interface) (mol/m$^3$)",
-        fontsize=10,
+        fontsize=12,
         fontweight="bold",
     )
-    ax3.set_ylabel("Percent Rejection (%)", fontsize=10, fontweight="bold")
-    ax3.tick_params(direction="in", labelsize=10)
+    ax3.set_ylabel("Percent Rejection (%)", fontsize=12, fontweight="bold")
+    ax3.tick_params(direction="in", labelsize=12)
 
-    ax3.plot([], [], "k-", linewidth=2, label="AlCl3")
-    ax3.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl3")
-    ax3.plot([], [], "k:", linewidth=2, label="CoCl2 + AlCl3")
-    ax3.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl2 + AlCl3")
+    ax3.plot([], [], "k-", linewidth=2, label="AlCl$_3$")
+    ax3.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl$_3$")
+    ax3.plot([], [], "k:", linewidth=2, label="CoCl$_2$ + AlCl$_3$")
+    ax3.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl$_2$ + AlCl$_3$")
     ax3.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
     ax3.plot([], [], "gs", alpha=0.25, markersize=8, label="Observed")
     ax3.plot([], [], "gs", markersize=8, label="Actual")
@@ -2705,7 +2114,7 @@ def plot_relative_flux():
     ax1.set_ylabel(
         "Convective:Diffusive\n& Electromigrative Flux", fontsize=12, fontweight="bold"
     )
-    ax1.tick_params(direction="in", labelsize=10)
+    ax1.tick_params(direction="in", labelsize=12)
 
     plt.tight_layout()
 
@@ -2826,7 +2235,7 @@ def plot_concentrations(m2, m3):
     for ax in (ax1, ax2, ax3):
         ax.set_xlabel("Retentate Concentration (mM)", fontsize=12, fontweight="bold")
         ax.set_ylabel("Permeate Concentration (mM)", fontsize=12, fontweight="bold")
-        ax.tick_params(direction="in", labelsize=10)
+        ax.tick_params(direction="in", labelsize=12)
         ax.legend(loc="upper left")
 
     # plt.tight_layout()
