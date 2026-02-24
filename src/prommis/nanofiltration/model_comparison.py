@@ -142,11 +142,33 @@ def main():
     #     num_salts=3, salt_system="lithium_cobalt_aluminum_chloride"
     # )
 
-    # solve models and plot individual results
+    # solve models
     model_list = [m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl]
     for model in model_list:
         solve_model(model)
-        plot_results(model)
+
+    # store results
+    m_li_cl_results_dict = {}
+    m_co_cl_results_dict = {}
+    m_al_cl_results_dict = {}
+    m_li_co_cl_results_dict = {}
+    m_li_al_cl_results_dict = {}
+    m_co_al_cl_results_dict = {}
+
+    dict_names = [
+        m_li_cl_results_dict,
+        m_co_cl_results_dict,
+        m_al_cl_results_dict,
+        m_li_co_cl_results_dict,
+        m_li_al_cl_results_dict,
+        m_co_al_cl_results_dict,
+    ]
+    for i in range(len(dict_names)):
+        dict_names[i] = extract_and_store_results(model_list[i])
+
+    # plot individual results
+    for results_dict in dict_names:
+        plot_results(results_dict)
         # plot_membrane_results(model)
 
     # plot_relative_rejections_compact(
@@ -158,6 +180,499 @@ def main():
     # plot_rejection_versus_concentration(
     #     m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl, m_li_co_al_cl
     # )
+
+
+def build_model(
+    cation_list,
+    anion_list,
+    inlet_flow_volume,
+    inlet_concentration,
+    include_boundary_layer,
+    NFE_module_length,
+    NFE_boundary_layer_thickness,
+    NFE_membrane_thickness,
+):
+    # build flowsheet
+    m = ConcreteModel()
+    m.fs = FlowsheetBlock(dynamic=False)
+
+    m.fs.stream_properties = MultiComponentDiafiltrationStreamParameter(
+        cation_list=cation_list,
+        anion_list=anion_list,
+    )
+    m.fs.properties = MultiComponentDiafiltrationSoluteParameter(
+        cation_list=cation_list,
+        anion_list=anion_list,
+    )
+
+    # add feed blocks for feed and diafiltrate
+    m.fs.feed_block = Feed(property_package=m.fs.stream_properties)
+    m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
+
+    # add the membrane unit model
+    m.fs.membrane = MultiComponentDiafiltration(
+        property_package=m.fs.properties,
+        cation_list=cation_list,
+        anion_list=anion_list,
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+
+    # add product blocks for retentate and permeate
+    m.fs.retentate_block = Product(property_package=m.fs.stream_properties)
+    m.fs.permeate_block = Product(property_package=m.fs.stream_properties)
+
+    # fix the degrees of freedom to their default values
+    m.fs.membrane.total_module_length.fix()
+    m.fs.membrane.total_membrane_length.fix()
+    m.fs.membrane.applied_pressure.fix()
+    m.fs.membrane.feed_flow_volume.fix(inlet_flow_volume["feed"])
+    m.fs.membrane.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
+    for t in m.fs.membrane.time:
+        for j in m.fs.membrane.solutes:
+            m.fs.membrane.feed_conc_mol_comp[t, j].fix(inlet_concentration["feed"][j])
+            m.fs.membrane.diafiltrate_conc_mol_comp[t, j].fix(
+                inlet_concentration["diafiltrate"][j]
+            )
+
+    # initialize membrane model
+    initialized_membrane_model = m.fs.membrane.default_initializer()
+    initialized_membrane_model.initialize(m.fs.membrane)
+
+    # add and connect flowsheet streams
+    m.fs.feed_stream = Arc(
+        source=m.fs.feed_block.outlet,
+        destination=m.fs.membrane.feed_inlet,
+    )
+    m.fs.diafiltrate_stream = Arc(
+        source=m.fs.diafiltrate_block.outlet,
+        destination=m.fs.membrane.diafiltrate_inlet,
+    )
+    m.fs.retentate_stream = Arc(
+        source=m.fs.membrane.retentate_outlet,
+        destination=m.fs.retentate_block.inlet,
+    )
+    m.fs.permeate_stream = Arc(
+        source=m.fs.membrane.permeate_outlet,
+        destination=m.fs.permeate_block.inlet,
+    )
+
+    TransformationFactory("network.expand_arcs").apply_to(m)
+
+    # check structural warnings
+    dt = DiagnosticsToolbox(m)
+    dt.assert_no_structural_warnings()
+
+    return m
+
+
+def solve_model(m):
+    """
+    Solves scaled model.
+
+    Args:
+        m: Pyomo model
+    """
+    scaling = TransformationFactory("core.scale_model")
+    scaled_model = scaling.create_using(m, rename=False)
+
+    solver = SolverFactory("ipopt")
+    results = solver.solve(scaled_model, tee=True)
+    assert_optimal_termination(results)
+
+    scaling.propagate_solution(scaled_model, m)
+
+    # check numerical warnings
+    dt = DiagnosticsToolbox(m)
+    dt.assert_no_numerical_warnings()
+
+    return results
+
+
+def extract_and_store_results(m):
+    """
+    Extracts relevent results and stores in dictionary
+
+    Args:
+        m: Pyomo model
+    """
+    # store values for x-coordinate (module length)
+    x_axis_values = []
+
+    # store values for concentration in the retentate
+    conc_ret_cation_1 = []
+    if len(m.fs.membrane.config.cation_list) > 1:
+        conc_ret_cation_2 = []
+
+    # store values for concentration at solution-membrane interface
+    conc_int_cation_1 = []
+    if len(m.fs.membrane.config.cation_list) > 1:
+        conc_int_cation_2 = []
+
+    # store values for concentration in the permeate
+    conc_perm_cation_1 = []
+    if len(m.fs.membrane.config.cation_list) > 1:
+        conc_perm_cation_2 = []
+
+    # store values for water flux across membrane
+    water_flux = []
+
+    # store values for mol flux across membrane
+    cation_1_flux = []
+    if len(m.fs.membrane.config.cation_list) > 1:
+        cation_2_flux = []
+
+    # store values for percent recovery
+    percent_recovery = []
+
+    # store values for rejection
+    cation_1_rejection_observed = []
+    cation_1_rejection_actual = []
+    if len(m.fs.membrane.config.cation_list) > 1:
+        cation_2_rejection_observed = []
+        cation_2_rejection_actual = []
+
+    for x_val in m.fs.membrane.dimensionless_module_length:
+        if x_val != 0:
+            # x-coordinate
+            x_axis_values.append(x_val * value(m.fs.membrane.total_module_length))
+
+            # concentrations
+            conc_ret_cation_1_val = value(
+                m.fs.membrane.retentate_conc_mol_comp[
+                    0, x_val, m.fs.membrane.config.cation_list[0]
+                ]
+            )
+            conc_int_cation_1_val = value(
+                m.fs.membrane.boundary_layer_conc_mol_comp[
+                    0, x_val, 1, m.fs.membrane.config.cation_list[0]
+                ]
+            )
+            conc_perm_cation_1_val = value(
+                m.fs.membrane.permeate_conc_mol_comp[
+                    0, x_val, m.fs.membrane.config.cation_list[0]
+                ]
+            )
+
+            conc_ret_cation_1.append(conc_ret_cation_1_val)
+            conc_int_cation_1.append(conc_int_cation_1_val)
+            conc_perm_cation_1.append(conc_perm_cation_1_val)
+
+            if len(m.fs.membrane.config.cation_list) > 1:
+                conc_ret_cation_2_val = value(
+                    m.fs.membrane.retentate_conc_mol_comp[
+                        0, x_val, m.fs.membrane.config.cation_list[1]
+                    ]
+                )
+                conc_int_cation_2_val = value(
+                    m.fs.membrane.boundary_layer_conc_mol_comp[
+                        0, x_val, 1, m.fs.membrane.config.cation_list[1]
+                    ]
+                )
+                conc_perm_cation_2_val = value(
+                    m.fs.membrane.permeate_conc_mol_comp[
+                        0, x_val, m.fs.membrane.config.cation_list[1]
+                    ]
+                )
+
+                conc_ret_cation_2.append(conc_ret_cation_2_val)
+                conc_int_cation_2.append(conc_int_cation_2_val)
+                conc_perm_cation_2.append(conc_perm_cation_2_val)
+
+            # flux
+            water_flux.append(value(m.fs.membrane.volume_flux_water[0, x_val]))
+
+            cation_1_flux.append(
+                value(
+                    m.fs.membrane.molar_ion_flux[
+                        0, x_val, m.fs.membrane.config.cation_list[0]
+                    ]
+                )
+            )
+            if len(m.fs.membrane.config.cation_list) > 1:
+                cation_2_flux.append(
+                    value(
+                        m.fs.membrane.molar_ion_flux[
+                            0, x_val, m.fs.membrane.config.cation_list[1]
+                        ]
+                    )
+                )
+
+            # rejection
+            cation_1_rejection_observed.append(
+                (1 - (conc_perm_cation_1_val / conc_ret_cation_1_val)) * 100
+            )
+            cation_1_rejection_actual.append(
+                (1 - (conc_perm_cation_1_val / conc_int_cation_1_val)) * 100
+            )
+            if len(m.fs.membrane.config.cation_list) > 1:
+                cation_2_rejection_observed.append(
+                    (1 - (conc_perm_cation_2_val / conc_ret_cation_2_val)) * 100
+                )
+                cation_2_rejection_actual.append(
+                    (1 - (conc_perm_cation_2_val / conc_int_cation_2_val)) * 100
+                )
+
+            # recovery
+            percent_recovery.append(
+                (
+                    value(m.fs.membrane.permeate_flow_volume[0, x_val])
+                    / (
+                        value(m.fs.membrane.feed_flow_volume[0])
+                        + value(m.fs.membrane.diafiltrate_flow_volume[0])
+                    )
+                    * 100
+                )
+            )
+
+    results_dict = {
+        "cation_list": m.fs.membrane.config.cation_list,
+        "cation_1": m.fs.membrane.config.cation_list[0],
+        "x_values": x_axis_values,
+        "cation_1_retentate_concentration": conc_ret_cation_1,
+        "cation_1_interface_concentration": conc_int_cation_1,
+        "cation_1_permeate_concentration": conc_perm_cation_1,
+        "water_flux": water_flux,
+        "cation_1_flux": cation_1_flux,
+        "percent_recovery": percent_recovery,
+        "cation_1_rejection_observed": cation_1_rejection_observed,
+        "cation_1_rejection_actual": cation_1_rejection_actual,
+    }
+    if len(m.fs.membrane.config.cation_list) > 1:
+        results_dict.update(
+            {
+                "cation_2": m.fs.membrane.config.cation_list[1],
+                "cation_2_retentate_concentration": conc_ret_cation_2,
+                "cation_2_interface_concentration": conc_int_cation_2,
+                "cation_2_permeate_concentration": conc_perm_cation_2,
+                "cation_2_flux": cation_2_flux,
+                "cation_2_rejection_observed": cation_2_rejection_observed,
+                "cation_2_rejection_actual": cation_2_rejection_actual,
+            }
+        )
+
+    return results_dict
+
+
+def plot_results(results_dict):
+    """
+    Plots concentration and flux variables across the length of the membrane module.
+    """
+    cation_list = results_dict["cation_list"]
+    cation_1 = results_dict["cation_1"]
+    x_axis_values = results_dict["x_values"]
+    conc_ret_cation_1 = results_dict["cation_1_retentate_concentration"]
+    conc_int_cation_1 = results_dict["cation_1_interface_concentration"]
+    conc_perm_cation_1 = results_dict["cation_1_permeate_concentration"]
+    water_flux = results_dict["water_flux"]
+    cation_1_flux = results_dict["cation_1_flux"]
+    percent_recovery = results_dict["percent_recovery"]
+    cation_1_rejection_observed = results_dict["cation_1_rejection_observed"]
+    cation_1_rejection_actual = results_dict["cation_1_rejection_actual"]
+    if len(cation_list) > 1:
+        cation_2 = results_dict["cation_2"]
+        conc_ret_cation_2 = results_dict["cation_2_retentate_concentration"]
+        conc_int_cation_2 = results_dict["cation_2_interface_concentration"]
+        conc_perm_cation_2 = results_dict["cation_2_permeate_concentration"]
+        cation_2_flux = results_dict["cation_2_flux"]
+        cation_2_rejection_observed = results_dict["cation_2_rejection_observed"]
+        cation_2_rejection_actual = results_dict["cation_2_rejection_actual"]
+
+    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
+        3, 2, dpi=100, figsize=(12, 10)
+    )
+
+    ax1.plot(x_axis_values, conc_ret_cation_1, linewidth=2, label="retentate")
+    ax1.plot(x_axis_values, conc_int_cation_1, linewidth=2, label="interface")
+    ax1.plot(x_axis_values, conc_perm_cation_1, linewidth=2, label="permeate")
+    ax1.set_ylabel(
+        f"{cation_1} Concentration \n(mol/m$^3$)",
+        fontsize=10,
+        fontweight="bold",
+    )
+    ax1.tick_params(direction="in", labelsize=10)
+    ax1.legend()
+
+    if len(cation_list) > 1:
+        ax2.plot(x_axis_values, conc_ret_cation_2, linewidth=2, label="retentate")
+        ax2.plot(x_axis_values, conc_int_cation_2, linewidth=2, label="interface")
+        ax2.plot(x_axis_values, conc_perm_cation_2, linewidth=2, label="permeate")
+        ax2.set_ylabel(
+            f"{cation_2} Concentration \n(mol/m$^3$)",
+            fontsize=10,
+            fontweight="bold",
+        )
+        ax2.tick_params(direction="in", labelsize=10)
+        ax2.legend()
+
+    ax3.plot(x_axis_values, water_flux, linewidth=2)
+    ax3.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=10, fontweight="bold")
+    ax3.tick_params(direction="in", labelsize=10)
+
+    ax4.plot(
+        x_axis_values,
+        cation_1_flux,
+        linewidth=2,
+        label=f"{cation_1}",
+    )
+    if len(cation_list) > 1:
+        ax4.plot(
+            x_axis_values,
+            cation_2_flux,
+            linewidth=2,
+            label=f"{cation_2}",
+        )
+    ax4.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax4.set_ylabel("Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
+    ax4.tick_params(direction="in", labelsize=10)
+
+    ax5.plot(
+        x_axis_values,
+        cation_1_rejection_observed,
+        linewidth=2,
+        label=f"{cation_1} (observed)",
+    )
+    ax5.plot(
+        x_axis_values,
+        cation_1_rejection_actual,
+        linewidth=2,
+        label=f"{cation_1} (actual)",
+    )
+    if len(cation_list) > 1:
+        ax5.plot(
+            x_axis_values,
+            cation_2_rejection_observed,
+            linewidth=2,
+            label=f"{cation_2} (observed)",
+        )
+        ax5.plot(
+            x_axis_values,
+            cation_2_rejection_actual,
+            linewidth=2,
+            label=f"{cation_2} (actual)",
+        )
+    ax5.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax5.set_ylabel("Solute Rejection (%)", fontsize=10, fontweight="bold")
+    ax5.tick_params(direction="in", labelsize=10)
+    ax5.legend()
+
+    ax6.plot(x_axis_values, percent_recovery, linewidth=2)
+    ax6.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax6.set_ylabel("Percent Recovery (%)", fontsize=10, fontweight="bold")
+    ax6.tick_params(direction="in", labelsize=10)
+
+    plt.show()
+
+    return fig
+
+
+def plot_membrane_results(m, single_salt=False):
+    """
+    Plots concentrations within the membrane.
+
+    Args:
+        m: Pyomo model
+    """
+    x_axis_values = []
+    z_axis_values = []
+
+    for x_val in m.fs.membrane.dimensionless_module_length:
+        if x_val != 0:
+            x_axis_values.append(x_val * value(m.fs.membrane.total_module_length))
+    for z_val in m.fs.membrane.dimensionless_membrane_thickness:
+        z_axis_values.append(
+            z_val * value(m.fs.membrane.total_membrane_thickness) * 1e9
+        )
+    # store values for concentration of lithium in the membrane
+    conc_mem_lith = []
+    conc_mem_lith_dict = {}
+    # store values for concentration of cobalt in the membrane
+    conc_mem_cob = []
+    conc_mem_cob_dict = {}
+    # store values for concentration of chloride in the membrane
+    conc_mem_chl = []
+    conc_mem_chl_dict = {}
+
+    for z_val in m.fs.membrane.dimensionless_membrane_thickness:
+        for x_val in m.fs.membrane.dimensionless_module_length:
+            if x_val != 0:
+                conc_mem_lith.append(
+                    value(
+                        m.fs.membrane.membrane_conc_mol_comp[
+                            0, x_val, z_val, "cation_1"
+                        ]
+                    )
+                )
+                if not single_salt:
+                    conc_mem_cob.append(
+                        value(
+                            m.fs.membrane.membrane_conc_mol_comp[
+                                0, x_val, z_val, "cation_2"
+                            ]
+                        )
+                    )
+                conc_mem_chl.append(
+                    value(
+                        m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "anion"]
+                    )
+                )
+
+        conc_mem_lith_dict[f"{z_val}"] = conc_mem_lith
+        conc_mem_cob_dict[f"{z_val}"] = conc_mem_cob
+        conc_mem_chl_dict[f"{z_val}"] = conc_mem_chl
+        conc_mem_lith = []
+        conc_mem_cob = []
+        conc_mem_chl = []
+
+    conc_mem_lith_df = DataFrame(index=x_axis_values, data=conc_mem_lith_dict)
+    if not single_salt:
+        conc_mem_cob_df = DataFrame(index=x_axis_values, data=conc_mem_cob_dict)
+    conc_mem_chl_df = DataFrame(index=x_axis_values, data=conc_mem_chl_dict)
+
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi=125, figsize=(15, 7))
+    lithium_plot = ax1.pcolor(
+        z_axis_values, x_axis_values, conc_mem_lith_df, cmap="Greens"
+    )
+    ax1.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
+    ax1.set_ylabel("Module Length (m)", fontsize=10, fontweight="bold")
+    ax1.set_title(
+        "Lithium Concentration\n in Membrane (mol/m$^3$)",
+        fontsize=10,
+        fontweight="bold",
+    )
+    ax1.tick_params(direction="in", labelsize=10)
+    fig.colorbar(lithium_plot, ax=ax1)
+
+    if not single_salt:
+        cobalt_plot = ax2.pcolor(
+            z_axis_values, x_axis_values, conc_mem_cob_df, cmap="Blues"
+        )
+    ax2.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
+    ax2.set_title(
+        "Cobalt Concentration\n in Membrane (mol/m$^3$)", fontsize=10, fontweight="bold"
+    )
+    ax2.tick_params(direction="in", labelsize=10)
+    if not single_salt:
+        fig.colorbar(cobalt_plot, ax=ax2)
+
+    chloride_plot = ax3.pcolor(
+        z_axis_values, x_axis_values, conc_mem_chl_df, cmap="Oranges"
+    )
+    ax3.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
+    ax3.set_title(
+        "Chloride Concentration\n in Membrane (mol/m$^3$)",
+        fontsize=10,
+        fontweight="bold",
+    )
+    ax3.tick_params(direction="in", labelsize=10)
+    fig.colorbar(chloride_plot, ax=ax3)
+
+    plt.show()
+
+    return fig
 
 
 def plot_relative_rejections_compact(
@@ -2260,446 +2775,6 @@ def plot_concentrations(m2, m3):
     # plt.tight_layout()
 
     plt.show()
-
-
-def plot_results(m):
-    """
-    Plots concentration and flux variables across the length of the membrane module.
-
-    Args:
-        m: Pyomo model
-    """
-    # store values for x-coordinate (module length)
-    x_axis_values = []
-
-    # store values for concentration in the retentate
-    conc_ret_cation_1 = []
-    if len(m.fs.membrane.config.cation_list) > 1:
-        conc_ret_cation_2 = []
-
-    # store values for concentration at solution-membrane interface
-    conc_int_cation_1 = []
-    if len(m.fs.membrane.config.cation_list) > 1:
-        conc_int_cation_2 = []
-
-    # store values for concentration in the permeate
-    conc_perm_cation_1 = []
-    if len(m.fs.membrane.config.cation_list) > 1:
-        conc_perm_cation_2 = []
-
-    # store values for water flux across membrane
-    water_flux = []
-
-    # store values for mol flux across membrane
-    cation_1_flux = []
-    if len(m.fs.membrane.config.cation_list) > 1:
-        cation_2_flux = []
-
-    # store values for percent recovery
-    percent_recovery = []
-
-    # store values for rejection
-    cation_1_rejection_observed = []
-    cation_1_rejection_actual = []
-    if len(m.fs.membrane.config.cation_list) > 1:
-        cation_2_rejection_observed = []
-        cation_2_rejection_actual = []
-
-    for x_val in m.fs.membrane.dimensionless_module_length:
-        if x_val != 0:
-            # x-coordinate
-            x_axis_values.append(x_val * value(m.fs.membrane.total_module_length))
-
-            # concentrations
-            conc_ret_cation_1_val = value(
-                m.fs.membrane.retentate_conc_mol_comp[
-                    0, x_val, m.fs.membrane.config.cation_list[0]
-                ]
-            )
-            conc_int_cation_1_val = value(
-                m.fs.membrane.boundary_layer_conc_mol_comp[
-                    0, x_val, 1, m.fs.membrane.config.cation_list[0]
-                ]
-            )
-            conc_perm_cation_1_val = value(
-                m.fs.membrane.permeate_conc_mol_comp[
-                    0, x_val, m.fs.membrane.config.cation_list[0]
-                ]
-            )
-
-            conc_ret_cation_1.append(conc_ret_cation_1_val)
-            conc_int_cation_1.append(conc_int_cation_1_val)
-            conc_perm_cation_1.append(conc_perm_cation_1_val)
-
-            if len(m.fs.membrane.config.cation_list) > 1:
-                conc_ret_cation_2_val = value(
-                    m.fs.membrane.retentate_conc_mol_comp[
-                        0, x_val, m.fs.membrane.config.cation_list[1]
-                    ]
-                )
-                conc_int_cation_2_val = value(
-                    m.fs.membrane.boundary_layer_conc_mol_comp[
-                        0, x_val, 1, m.fs.membrane.config.cation_list[1]
-                    ]
-                )
-                conc_perm_cation_2_val = value(
-                    m.fs.membrane.permeate_conc_mol_comp[
-                        0, x_val, m.fs.membrane.config.cation_list[1]
-                    ]
-                )
-
-                conc_ret_cation_2.append(conc_ret_cation_2_val)
-                conc_int_cation_2.append(conc_int_cation_2_val)
-                conc_perm_cation_2.append(conc_perm_cation_2_val)
-
-            # flux
-            water_flux.append(value(m.fs.membrane.volume_flux_water[0, x_val]))
-
-            cation_1_flux.append(
-                value(
-                    m.fs.membrane.molar_ion_flux[
-                        0, x_val, m.fs.membrane.config.cation_list[0]
-                    ]
-                )
-            )
-            if len(m.fs.membrane.config.cation_list) > 1:
-                cation_2_flux.append(
-                    value(
-                        m.fs.membrane.molar_ion_flux[
-                            0, x_val, m.fs.membrane.config.cation_list[1]
-                        ]
-                    )
-                )
-
-            # rejection
-            cation_1_rejection_observed.append(
-                (1 - (conc_perm_cation_1_val / conc_ret_cation_1_val)) * 100
-            )
-            cation_1_rejection_actual.append(
-                (1 - (conc_perm_cation_1_val / conc_int_cation_1_val)) * 100
-            )
-            if len(m.fs.membrane.config.cation_list) > 1:
-                cation_2_rejection_observed.append(
-                    (1 - (conc_perm_cation_2_val / conc_ret_cation_2_val)) * 100
-                )
-                cation_2_rejection_actual.append(
-                    (1 - (conc_perm_cation_2_val / conc_int_cation_2_val)) * 100
-                )
-
-            # recovery
-            percent_recovery.append(
-                (
-                    value(m.fs.membrane.permeate_flow_volume[0, x_val])
-                    / (
-                        value(m.fs.membrane.feed_flow_volume[0])
-                        + value(m.fs.membrane.diafiltrate_flow_volume[0])
-                    )
-                    * 100
-                )
-            )
-
-    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
-        3, 2, dpi=100, figsize=(12, 10)
-    )
-
-    ax1.plot(x_axis_values, conc_ret_cation_1, linewidth=2, label="retentate")
-    ax1.plot(x_axis_values, conc_int_cation_1, linewidth=2, label="interface")
-    ax1.plot(x_axis_values, conc_perm_cation_1, linewidth=2, label="permeate")
-    ax1.set_ylabel(
-        f"{m.fs.membrane.config.cation_list[0]} Concentration \n(mol/m$^3$)",
-        fontsize=10,
-        fontweight="bold",
-    )
-    ax1.tick_params(direction="in", labelsize=10)
-    ax1.legend()
-
-    if len(m.fs.membrane.config.cation_list) > 1:
-        ax2.plot(x_axis_values, conc_ret_cation_2, linewidth=2, label="retentate")
-        ax2.plot(x_axis_values, conc_int_cation_2, linewidth=2, label="interface")
-        ax2.plot(x_axis_values, conc_perm_cation_2, linewidth=2, label="permeate")
-        ax2.set_ylabel(
-            f"{m.fs.membrane.config.cation_list[1]} Concentration \n(mol/m$^3$)",
-            fontsize=10,
-            fontweight="bold",
-        )
-        ax2.tick_params(direction="in", labelsize=10)
-        ax2.legend()
-
-    ax3.plot(x_axis_values, water_flux, linewidth=2)
-    ax3.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=10, fontweight="bold")
-    ax3.tick_params(direction="in", labelsize=10)
-
-    ax4.plot(
-        x_axis_values,
-        cation_1_flux,
-        linewidth=2,
-        label=f"{m.fs.membrane.config.cation_list[0]}",
-    )
-    if len(m.fs.membrane.config.cation_list) > 1:
-        ax4.plot(
-            x_axis_values,
-            cation_2_flux,
-            linewidth=2,
-            label=f"{m.fs.membrane.config.cation_list[1]}",
-        )
-    ax4.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax4.set_ylabel("Molar Flux (mol/m$^2$/h)", fontsize=10, fontweight="bold")
-    ax4.tick_params(direction="in", labelsize=10)
-
-    ax5.plot(
-        x_axis_values,
-        cation_1_rejection_observed,
-        linewidth=2,
-        label=f"{m.fs.membrane.config.cation_list[0]} (observed)",
-    )
-    ax5.plot(
-        x_axis_values,
-        cation_1_rejection_actual,
-        linewidth=2,
-        label=f"{m.fs.membrane.config.cation_list[0]} (actual)",
-    )
-    if len(m.fs.membrane.config.cation_list) > 1:
-        ax5.plot(
-            x_axis_values,
-            cation_2_rejection_observed,
-            linewidth=2,
-            label=f"{m.fs.membrane.config.cation_list[1]} (observed)",
-        )
-        ax5.plot(
-            x_axis_values,
-            cation_2_rejection_actual,
-            linewidth=2,
-            label=f"{m.fs.membrane.config.cation_list[1]} (actual)",
-        )
-    ax5.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax5.set_ylabel("Solute Rejection (%)", fontsize=10, fontweight="bold")
-    ax5.tick_params(direction="in", labelsize=10)
-    ax5.legend()
-
-    ax6.plot(x_axis_values, percent_recovery, linewidth=2)
-    ax6.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax6.set_ylabel("Percent Recovery (%)", fontsize=10, fontweight="bold")
-    ax6.tick_params(direction="in", labelsize=10)
-
-    plt.show()
-
-    return fig
-
-
-def plot_membrane_results(m, single_salt=False):
-    """
-    Plots concentrations within the membrane.
-
-    Args:
-        m: Pyomo model
-    """
-    x_axis_values = []
-    z_axis_values = []
-
-    for x_val in m.fs.membrane.dimensionless_module_length:
-        if x_val != 0:
-            x_axis_values.append(x_val * value(m.fs.membrane.total_module_length))
-    for z_val in m.fs.membrane.dimensionless_membrane_thickness:
-        z_axis_values.append(
-            z_val * value(m.fs.membrane.total_membrane_thickness) * 1e9
-        )
-    # store values for concentration of lithium in the membrane
-    conc_mem_lith = []
-    conc_mem_lith_dict = {}
-    # store values for concentration of cobalt in the membrane
-    conc_mem_cob = []
-    conc_mem_cob_dict = {}
-    # store values for concentration of chloride in the membrane
-    conc_mem_chl = []
-    conc_mem_chl_dict = {}
-
-    for z_val in m.fs.membrane.dimensionless_membrane_thickness:
-        for x_val in m.fs.membrane.dimensionless_module_length:
-            if x_val != 0:
-                conc_mem_lith.append(
-                    value(
-                        m.fs.membrane.membrane_conc_mol_comp[
-                            0, x_val, z_val, "cation_1"
-                        ]
-                    )
-                )
-                if not single_salt:
-                    conc_mem_cob.append(
-                        value(
-                            m.fs.membrane.membrane_conc_mol_comp[
-                                0, x_val, z_val, "cation_2"
-                            ]
-                        )
-                    )
-                conc_mem_chl.append(
-                    value(
-                        m.fs.membrane.membrane_conc_mol_comp[0, x_val, z_val, "anion"]
-                    )
-                )
-
-        conc_mem_lith_dict[f"{z_val}"] = conc_mem_lith
-        conc_mem_cob_dict[f"{z_val}"] = conc_mem_cob
-        conc_mem_chl_dict[f"{z_val}"] = conc_mem_chl
-        conc_mem_lith = []
-        conc_mem_cob = []
-        conc_mem_chl = []
-
-    conc_mem_lith_df = DataFrame(index=x_axis_values, data=conc_mem_lith_dict)
-    if not single_salt:
-        conc_mem_cob_df = DataFrame(index=x_axis_values, data=conc_mem_cob_dict)
-    conc_mem_chl_df = DataFrame(index=x_axis_values, data=conc_mem_chl_dict)
-
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi=125, figsize=(15, 7))
-    lithium_plot = ax1.pcolor(
-        z_axis_values, x_axis_values, conc_mem_lith_df, cmap="Greens"
-    )
-    ax1.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
-    ax1.set_ylabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax1.set_title(
-        "Lithium Concentration\n in Membrane (mol/m$^3$)",
-        fontsize=10,
-        fontweight="bold",
-    )
-    ax1.tick_params(direction="in", labelsize=10)
-    fig.colorbar(lithium_plot, ax=ax1)
-
-    if not single_salt:
-        cobalt_plot = ax2.pcolor(
-            z_axis_values, x_axis_values, conc_mem_cob_df, cmap="Blues"
-        )
-    ax2.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
-    ax2.set_title(
-        "Cobalt Concentration\n in Membrane (mol/m$^3$)", fontsize=10, fontweight="bold"
-    )
-    ax2.tick_params(direction="in", labelsize=10)
-    if not single_salt:
-        fig.colorbar(cobalt_plot, ax=ax2)
-
-    chloride_plot = ax3.pcolor(
-        z_axis_values, x_axis_values, conc_mem_chl_df, cmap="Oranges"
-    )
-    ax3.set_xlabel("Membrane Thickness (nm)", fontsize=10, fontweight="bold")
-    ax3.set_title(
-        "Chloride Concentration\n in Membrane (mol/m$^3$)",
-        fontsize=10,
-        fontweight="bold",
-    )
-    ax3.tick_params(direction="in", labelsize=10)
-    fig.colorbar(chloride_plot, ax=ax3)
-
-    plt.show()
-
-    return fig
-
-
-def build_model(
-    cation_list,
-    anion_list,
-    inlet_flow_volume,
-    inlet_concentration,
-    include_boundary_layer,
-    NFE_module_length,
-    NFE_boundary_layer_thickness,
-    NFE_membrane_thickness,
-):
-    # build flowsheet
-    m = ConcreteModel()
-    m.fs = FlowsheetBlock(dynamic=False)
-
-    m.fs.stream_properties = MultiComponentDiafiltrationStreamParameter(
-        cation_list=cation_list,
-        anion_list=anion_list,
-    )
-    m.fs.properties = MultiComponentDiafiltrationSoluteParameter(
-        cation_list=cation_list,
-        anion_list=anion_list,
-    )
-
-    # add feed blocks for feed and diafiltrate
-    m.fs.feed_block = Feed(property_package=m.fs.stream_properties)
-    m.fs.diafiltrate_block = Feed(property_package=m.fs.stream_properties)
-
-    # add the membrane unit model
-    m.fs.membrane = MultiComponentDiafiltration(
-        property_package=m.fs.properties,
-        cation_list=cation_list,
-        anion_list=anion_list,
-        include_boundary_layer=include_boundary_layer,
-        NFE_module_length=NFE_module_length,
-        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
-        NFE_membrane_thickness=NFE_membrane_thickness,
-    )
-
-    # add product blocks for retentate and permeate
-    m.fs.retentate_block = Product(property_package=m.fs.stream_properties)
-    m.fs.permeate_block = Product(property_package=m.fs.stream_properties)
-
-    # fix the degrees of freedom to their default values
-    m.fs.membrane.total_module_length.fix()
-    m.fs.membrane.total_membrane_length.fix()
-    m.fs.membrane.applied_pressure.fix()
-    m.fs.membrane.feed_flow_volume.fix(inlet_flow_volume["feed"])
-    m.fs.membrane.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
-    for t in m.fs.membrane.time:
-        for j in m.fs.membrane.solutes:
-            m.fs.membrane.feed_conc_mol_comp[t, j].fix(inlet_concentration["feed"][j])
-            m.fs.membrane.diafiltrate_conc_mol_comp[t, j].fix(
-                inlet_concentration["diafiltrate"][j]
-            )
-
-    # initialize membrane model
-    initialized_membrane_model = m.fs.membrane.default_initializer()
-    initialized_membrane_model.initialize(m.fs.membrane)
-
-    # add and connect flowsheet streams
-    m.fs.feed_stream = Arc(
-        source=m.fs.feed_block.outlet,
-        destination=m.fs.membrane.feed_inlet,
-    )
-    m.fs.diafiltrate_stream = Arc(
-        source=m.fs.diafiltrate_block.outlet,
-        destination=m.fs.membrane.diafiltrate_inlet,
-    )
-    m.fs.retentate_stream = Arc(
-        source=m.fs.membrane.retentate_outlet,
-        destination=m.fs.retentate_block.inlet,
-    )
-    m.fs.permeate_stream = Arc(
-        source=m.fs.membrane.permeate_outlet,
-        destination=m.fs.permeate_block.inlet,
-    )
-
-    TransformationFactory("network.expand_arcs").apply_to(m)
-
-    # check structural warnings
-    dt = DiagnosticsToolbox(m)
-    dt.assert_no_structural_warnings()
-
-    return m
-
-
-def solve_model(m):
-    """
-    Solves scaled model.
-
-    Args:
-        m: Pyomo model
-    """
-    scaling = TransformationFactory("core.scale_model")
-    scaled_model = scaling.create_using(m, rename=False)
-
-    solver = SolverFactory("ipopt")
-    results = solver.solve(scaled_model, tee=True)
-    assert_optimal_termination(results)
-
-    scaling.propagate_solution(scaled_model, m)
-
-    # check numerical warnings
-    dt = DiagnosticsToolbox(m)
-    dt.assert_no_numerical_warnings()
-
-    return results
 
 
 if __name__ == "__main__":
