@@ -184,15 +184,15 @@ def main():
             m_co_al_cl_results_dict,
             compact=True,
         )
-        plot_rejection_versus_area(
-            m_li_cl_results_dict,
-            m_co_cl_results_dict,
-            m_al_cl_results_dict,
-            m_li_co_cl_results_dict,
-            m_li_al_cl_results_dict,
-            m_co_al_cl_results_dict,
-            compact=False,
-        )
+        # plot_rejection_versus_area(
+        #     m_li_cl_results_dict,
+        #     m_co_cl_results_dict,
+        #     m_al_cl_results_dict,
+        #     m_li_co_cl_results_dict,
+        #     m_li_al_cl_results_dict,
+        #     m_co_al_cl_results_dict,
+        #     compact=False,
+        # )
         plot_rejection_versus_concentration(
             m_li_cl_results_dict,
             m_co_cl_results_dict,
@@ -202,14 +202,31 @@ def main():
             m_co_al_cl_results_dict,
             x_axis_conc="bulk",
         )
-        plot_rejection_versus_concentration(
+        # plot_rejection_versus_concentration(
+        #     m_li_cl_results_dict,
+        #     m_co_cl_results_dict,
+        #     m_al_cl_results_dict,
+        #     m_li_co_cl_results_dict,
+        #     m_li_al_cl_results_dict,
+        #     m_co_al_cl_results_dict,
+        #     x_axis_conc="interface",
+        # )
+        # plot_rejection_versus_concentration(
+        #     m_li_cl_results_dict,
+        #     m_co_cl_results_dict,
+        #     m_al_cl_results_dict,
+        #     m_li_co_cl_results_dict,
+        #     m_li_al_cl_results_dict,
+        #     m_co_al_cl_results_dict,
+        #     x_axis_conc="bulk-ionic-strength",
+        # )
+        plot_rejection_versus_feed_ionic_strength(
             m_li_cl_results_dict,
             m_co_cl_results_dict,
             m_al_cl_results_dict,
             m_li_co_cl_results_dict,
             m_li_al_cl_results_dict,
             m_co_al_cl_results_dict,
-            x_axis_conc="interface",
         )
 
     plt.show()
@@ -342,6 +359,7 @@ def extract_and_store_results(m):
     z_membrane_values = []
 
     # store values for concentration in the retentate
+    conc_ret_anion = []
     conc_ret_cation_1 = []
     if len(m.fs.membrane.config.cation_list) > 1:
         conc_ret_cation_2 = []
@@ -399,6 +417,11 @@ def extract_and_store_results(m):
             )
 
             # concentrations
+            conc_ret_anion_val = value(
+                m.fs.membrane.retentate_conc_mol_comp[
+                    0, x_val, m.fs.membrane.config.anion_list[0]
+                ]
+            )
             conc_ret_cation_1_val = value(
                 m.fs.membrane.retentate_conc_mol_comp[
                     0, x_val, m.fs.membrane.config.cation_list[0]
@@ -415,6 +438,7 @@ def extract_and_store_results(m):
                 ]
             )
 
+            conc_ret_anion.append(conc_ret_anion_val)
             conc_ret_cation_1.append(conc_ret_cation_1_val)
             conc_int_cation_1.append(conc_int_cation_1_val)
             conc_perm_cation_1.append(conc_perm_cation_1_val)
@@ -543,10 +567,12 @@ def extract_and_store_results(m):
     results_dict = {
         "cation_list": m.fs.membrane.config.cation_list,
         "cation_1": m.fs.membrane.config.cation_list[0],
+        "feed_ionic_strength": value(m.fs.membrane.feed_ionic_strength[0]),
         "x_values": x_axis_values,
         "membrane_area_values": membrane_area_values,
         "z_bl_values": z_boundary_layer_values,
         "z_mem_values": z_membrane_values,
+        "anion_retentate_concentration": conc_ret_anion,
         "cation_1_retentate_concentration": conc_ret_cation_1,
         "cation_1_interface_concentration": conc_int_cation_1,
         "cation_1_permeate_concentration": conc_perm_cation_1,
@@ -609,10 +635,10 @@ def plot_results_by_length(results_dict):
     ax1.plot(x_axis_values, conc_perm_cation_1, linewidth=2, label="permeate")
     ax1.set_ylabel(
         f"{cation_1.capitalize()} Concentration \n(mol/m$^3$)",
-        fontsize=12,
+        fontsize=14,
         fontweight="bold",
     )
-    ax1.tick_params(direction="in", labelsize=12)
+    ax1.tick_params(direction="in", labelsize=14)
     ax1.legend()
 
     if len(cation_list) > 1:
@@ -621,16 +647,16 @@ def plot_results_by_length(results_dict):
         ax2.plot(x_axis_values, conc_perm_cation_2, linewidth=2, label="permeate")
         ax2.set_ylabel(
             f"{cation_2.capitalize()} Concentration \n(mol/m$^3$)",
-            fontsize=12,
+            fontsize=14,
             fontweight="bold",
         )
-        ax2.tick_params(direction="in", labelsize=12)
+        ax2.tick_params(direction="in", labelsize=14)
         ax2.legend()
 
     ax3.plot(x_axis_values, water_flux, linewidth=2)
-    ax3.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
-    ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=12, fontweight="bold")
-    ax3.tick_params(direction="in", labelsize=12)
+    ax3.set_xlabel("Module Length (m)", fontsize=14, fontweight="bold")
+    ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=14, fontweight="bold")
+    ax3.tick_params(direction="in", labelsize=14)
 
     ax4.plot(
         x_axis_values,
@@ -645,9 +671,9 @@ def plot_results_by_length(results_dict):
             linewidth=2,
             label=f"{cation_2.capitalize()}",
         )
-    ax4.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
-    ax4.set_ylabel("Molar Flux (mol/m$^2$/h)", fontsize=12, fontweight="bold")
-    ax4.tick_params(direction="in", labelsize=12)
+    ax4.set_xlabel("Module Length (m)", fontsize=14, fontweight="bold")
+    ax4.set_ylabel("Molar Flux (mol/m$^2$/h)", fontsize=14, fontweight="bold")
+    ax4.tick_params(direction="in", labelsize=14)
 
     ax5.plot(
         x_axis_values,
@@ -674,15 +700,15 @@ def plot_results_by_length(results_dict):
             linewidth=2,
             label=f"{cation_2.capitalize()} (actual)",
         )
-    ax5.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
-    ax5.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
-    ax5.tick_params(direction="in", labelsize=12)
+    ax5.set_xlabel("Module Length (m)", fontsize=14, fontweight="bold")
+    ax5.set_ylabel("Solute Rejection (%)", fontsize=14, fontweight="bold")
+    ax5.tick_params(direction="in", labelsize=14)
     ax5.legend()
 
     ax6.plot(x_axis_values, percent_recovery, linewidth=2)
-    ax6.set_xlabel("Module Length (m)", fontsize=12, fontweight="bold")
-    ax6.set_ylabel("Percent Recovery (%)", fontsize=12, fontweight="bold")
-    ax6.tick_params(direction="in", labelsize=12)
+    ax6.set_xlabel("Module Length (m)", fontsize=14, fontweight="bold")
+    ax6.set_ylabel("Percent Recovery (%)", fontsize=14, fontweight="bold")
+    ax6.tick_params(direction="in", labelsize=14)
 
     return fig
 
@@ -714,54 +740,54 @@ def plot_results_by_thickness(results_dict):
 
     fig1, (ax1, ax2) = plt.subplots(1, 2, dpi=125, figsize=(15, 7))
     cation_1_plot_bl = ax1.pcolor(z_bl_axis_values, x_axis_values, conc_bl_cation_1_df)
-    ax1.set_xlabel("Boundary Layer Thickness (um)", fontsize=12, fontweight="bold")
-    ax1.set_ylabel("Module Length (m)", fontsize=12, fontweight="bold")
+    ax1.set_xlabel("Boundary Layer Thickness (um)", fontsize=14, fontweight="bold")
+    ax1.set_ylabel("Module Length (m)", fontsize=14, fontweight="bold")
     ax1.set_title(
         f"{cation_1.capitalize()} Concentration\n in Boundary Layer (mol/m$^3$)",
-        fontsize=12,
+        fontsize=14,
         fontweight="bold",
     )
-    ax1.tick_params(direction="in", labelsize=12)
+    ax1.tick_params(direction="in", labelsize=14)
     fig1.colorbar(cation_1_plot_bl, ax=ax1)
     if len(cation_list) > 1:
         cation_2_plot_bl = ax2.pcolor(
             z_bl_axis_values, x_axis_values, conc_bl_cation_2_df
         )
-        ax2.set_xlabel("Boundary Layer Thickness (um)", fontsize=12, fontweight="bold")
-        ax2.set_ylabel("Module Length (m)", fontsize=12, fontweight="bold")
+        ax2.set_xlabel("Boundary Layer Thickness (um)", fontsize=14, fontweight="bold")
+        ax2.set_ylabel("Module Length (m)", fontsize=14, fontweight="bold")
         ax2.set_title(
             f"{cation_2.capitalize()} Concentration\n in Boundary Layer (mol/m$^3$)",
-            fontsize=12,
+            fontsize=14,
             fontweight="bold",
         )
-        ax2.tick_params(direction="in", labelsize=12)
+        ax2.tick_params(direction="in", labelsize=14)
         fig1.colorbar(cation_2_plot_bl, ax=ax2)
 
     fig2, (ax3, ax4) = plt.subplots(1, 2, dpi=125, figsize=(15, 7))
     cation_1_plot_mem = ax3.pcolor(
         z_mem_axis_values, x_axis_values, conc_mem_cation_1_df
     )
-    ax3.set_xlabel("Membrane Thickness (nm)", fontsize=12, fontweight="bold")
-    ax3.set_ylabel("Module Length (m)", fontsize=12, fontweight="bold")
+    ax3.set_xlabel("Membrane Thickness (nm)", fontsize=14, fontweight="bold")
+    ax3.set_ylabel("Module Length (m)", fontsize=14, fontweight="bold")
     ax3.set_title(
         f"{cation_1.capitalize()} Concentration\n in Membrane (mol/m$^3$)",
-        fontsize=12,
+        fontsize=14,
         fontweight="bold",
     )
-    ax3.tick_params(direction="in", labelsize=12)
+    ax3.tick_params(direction="in", labelsize=14)
     fig2.colorbar(cation_1_plot_mem, ax=ax3)
 
     if len(cation_list) > 1:
         cation_2_plot_mem = ax4.pcolor(
             z_mem_axis_values, x_axis_values, conc_mem_cation_2_df
         )
-        ax4.set_xlabel("Membrane Thickness (nm)", fontsize=12, fontweight="bold")
+        ax4.set_xlabel("Membrane Thickness (nm)", fontsize=14, fontweight="bold")
         ax4.set_title(
             f"{cation_2.capitalize()} Concentration\n in Membrane (mol/m$^3$)",
-            fontsize=12,
+            fontsize=14,
             fontweight="bold",
         )
-        ax4.tick_params(direction="in", labelsize=12)
+        ax4.tick_params(direction="in", labelsize=14)
         fig2.colorbar(cation_2_plot_mem, ax=ax4)
 
 
@@ -1030,17 +1056,17 @@ def plot_rejection_versus_area(
         ax6.plot([], [], "gs", markersize=8, label="Actual")
 
         for ax in [ax1, ax3, ax5]:
-            ax.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
-            ax.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
-            ax.tick_params(direction="in", labelsize=12)
+            ax.set_xlabel("Membrane Area (m$^2$)", fontsize=14, fontweight="bold")
+            ax.set_ylabel("Solute Rejection (%)", fontsize=14, fontweight="bold")
+            ax.tick_params(direction="in", labelsize=14)
             ax.set_xlim(membrane_area_values[0], membrane_area_values[-1])
 
         for ax in [ax2, ax4, ax6]:
-            ax.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
+            ax.set_xlabel("Membrane Area (m$^2$)", fontsize=14, fontweight="bold")
             ax.set_ylabel(
-                "Percent Change in Solute Rejection (%)", fontsize=12, fontweight="bold"
+                "Percent Change in Solute Rejection (%)", fontsize=14, fontweight="bold"
             )
-            ax.tick_params(direction="in", top=True, right=True, labelsize=12)
+            ax.tick_params(direction="in", top=True, right=True, labelsize=14)
             ax.legend(
                 loc="best", title="Solution (linestyle)"
             )  # , bbox_to_anchor=(0.43, 0.54))
@@ -1051,16 +1077,16 @@ def plot_rejection_versus_area(
         axis_aluminum = ax1
         axis_aluminum_norm = ax2
 
-        ax1.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
-        ax1.set_ylabel("Solute Rejection (%)", fontsize=12, fontweight="bold")
-        ax1.tick_params(direction="in", labelsize=12)
+        ax1.set_xlabel("Membrane Area (m$^2$)", fontsize=14, fontweight="bold")
+        ax1.set_ylabel("Solute Rejection (%)", fontsize=14, fontweight="bold")
+        ax1.tick_params(direction="in", labelsize=14)
         ax1.set_xlim(membrane_area_values[0], membrane_area_values[-1])
 
-        ax2.set_xlabel("Membrane Area (m$^2$)", fontsize=12, fontweight="bold")
+        ax2.set_xlabel("Membrane Area (m$^2$)", fontsize=14, fontweight="bold")
         ax2.set_ylabel(
-            "Percent Change in Solute Rejection (%)", fontsize=12, fontweight="bold"
+            "Percent Change in Solute Rejection (%)", fontsize=14, fontweight="bold"
         )
-        ax2.tick_params(direction="in", top=True, right=True, labelsize=12)
+        ax2.tick_params(direction="in", top=True, right=True, labelsize=14)
 
         ax2.plot(
             [membrane_area_values[0], membrane_area_values[-1]],
@@ -1350,8 +1376,11 @@ def plot_rejection_versus_concentration(
     x_axis_conc="bulk",
 ):
     """
-    Plots rejection versus retentate-side concentration.
+    Plots rejection versus retentate-side concentration or ionic strength
+    or interface concentration.
     """
+    x_axis_values = m_li_cl_results_dict["x_values"]
+
     # concentrations
     lithium_bulk_concentration_li = m_li_cl_results_dict[
         "cation_1_retentate_concentration"
@@ -1419,6 +1448,20 @@ def plot_rejection_versus_concentration(
     ]
     # aluminum_int_concentration_li_co_al = m_li_co_al_cl_results_dict["cation_3_interface_concentration"]
 
+    anion_bulk_concentration_li = m_li_cl_results_dict["anion_retentate_concentration"]
+    anion_bulk_concentration_co = m_co_cl_results_dict["anion_retentate_concentration"]
+    anion_bulk_concentration_al = m_al_cl_results_dict["anion_retentate_concentration"]
+    anion_bulk_concentration_li_co = m_li_co_cl_results_dict[
+        "anion_retentate_concentration"
+    ]
+    anion_bulk_concentration_li_al = m_li_al_cl_results_dict[
+        "anion_retentate_concentration"
+    ]
+    anion_bulk_concentration_co_al = m_co_al_cl_results_dict[
+        "anion_retentate_concentration"
+    ]
+    # anion_bulk_concentration_li_co_al = m_li_co_al_cl_results_dict["anion_retentate_concentration"]
+
     # lithium rejections
     observed_lithium_rejection_li = m_li_cl_results_dict["cation_1_rejection_observed"]
     actual_lithium_rejection_li = m_li_cl_results_dict["cation_1_rejection_actual"]
@@ -1478,6 +1521,58 @@ def plot_rejection_versus_concentration(
     # actual_aluminum_rejection_li_co_al = m_li_co_al_cl_results_dict[
     #     "cation_3_rejection_actual"
     # ]
+    # calculate bulk ionic strengths
+    bulk_ionic_strength_li = [
+        0.5
+        * (
+            (lithium_bulk_concentration_li[x] * (1) ** 2)
+            + (anion_bulk_concentration_li[x] * (-1) ** 2)
+        )
+        for x in range(len(x_axis_values))
+    ]
+    bulk_ionic_strength_co = [
+        0.5
+        * (
+            cobalt_bulk_concentration_co[x] * (2) ** 2
+            + (anion_bulk_concentration_co[x] * (-1) ** 2)
+        )
+        for x in range(len(x_axis_values))
+    ]
+    bulk_ionic_strength_al = [
+        0.5
+        * (
+            (aluminum_bulk_concentration_al[x] * (3) ** 2)
+            + (anion_bulk_concentration_al[x] * (-1) ** 2)
+        )
+        for x in range(len(x_axis_values))
+    ]
+    bulk_ionic_strength_li_co = [
+        0.5
+        * (
+            (lithium_bulk_concentration_li_co[x] * (1) ** 2)
+            + (cobalt_bulk_concentration_li_co[x] * (2) ** 2)
+            + (anion_bulk_concentration_li_co[x] * (-1) ** 2)
+        )
+        for x in range(len(x_axis_values))
+    ]
+    bulk_ionic_strength_li_al = [
+        0.5
+        * (
+            (lithium_bulk_concentration_li_al[x] * (1) ** 2)
+            + (aluminum_bulk_concentration_li_al[x] * (3) ** 2)
+            + (anion_bulk_concentration_li_al[x] * (-1) ** 2)
+        )
+        for x in range(len(x_axis_values))
+    ]
+    bulk_ionic_strength_co_al = [
+        0.5
+        * (
+            (cobalt_bulk_concentration_co_al[x] * (2) ** 2)
+            + (aluminum_bulk_concentration_co_al[x] * (3) ** 2)
+            + (anion_bulk_concentration_co_al[x] * (-1) ** 2)
+        )
+        for x in range(len(x_axis_values))
+    ]
 
     if x_axis_conc == "bulk":
         lithium_concentration_li = lithium_bulk_concentration_li
@@ -1509,6 +1604,18 @@ def plot_rejection_versus_concentration(
         aluminum_concentration_li_al = aluminum_int_concentration_li_al
         aluminum_concentration_co_al = aluminum_int_concentration_co_al
         # aluminum_concentration_li_co_al = aluminum_int_concentration_li_co_al
+    elif x_axis_conc == "bulk-ionic-strength":
+        lithium_concentration_li = bulk_ionic_strength_li
+        lithium_concentration_li_co = bulk_ionic_strength_li_co
+        lithium_concentration_li_al = bulk_ionic_strength_li_al
+
+        cobalt_concentration_co = bulk_ionic_strength_co
+        cobalt_concentration_li_co = bulk_ionic_strength_li_co
+        cobalt_concentration_co_al = bulk_ionic_strength_co_al
+
+        aluminum_concentration_al = bulk_ionic_strength_al
+        aluminum_concentration_li_al = bulk_ionic_strength_li_al
+        aluminum_concentration_co_al = bulk_ionic_strength_co_al
 
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi=100, figsize=(15, 5))
 
@@ -1564,14 +1671,21 @@ def plot_rejection_versus_concentration(
     #     "r.-",
     #     linewidth=2,
     # )
-    ax1.set_xlabel(
-        f"Lithium Concentration ({x_axis_conc.capitalize()}) (mol/m$^3$)",
-        fontsize=12,
-        fontweight="bold",
-    )
+    if (x_axis_conc == "bulk") or (x_axis_conc == "interface"):
+        ax1.set_xlabel(
+            f"Lithium Concentration ({x_axis_conc.capitalize()}) (mol/m$^3$)",
+            fontsize=14,
+            fontweight="bold",
+        )
+    elif x_axis_conc == "bulk-ionic-strength":
+        ax1.set_xlabel(
+            "Retentate-Side Ionic Strength (mol/m$^3$)",
+            fontsize=14,
+            fontweight="bold",
+        )
     ax1.set_title("Lithium Rejection")
-    ax1.set_ylabel("Percent Rejection (%)", fontsize=12, fontweight="bold")
-    ax1.tick_params(direction="in", labelsize=12)
+    ax1.set_ylabel("Percent Rejection (%)", fontsize=14, fontweight="bold")
+    ax1.tick_params(direction="in", labelsize=14)
     ax1.plot([], [], "k-", linewidth=2, label="LiCl")
     ax1.plot([], [], "k--", linewidth=2, label="LiCl + CoCl$_2$")
     ax1.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl$_3$")
@@ -1633,14 +1747,21 @@ def plot_rejection_versus_concentration(
     #     "b.-",
     #     linewidth=2,
     # )
-    ax2.set_xlabel(
-        f"Cobalt Concentration ({x_axis_conc.capitalize()}) (mol/m$^3$)",
-        fontsize=12,
-        fontweight="bold",
-    )
+    if (x_axis_conc == "bulk") or (x_axis_conc == "interface"):
+        ax2.set_xlabel(
+            f"Cobalt Concentration ({x_axis_conc.capitalize()}) (mol/m$^3$)",
+            fontsize=14,
+            fontweight="bold",
+        )
+    elif x_axis_conc == "bulk-ionic-strength":
+        ax2.set_xlabel(
+            "Retentate-Side Ionic Strength (mol/m$^3$)",
+            fontsize=14,
+            fontweight="bold",
+        )
     ax2.set_title("Cobalt Rejection")
-    ax2.set_ylabel("Percent Rejection (%)", fontsize=12, fontweight="bold")
-    ax2.tick_params(direction="in", labelsize=12)
+    ax2.set_ylabel("Percent Rejection (%)", fontsize=14, fontweight="bold")
+    ax2.tick_params(direction="in", labelsize=14)
     ax2.plot([], [], "k-", linewidth=2, label="CoCl$_2$")
     ax2.plot([], [], "k--", linewidth=2, label="LiCl + CoCl$_2$")
     ax2.plot([], [], "k:", linewidth=2, label="CoCl$_2$ + AlCl$_3$")
@@ -1702,14 +1823,21 @@ def plot_rejection_versus_concentration(
     #     "g.-",
     #     linewidth=2,
     # )
-    ax3.set_xlabel(
-        f"Aluminum Concentration ({x_axis_conc.capitalize()}) (mol/m$^3$)",
-        fontsize=12,
-        fontweight="bold",
-    )
+    if (x_axis_conc == "bulk") or (x_axis_conc == "interface"):
+        ax3.set_xlabel(
+            f"Aluminum Concentration ({x_axis_conc.capitalize()}) (mol/m$^3$)",
+            fontsize=14,
+            fontweight="bold",
+        )
+    elif x_axis_conc == "bulk-ionic-strength":
+        ax3.set_xlabel(
+            "Retentate-Side Ionic Strength (mol/m$^3$)",
+            fontsize=14,
+            fontweight="bold",
+        )
     ax3.set_title("Aluminum Rejection")
-    ax3.set_ylabel("Percent Rejection (%)", fontsize=12, fontweight="bold")
-    ax3.tick_params(direction="in", labelsize=12)
+    ax3.set_ylabel("Percent Rejection (%)", fontsize=14, fontweight="bold")
+    ax3.tick_params(direction="in", labelsize=14)
 
     ax3.plot([], [], "k-", linewidth=2, label="AlCl$_3$")
     ax3.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl$_3$")
@@ -1719,6 +1847,254 @@ def plot_rejection_versus_concentration(
     ax3.plot([], [], "gs", alpha=0.25, markersize=8, label="Observed")
     ax3.plot([], [], "gs", markersize=8, label="Actual")
     ax3.legend(loc="best", title="Solution (linestyle)")
+
+    plt.tight_layout()
+
+
+def plot_rejection_versus_feed_ionic_strength(
+    m_li_cl_results_dict,
+    m_co_cl_results_dict,
+    m_al_cl_results_dict,
+    m_li_co_cl_results_dict,
+    m_li_al_cl_results_dict,
+    m_co_al_cl_results_dict,
+    # m_li_co_al_cl_results_dict,
+):
+    """
+    Plots rejection versus ionic strength of bulk fluid and feed.
+    """
+    x_axis_values = m_li_cl_results_dict["x_values"]
+
+    # feed ionic strength
+    feed_ionic_strength_li_val = m_li_cl_results_dict["feed_ionic_strength"]
+    feed_ionic_strength_co_val = m_co_cl_results_dict["feed_ionic_strength"]
+    feed_ionic_strength_al_val = m_al_cl_results_dict["feed_ionic_strength"]
+    feed_ionic_strength_li_co_val = m_li_co_cl_results_dict["feed_ionic_strength"]
+    feed_ionic_strength_li_al_val = m_li_al_cl_results_dict["feed_ionic_strength"]
+    feed_ionic_strength_co_al_val = m_co_al_cl_results_dict["feed_ionic_strength"]
+    # feed_ionic_strength_li_co_al_val = m_li_co_al_cl_results_dict["feed_ionic_strength"]
+
+    feed_ionic_strength_li = [
+        feed_ionic_strength_li_val for i in range(len(x_axis_values))
+    ]
+    feed_ionic_strength_co = [
+        feed_ionic_strength_co_val for i in range(len(x_axis_values))
+    ]
+    feed_ionic_strength_al = [
+        feed_ionic_strength_al_val for i in range(len(x_axis_values))
+    ]
+    feed_ionic_strength_li_co = [
+        feed_ionic_strength_li_co_val for i in range(len(x_axis_values))
+    ]
+    feed_ionic_strength_li_al = [
+        feed_ionic_strength_li_al_val for i in range(len(x_axis_values))
+    ]
+    feed_ionic_strength_co_al = [
+        feed_ionic_strength_co_al_val for i in range(len(x_axis_values))
+    ]
+    # feed_ionic_strength_li_co_al_val = [feed_ionic_strength_li_co_al_val]
+
+    # lithium rejections
+    observed_lithium_rejection_li = m_li_cl_results_dict["cation_1_rejection_observed"]
+    actual_lithium_rejection_li = m_li_cl_results_dict["cation_1_rejection_actual"]
+    observed_lithium_rejection_li_co = m_li_co_cl_results_dict[
+        "cation_1_rejection_observed"
+    ]
+    actual_lithium_rejection_li_co = m_li_co_cl_results_dict[
+        "cation_1_rejection_actual"
+    ]
+    observed_lithium_rejection_li_al = m_li_al_cl_results_dict[
+        "cation_1_rejection_observed"
+    ]
+    actual_lithium_rejection_li_al = m_li_al_cl_results_dict[
+        "cation_1_rejection_actual"
+    ]
+    # observed_lithium_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_1_rejection_observed"
+    # ]
+    # actual_lithium_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_1_rejection_actual"
+    # ]
+
+    # cobalt rejections
+    observed_cobalt_rejection_co = m_co_cl_results_dict["cation_1_rejection_observed"]
+    actual_cobalt_rejection_co = m_co_cl_results_dict["cation_1_rejection_actual"]
+    observed_cobalt_rejection_li_co = m_li_co_cl_results_dict[
+        "cation_2_rejection_observed"
+    ]
+    actual_cobalt_rejection_li_co = m_li_co_cl_results_dict["cation_2_rejection_actual"]
+    observed_cobalt_rejection_co_al = m_co_al_cl_results_dict[
+        "cation_1_rejection_observed"
+    ]
+    actual_cobalt_rejection_co_al = m_co_al_cl_results_dict["cation_1_rejection_actual"]
+    # observed_cobalt_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_2_rejection_observed"
+    # ]
+    # actual_cobalt_rejection_li_co_al = m_li_co_al_cl_results_dict["cation_2_rejection_actual"]
+
+    # aluminum rejections
+    observed_aluminum_rejection_al = m_al_cl_results_dict["cation_1_rejection_observed"]
+    actual_aluminum_rejection_al = m_al_cl_results_dict["cation_1_rejection_actual"]
+    observed_aluminum_rejection_li_al = m_li_al_cl_results_dict[
+        "cation_2_rejection_observed"
+    ]
+    actual_aluminum_rejection_li_al = m_li_al_cl_results_dict[
+        "cation_2_rejection_actual"
+    ]
+    observed_aluminum_rejection_co_al = m_co_al_cl_results_dict[
+        "cation_2_rejection_observed"
+    ]
+    actual_aluminum_rejection_co_al = m_co_al_cl_results_dict[
+        "cation_2_rejection_actual"
+    ]
+    # observed_aluminum_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_3_rejection_observed"
+    # ]
+    # actual_aluminum_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_3_rejection_actual"
+    # ]
+
+    fig, ax1 = plt.subplots(1, 1, dpi=100, figsize=(7, 6))
+
+    ax1.plot(
+        feed_ionic_strength_li,
+        observed_lithium_rejection_li,
+        "ro",
+        mfc="none",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li,
+        actual_lithium_rejection_li,
+        "ro",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li_co,
+        observed_lithium_rejection_li_co,
+        "r*",
+        mfc="none",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li_co,
+        actual_lithium_rejection_li_co,
+        "r*",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li_al,
+        observed_lithium_rejection_li_al,
+        "r^",
+        mfc="none",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li_al,
+        actual_lithium_rejection_li_al,
+        "r^",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_co,
+        observed_cobalt_rejection_co,
+        "bo",
+        mfc="none",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_co,
+        actual_cobalt_rejection_co,
+        "bo",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li_co,
+        observed_cobalt_rejection_li_co,
+        "b*",
+        mfc="none",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li_co,
+        actual_cobalt_rejection_li_co,
+        "b*",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_co_al,
+        observed_cobalt_rejection_co_al,
+        "bD",
+        mfc="none",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_co_al,
+        actual_cobalt_rejection_co_al,
+        "bD",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_al,
+        observed_aluminum_rejection_al,
+        "go",
+        mfc="none",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_al,
+        actual_aluminum_rejection_al,
+        "go",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li_al,
+        observed_aluminum_rejection_li_al,
+        "g^",
+        mfc="none",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li_al,
+        actual_aluminum_rejection_li_al,
+        "g^",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_co_al,
+        observed_aluminum_rejection_co_al,
+        "gD",
+        mfc="none",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_co_al,
+        actual_aluminum_rejection_co_al,
+        "gD",
+        markersize=10,
+    )
+
+    ax1.axhline(0, color="black", linewidth=1)
+
+    ax1.set_xlabel(
+        "Inlet Feed Ionic Strength (mol/m$^3$)",
+        fontsize=14,
+        fontweight="bold",
+    )
+    ax1.set_ylabel("Percent Rejection (%)", fontsize=14, fontweight="bold")
+    ax1.tick_params(direction="in", labelsize=14)
+    ax1.plot([], [], "ko", markersize=10, label="Single Salt")
+    ax1.plot([], [], "k*", markersize=10, label="LiCl + CoCl$_2$")
+    ax1.plot([], [], "k^", markersize=10, label="LiCl + AlCl$_3$")
+    ax1.plot([], [], "kD", markersize=10, label="CoCl$_2$ + AlCl$_3$")
+    ax1.plot([], [], marker="None", linestyle="None", label="Rejection (fill)")
+    ax1.plot([], [], "ks", mfc="none", markersize=8, label="Observed")
+    ax1.plot([], [], "ks", markersize=8, label="Actual")
+    ax1.plot([], [], marker="None", linestyle="None", label="Solute (color)")
+    ax1.plot([], [], "rs", markersize=8, label="Lithium")
+    ax1.plot([], [], "bs", markersize=8, label="Cobalt")
+    ax1.plot([], [], "gs", markersize=8, label="Aluminum")
+    ax1.legend(loc="best", title="Solution (marker)", title_fontsize=10, fontsize=10)
 
     plt.tight_layout()
 
@@ -2001,11 +2377,11 @@ def plot_relative_flux():
         bbox_to_anchor=(1, 0.5),
         title="Molar Ratio of\nLi:Co:Al (marker)",
     )
-    ax1.set_xlabel("Ionic Strength of the Feed (mM)", fontsize=12, fontweight="bold")
+    ax1.set_xlabel("Ionic Strength of the Feed (mM)", fontsize=14, fontweight="bold")
     ax1.set_ylabel(
-        "Convective:Diffusive\n& Electromigrative Flux", fontsize=12, fontweight="bold"
+        "Convective:Diffusive\n& Electromigrative Flux", fontsize=14, fontweight="bold"
     )
-    ax1.tick_params(direction="in", labelsize=12)
+    ax1.tick_params(direction="in", labelsize=14)
 
     plt.tight_layout()
 
@@ -2122,9 +2498,9 @@ def plot_concentrations(m2, m3):
     ax3.plot([], [], "g--", linewidth=2, label="Aluminum (in Li-Co-Al)")
 
     for ax in (ax1, ax2, ax3):
-        ax.set_xlabel("Retentate Concentration (mM)", fontsize=12, fontweight="bold")
-        ax.set_ylabel("Permeate Concentration (mM)", fontsize=12, fontweight="bold")
-        ax.tick_params(direction="in", labelsize=12)
+        ax.set_xlabel("Retentate Concentration (mM)", fontsize=14, fontweight="bold")
+        ax.set_ylabel("Permeate Concentration (mM)", fontsize=14, fontweight="bold")
+        ax.tick_params(direction="in", labelsize=14)
         ax.legend(loc="upper left")
 
     # plt.tight_layout()
