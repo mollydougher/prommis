@@ -158,11 +158,11 @@ def main():
 
     dict_list = [
         m_li_cl_results_dict,
-        m_co_cl_results_dict,
-        m_al_cl_results_dict,
-        m_li_co_cl_results_dict,
-        m_li_al_cl_results_dict,
-        m_co_al_cl_results_dict,
+        # m_co_cl_results_dict,
+        # m_al_cl_results_dict,
+        # m_li_co_cl_results_dict,
+        # m_li_al_cl_results_dict,
+        # m_co_al_cl_results_dict,
     ]
 
     # plot individual results
@@ -175,15 +175,6 @@ def main():
     # plot overall results
     plot_overall = True
     if plot_overall:
-        plot_rejection_versus_area(
-            m_li_cl_results_dict,
-            m_co_cl_results_dict,
-            m_al_cl_results_dict,
-            m_li_co_cl_results_dict,
-            m_li_al_cl_results_dict,
-            m_co_al_cl_results_dict,
-            compact=True,
-        )
         # plot_rejection_versus_area(
         #     m_li_cl_results_dict,
         #     m_co_cl_results_dict,
@@ -191,17 +182,17 @@ def main():
         #     m_li_co_cl_results_dict,
         #     m_li_al_cl_results_dict,
         #     m_co_al_cl_results_dict,
-        #     compact=False,
+        #     compact=True,
         # )
-        plot_rejection_versus_concentration(
-            m_li_cl_results_dict,
-            m_co_cl_results_dict,
-            m_al_cl_results_dict,
-            m_li_co_cl_results_dict,
-            m_li_al_cl_results_dict,
-            m_co_al_cl_results_dict,
-            x_axis_conc="bulk",
-        )
+        # # plot_rejection_versus_area(
+        # #     m_li_cl_results_dict,
+        # #     m_co_cl_results_dict,
+        # #     m_al_cl_results_dict,
+        # #     m_li_co_cl_results_dict,
+        # #     m_li_al_cl_results_dict,
+        # #     m_co_al_cl_results_dict,
+        # #     compact=False,
+        # # )
         # plot_rejection_versus_concentration(
         #     m_li_cl_results_dict,
         #     m_co_cl_results_dict,
@@ -209,18 +200,35 @@ def main():
         #     m_li_co_cl_results_dict,
         #     m_li_al_cl_results_dict,
         #     m_co_al_cl_results_dict,
-        #     x_axis_conc="interface",
+        #     x_axis_conc="bulk",
         # )
-        # plot_rejection_versus_concentration(
+        # # plot_rejection_versus_concentration(
+        # #     m_li_cl_results_dict,
+        # #     m_co_cl_results_dict,
+        # #     m_al_cl_results_dict,
+        # #     m_li_co_cl_results_dict,
+        # #     m_li_al_cl_results_dict,
+        # #     m_co_al_cl_results_dict,
+        # #     x_axis_conc="interface",
+        # # )
+        # # plot_rejection_versus_concentration(
+        # #     m_li_cl_results_dict,
+        # #     m_co_cl_results_dict,
+        # #     m_al_cl_results_dict,
+        # #     m_li_co_cl_results_dict,
+        # #     m_li_al_cl_results_dict,
+        # #     m_co_al_cl_results_dict,
+        # #     x_axis_conc="bulk-ionic-strength",
+        # # )
+        # plot_rejection_versus_feed_ionic_strength(
         #     m_li_cl_results_dict,
         #     m_co_cl_results_dict,
         #     m_al_cl_results_dict,
         #     m_li_co_cl_results_dict,
         #     m_li_al_cl_results_dict,
         #     m_co_al_cl_results_dict,
-        #     x_axis_conc="bulk-ionic-strength",
         # )
-        plot_rejection_versus_feed_ionic_strength(
+        plot_flux_versus_area(
             m_li_cl_results_dict,
             m_co_cl_results_dict,
             m_al_cl_results_dict,
@@ -350,6 +358,7 @@ def extract_and_store_results(m):
     """
     # store values for x-coordinate (module length)
     x_axis_values = []
+    x_axis_values_dimensionless = []
     membrane_area_values = []
 
     # store values for z-coordinate (boundary layer)
@@ -375,18 +384,44 @@ def extract_and_store_results(m):
         conc_perm_cation_2 = []
 
     # store values for concentration in the boundary layer (2D)
-    conc_bl_cation_1 = []
-    conc_bl_cation_1_dict = {}
+    conc_bl_cation_1_by_z = []
+    conc_bl_cation_1_dict_by_z = {}
     if len(m.fs.membrane.config.cation_list) > 1:
-        conc_bl_cation_2 = []
-        conc_bl_cation_2_dict = {}
+        conc_bl_cation_2_by_z = []
+        conc_bl_cation_2_dict_by_z = {}
+
+    conc_bl_cation_1_by_x = []
+    conc_bl_cation_1_dict_by_x = {}
+    if len(m.fs.membrane.config.cation_list) > 1:
+        conc_bl_cation_2_by_x = []
+        conc_bl_cation_2_dict_by_x = {}
+
+    # store values for concentration gradient in the boundary layer (2D)
+    conc_grad_bl_cation_1_by_x = []
+    conc_grad_bl_cation_1_dict_by_x = {}
+    if len(m.fs.membrane.config.cation_list) > 1:
+        conc_grad_bl_cation_2_by_x = []
+        conc_grad_bl_cation_2_dict_by_x = {}
 
     # store values for concentration in the membrane (2D)
-    conc_mem_cation_1 = []
-    conc_mem_cation_1_dict = {}
+    conc_mem_cation_1_by_z = []
+    conc_mem_cation_1_dict_by_z = {}
     if len(m.fs.membrane.config.cation_list) > 1:
-        conc_mem_cation_2 = []
-        conc_mem_cation_2_dict = {}
+        conc_mem_cation_2_by_z = []
+        conc_mem_cation_2_dict_by_z = {}
+
+    conc_mem_cation_1_by_x = []
+    conc_mem_cation_1_dict_by_x = {}
+    if len(m.fs.membrane.config.cation_list) > 1:
+        conc_mem_cation_2_by_x = []
+        conc_mem_cation_2_dict_by_x = {}
+
+    # store values for concentration gradient in the membrane (2D)
+    conc_grad_mem_cation_1_by_x = []
+    conc_grad_mem_cation_1_dict_by_x = {}
+    if len(m.fs.membrane.config.cation_list) > 1:
+        conc_grad_mem_cation_2_by_x = []
+        conc_grad_mem_cation_2_dict_by_x = {}
 
     # store values for water flux across membrane
     water_flux = []
@@ -410,6 +445,7 @@ def extract_and_store_results(m):
         if x_val != 0:
             # x-coordinate
             x_axis_values.append(x_val * value(m.fs.membrane.total_module_length))
+            x_axis_values_dimensionless.append(x_val)
             membrane_area_values.append(
                 x_val
                 * value(m.fs.membrane.total_module_length)
@@ -517,25 +553,70 @@ def extract_and_store_results(m):
         )
         for x_val in m.fs.membrane.dimensionless_module_length:
             if x_val != 0:
-                conc_bl_cation_1_val = value(
+                conc_bl_cation_1_val_by_z = value(
                     m.fs.membrane.boundary_layer_conc_mol_comp[
                         0, x_val, z_val, m.fs.membrane.config.cation_list[0]
                     ]
                 )
-                conc_bl_cation_1.append(conc_bl_cation_1_val)
+
+                conc_bl_cation_1_by_z.append(conc_bl_cation_1_val_by_z)
+
                 if len(m.fs.membrane.config.cation_list) > 1:
-                    conc_bl_cation_2_val = value(
+                    conc_bl_cation_2_val_by_z = value(
                         m.fs.membrane.boundary_layer_conc_mol_comp[
                             0, x_val, z_val, m.fs.membrane.config.cation_list[1]
                         ]
                     )
-                    conc_bl_cation_2.append(conc_bl_cation_2_val)
 
-        conc_bl_cation_1_dict[f"{z_val}"] = conc_bl_cation_1
-        conc_bl_cation_1 = []
+                    conc_bl_cation_2_by_z.append(conc_bl_cation_2_val_by_z)
+
+        conc_bl_cation_1_dict_by_z[f"{z_val}"] = conc_bl_cation_1_by_z
+        conc_bl_cation_1_by_z = []
         if len(m.fs.membrane.config.cation_list) > 1:
-            conc_bl_cation_2_dict[f"{z_val}"] = conc_bl_cation_2
-            conc_bl_cation_2 = []
+            conc_bl_cation_2_dict_by_z[f"{z_val}"] = conc_bl_cation_2_by_z
+            conc_bl_cation_2_by_z = []
+
+    for x_val in m.fs.membrane.dimensionless_module_length:
+        if x_val != 0:
+            for z_val in m.fs.membrane.dimensionless_boundary_layer_thickness:
+                conc_bl_cation_1_val_by_x = value(
+                    m.fs.membrane.boundary_layer_conc_mol_comp[
+                        0, x_val, z_val, m.fs.membrane.config.cation_list[0]
+                    ]
+                )
+                conc_grad_bl_cation_1_val_by_x = value(
+                    m.fs.membrane.d_boundary_layer_conc_mol_comp_dz[
+                        0, x_val, z_val, m.fs.membrane.config.cation_list[0]
+                    ]
+                )
+
+                conc_bl_cation_1_by_x.append(conc_bl_cation_1_val_by_x)
+                conc_grad_bl_cation_1_by_x.append(conc_grad_bl_cation_1_val_by_x)
+
+                if len(m.fs.membrane.config.cation_list) > 1:
+                    conc_bl_cation_2_val_by_x = value(
+                        m.fs.membrane.boundary_layer_conc_mol_comp[
+                            0, x_val, z_val, m.fs.membrane.config.cation_list[1]
+                        ]
+                    )
+                    conc_grad_bl_cation_2_val_by_x = value(
+                        m.fs.membrane.d_boundary_layer_conc_mol_comp_dz[
+                            0, x_val, z_val, m.fs.membrane.config.cation_list[1]
+                        ]
+                    )
+
+                    conc_bl_cation_2_by_x.append(conc_bl_cation_2_val_by_x)
+                    conc_grad_bl_cation_2_by_x.append(conc_grad_bl_cation_2_val_by_x)
+
+            conc_bl_cation_1_dict_by_x[f"{x_val}"] = conc_bl_cation_1_by_x
+            conc_grad_bl_cation_1_dict_by_x[f"{x_val}"] = conc_grad_bl_cation_1_by_x
+            conc_bl_cation_1_by_x = []
+            conc_grad_bl_cation_1_by_x = []
+            if len(m.fs.membrane.config.cation_list) > 1:
+                conc_bl_cation_2_dict_by_x[f"{x_val}"] = conc_bl_cation_2_by_x
+                conc_grad_bl_cation_2_dict_by_x[f"{x_val}"] = conc_grad_bl_cation_2_by_x
+                conc_bl_cation_2_by_x = []
+                conc_grad_bl_cation_2_by_x = []
 
     # membrane
     for z_val in m.fs.membrane.dimensionless_membrane_thickness:
@@ -544,31 +625,79 @@ def extract_and_store_results(m):
         )
         for x_val in m.fs.membrane.dimensionless_module_length:
             if x_val != 0:
-                conc_mem_cation_1_val = value(
+                conc_mem_cation_1_val_by_z = value(
                     m.fs.membrane.membrane_conc_mol_comp[
                         0, x_val, z_val, m.fs.membrane.config.cation_list[0]
                     ]
                 )
-                conc_mem_cation_1.append(conc_mem_cation_1_val)
+
+                conc_mem_cation_1_by_z.append(conc_mem_cation_1_val_by_z)
+
                 if len(m.fs.membrane.config.cation_list) > 1:
-                    conc_mem_cation_2_val = value(
+                    conc_mem_cation_2_val_by_z = value(
                         m.fs.membrane.membrane_conc_mol_comp[
                             0, x_val, z_val, m.fs.membrane.config.cation_list[1]
                         ]
                     )
-                    conc_mem_cation_2.append(conc_mem_cation_2_val)
 
-        conc_mem_cation_1_dict[f"{z_val}"] = conc_mem_cation_1
-        conc_mem_cation_1 = []
+                    conc_mem_cation_2_by_z.append(conc_mem_cation_2_val_by_z)
+
+        conc_mem_cation_1_dict_by_z[f"{z_val}"] = conc_mem_cation_1_by_z
+        conc_mem_cation_1_by_z = []
         if len(m.fs.membrane.config.cation_list) > 1:
-            conc_mem_cation_2_dict[f"{z_val}"] = conc_mem_cation_2
-            conc_mem_cation_2 = []
+            conc_mem_cation_2_dict_by_z[f"{z_val}"] = conc_mem_cation_2_by_z
+            conc_mem_cation_2_by_z = []
+
+    for x_val in m.fs.membrane.dimensionless_module_length:
+        if x_val != 0:
+            for z_val in m.fs.membrane.dimensionless_membrane_thickness:
+                conc_mem_cation_1_val_by_x = value(
+                    m.fs.membrane.membrane_conc_mol_comp[
+                        0, x_val, z_val, m.fs.membrane.config.cation_list[0]
+                    ]
+                )
+                conc_grad_mem_cation_1_val_by_x = value(
+                    m.fs.membrane.d_membrane_conc_mol_comp_dz[
+                        0, x_val, z_val, m.fs.membrane.config.cation_list[0]
+                    ]
+                )
+
+                conc_mem_cation_1_by_x.append(conc_mem_cation_1_val_by_x)
+                conc_grad_mem_cation_1_by_x.append(conc_grad_mem_cation_1_val_by_x)
+
+                if len(m.fs.membrane.config.cation_list) > 1:
+                    conc_mem_cation_2_val_by_x = value(
+                        m.fs.membrane.membrane_conc_mol_comp[
+                            0, x_val, z_val, m.fs.membrane.config.cation_list[1]
+                        ]
+                    )
+                    conc_grad_mem_cation_2_val_by_x = value(
+                        m.fs.membrane.d_membrane_conc_mol_comp_dz[
+                            0, x_val, z_val, m.fs.membrane.config.cation_list[1]
+                        ]
+                    )
+
+                    conc_mem_cation_2_by_x.append(conc_mem_cation_2_val_by_x)
+                    conc_grad_mem_cation_2_by_x.append(conc_grad_mem_cation_2_val_by_x)
+
+            conc_mem_cation_1_dict_by_x[f"{x_val}"] = conc_mem_cation_1_by_x
+            conc_grad_mem_cation_1_dict_by_x[f"{x_val}"] = conc_grad_mem_cation_1_by_x
+            conc_mem_cation_1_by_x = []
+            conc_grad_mem_cation_1_by_x = []
+            if len(m.fs.membrane.config.cation_list) > 1:
+                conc_mem_cation_2_dict_by_x[f"{x_val}"] = conc_mem_cation_2_by_x
+                conc_grad_mem_cation_2_dict_by_x[f"{x_val}"] = (
+                    conc_grad_mem_cation_2_by_x
+                )
+                conc_mem_cation_2_by_x = []
+                conc_grad_mem_cation_2_by_x = []
 
     results_dict = {
         "cation_list": m.fs.membrane.config.cation_list,
         "cation_1": m.fs.membrane.config.cation_list[0],
         "feed_ionic_strength": value(m.fs.membrane.feed_ionic_strength[0]),
         "x_values": x_axis_values,
+        "x_values_dimensionless": x_axis_values_dimensionless,
         "membrane_area_values": membrane_area_values,
         "z_bl_values": z_boundary_layer_values,
         "z_mem_values": z_membrane_values,
@@ -576,8 +705,12 @@ def extract_and_store_results(m):
         "cation_1_retentate_concentration": conc_ret_cation_1,
         "cation_1_interface_concentration": conc_int_cation_1,
         "cation_1_permeate_concentration": conc_perm_cation_1,
-        "cation_1_boundary_layer_concentration": conc_bl_cation_1_dict,
-        "cation_1_membrane_concentration": conc_mem_cation_1_dict,
+        "cation_1_boundary_layer_concentration_by_z": conc_bl_cation_1_dict_by_z,
+        "cation_1_boundary_layer_concentration_by_x": conc_bl_cation_1_dict_by_x,
+        "cation_1_boundary_layer_concentration_gradient_by_x": conc_grad_bl_cation_1_dict_by_x,
+        "cation_1_membrane_concentration_by_z": conc_mem_cation_1_dict_by_z,
+        "cation_1_membrane_concentration_by_x": conc_mem_cation_1_dict_by_x,
+        "cation_1_membrane_concentration_gradient_by_x": conc_grad_mem_cation_1_dict_by_x,
         "water_flux": water_flux,
         "cation_1_flux": cation_1_flux,
         "percent_recovery": percent_recovery,
@@ -591,8 +724,12 @@ def extract_and_store_results(m):
                 "cation_2_retentate_concentration": conc_ret_cation_2,
                 "cation_2_interface_concentration": conc_int_cation_2,
                 "cation_2_permeate_concentration": conc_perm_cation_2,
-                "cation_2_boundary_layer_concentration": conc_bl_cation_2_dict,
-                "cation_2_membrane_concentration": conc_mem_cation_2_dict,
+                "cation_2_boundary_layer_concentration_by_z": conc_bl_cation_2_dict_by_z,
+                "cation_2_boundary_layer_concentration_by_x": conc_bl_cation_2_dict_by_x,
+                "cation_2_boundary_layer_concentration_gradient_by_x": conc_grad_bl_cation_2_dict_by_x,
+                "cation_2_membrane_concentration_by_z": conc_mem_cation_2_dict_by_z,
+                "cation_2_membrane_concentration_by_x": conc_mem_cation_2_dict_by_x,
+                "cation_2_membrane_concentration_gradient_by_x": conc_grad_mem_cation_2_dict_by_x,
                 "cation_2_flux": cation_2_flux,
                 "cation_2_rejection_observed": cation_2_rejection_observed,
                 "cation_2_rejection_actual": cation_2_rejection_actual,
@@ -723,8 +860,8 @@ def plot_results_by_thickness(results_dict):
     x_axis_values = results_dict["x_values"]
     z_bl_axis_values = results_dict["z_bl_values"]
     z_mem_axis_values = results_dict["z_mem_values"]
-    conc_bl_cation_1_dict = results_dict["cation_1_boundary_layer_concentration"]
-    conc_mem_cation_1_dict = results_dict["cation_1_membrane_concentration"]
+    conc_bl_cation_1_dict = results_dict["cation_1_boundary_layer_concentration_by_z"]
+    conc_mem_cation_1_dict = results_dict["cation_1_membrane_concentration_by_z"]
     if len(cation_list) > 1:
         cation_2 = results_dict["cation_2"]
         conc_bl_cation_2_dict = results_dict["cation_2_boundary_layer_concentration"]
@@ -2099,289 +2236,295 @@ def plot_rejection_versus_feed_ionic_strength(
     plt.tight_layout()
 
 
-def plot_relative_flux():
+def plot_flux_versus_area(
+    m_li_cl_results_dict,
+    m_co_cl_results_dict,
+    m_al_cl_results_dict,
+    m_li_co_cl_results_dict,
+    m_li_al_cl_results_dict,
+    m_co_al_cl_results_dict,
+):
     """
     Plots flux contributions for different systems.
-    Compares two and three salt models.
-
-    Args:
-        m: Pyomo model
     """
-    ionic_strength_list_2 = []
-    li_pe_list_2 = []
-    co_pe_list_2 = []
-    # water_flux_list_2 = []
+    # global constants
+    z_lithium = 1
+    z_cobalt = 2
+    z_aluminum = 3
+    z_chloride = -1
 
-    lithium_pe_2 = []
-    cobalt_pe_2 = []
-    # water_flux_2 = []
+    D_bl_lithium = 3.71e-6  # m2 / h
+    D_bl_cobalt = 2.64e-6  # m2 / h
+    D_bl_aluminum = 2.01e-6  # m2 / h
+    D_bl_chloride = 7.31e-6  # m2 / h
 
-    conc_list_2 = [
-        [50, 100],
-        [48, 96],
-        [46, 92],
-        [44, 88],
-        [42, 84],
-        [40, 80],
-        [38, 76],
-        [36, 72],
-        [34, 68],
-        [32, 64],
+    D_mem_lithium = 3.71e-6  # m2 / h
+    D_mem_cobalt = 2.64e-6  # m2 / h
+    D_mem_aluminum = 2.01e-6  # m2 / h
+    D_mem_chloride = 7.31e-6  # m2 / h
+
+    chi = -44  # mM
+
+    x_axis_values = m_li_cl_results_dict["x_values_dimensionless"]
+    z_bl_axis_values = m_li_cl_results_dict["z_bl_values"]
+    z_mem_axis_values = m_li_cl_results_dict["z_mem_values"]
+    membrane_area_values = m_li_cl_results_dict["membrane_area_values"]
+
+    # water flux
+    water_flux_li = m_li_cl_results_dict["water_flux"]
+    water_flux_co = m_co_cl_results_dict["water_flux"]
+    water_flux_al = m_al_cl_results_dict["water_flux"]
+    water_flux_li_co = m_li_co_cl_results_dict["water_flux"]
+    water_flux_li_al = m_li_al_cl_results_dict["water_flux"]
+    water_flux_co_al = m_co_al_cl_results_dict["water_flux"]
+
+    # boundary layer concentrations
+    lithium_bl_concentration_li = m_li_cl_results_dict[
+        "cation_1_boundary_layer_concentration_by_x"
+    ]
+    lithium_bl_concentration_li_co = m_li_co_cl_results_dict[
+        "cation_1_boundary_layer_concentration_by_x"
+    ]
+    lithium_bl_concentration_li_al = m_li_al_cl_results_dict[
+        "cation_1_boundary_layer_concentration_by_x"
+    ]
+    cobalt_bl_concentration_co = m_co_cl_results_dict[
+        "cation_1_boundary_layer_concentration_by_x"
+    ]
+    cobalt_bl_concentration_li_co = m_li_co_cl_results_dict[
+        "cation_2_boundary_layer_concentration_by_x"
+    ]
+    cobalt_bl_concentration_co_al = m_co_al_cl_results_dict[
+        "cation_1_boundary_layer_concentration_by_x"
+    ]
+    aluminum_bl_concentration_al = m_al_cl_results_dict[
+        "cation_1_boundary_layer_concentration_by_x"
+    ]
+    aluminum_bl_concentration_li_al = m_li_al_cl_results_dict[
+        "cation_2_boundary_layer_concentration_by_x"
+    ]
+    aluminum_bl_concentration_co_al = m_co_al_cl_results_dict[
+        "cation_2_boundary_layer_concentration_by_x"
     ]
 
-    m_two_salt = build_two_salt_model()
-    results = solve_model(m_two_salt)
-    # two_salt_model_checks(m_two_salt)
+    # membrane concentrations
+    lithium_mem_concentration_li = m_li_cl_results_dict[
+        "cation_1_membrane_concentration_by_x"
+    ]
+    lithium_mem_concentration_li_co = m_li_co_cl_results_dict[
+        "cation_1_membrane_concentration_by_x"
+    ]
+    lithium_mem_concentration_li_al = m_li_al_cl_results_dict[
+        "cation_1_membrane_concentration_by_x"
+    ]
+    cobalt_mem_concentration_co = m_co_cl_results_dict[
+        "cation_1_membrane_concentration_by_x"
+    ]
+    cobalt_mem_concentration_li_co = m_li_co_cl_results_dict[
+        "cation_2_membrane_concentration_by_x"
+    ]
+    cobalt_mem_concentration_co_al = m_co_al_cl_results_dict[
+        "cation_1_membrane_concentration_by_x"
+    ]
+    aluminum_mem_concentration_al = m_al_cl_results_dict[
+        "cation_1_membrane_concentration_by_x"
+    ]
+    aluminum_mem_concentration_li_al = m_li_al_cl_results_dict[
+        "cation_2_membrane_concentration_by_x"
+    ]
+    aluminum_mem_concentration_co_al = m_co_al_cl_results_dict[
+        "cation_2_membrane_concentration_by_x"
+    ]
 
-    for conc in conc_list_2:
-        m_two_salt.fs.membrane.feed_conc_mol_comp[0, "Li"].fix(conc[0])
-        m_two_salt.fs.membrane.feed_conc_mol_comp[0, "Co"].fix(conc[1])
+    # boundary layer concentration gradients
+    lithium_bl_concentration_gradient_li = m_li_cl_results_dict[
+        "cation_1_boundary_layer_concentration_gradient_by_x"
+    ]
+    lithium_bl_concentration_gradient_li_co = m_li_co_cl_results_dict[
+        "cation_1_boundary_layer_concentration_gradient_by_x"
+    ]
+    lithium_bl_concentration_gradient_li_al = m_li_al_cl_results_dict[
+        "cation_1_boundary_layer_concentration_gradient_by_x"
+    ]
+    cobalt_bl_concentration_gradient_co = m_co_cl_results_dict[
+        "cation_1_boundary_layer_concentration_gradient_by_x"
+    ]
+    cobalt_bl_concentration_gradient_li_co = m_li_co_cl_results_dict[
+        "cation_2_boundary_layer_concentration_gradient_by_x"
+    ]
+    cobalt_bl_concentration_gradient_co_al = m_co_al_cl_results_dict[
+        "cation_1_boundary_layer_concentration_gradient_by_x"
+    ]
+    aluminum_bl_concentration_gradient_al = m_al_cl_results_dict[
+        "cation_1_boundary_layer_concentration_gradient_by_x"
+    ]
+    aluminum_bl_concentration_gradient_li_al = m_li_al_cl_results_dict[
+        "cation_2_boundary_layer_concentration_gradient_by_x"
+    ]
+    aluminum_bl_concentration_gradient_co_al = m_co_al_cl_results_dict[
+        "cation_2_boundary_layer_concentration_gradient_by_x"
+    ]
 
-        results = solve_model(m_two_salt)
+    # membrane concentrations
+    lithium_mem_concentration_gradient_li = m_li_cl_results_dict[
+        "cation_1_membrane_concentration_gradient_by_x"
+    ]
+    lithium_mem_concentration_gradient_li_co = m_li_co_cl_results_dict[
+        "cation_1_membrane_concentration_gradient_by_x"
+    ]
+    lithium_mem_concentration_gradient_li_al = m_li_al_cl_results_dict[
+        "cation_1_membrane_concentration_gradient_by_x"
+    ]
+    cobalt_mem_concentration_gradient_co = m_co_cl_results_dict[
+        "cation_1_membrane_concentration_gradient_by_x"
+    ]
+    cobalt_mem_concentration_gradient_li_co = m_li_co_cl_results_dict[
+        "cation_2_membrane_concentration_gradient_by_x"
+    ]
+    cobalt_mem_concentration_gradient_co_al = m_co_al_cl_results_dict[
+        "cation_1_membrane_concentration_gradient_by_x"
+    ]
+    aluminum_mem_concentration_gradient_al = m_al_cl_results_dict[
+        "cation_1_membrane_concentration_gradient_by_x"
+    ]
+    aluminum_mem_concentration_gradient_li_al = m_li_al_cl_results_dict[
+        "cation_2_membrane_concentration_gradient_by_x"
+    ]
+    aluminum_mem_concentration_gradient_co_al = m_co_al_cl_results_dict[
+        "cation_2_membrane_concentration_gradient_by_x"
+    ]
 
-        if results.solver.termination_condition == "optimal":
-            dt = DiagnosticsToolbox(m_two_salt)
-            dt.assert_no_numerical_warnings()
+    # boundary layer flux
+    lithium_bl_convection_li = []
+    lithium_bl_convection_li_co = []
+    lithium_bl_convection_li_al = []
+    lithium_bl_diffusion_li = []
+    lithium_bl_diffusion_li_co = []
+    lithium_bl_diffusion_li_al = []
 
-            for x in m_two_salt.fs.membrane.dimensionless_module_length:
-                if x != 0:
-                    # water_flux_2.append(value(m_two_salt.fs.membrane.volume_flux_water[x]))
-                    for z in m_two_salt.fs.membrane.dimensionless_membrane_thickness:
-                        lithium_pe_2.append(
-                            value(m_two_salt.fs.membrane.peclet_number_lithium[x, z])
-                        )
-                        cobalt_pe_2.append(
-                            value(m_two_salt.fs.membrane.peclet_number_cobalt[x, z])
-                        )
+    lithium_bl_convection_li_dict = {}
+    lithium_bl_convection_li_co_dict = {}
+    lithium_bl_convection_li_al_dict = {}
+    lithium_bl_diffusion_li_dict = {}
+    lithium_bl_diffusion_li_co_dict = {}
+    lithium_bl_diffusion_li_al_dict = {}
 
-        ionic_strength = calculate_ionic_strength_two_salt(m_two_salt)
-        ionic_strength_list_2.append(ionic_strength)
-        # print(lithium_pe_2)
-        li_pe_list_2.append(np.average(lithium_pe_2))
-        # print(cobalt_pe_2)
-        co_pe_list_2.append(np.average(cobalt_pe_2))
-        # water_flux_list_2.append(np.average(water_flux_2))
+    for x in x_axis_values:
+        for z in range(len(z_bl_axis_values)):
+            x_position = x_axis_values.index(x)
 
-        lithium_pe_2 = []
-        cobalt_pe_2 = []
-        # water_flux_2 = []
+            lithium_bl_convection_li_val = (
+                lithium_bl_concentration_li[str(x)][z] * water_flux_li[x_position]
+            )
+            lithium_bl_convection_li_co_val = (
+                lithium_bl_concentration_li_co[str(x)][z] * water_flux_li_co[x_position]
+            )
+            lithium_bl_convection_li_al_val = (
+                lithium_bl_concentration_li_al[str(x)][z] * water_flux_li_al[x_position]
+            )
 
-    print(ionic_strength_list_2)
-    print(li_pe_list_2)
-    print(co_pe_list_2)
+            lithium_bl_diffusion_li_val = (
+                -lithium_bl_concentration_gradient_li[str(x)][z] * D_bl_lithium
+            )
+            lithium_bl_diffusion_li_co_val = (
+                -lithium_bl_concentration_gradient_li_co[str(x)][z] * D_bl_lithium
+            )
+            lithium_bl_diffusion_li_al_val = (
+                -lithium_bl_concentration_gradient_li_al[str(x)][z] * D_bl_lithium
+            )
+
+            lithium_bl_convection_li.append(lithium_bl_convection_li_val)
+            lithium_bl_convection_li_co.append(lithium_bl_convection_li_co_val)
+            lithium_bl_convection_li_al.append(lithium_bl_convection_li_al_val)
+
+            lithium_bl_diffusion_li.append(lithium_bl_diffusion_li_val)
+            lithium_bl_diffusion_li_co.append(lithium_bl_diffusion_li_co_val)
+            lithium_bl_diffusion_li_al.append(lithium_bl_diffusion_li_al_val)
+
+        lithium_bl_convection_li_dict[x] = lithium_bl_convection_li
+        lithium_bl_convection_li_co_dict[x] = lithium_bl_convection_li_co
+        lithium_bl_convection_li_al_dict[x] = lithium_bl_convection_li_al
+
+        lithium_bl_diffusion_li_dict[x] = lithium_bl_diffusion_li
+        lithium_bl_diffusion_li_co_dict[x] = lithium_bl_diffusion_li_co
+        lithium_bl_diffusion_li_al_dict[x] = lithium_bl_diffusion_li_al
+
+        lithium_bl_convection_li = []
+        lithium_bl_convection_li_co = []
+        lithium_bl_convection_li_al = []
+        lithium_bl_diffusion_li = []
+        lithium_bl_diffusion_li_co = []
+        lithium_bl_diffusion_li_al = []
+
+    print(lithium_bl_diffusion_li_dict)
+    print(lithium_bl_diffusion_li_co_dict)
+    print(lithium_bl_diffusion_li_al_dict)
+
+    lithium_bl_convection_li_averaged = [
+        sum(lithium_bl_convection_li_dict[k]) / len(lithium_bl_convection_li_dict[k])
+        for k in lithium_bl_convection_li_dict.keys()
+    ]
+    lithium_bl_convection_li_co_averaged = [
+        sum(lithium_bl_convection_li_co_dict[k])
+        / len(lithium_bl_convection_li_co_dict[k])
+        for k in lithium_bl_convection_li_co_dict.keys()
+    ]
+    lithium_bl_convection_li_al_averaged = [
+        sum(lithium_bl_convection_li_al_dict[k])
+        / len(lithium_bl_convection_li_al_dict[k])
+        for k in lithium_bl_convection_li_al_dict.keys()
+    ]
+
+    lithium_bl_diffusion_li_averaged = [
+        sum(lithium_bl_diffusion_li_dict[k]) / len(lithium_bl_diffusion_li_dict[k])
+        for k in lithium_bl_diffusion_li_dict.keys()
+    ]
+    lithium_bl_diffusion_li_co_averaged = [
+        sum(lithium_bl_diffusion_li_co_dict[k])
+        / len(lithium_bl_diffusion_li_co_dict[k])
+        for k in lithium_bl_diffusion_li_co_dict.keys()
+    ]
+    lithium_bl_diffusion_li_al_averaged = [
+        sum(lithium_bl_diffusion_li_al_dict[k])
+        / len(lithium_bl_diffusion_li_al_dict[k])
+        for k in lithium_bl_diffusion_li_al_dict.keys()
+    ]
 
     fig, ax1 = plt.subplots(1, 1, figsize=(7, 5))
-    # ax1.plot(ionic_strength_list_2, water_flux_list_2, '.')
+    ax1.plot(membrane_area_values, lithium_bl_convection_li_averaged, "r-", linewidth=2)
     ax1.plot(
-        ionic_strength_list_2,
-        li_pe_list_2,
-        "mx",
-        markersize=6,
-        linestyle="-",
-        linewidth=0.7,
+        membrane_area_values, lithium_bl_convection_li_co_averaged, "r--", linewidth=2
     )
     ax1.plot(
-        ionic_strength_list_2,
-        co_pe_list_2,
-        "cx",
-        markersize=6,
-        linestyle="-",
-        linewidth=0.7,
+        membrane_area_values, lithium_bl_convection_li_al_averaged, "r-.", linewidth=2
     )
 
-    ionic_strength_list_3 = []
-    li_pe_list_3 = []
-    co_pe_list_3 = []
-    al_pe_list_3 = []
-
-    lithium_pe_3 = []
-    cobalt_pe_3 = []
-    aluminum_pe_3 = []
-    # 10:20:2.5
-    conc_list_3 = [
-        [42, 84, 10.5],
-        [40, 80, 10],
-        [38, 76, 9.5],
-        [36, 72, 9],
-        [34, 68, 8.5],
-        [32, 64, 8],
-        [30, 60, 7.5],
-        [28, 56, 7],
-        [26, 52, 6.5],
-    ]
-    # initialize
-    m_three_salt = build_three_salt_model()
-    results = solve_model(m_three_salt)
-    # three_salt_model_checks(m_three_salt)
-    # m_three_salt.fs.membrane.diafiltrate_flow_volume.fix(1e-10)
-
-    for conc in conc_list_3:
-        m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Li"].fix(conc[0])
-        m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Co"].fix(conc[1])
-        m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Al"].fix(conc[2])
-
-        results = solve_model(m_three_salt)
-        if results.solver.termination_condition == "optimal":
-            dt = DiagnosticsToolbox(m_two_salt)
-            dt.assert_no_numerical_warnings()
-
-            for x in m_three_salt.fs.membrane.dimensionless_module_length:
-                if x != 0:
-                    for z in m_three_salt.fs.membrane.dimensionless_membrane_thickness:
-                        lithium_pe_3.append(
-                            value(m_three_salt.fs.membrane.peclet_number_lithium[x, z])
-                        )
-                        cobalt_pe_3.append(
-                            value(m_three_salt.fs.membrane.peclet_number_cobalt[x, z])
-                        )
-                        aluminum_pe_3.append(
-                            value(m_three_salt.fs.membrane.peclet_number_aluminum[x, z])
-                        )
-
-        ionic_strength = calculate_ionic_strength_three_salt(m_three_salt)
-        ionic_strength_list_3.append(ionic_strength)
-        li_pe_list_3.append(np.average(lithium_pe_3))
-        co_pe_list_3.append(np.average(cobalt_pe_3))
-        al_pe_list_3.append(np.average(aluminum_pe_3))
-
-        lithium_pe_3 = []
-        cobalt_pe_3 = []
-        aluminum_pe_3 = []
-
+    ax1.plot(membrane_area_values, lithium_bl_diffusion_li_averaged, "b-", linewidth=2)
     ax1.plot(
-        ionic_strength_list_3,
-        li_pe_list_3,
-        "m^",
-        markersize=6,
-        linestyle="-",
-        linewidth=0.7,
+        membrane_area_values, lithium_bl_diffusion_li_co_averaged, "b--", linewidth=2
     )
     ax1.plot(
-        ionic_strength_list_3,
-        co_pe_list_3,
-        "c^",
-        markersize=6,
-        linestyle="-",
-        linewidth=0.7,
+        membrane_area_values, lithium_bl_diffusion_li_al_averaged, "b-.", linewidth=2
     )
-    ax1.plot(
-        ionic_strength_list_3,
-        al_pe_list_3,
-        "g^",
-        markersize=6,
-        linestyle="-",
-        linewidth=0.7,
-    )
-
-    ionic_strength_list_3 = []
-    li_pe_list_3 = []
-    co_pe_list_3 = []
-    al_pe_list_3 = []
-
-    lithium_pe_3 = []
-    cobalt_pe_3 = []
-    aluminum_pe_3 = []
-    # 10:20:5
-    conc_list_3 = [
-        [38, 72, 18],
-        [36, 70, 17.5],
-        [34, 68, 17],
-        [33, 66, 16.5],
-        [32, 64, 16],
-        [31, 62, 15.5],
-        [30, 60, 15],
-        [29, 58, 14.5],
-        [28, 56, 14],
-        [27, 54, 13.5],
-        [26, 52, 13],
-        [25, 50, 12.5],
-        [24, 48, 12],
-    ]
-    # initialize
-    m_three_salt = build_three_salt_model()
-    results = solve_model(m_three_salt)
-
-    for conc in conc_list_3:
-        m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Li"].fix(conc[0])
-        m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Co"].fix(conc[1])
-        m_three_salt.fs.membrane.feed_conc_mol_comp[0, "Al"].fix(conc[2])
-
-        results = solve_model(m_three_salt)
-        if results.solver.termination_condition == "optimal":
-            dt = DiagnosticsToolbox(m_two_salt)
-            dt.assert_no_numerical_warnings()
-
-            for x in m_three_salt.fs.membrane.dimensionless_module_length:
-                if x != 0:
-                    for z in m_three_salt.fs.membrane.dimensionless_membrane_thickness:
-                        lithium_pe_3.append(
-                            value(m_three_salt.fs.membrane.peclet_number_lithium[x, z])
-                        )
-                        cobalt_pe_3.append(
-                            value(m_three_salt.fs.membrane.peclet_number_cobalt[x, z])
-                        )
-                        aluminum_pe_3.append(
-                            value(m_three_salt.fs.membrane.peclet_number_aluminum[x, z])
-                        )
-
-        ionic_strength = calculate_ionic_strength_three_salt(m_three_salt)
-        ionic_strength_list_3.append(ionic_strength)
-        li_pe_list_3.append(np.average(lithium_pe_3))
-        co_pe_list_3.append(np.average(cobalt_pe_3))
-        al_pe_list_3.append(np.average(aluminum_pe_3))
-
-        lithium_pe_3 = []
-        cobalt_pe_3 = []
-        aluminum_pe_3 = []
-
-    ax1.plot(
-        ionic_strength_list_3,
-        li_pe_list_3,
-        "m*",
-        markersize=7,
-        linestyle="-",
-        linewidth=0.7,
-    )
-    ax1.plot(
-        ionic_strength_list_3,
-        co_pe_list_3,
-        "c*",
-        markersize=7,
-        linestyle="-",
-        linewidth=0.7,
-    )
-    ax1.plot(
-        ionic_strength_list_3,
-        al_pe_list_3,
-        "g*",
-        markersize=7,
-        linestyle="-",
-        linewidth=0.7,
-    )
-
-    ax1.axhline(1, color="black", linewidth=1)
 
     # legend points
-    # ax1.plot([],[], marker='None', linestyle='None', label="Solution (markerstyle)")
-    ax1.plot([], [], "kx", markersize=6, label="10:20:0")
-    # ax1.plot([], [], "ko", markersize=6, label="10:20:1")
-    ax1.plot([], [], "k^", markersize=6, label="10:20:2.5")
-    ax1.plot([], [], "k*", markersize=7, label="10:20:5")
-    ax1.plot([], [], marker="None", linestyle="None", label="Solute (color)")
-    ax1.plot([], [], "ms", markersize=8, label="Lithium")
-    ax1.plot([], [], "cs", markersize=8, label="Cobalt")
-    ax1.plot([], [], "gs", markersize=8, label="Aluminum")
+    ax1.plot([], [], "k-", linewidth=2, label="LiCl")
+    ax1.plot([], [], "k--", linewidth=2, label="LiCl + CoCl$_2$")
+    ax1.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl$_3$")
+    ax1.plot([], [], marker="None", linestyle="None", label="Flux (color)")
+    ax1.plot([], [], "rs", markersize=8, label="Convection")
+    ax1.plot([], [], "bs", markersize=8, label="Diffusion")
+    ax1.plot([], [], "gs", markersize=8, label="Electromigration")
+    ax1.legend(loc="best", title="Solution (linestyle)")
 
-    ax1.legend(
-        loc="center left",
-        bbox_to_anchor=(1, 0.5),
-        title="Molar Ratio of\nLi:Co:Al (marker)",
+    ax1.set_title(
+        "Lithium Flux in Boundary Layer (Averaged across Thickness)",
+        fontsize=14,
+        fontweight="bold",
     )
-    ax1.set_xlabel("Ionic Strength of the Feed (mM)", fontsize=14, fontweight="bold")
-    ax1.set_ylabel(
-        "Convective:Diffusive\n& Electromigrative Flux", fontsize=14, fontweight="bold"
-    )
-    ax1.tick_params(direction="in", labelsize=14)
+    ax1.set_xlabel("Membrane Area (m$^2$)", fontsize=14, fontweight="bold")
+    ax1.set_ylabel("Flux (mol m$^{-2}$ h$^{-1}$)", fontsize=14, fontweight="bold")
+    ax1.tick_params(direction="in", top=True, right=True, labelsize=14)
 
     plt.tight_layout()
 
