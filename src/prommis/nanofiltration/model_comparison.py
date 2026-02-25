@@ -193,12 +193,26 @@ def main():
             m_co_al_cl_results_dict,
             compact=False,
         )
-        # plot_relative_rejections_by_component(
-        #     m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl, m_li_co_al_cl
-        # )
-        # plot_rejection_versus_concentration(
-        #     m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl, m_li_co_al_cl
-        # )
+        plot_rejection_versus_concentration(
+            m_li_cl_results_dict,
+            m_co_cl_results_dict,
+            m_al_cl_results_dict,
+            m_li_co_cl_results_dict,
+            m_li_al_cl_results_dict,
+            m_co_al_cl_results_dict,
+            x_axis_conc="bulk",
+        )
+        plot_rejection_versus_concentration(
+            m_li_cl_results_dict,
+            m_co_cl_results_dict,
+            m_al_cl_results_dict,
+            m_li_co_cl_results_dict,
+            m_li_al_cl_results_dict,
+            m_co_al_cl_results_dict,
+            x_axis_conc="interface",
+        )
+
+    plt.show()
 
 
 def build_model(
@@ -670,8 +684,6 @@ def plot_results_by_length(results_dict):
     ax6.set_ylabel("Percent Recovery (%)", fontsize=12, fontweight="bold")
     ax6.tick_params(direction="in", labelsize=12)
 
-    plt.show()
-
     return fig
 
 
@@ -751,10 +763,6 @@ def plot_results_by_thickness(results_dict):
         )
         ax4.tick_params(direction="in", labelsize=12)
         fig2.colorbar(cation_2_plot_mem, ax=ax4)
-
-    plt.show()
-
-    # return fig
 
 
 def plot_rejection_versus_area(
@@ -1330,297 +1338,179 @@ def plot_rejection_versus_area(
 
     plt.tight_layout()
 
-    plt.show()
-
 
 def plot_rejection_versus_concentration(
-    m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl, m_li_co_al_cl
+    m_li_cl_results_dict,
+    m_co_cl_results_dict,
+    m_al_cl_results_dict,
+    m_li_co_cl_results_dict,
+    m_li_al_cl_results_dict,
+    m_co_al_cl_results_dict,
+    # m_li_co_al_cl_results_dict,
+    x_axis_conc="bulk",
 ):
     """
     Plots rejection versus retentate-side concentration.
     """
-    # store values for concentration
-    lithium_concentration_li = []
-    lithium_concentration_li_co = []
-    lithium_concentration_li_al = []
-    lithium_concentration_li_co_al = []
+    # concentrations
+    lithium_bulk_concentration_li = m_li_cl_results_dict[
+        "cation_1_retentate_concentration"
+    ]
+    lithium_bulk_concentration_li_co = m_li_co_cl_results_dict[
+        "cation_1_retentate_concentration"
+    ]
+    lithium_bulk_concentration_li_al = m_li_al_cl_results_dict[
+        "cation_1_retentate_concentration"
+    ]
+    # lithium_bulk_concentration_li_co_al = m_li_co_al_cl_results_dict["cation_1_retentate_concentration"]
 
-    cobalt_concentration_co = []
-    cobalt_concentration_li_co = []
-    cobalt_concentration_co_al = []
-    cobalt_concentration_li_co_al = []
+    lithium_int_concentration_li = m_li_cl_results_dict[
+        "cation_1_interface_concentration"
+    ]
+    lithium_int_concentration_li_co = m_li_co_cl_results_dict[
+        "cation_1_interface_concentration"
+    ]
+    lithium_int_concentration_li_al = m_li_al_cl_results_dict[
+        "cation_1_interface_concentration"
+    ]
+    # lithium_int_concentration_li_co_al = m_li_co_al_cl_results_dict["cation_1_interface_concentration"]
 
-    aluminum_concentration_al = []
-    aluminum_concentration_li_al = []
-    aluminum_concentration_co_al = []
-    aluminum_concentration_li_co_al = []
+    cobalt_bulk_concentration_co = m_co_cl_results_dict[
+        "cation_1_retentate_concentration"
+    ]
+    cobalt_bulk_concentration_li_co = m_li_co_cl_results_dict[
+        "cation_2_retentate_concentration"
+    ]
+    cobalt_bulk_concentration_co_al = m_co_al_cl_results_dict[
+        "cation_1_retentate_concentration"
+    ]
+    # cobalt_bulk_concentration_li_co_al = m_li_co_al_cl_results_dict["cation_2_retentate_concentration"]
 
-    # store values for rejection
-    observed_lithium_rejection_li = []
-    observed_lithium_rejection_li_co = []
-    observed_lithium_rejection_li_al = []
-    observed_lithium_rejection_li_co_al = []
+    cobalt_int_concentration_co = m_co_cl_results_dict[
+        "cation_1_interface_concentration"
+    ]
+    cobalt_int_concentration_li_co = m_li_co_cl_results_dict[
+        "cation_2_interface_concentration"
+    ]
+    cobalt_int_concentration_co_al = m_co_al_cl_results_dict[
+        "cation_1_interface_concentration"
+    ]
+    # cobalt_int_concentration_li_co_al = m_li_co_al_cl_results_dict["cation_2_interface_concentration"]
 
-    observed_cobalt_rejection_co = []
-    observed_cobalt_rejection_li_co = []
-    observed_cobalt_rejection_co_al = []
-    observed_cobalt_rejection_li_co_al = []
+    aluminum_bulk_concentration_al = m_al_cl_results_dict[
+        "cation_1_retentate_concentration"
+    ]
+    aluminum_bulk_concentration_li_al = m_li_al_cl_results_dict[
+        "cation_2_retentate_concentration"
+    ]
+    aluminum_bulk_concentration_co_al = m_co_al_cl_results_dict[
+        "cation_2_retentate_concentration"
+    ]
+    # aluminum_bulk_concentration_li_co_al = m_li_co_al_cl_results_dict["cation_3_retentate_concentration"]
 
-    observed_aluminum_rejection_al = []
-    observed_aluminum_rejection_li_al = []
-    observed_aluminum_rejection_co_al = []
-    observed_aluminum_rejection_li_co_al = []
+    aluminum_int_concentration_al = m_al_cl_results_dict[
+        "cation_1_interface_concentration"
+    ]
+    aluminum_int_concentration_li_al = m_li_al_cl_results_dict[
+        "cation_2_interface_concentration"
+    ]
+    aluminum_int_concentration_co_al = m_co_al_cl_results_dict[
+        "cation_2_interface_concentration"
+    ]
+    # aluminum_int_concentration_li_co_al = m_li_co_al_cl_results_dict["cation_3_interface_concentration"]
 
-    actual_lithium_rejection_li = []
-    actual_lithium_rejection_li_co = []
-    actual_lithium_rejection_li_al = []
-    actual_lithium_rejection_li_co_al = []
+    # lithium rejections
+    observed_lithium_rejection_li = m_li_cl_results_dict["cation_1_rejection_observed"]
+    actual_lithium_rejection_li = m_li_cl_results_dict["cation_1_rejection_actual"]
+    observed_lithium_rejection_li_co = m_li_co_cl_results_dict[
+        "cation_1_rejection_observed"
+    ]
+    actual_lithium_rejection_li_co = m_li_co_cl_results_dict[
+        "cation_1_rejection_actual"
+    ]
+    observed_lithium_rejection_li_al = m_li_al_cl_results_dict[
+        "cation_1_rejection_observed"
+    ]
+    actual_lithium_rejection_li_al = m_li_al_cl_results_dict[
+        "cation_1_rejection_actual"
+    ]
+    # observed_lithium_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_1_rejection_observed"
+    # ]
+    # actual_lithium_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_1_rejection_actual"
+    # ]
 
-    actual_cobalt_rejection_co = []
-    actual_cobalt_rejection_li_co = []
-    actual_cobalt_rejection_co_al = []
-    actual_cobalt_rejection_li_co_al = []
+    # cobalt rejections
+    observed_cobalt_rejection_co = m_co_cl_results_dict["cation_1_rejection_observed"]
+    actual_cobalt_rejection_co = m_co_cl_results_dict["cation_1_rejection_actual"]
+    observed_cobalt_rejection_li_co = m_li_co_cl_results_dict[
+        "cation_2_rejection_observed"
+    ]
+    actual_cobalt_rejection_li_co = m_li_co_cl_results_dict["cation_2_rejection_actual"]
+    observed_cobalt_rejection_co_al = m_co_al_cl_results_dict[
+        "cation_1_rejection_observed"
+    ]
+    actual_cobalt_rejection_co_al = m_co_al_cl_results_dict["cation_1_rejection_actual"]
+    # observed_cobalt_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_2_rejection_observed"
+    # ]
+    # actual_cobalt_rejection_li_co_al = m_li_co_al_cl_results_dict["cation_2_rejection_actual"]
 
-    actual_aluminum_rejection_al = []
-    actual_aluminum_rejection_li_al = []
-    actual_aluminum_rejection_co_al = []
-    actual_aluminum_rejection_li_co_al = []
+    # aluminum rejections
+    observed_aluminum_rejection_al = m_al_cl_results_dict["cation_1_rejection_observed"]
+    actual_aluminum_rejection_al = m_al_cl_results_dict["cation_1_rejection_actual"]
+    observed_aluminum_rejection_li_al = m_li_al_cl_results_dict[
+        "cation_2_rejection_observed"
+    ]
+    actual_aluminum_rejection_li_al = m_li_al_cl_results_dict[
+        "cation_2_rejection_actual"
+    ]
+    observed_aluminum_rejection_co_al = m_co_al_cl_results_dict[
+        "cation_2_rejection_observed"
+    ]
+    actual_aluminum_rejection_co_al = m_co_al_cl_results_dict[
+        "cation_2_rejection_actual"
+    ]
+    # observed_aluminum_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_3_rejection_observed"
+    # ]
+    # actual_aluminum_rejection_li_co_al = m_li_co_al_cl_results_dict[
+    #     "cation_3_rejection_actual"
+    # ]
 
-    for x_val in m_li_cl.fs.membrane.dimensionless_module_length:
-        if x_val != 0:
-            ########################################################################
-            conc_ret_lith_li_cl = value(
-                m_li_cl.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            conc_int_lith_li_cl = value(
-                m_li_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                    0, x_val, 1, "cation_1"
-                ]
-            )
-            conc_perm_lith_li_cl = value(
-                m_li_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            lithium_concentration_li.append(conc_int_lith_li_cl)
-            observed_lithium_rejection_li.append(
-                (1 - (conc_perm_lith_li_cl / conc_ret_lith_li_cl)) * 100
-            )
-            actual_lithium_rejection_li.append(
-                (1 - (conc_perm_lith_li_cl / conc_int_lith_li_cl)) * 100
-            )
+    if x_axis_conc == "bulk":
+        lithium_concentration_li = lithium_bulk_concentration_li
+        lithium_concentration_li_co = lithium_bulk_concentration_li_co
+        lithium_concentration_li_al = lithium_bulk_concentration_li_al
+        # lithium_concentration_li_co_al = lithium_bulk_concentration_li_co_al
 
-            conc_ret_lith_li_co_cl = value(
-                m_li_co_cl.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            conc_int_lith_li_co_cl = value(
-                m_li_co_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                    0, x_val, 1, "cation_1"
-                ]
-            )
-            conc_perm_lith_li_co_cl = value(
-                m_li_co_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            lithium_concentration_li_co.append(conc_int_lith_li_co_cl)
-            observed_lithium_rejection_li_co.append(
-                (1 - (conc_perm_lith_li_co_cl / conc_ret_lith_li_co_cl)) * 100
-            )
-            actual_lithium_rejection_li_co.append(
-                (1 - (conc_perm_lith_li_co_cl / conc_int_lith_li_co_cl)) * 100
-            )
+        cobalt_concentration_co = cobalt_bulk_concentration_co
+        cobalt_concentration_li_co = cobalt_bulk_concentration_li_co
+        cobalt_concentration_co_al = cobalt_bulk_concentration_co_al
+        # cobalt_concentration_li_co_al = cobalt_bulk_concentration_li_co_al
 
-            conc_ret_lith_li_al_cl = value(
-                m_li_al_cl.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            conc_int_lith_li_al_cl = value(
-                m_li_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                    0, x_val, 1, "cation_1"
-                ]
-            )
-            conc_perm_lith_li_al_cl = value(
-                m_li_al_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            lithium_concentration_li_al.append(conc_int_lith_li_al_cl)
-            observed_lithium_rejection_li_al.append(
-                (1 - (conc_perm_lith_li_al_cl / conc_ret_lith_li_al_cl)) * 100
-            )
-            actual_lithium_rejection_li_al.append(
-                (1 - (conc_perm_lith_li_al_cl / conc_int_lith_li_al_cl)) * 100
-            )
+        aluminum_concentration_al = aluminum_bulk_concentration_al
+        aluminum_concentration_li_al = aluminum_bulk_concentration_li_al
+        aluminum_concentration_co_al = aluminum_bulk_concentration_co_al
+        # aluminum_concentration_li_co_al = aluminum_bulk_concentration_li_co_al
+    elif x_axis_conc == "interface":
+        lithium_concentration_li = lithium_int_concentration_li
+        lithium_concentration_li_co = lithium_int_concentration_li_co
+        lithium_concentration_li_al = lithium_int_concentration_li_al
+        # lithium_concentration_li_co_al = lithium_int_concentration_li_co_al
 
-            conc_ret_lith_li_co_al_cl = value(
-                m_li_co_al_cl.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            conc_int_lith_li_co_al_cl = value(
-                m_li_co_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                    0, x_val, 1, "cation_1"
-                ]
-            )
-            conc_perm_lith_li_co_al_cl = value(
-                m_li_co_al_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            lithium_concentration_li_co_al.append(conc_int_lith_li_co_al_cl)
-            observed_lithium_rejection_li_co_al.append(
-                (1 - (conc_perm_lith_li_co_al_cl / conc_ret_lith_li_co_al_cl)) * 100
-            )
-            actual_lithium_rejection_li_co_al.append(
-                (1 - (conc_perm_lith_li_co_al_cl / conc_int_lith_li_co_al_cl)) * 100
-            )
+        cobalt_concentration_co = cobalt_int_concentration_co
+        cobalt_concentration_li_co = cobalt_int_concentration_li_co
+        cobalt_concentration_co_al = cobalt_int_concentration_co_al
+        # cobalt_concentration_li_co_al = cobalt_int_concentration_li_co_al
 
-            ########################################################################
-            conc_ret_cob_co_cl = value(
-                m_co_cl.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            conc_int_cob_co_cl = value(
-                m_co_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                    0, x_val, 1, "cation_1"
-                ]
-            )
-            conc_perm_cob_co_cl = value(
-                m_co_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            cobalt_concentration_co.append(conc_int_cob_co_cl)
-            observed_cobalt_rejection_co.append(
-                (1 - (conc_perm_cob_co_cl / conc_ret_cob_co_cl)) * 100
-            )
-            actual_cobalt_rejection_co.append(
-                (1 - (conc_perm_cob_co_cl / conc_int_cob_co_cl)) * 100
-            )
+        aluminum_concentration_al = aluminum_int_concentration_al
+        aluminum_concentration_li_al = aluminum_int_concentration_li_al
+        aluminum_concentration_co_al = aluminum_int_concentration_co_al
+        # aluminum_concentration_li_co_al = aluminum_int_concentration_li_co_al
 
-            conc_ret_cob_li_co_cl = value(
-                m_li_co_cl.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_2"]
-            )
-            conc_int_cob_li_co_cl = value(
-                m_li_co_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                    0, x_val, 1, "cation_2"
-                ]
-            )
-            conc_perm_cob_li_co_cl = value(
-                m_li_co_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_2"]
-            )
-            cobalt_concentration_li_co.append(conc_int_cob_li_co_cl)
-            observed_cobalt_rejection_li_co.append(
-                (1 - (conc_perm_cob_li_co_cl / conc_ret_cob_li_co_cl)) * 100
-            )
-            actual_cobalt_rejection_li_co.append(
-                (1 - (conc_perm_cob_li_co_cl / conc_int_cob_li_co_cl)) * 100
-            )
-
-            conc_ret_cob_co_al_cl = value(
-                m_co_al_cl.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            conc_int_cob_co_al_cl = value(
-                m_co_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                    0, x_val, 1, "cation_1"
-                ]
-            )
-            conc_perm_cob_co_al_cl = value(
-                m_co_al_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            cobalt_concentration_co_al.append(conc_int_cob_co_al_cl)
-            observed_cobalt_rejection_co_al.append(
-                (1 - (conc_perm_cob_co_al_cl / conc_ret_cob_co_al_cl)) * 100
-            )
-            actual_cobalt_rejection_co_al.append(
-                (1 - (conc_perm_cob_co_al_cl / conc_int_cob_co_al_cl)) * 100
-            )
-
-            conc_ret_cob_li_co_al_cl = value(
-                m_li_co_al_cl.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_2"]
-            )
-            conc_int_cob_li_co_al_cl = value(
-                m_li_co_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                    0, x_val, 1, "cation_2"
-                ]
-            )
-            conc_perm_cob_li_co_al_cl = value(
-                m_li_co_al_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_2"]
-            )
-            cobalt_concentration_li_co_al.append(conc_int_cob_li_co_al_cl)
-            observed_cobalt_rejection_li_co_al.append(
-                (1 - (conc_perm_cob_li_co_al_cl / conc_ret_cob_li_co_al_cl)) * 100
-            )
-            actual_cobalt_rejection_li_co_al.append(
-                (1 - (conc_perm_cob_li_co_al_cl / conc_int_cob_li_co_al_cl)) * 100
-            )
-
-            ########################################################################
-
-            conc_ret_alum_al_cl = value(
-                m_al_cl.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            conc_int_alum_al_cl = value(
-                m_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                    0, x_val, 1, "cation_1"
-                ]
-            )
-            conc_perm_alum_al_cl = value(
-                m_al_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_1"]
-            )
-            aluminum_concentration_al.append(conc_int_alum_al_cl)
-            observed_aluminum_rejection_al.append(
-                (1 - (conc_perm_alum_al_cl / conc_ret_alum_al_cl)) * 100
-            )
-            actual_aluminum_rejection_al.append(
-                (1 - (conc_perm_alum_al_cl / conc_int_alum_al_cl)) * 100
-            )
-
-            conc_ret_alum_li_al_cl = value(
-                m_li_al_cl.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_2"]
-            )
-            conc_int_alum_li_al_cl = value(
-                m_li_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                    0, x_val, 1, "cation_2"
-                ]
-            )
-            conc_perm_alum_li_al_cl = value(
-                m_li_al_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_2"]
-            )
-            aluminum_concentration_li_al.append(conc_int_alum_li_al_cl)
-            observed_aluminum_rejection_li_al.append(
-                (1 - (conc_perm_alum_li_al_cl / conc_ret_alum_li_al_cl)) * 100
-            )
-            actual_aluminum_rejection_li_al.append(
-                (1 - (conc_perm_alum_li_al_cl / conc_int_alum_li_al_cl)) * 100
-            )
-
-            conc_ret_alum_co_al_cl = value(
-                m_co_al_cl.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_2"]
-            )
-            conc_int_alum_co_al_cl = value(
-                m_co_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                    0, x_val, 1, "cation_2"
-                ]
-            )
-            conc_perm_alum_co_al_cl = value(
-                m_co_al_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_2"]
-            )
-            aluminum_concentration_co_al.append(conc_int_alum_co_al_cl)
-            observed_aluminum_rejection_co_al.append(
-                (1 - (conc_perm_alum_co_al_cl / conc_ret_alum_co_al_cl)) * 100
-            )
-            actual_aluminum_rejection_co_al.append(
-                (1 - (conc_perm_alum_co_al_cl / conc_int_alum_co_al_cl)) * 100
-            )
-
-            conc_ret_alum_li_co_al_cl = value(
-                m_li_co_al_cl.fs.membrane.retentate_conc_mol_comp[0, x_val, "cation_3"]
-            )
-            conc_int_alum_li_co_al_cl = value(
-                m_li_co_al_cl.fs.membrane.boundary_layer_conc_mol_comp[
-                    0, x_val, 1, "cation_3"
-                ]
-            )
-            conc_perm_alum_li_co_al_cl = value(
-                m_li_co_al_cl.fs.membrane.permeate_conc_mol_comp[0, x_val, "cation_3"]
-            )
-            aluminum_concentration_li_co_al.append(conc_int_alum_li_co_al_cl)
-            observed_aluminum_rejection_li_co_al.append(
-                (1 - (conc_perm_alum_li_co_al_cl / conc_ret_alum_li_co_al_cl)) * 100
-            )
-            actual_aluminum_rejection_li_co_al.append(
-                (1 - (conc_perm_alum_li_co_al_cl / conc_int_alum_li_co_al_cl)) * 100
-            )
-
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi=100, figsize=(10, 5))
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi=100, figsize=(15, 5))
 
     ax1.plot(
         lithium_concentration_li,
@@ -1661,30 +1551,31 @@ def plot_rejection_versus_concentration(
         "r-.",
         linewidth=2,
     )
-    ax1.plot(
-        lithium_concentration_li_co_al,
-        observed_lithium_rejection_li_co_al,
-        "r.-",
-        alpha=0.25,
-        linewidth=2,
-    )
-    ax1.plot(
-        lithium_concentration_li_co_al,
-        actual_lithium_rejection_li_co_al,
-        "r.-",
-        linewidth=2,
-    )
+    # ax1.plot(
+    #     lithium_concentration_li_co_al,
+    #     observed_lithium_rejection_li_co_al,
+    #     "r.-",
+    #     alpha=0.25,
+    #     linewidth=2,
+    # )
+    # ax1.plot(
+    #     lithium_concentration_li_co_al,
+    #     actual_lithium_rejection_li_co_al,
+    #     "r.-",
+    #     linewidth=2,
+    # )
     ax1.set_xlabel(
-        "Lithium Concentration (Interface) (mol/m$^3$)",
+        f"Lithium Concentration ({x_axis_conc.capitalize()}) (mol/m$^3$)",
         fontsize=12,
         fontweight="bold",
     )
+    ax1.set_title("Lithium Rejection")
     ax1.set_ylabel("Percent Rejection (%)", fontsize=12, fontweight="bold")
     ax1.tick_params(direction="in", labelsize=12)
     ax1.plot([], [], "k-", linewidth=2, label="LiCl")
     ax1.plot([], [], "k--", linewidth=2, label="LiCl + CoCl$_2$")
     ax1.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl$_3$")
-    ax1.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl$_2$ + AlCl$_3$")
+    # ax1.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl$_2$ + AlCl$_3$")
     ax1.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
     ax1.plot([], [], "rs", alpha=0.25, markersize=8, label="Observed")
     ax1.plot([], [], "rs", markersize=8, label="Actual")
@@ -1729,30 +1620,31 @@ def plot_rejection_versus_concentration(
         "b:",
         linewidth=2,
     )
-    ax2.plot(
-        cobalt_concentration_li_co_al,
-        observed_cobalt_rejection_li_co_al,
-        "b.-",
-        alpha=0.25,
-        linewidth=2,
-    )
-    ax2.plot(
-        cobalt_concentration_li_co_al,
-        actual_cobalt_rejection_li_co_al,
-        "b.-",
-        linewidth=2,
-    )
+    # ax2.plot(
+    #     cobalt_concentration_li_co_al,
+    #     observed_cobalt_rejection_li_co_al,
+    #     "b.-",
+    #     alpha=0.25,
+    #     linewidth=2,
+    # )
+    # ax2.plot(
+    #     cobalt_concentration_li_co_al,
+    #     actual_cobalt_rejection_li_co_al,
+    #     "b.-",
+    #     linewidth=2,
+    # )
     ax2.set_xlabel(
-        "Cobalt Concentration (Interface) (mol/m$^3$)",
+        f"Cobalt Concentration ({x_axis_conc.capitalize()}) (mol/m$^3$)",
         fontsize=12,
         fontweight="bold",
     )
+    ax2.set_title("Cobalt Rejection")
     ax2.set_ylabel("Percent Rejection (%)", fontsize=12, fontweight="bold")
     ax2.tick_params(direction="in", labelsize=12)
     ax2.plot([], [], "k-", linewidth=2, label="CoCl$_2$")
     ax2.plot([], [], "k--", linewidth=2, label="LiCl + CoCl$_2$")
     ax2.plot([], [], "k:", linewidth=2, label="CoCl$_2$ + AlCl$_3$")
-    ax2.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl$_2$ + AlCl$_3$")
+    # ax2.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl$_2$ + AlCl$_3$")
     ax2.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
     ax2.plot([], [], "bs", alpha=0.25, markersize=8, label="Observed")
     ax2.plot([], [], "bs", markersize=8, label="Actual")
@@ -1797,39 +1689,38 @@ def plot_rejection_versus_concentration(
         "g:",
         linewidth=2,
     )
-    ax3.plot(
-        aluminum_concentration_li_co_al,
-        observed_aluminum_rejection_li_co_al,
-        "g.-",
-        alpha=0.25,
-        linewidth=2,
-    )
-    ax3.plot(
-        aluminum_concentration_li_co_al,
-        actual_aluminum_rejection_li_co_al,
-        "g.-",
-        linewidth=2,
-    )
+    # ax3.plot(
+    #     aluminum_concentration_li_co_al,
+    #     observed_aluminum_rejection_li_co_al,
+    #     "g.-",
+    #     alpha=0.25,
+    #     linewidth=2,
+    # )
+    # ax3.plot(
+    #     aluminum_concentration_li_co_al,
+    #     actual_aluminum_rejection_li_co_al,
+    #     "g.-",
+    #     linewidth=2,
+    # )
     ax3.set_xlabel(
-        "Aluminum Concentration (Interface) (mol/m$^3$)",
+        f"Aluminum Concentration ({x_axis_conc.capitalize()}) (mol/m$^3$)",
         fontsize=12,
         fontweight="bold",
     )
+    ax3.set_title("Aluminum Rejection")
     ax3.set_ylabel("Percent Rejection (%)", fontsize=12, fontweight="bold")
     ax3.tick_params(direction="in", labelsize=12)
 
     ax3.plot([], [], "k-", linewidth=2, label="AlCl$_3$")
     ax3.plot([], [], "k-.", linewidth=2, label="LiCl + AlCl$_3$")
     ax3.plot([], [], "k:", linewidth=2, label="CoCl$_2$ + AlCl$_3$")
-    ax3.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl$_2$ + AlCl$_3$")
+    # ax3.plot([], [], "k.-", linewidth=2, label="LiCl + CoCl$_2$ + AlCl$_3$")
     ax3.plot([], [], marker="None", linestyle="None", label="Rejection (color)")
     ax3.plot([], [], "gs", alpha=0.25, markersize=8, label="Observed")
     ax3.plot([], [], "gs", markersize=8, label="Actual")
     ax3.legend(loc="best", title="Solution (linestyle)")
 
     plt.tight_layout()
-
-    plt.show()
 
 
 def plot_relative_flux():
@@ -2118,8 +2009,6 @@ def plot_relative_flux():
 
     plt.tight_layout()
 
-    plt.show()
-
 
 def plot_concentrations(m2, m3):
     """
@@ -2239,8 +2128,6 @@ def plot_concentrations(m2, m3):
         ax.legend(loc="upper left")
 
     # plt.tight_layout()
-
-    plt.show()
 
 
 if __name__ == "__main__":
