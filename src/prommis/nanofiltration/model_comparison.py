@@ -12,6 +12,7 @@ Author: Molly Dougher
 
 from pyomo.environ import (
     ConcreteModel,
+    Constraint,
     SolverFactory,
     TransformationFactory,
     assert_optimal_termination,
@@ -147,6 +148,15 @@ def main():
     model_list = [m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl]
     for model in model_list:
         solve_model(model)
+        unfix_pressure(model)
+        solve_model(model)
+
+    # m_li_cl.fs.membrane.applied_pressure.display()
+    # m_co_cl.fs.membrane.applied_pressure.display()
+    # m_al_cl.fs.membrane.applied_pressure.display()
+    # m_li_co_cl.fs.membrane.applied_pressure.display()
+    # m_li_al_cl.fs.membrane.applied_pressure.display()
+    # m_co_al_cl.fs.membrane.applied_pressure.display()
 
     # store results
     m_li_cl_results_dict = extract_and_store_results(m_li_cl)
@@ -184,15 +194,15 @@ def main():
         #     m_co_al_cl_results_dict,
         #     compact=True,
         # )
-        # # plot_rejection_versus_area(
-        # #     m_li_cl_results_dict,
-        # #     m_co_cl_results_dict,
-        # #     m_al_cl_results_dict,
-        # #     m_li_co_cl_results_dict,
-        # #     m_li_al_cl_results_dict,
-        # #     m_co_al_cl_results_dict,
-        # #     compact=False,
-        # # )
+        plot_rejection_versus_area(
+            m_li_cl_results_dict,
+            m_co_cl_results_dict,
+            m_al_cl_results_dict,
+            m_li_co_cl_results_dict,
+            m_li_al_cl_results_dict,
+            m_co_al_cl_results_dict,
+            compact=False,
+        )
         # plot_rejection_versus_concentration(
         #     m_li_cl_results_dict,
         #     m_co_cl_results_dict,
@@ -220,30 +230,30 @@ def main():
         # #     m_co_al_cl_results_dict,
         # #     x_axis_conc="bulk-ionic-strength",
         # # )
-        # plot_rejection_versus_feed_ionic_strength(
+        plot_rejection_versus_feed_ionic_strength(
+            m_li_cl_results_dict,
+            m_co_cl_results_dict,
+            m_al_cl_results_dict,
+            m_li_co_cl_results_dict,
+            m_li_al_cl_results_dict,
+            m_co_al_cl_results_dict,
+        )
+        # plot_flux_versus_length(
         #     m_li_cl_results_dict,
-        #     m_co_cl_results_dict,
-        #     m_al_cl_results_dict,
+        #     # m_co_cl_results_dict,
+        #     # m_al_cl_results_dict,
         #     m_li_co_cl_results_dict,
         #     m_li_al_cl_results_dict,
-        #     m_co_al_cl_results_dict,
+        #     # m_co_al_cl_results_dict,
         # )
-        plot_flux_versus_length(
-            m_li_cl_results_dict,
-            # m_co_cl_results_dict,
-            # m_al_cl_results_dict,
-            m_li_co_cl_results_dict,
-            m_li_al_cl_results_dict,
-            # m_co_al_cl_results_dict,
-        )
-        plot_electric_potential_gradient(
-            m_li_cl_results_dict,
-            # m_co_cl_results_dict,
-            # m_al_cl_results_dict,
-            m_li_co_cl_results_dict,
-            m_li_al_cl_results_dict,
-            # m_co_al_cl_results_dict,
-        )
+        # plot_electric_potential_gradient(
+        #     m_li_cl_results_dict,
+        #     # m_co_cl_results_dict,
+        #     # m_al_cl_results_dict,
+        #     m_li_co_cl_results_dict,
+        #     m_li_al_cl_results_dict,
+        #     # m_co_al_cl_results_dict,
+        # )
 
     plt.show()
 
@@ -355,6 +365,15 @@ def solve_model(m):
     dt.assert_no_numerical_warnings()
 
     return results
+
+
+def unfix_pressure(m):
+    m.fs.membrane.applied_pressure.unfix()
+
+    def _water_flux_constraint(m):
+        return m.fs.membrane.volume_flux_water[0, 0.1] == 0.08
+
+    m.water_flux_constraint = Constraint(rule=_water_flux_constraint)
 
 
 def extract_and_store_results(m):
