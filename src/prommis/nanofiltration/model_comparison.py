@@ -236,6 +236,14 @@ def main():
             m_li_al_cl_results_dict,
             # m_co_al_cl_results_dict,
         )
+        plot_electric_potential_gradient(
+            m_li_cl_results_dict,
+            # m_co_cl_results_dict,
+            # m_al_cl_results_dict,
+            m_li_co_cl_results_dict,
+            m_li_al_cl_results_dict,
+            # m_co_al_cl_results_dict,
+        )
 
     plt.show()
 
@@ -2235,6 +2243,314 @@ def plot_rejection_versus_feed_ionic_strength(
     ax1.legend(loc="best", title="Solution (marker)", title_fontsize=10, fontsize=10)
 
     plt.tight_layout()
+
+
+def plot_electric_potential_gradient(
+    m_li_cl_results_dict,
+    # m_co_cl_results_dict,
+    # m_al_cl_results_dict,
+    m_li_co_cl_results_dict,
+    m_li_al_cl_results_dict,
+    # m_co_al_cl_results_dict,
+):
+    """
+    Plots electric potential gradient for different systems.
+    # TODO add this calculation to the model
+    """
+
+    # global constants
+    z_lithium = 1
+    z_cobalt = 2
+    z_aluminum = 3
+    z_chloride = -1
+
+    D_bl_lithium = 3.71e-6  # m2 / h
+    D_bl_cobalt = 2.64e-6  # m2 / h
+    D_bl_aluminum = 2.01e-6  # m2 / h
+    D_bl_chloride = 7.31e-6  # m2 / h
+
+    D_mem_lithium = 3.71e-6  # m2 / h
+    D_mem_cobalt = 2.64e-6  # m2 / h
+    D_mem_aluminum = 2.01e-6  # m2 / h
+    D_mem_chloride = 7.31e-6  # m2 / h
+
+    chi = -44  # mM
+
+    R = 8.314  # J / K / mol
+    F = 96485  # J / V / mol
+    T = 298  # K
+
+    x_axis_values = m_li_cl_results_dict["x_values_dimensionless"]
+    z_bl_axis_values = m_li_cl_results_dict["z_bl_values"]
+    z_mem_axis_values = m_li_cl_results_dict["z_mem_values"]
+
+    # water flux
+    water_flux_li = m_li_cl_results_dict["water_flux"]
+    # water_flux_co = m_co_cl_results_dict["water_flux"]
+    # water_flux_al = m_al_cl_results_dict["water_flux"]
+    water_flux_li_co = m_li_co_cl_results_dict["water_flux"]
+    water_flux_li_al = m_li_al_cl_results_dict["water_flux"]
+    # water_flux_co_al = m_co_al_cl_results_dict["water_flux"]
+
+    # boundary layer concentrations
+    lithium_bl_concentration_li = m_li_cl_results_dict[
+        "cation_1_boundary_layer_concentration_by_x"
+    ]
+    lithium_bl_concentration_li_co = m_li_co_cl_results_dict[
+        "cation_1_boundary_layer_concentration_by_x"
+    ]
+    lithium_bl_concentration_li_al = m_li_al_cl_results_dict[
+        "cation_1_boundary_layer_concentration_by_x"
+    ]
+    # cobalt_bl_concentration_co = m_co_cl_results_dict[
+    #     "cation_1_boundary_layer_concentration_by_x"
+    # ]
+    cobalt_bl_concentration_li_co = m_li_co_cl_results_dict[
+        "cation_2_boundary_layer_concentration_by_x"
+    ]
+    # cobalt_bl_concentration_co_al = m_co_al_cl_results_dict[
+    #     "cation_1_boundary_layer_concentration_by_x"
+    # ]
+    # aluminum_bl_concentration_al = m_al_cl_results_dict[
+    #     "cation_1_boundary_layer_concentration_by_x"
+    # ]
+    aluminum_bl_concentration_li_al = m_li_al_cl_results_dict[
+        "cation_2_boundary_layer_concentration_by_x"
+    ]
+    # aluminum_bl_concentration_co_al = m_co_al_cl_results_dict[
+    #     "cation_2_boundary_layer_concentration_by_x"
+    # ]
+
+    # membrane concentrations
+    lithium_mem_concentration_li = m_li_cl_results_dict[
+        "cation_1_membrane_concentration_by_x"
+    ]
+    lithium_mem_concentration_li_co = m_li_co_cl_results_dict[
+        "cation_1_membrane_concentration_by_x"
+    ]
+    lithium_mem_concentration_li_al = m_li_al_cl_results_dict[
+        "cation_1_membrane_concentration_by_x"
+    ]
+    # cobalt_mem_concentration_co = m_co_cl_results_dict[
+    #     "cation_1_membrane_concentration_by_x"
+    # ]
+    cobalt_mem_concentration_li_co = m_li_co_cl_results_dict[
+        "cation_2_membrane_concentration_by_x"
+    ]
+    # cobalt_mem_concentration_co_al = m_co_al_cl_results_dict[
+    #     "cation_1_membrane_concentration_by_x"
+    # ]
+    # aluminum_mem_concentration_al = m_al_cl_results_dict[
+    #     "cation_1_membrane_concentration_by_x"
+    # ]
+    aluminum_mem_concentration_li_al = m_li_al_cl_results_dict[
+        "cation_2_membrane_concentration_by_x"
+    ]
+    # aluminum_mem_concentration_co_al = m_co_al_cl_results_dict[
+    #     "cation_2_membrane_concentration_by_x"
+    # ]
+
+    # boundary layer concentration gradients
+    lithium_bl_concentration_gradient_li = m_li_cl_results_dict[
+        "cation_1_boundary_layer_concentration_gradient_by_x"
+    ]
+    lithium_bl_concentration_gradient_li_co = m_li_co_cl_results_dict[
+        "cation_1_boundary_layer_concentration_gradient_by_x"
+    ]
+    lithium_bl_concentration_gradient_li_al = m_li_al_cl_results_dict[
+        "cation_1_boundary_layer_concentration_gradient_by_x"
+    ]
+    # cobalt_bl_concentration_gradient_co = m_co_cl_results_dict[
+    #     "cation_1_boundary_layer_concentration_gradient_by_x"
+    # ]
+    cobalt_bl_concentration_gradient_li_co = m_li_co_cl_results_dict[
+        "cation_2_boundary_layer_concentration_gradient_by_x"
+    ]
+    # cobalt_bl_concentration_gradient_co_al = m_co_al_cl_results_dict[
+    #     "cation_1_boundary_layer_concentration_gradient_by_x"
+    # ]
+    # aluminum_bl_concentration_gradient_al = m_al_cl_results_dict[
+    #     "cation_1_boundary_layer_concentration_gradient_by_x"
+    # ]
+    aluminum_bl_concentration_gradient_li_al = m_li_al_cl_results_dict[
+        "cation_2_boundary_layer_concentration_gradient_by_x"
+    ]
+    # aluminum_bl_concentration_gradient_co_al = m_co_al_cl_results_dict[
+    #     "cation_2_boundary_layer_concentration_gradient_by_x"
+    # ]
+
+    # membrane concentrations
+    lithium_mem_concentration_gradient_li = m_li_cl_results_dict[
+        "cation_1_membrane_concentration_gradient_by_x"
+    ]
+    lithium_mem_concentration_gradient_li_co = m_li_co_cl_results_dict[
+        "cation_1_membrane_concentration_gradient_by_x"
+    ]
+    lithium_mem_concentration_gradient_li_al = m_li_al_cl_results_dict[
+        "cation_1_membrane_concentration_gradient_by_x"
+    ]
+    # cobalt_mem_concentration_gradient_co = m_co_cl_results_dict[
+    #     "cation_1_membrane_concentration_gradient_by_x"
+    # ]
+    cobalt_mem_concentration_gradient_li_co = m_li_co_cl_results_dict[
+        "cation_2_membrane_concentration_gradient_by_x"
+    ]
+    # cobalt_mem_concentration_gradient_co_al = m_co_al_cl_results_dict[
+    #     "cation_1_membrane_concentration_gradient_by_x"
+    # ]
+    # aluminum_mem_concentration_gradient_al = m_al_cl_results_dict[
+    #     "cation_1_membrane_concentration_gradient_by_x"
+    # ]
+    aluminum_mem_concentration_gradient_li_al = m_li_al_cl_results_dict[
+        "cation_2_membrane_concentration_gradient_by_x"
+    ]
+    # aluminum_mem_concentration_gradient_co_al = m_co_al_cl_results_dict[
+    #     "cation_2_membrane_concentration_gradient_by_x"
+    # ]
+
+    mem_del_phi_li = []
+    mem_del_phi_li_co = []
+    mem_del_phi_li_al = []
+
+    mem_del_phi_li_dict = {}
+    mem_del_phi_li_co_dict = {}
+    mem_del_phi_li_al_dict = {}
+
+    for z in range(len(z_mem_axis_values)):
+        for x in x_axis_values:
+            x_position = x_axis_values.index(x)
+
+            mem_del_phi_li_val = (-R * T / F) * (
+                z_lithium
+                * D_mem_lithium
+                * lithium_mem_concentration_li[str(x)][z]
+                * (
+                    (
+                        (
+                            (D_mem_lithium - D_mem_chloride)
+                            * z_lithium
+                            * lithium_mem_concentration_gradient_li[str(x)][z]
+                        )
+                        + (water_flux_li[x_position] * chi)
+                    )
+                    / (
+                        (z_lithium * D_mem_lithium - z_chloride * D_mem_chloride)
+                        * z_lithium
+                        * lithium_mem_concentration_li[str(x)][z]
+                    )
+                )
+            )
+            mem_del_phi_li_co_val = (-R * T / F) * (
+                z_lithium
+                * D_mem_lithium
+                * lithium_mem_concentration_li_co[str(x)][z]
+                * (
+                    (
+                        (
+                            (D_mem_lithium - D_mem_chloride)
+                            * z_lithium
+                            * lithium_mem_concentration_gradient_li_co[str(x)][z]
+                        )
+                        + (
+                            (D_mem_cobalt - D_mem_chloride)
+                            * z_cobalt
+                            * cobalt_mem_concentration_gradient_li_co[str(x)][z]
+                        )
+                        + (water_flux_li_co[x_position] * chi)
+                    )
+                    / (
+                        (
+                            (z_lithium * D_mem_lithium - z_chloride * D_mem_chloride)
+                            * z_lithium
+                            * lithium_mem_concentration_li_co[str(x)][z]
+                        )
+                        + (
+                            (z_cobalt * D_mem_cobalt - z_chloride * D_mem_chloride)
+                            * z_cobalt
+                            * cobalt_mem_concentration_li_co[str(x)][z]
+                        )
+                    )
+                )
+            )
+            mem_del_phi_li_al_val = (-R * T / F) * (
+                z_lithium
+                * D_mem_lithium
+                * lithium_mem_concentration_li_al[str(x)][z]
+                * (
+                    (
+                        (
+                            (D_mem_lithium - D_mem_chloride)
+                            * z_lithium
+                            * lithium_mem_concentration_gradient_li_al[str(x)][z]
+                        )
+                        + (
+                            (D_mem_aluminum - D_mem_chloride)
+                            * z_aluminum
+                            * aluminum_mem_concentration_gradient_li_al[str(x)][z]
+                        )
+                        + (water_flux_li_al[x_position] * chi)
+                    )
+                    / (
+                        (
+                            (z_lithium * D_mem_lithium - z_chloride * D_mem_chloride)
+                            * z_lithium
+                            * lithium_mem_concentration_li_al[str(x)][z]
+                        )
+                        + (
+                            (z_aluminum * D_mem_aluminum - z_chloride * D_mem_chloride)
+                            * z_aluminum
+                            * aluminum_mem_concentration_li_al[str(x)][z]
+                        )
+                    )
+                )
+            )
+
+            mem_del_phi_li.append(mem_del_phi_li_val)
+            mem_del_phi_li_co.append(mem_del_phi_li_co_val)
+            mem_del_phi_li_al.append(mem_del_phi_li_al_val)
+
+        mem_del_phi_li_dict[z] = mem_del_phi_li
+        mem_del_phi_li_co_dict[z] = mem_del_phi_li_co
+        mem_del_phi_li_al_dict[z] = mem_del_phi_li_al
+
+        mem_del_phi_li = []
+        mem_del_phi_li_co = []
+        mem_del_phi_li_al = []
+
+    mem_del_phi_li_dict_df = DataFrame(index=x_axis_values, data=mem_del_phi_li_dict)
+    mem_del_phi_li_co_dict_df = DataFrame(
+        index=x_axis_values, data=mem_del_phi_li_co_dict
+    )
+    mem_del_phi_li_al_dict_df = DataFrame(
+        index=x_axis_values, data=mem_del_phi_li_al_dict
+    )
+
+    fig1, (ax1, ax2, ax3) = plt.subplots(1, 3, dpi=125, figsize=(15, 7))
+    mem_plot_li = ax1.pcolor(z_mem_axis_values, x_axis_values, mem_del_phi_li_dict_df)
+    mem_plot_li_co = ax2.pcolor(
+        z_mem_axis_values, x_axis_values, mem_del_phi_li_co_dict_df
+    )
+    mem_plot_li_al = ax3.pcolor(
+        z_mem_axis_values, x_axis_values, mem_del_phi_li_al_dict_df
+    )
+
+    for ax in [ax1, ax2, ax3]:
+        ax.set_xlabel("Membrane Thickness (nm)", fontsize=14, fontweight="bold")
+        ax.tick_params(direction="in", labelsize=14)
+
+    ax1.set_ylabel("Module Length (m)", fontsize=14, fontweight="bold")
+    ax1.set_title("LiCl")
+    ax2.set_title("LiCl + CoCl$_2$")
+    ax3.set_title("LiCl + AlCl$_3$")
+
+    plt.suptitle(
+        "Electric Potential Gradient in Membrane (V/m)",
+        fontsize=14,
+        fontweight="bold",
+    )
+    fig1.colorbar(mem_plot_li, ax=ax1)
+    fig1.colorbar(mem_plot_li_co, ax=ax2)
+    fig1.colorbar(mem_plot_li_al, ax=ax3)
 
 
 def plot_flux_versus_length(
