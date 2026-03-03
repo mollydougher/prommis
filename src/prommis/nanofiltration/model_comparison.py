@@ -2200,7 +2200,6 @@ def plot_rejection_versus_feed_ionic_strength(
     """
     Plots rejection versus ionic strength of bulk fluid and feed.
     """
-    x_axis_values = m_li_cl_results_dict["x_values"]
 
     # feed ionic strength
     feed_ionic_strength_li_val = m_li_cl_results_dict["feed_ionic_strength"]
@@ -2210,28 +2209,6 @@ def plot_rejection_versus_feed_ionic_strength(
     feed_ionic_strength_li_al_val = m_li_al_cl_results_dict["feed_ionic_strength"]
     feed_ionic_strength_co_al_val = m_co_al_cl_results_dict["feed_ionic_strength"]
     feed_ionic_strength_li_co_al_val = m_li_co_al_cl_results_dict["feed_ionic_strength"]
-
-    feed_ionic_strength_li = [
-        feed_ionic_strength_li_val for i in range(len(x_axis_values))
-    ]
-    feed_ionic_strength_co = [
-        feed_ionic_strength_co_val for i in range(len(x_axis_values))
-    ]
-    feed_ionic_strength_al = [
-        feed_ionic_strength_al_val for i in range(len(x_axis_values))
-    ]
-    feed_ionic_strength_li_co = [
-        feed_ionic_strength_li_co_val for i in range(len(x_axis_values))
-    ]
-    feed_ionic_strength_li_al = [
-        feed_ionic_strength_li_al_val for i in range(len(x_axis_values))
-    ]
-    feed_ionic_strength_co_al = [
-        feed_ionic_strength_co_al_val for i in range(len(x_axis_values))
-    ]
-    feed_ionic_strength_li_co_al = [
-        feed_ionic_strength_li_co_al_val for i in range(len(x_axis_values))
-    ]
 
     # lithium rejections
     observed_lithium_rejection_li = m_li_cl_results_dict["cation_1_rejection_observed"]
@@ -2255,6 +2232,92 @@ def plot_rejection_versus_feed_ionic_strength(
         "cation_1_rejection_actual"
     ]
 
+    avg_observed_lithium_rejection_li = np.average(observed_lithium_rejection_li)
+    avg_actual_lithium_rejection_li = np.average(actual_lithium_rejection_li)
+    avg_observed_lithium_rejection_li_co = np.average(observed_lithium_rejection_li_co)
+    avg_actual_lithium_rejection_li_co = np.average(actual_lithium_rejection_li_co)
+    avg_observed_lithium_rejection_li_al = np.average(observed_lithium_rejection_li_al)
+    avg_actual_lithium_rejection_li_al = np.average(actual_lithium_rejection_li_al)
+    avg_observed_lithium_rejection_li_co_al = np.average(
+        observed_lithium_rejection_li_co_al
+    )
+    avg_actual_lithium_rejection_li_co_al = np.average(
+        actual_lithium_rejection_li_co_al
+    )
+
+    spread_observed_lithium_rejection_li = np.array(
+        [
+            [avg_observed_lithium_rejection_li - min(observed_lithium_rejection_li)],
+            [max(observed_lithium_rejection_li) - avg_observed_lithium_rejection_li],
+        ]
+    )
+    spread_actual_lithium_rejection_li = np.array(
+        [
+            [avg_actual_lithium_rejection_li - min(actual_lithium_rejection_li)],
+            [max(actual_lithium_rejection_li) - avg_actual_lithium_rejection_li],
+        ]
+    )
+    spread_observed_lithium_rejection_li_co = np.array(
+        [
+            [
+                avg_observed_lithium_rejection_li_co
+                - min(observed_lithium_rejection_li_co)
+            ],
+            [
+                max(observed_lithium_rejection_li_co)
+                - avg_observed_lithium_rejection_li_co
+            ],
+        ]
+    )
+    spread_actual_lithium_rejection_li_co = np.array(
+        [
+            [avg_actual_lithium_rejection_li_co - min(actual_lithium_rejection_li_co)],
+            [max(actual_lithium_rejection_li_co) - avg_actual_lithium_rejection_li_co],
+        ]
+    )
+    spread_observed_lithium_rejection_li_al = np.array(
+        [
+            [
+                avg_observed_lithium_rejection_li_al
+                - min(observed_lithium_rejection_li_al)
+            ],
+            [
+                max(observed_lithium_rejection_li_al)
+                - avg_observed_lithium_rejection_li_al
+            ],
+        ]
+    )
+    spread_actual_lithium_rejection_li_al = np.array(
+        [
+            [avg_actual_lithium_rejection_li_al - min(actual_lithium_rejection_li_al)],
+            [max(actual_lithium_rejection_li_al) - avg_actual_lithium_rejection_li_al],
+        ]
+    )
+    spread_observed_lithium_rejection_li_co_al = np.array(
+        [
+            [
+                avg_observed_lithium_rejection_li_co_al
+                - min(observed_lithium_rejection_li_co_al)
+            ],
+            [
+                max(observed_lithium_rejection_li_co_al)
+                - avg_observed_lithium_rejection_li_co_al
+            ],
+        ]
+    )
+    spread_actual_lithium_rejection_li_co_al = np.array(
+        [
+            [
+                avg_actual_lithium_rejection_li_co_al
+                - min(actual_lithium_rejection_li_co_al)
+            ],
+            [
+                max(actual_lithium_rejection_li_co_al)
+                - avg_actual_lithium_rejection_li_co_al
+            ],
+        ]
+    )
+
     # cobalt rejections
     observed_cobalt_rejection_co = m_co_cl_results_dict["cation_1_rejection_observed"]
     actual_cobalt_rejection_co = m_co_cl_results_dict["cation_1_rejection_actual"]
@@ -2272,6 +2335,90 @@ def plot_rejection_versus_feed_ionic_strength(
     actual_cobalt_rejection_li_co_al = m_li_co_al_cl_results_dict[
         "cation_2_rejection_actual"
     ]
+
+    avg_observed_cobalt_rejection_co = np.average(observed_cobalt_rejection_co)
+    avg_actual_cobalt_rejection_co = np.average(actual_cobalt_rejection_co)
+    avg_observed_cobalt_rejection_li_co = np.average(observed_cobalt_rejection_li_co)
+    avg_actual_cobalt_rejection_li_co = np.average(actual_cobalt_rejection_li_co)
+    avg_observed_cobalt_rejection_co_al = np.average(observed_cobalt_rejection_co_al)
+    avg_actual_cobalt_rejection_co_al = np.average(actual_cobalt_rejection_co_al)
+    avg_observed_cobalt_rejection_li_co_al = np.average(
+        observed_cobalt_rejection_li_co_al
+    )
+    avg_actual_cobalt_rejection_li_co_al = np.average(actual_cobalt_rejection_li_co_al)
+
+    spread_observed_cobalt_rejection_co = np.array(
+        [
+            [avg_observed_cobalt_rejection_co - min(observed_cobalt_rejection_co)],
+            [max(observed_cobalt_rejection_co) - avg_observed_cobalt_rejection_co],
+        ]
+    )
+    spread_actual_cobalt_rejection_co = np.array(
+        [
+            [avg_actual_cobalt_rejection_co - min(actual_cobalt_rejection_co)],
+            [max(actual_cobalt_rejection_co) - avg_actual_cobalt_rejection_co],
+        ]
+    )
+    spread_observed_cobalt_rejection_li_co = np.array(
+        [
+            [
+                avg_observed_cobalt_rejection_li_co
+                - min(observed_cobalt_rejection_li_co)
+            ],
+            [
+                max(observed_cobalt_rejection_li_co)
+                - avg_observed_cobalt_rejection_li_co
+            ],
+        ]
+    )
+    spread_actual_cobalt_rejection_li_co = np.array(
+        [
+            [avg_actual_cobalt_rejection_li_co - min(actual_cobalt_rejection_li_co)],
+            [max(actual_cobalt_rejection_li_co) - avg_actual_cobalt_rejection_li_co],
+        ]
+    )
+    spread_observed_cobalt_rejection_co_al = np.array(
+        [
+            [
+                avg_observed_cobalt_rejection_co_al
+                - min(observed_cobalt_rejection_co_al)
+            ],
+            [
+                max(observed_cobalt_rejection_co_al)
+                - avg_observed_cobalt_rejection_co_al
+            ],
+        ]
+    )
+    spread_actual_cobalt_rejection_co_al = np.array(
+        [
+            [avg_actual_cobalt_rejection_co_al - min(actual_cobalt_rejection_co_al)],
+            [max(actual_cobalt_rejection_co_al) - avg_actual_cobalt_rejection_co_al],
+        ]
+    )
+    spread_observed_cobalt_rejection_li_co_al = np.array(
+        [
+            [
+                avg_observed_cobalt_rejection_li_co_al
+                - min(observed_cobalt_rejection_li_co_al)
+            ],
+            [
+                max(observed_cobalt_rejection_li_co_al)
+                - avg_observed_cobalt_rejection_li_co_al
+            ],
+        ]
+    )
+    spread_actual_cobalt_rejection_li_co_al = np.array(
+        [
+            [
+                avg_actual_cobalt_rejection_li_co_al
+                - min(actual_cobalt_rejection_li_co_al)
+            ],
+            [
+                max(actual_cobalt_rejection_li_co_al)
+                - avg_actual_cobalt_rejection_li_co_al
+            ],
+        ]
+    )
 
     # aluminum rejections
     observed_aluminum_rejection_al = m_al_cl_results_dict["cation_1_rejection_observed"]
@@ -2295,168 +2442,440 @@ def plot_rejection_versus_feed_ionic_strength(
         "cation_3_rejection_actual"
     ]
 
+    avg_observed_aluminum_rejection_al = np.average(observed_aluminum_rejection_al)
+    avg_actual_aluminum_rejection_al = np.average(actual_aluminum_rejection_al)
+    avg_observed_aluminum_rejection_li_al = np.average(
+        observed_aluminum_rejection_li_al
+    )
+    avg_actual_aluminum_rejection_li_al = np.average(actual_aluminum_rejection_li_al)
+    avg_observed_aluminum_rejection_co_al = np.average(
+        observed_aluminum_rejection_co_al
+    )
+    avg_actual_aluminum_rejection_co_al = np.average(actual_aluminum_rejection_co_al)
+    avg_observed_aluminum_rejection_li_co_al = np.average(
+        observed_aluminum_rejection_li_co_al
+    )
+    avg_actual_aluminum_rejection_li_co_al = np.average(
+        actual_aluminum_rejection_li_co_al
+    )
+
+    spread_observed_aluminum_rejection_al = np.array(
+        [
+            [avg_observed_aluminum_rejection_al - min(observed_aluminum_rejection_al)],
+            [max(observed_aluminum_rejection_al) - avg_observed_aluminum_rejection_al],
+        ]
+    )
+    spread_actual_aluminum_rejection_al = np.array(
+        [
+            [avg_actual_aluminum_rejection_al - min(actual_aluminum_rejection_al)],
+            [max(actual_aluminum_rejection_al) - avg_actual_aluminum_rejection_al],
+        ]
+    )
+    spread_observed_aluminum_rejection_li_al = np.array(
+        [
+            [
+                avg_observed_aluminum_rejection_li_al
+                - min(observed_aluminum_rejection_li_al)
+            ],
+            [
+                max(observed_aluminum_rejection_li_al)
+                - avg_observed_aluminum_rejection_li_al
+            ],
+        ]
+    )
+    spread_actual_aluminum_rejection_li_al = np.array(
+        [
+            [
+                avg_actual_aluminum_rejection_li_al
+                - min(actual_aluminum_rejection_li_al)
+            ],
+            [
+                max(actual_aluminum_rejection_li_al)
+                - avg_actual_aluminum_rejection_li_al
+            ],
+        ]
+    )
+    spread_observed_aluminum_rejection_co_al = np.array(
+        [
+            [
+                avg_observed_aluminum_rejection_co_al
+                - min(observed_aluminum_rejection_co_al)
+            ],
+            [
+                max(observed_aluminum_rejection_co_al)
+                - avg_observed_aluminum_rejection_co_al
+            ],
+        ]
+    )
+    spread_actual_aluminum_rejection_co_al = np.array(
+        [
+            [
+                avg_actual_aluminum_rejection_co_al
+                - min(actual_aluminum_rejection_co_al)
+            ],
+            [
+                max(actual_aluminum_rejection_co_al)
+                - avg_actual_aluminum_rejection_co_al
+            ],
+        ]
+    )
+    spread_observed_aluminum_rejection_li_co_al = np.array(
+        [
+            [
+                avg_observed_aluminum_rejection_li_co_al
+                - min(observed_aluminum_rejection_li_co_al)
+            ],
+            [
+                max(observed_aluminum_rejection_li_co_al)
+                - avg_observed_aluminum_rejection_li_co_al
+            ],
+        ]
+    )
+    spread_actual_aluminum_rejection_li_co_al = np.array(
+        [
+            [
+                avg_actual_aluminum_rejection_li_co_al
+                - min(actual_aluminum_rejection_li_co_al)
+            ],
+            [
+                max(actual_aluminum_rejection_li_co_al)
+                - avg_actual_aluminum_rejection_li_co_al
+            ],
+        ]
+    )
+
     fig, ax1 = plt.subplots(1, 1, dpi=100, figsize=(7, 6))
 
+    markersize = 10
+
     # lithium
+    plt.errorbar(
+        feed_ionic_strength_li_val,
+        avg_observed_lithium_rejection_li,
+        yerr=spread_observed_lithium_rejection_li,
+        ecolor="grey",
+        capsize=4,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_val,
+        avg_actual_lithium_rejection_li,
+        yerr=spread_actual_lithium_rejection_li,
+        ecolor="grey",
+        capsize=4,
+    )
     ax1.plot(
-        feed_ionic_strength_li,
-        observed_lithium_rejection_li,
+        feed_ionic_strength_li_val,
+        avg_observed_lithium_rejection_li,
         "ro",
         mfc="none",
-        markersize=10,
+        markersize=markersize,
     )
     ax1.plot(
-        feed_ionic_strength_li,
-        actual_lithium_rejection_li,
+        feed_ionic_strength_li_val,
+        avg_actual_lithium_rejection_li,
         "ro",
-        markersize=10,
+        markersize=markersize,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_co_val,
+        avg_observed_lithium_rejection_li_co,
+        yerr=spread_observed_lithium_rejection_li_co,
+        ecolor="grey",
+        capsize=4,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_co_val,
+        avg_actual_lithium_rejection_li_co,
+        yerr=spread_actual_lithium_rejection_li_co,
+        ecolor="grey",
+        capsize=4,
     )
     ax1.plot(
-        feed_ionic_strength_li_co,
-        observed_lithium_rejection_li_co,
+        feed_ionic_strength_li_co_val,
+        avg_observed_lithium_rejection_li_co,
         "r*",
         mfc="none",
-        markersize=10,
+        markersize=markersize,
     )
     ax1.plot(
-        feed_ionic_strength_li_co,
-        actual_lithium_rejection_li_co,
+        feed_ionic_strength_li_co_val,
+        avg_actual_lithium_rejection_li_co,
         "r*",
-        markersize=10,
+        markersize=markersize,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_al_val,
+        avg_observed_lithium_rejection_li_al,
+        yerr=spread_observed_lithium_rejection_li_al,
+        ecolor="grey",
+        capsize=4,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_al_val,
+        avg_actual_lithium_rejection_li_al,
+        yerr=spread_actual_lithium_rejection_li_al,
+        ecolor="grey",
+        capsize=4,
     )
     ax1.plot(
-        feed_ionic_strength_li_al,
-        observed_lithium_rejection_li_al,
+        feed_ionic_strength_li_al_val,
+        avg_observed_lithium_rejection_li_al,
         "r^",
         mfc="none",
-        markersize=10,
+        markersize=markersize,
     )
     ax1.plot(
-        feed_ionic_strength_li_al,
-        actual_lithium_rejection_li_al,
+        feed_ionic_strength_li_al_val,
+        avg_actual_lithium_rejection_li_al,
         "r^",
-        markersize=10,
+        markersize=markersize,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_co_al_val,
+        avg_observed_lithium_rejection_li_co_al,
+        yerr=spread_observed_lithium_rejection_li_co_al,
+        ecolor="grey",
+        capsize=4,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_co_al_val,
+        avg_actual_lithium_rejection_li_co_al,
+        yerr=spread_actual_lithium_rejection_li_co_al,
+        ecolor="grey",
+        capsize=4,
     )
     ax1.plot(
-        feed_ionic_strength_li_co_al,
-        observed_lithium_rejection_li_co_al,
+        feed_ionic_strength_li_co_al_val,
+        avg_observed_lithium_rejection_li_co_al,
         "rD",
         mfc="none",
-        markersize=10,
+        markersize=markersize,
     )
     ax1.plot(
-        feed_ionic_strength_li_co_al,
-        actual_lithium_rejection_li_co_al,
+        feed_ionic_strength_li_co_al_val,
+        avg_actual_lithium_rejection_li_co_al,
         "rD",
-        markersize=10,
+        markersize=markersize,
     )
 
     # cobalt
+    plt.errorbar(
+        feed_ionic_strength_co_val,
+        avg_observed_cobalt_rejection_co,
+        yerr=spread_observed_cobalt_rejection_co,
+        ecolor="grey",
+        capsize=4,
+    )
+    plt.errorbar(
+        feed_ionic_strength_co_val,
+        avg_actual_cobalt_rejection_co,
+        yerr=spread_actual_cobalt_rejection_co,
+        ecolor="grey",
+        capsize=4,
+    )
     ax1.plot(
-        feed_ionic_strength_co,
-        observed_cobalt_rejection_co,
+        feed_ionic_strength_co_val,
+        avg_observed_cobalt_rejection_co,
         "bo",
         mfc="none",
-        markersize=10,
+        markersize=markersize,
     )
     ax1.plot(
-        feed_ionic_strength_co,
-        actual_cobalt_rejection_co,
+        feed_ionic_strength_co_val,
+        avg_actual_cobalt_rejection_co,
         "bo",
-        markersize=10,
+        markersize=markersize,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_co_val,
+        avg_observed_cobalt_rejection_li_co,
+        yerr=spread_observed_cobalt_rejection_li_co,
+        ecolor="grey",
+        capsize=4,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_co_val,
+        avg_actual_cobalt_rejection_li_co,
+        yerr=spread_actual_cobalt_rejection_li_co,
+        ecolor="grey",
+        capsize=4,
     )
     ax1.plot(
-        feed_ionic_strength_li_co,
-        observed_cobalt_rejection_li_co,
+        feed_ionic_strength_li_co_val,
+        avg_observed_cobalt_rejection_li_co,
         "b*",
         mfc="none",
-        markersize=10,
+        markersize=markersize,
     )
     ax1.plot(
-        feed_ionic_strength_li_co,
-        actual_cobalt_rejection_li_co,
+        feed_ionic_strength_li_co_val,
+        avg_actual_cobalt_rejection_li_co,
         "b*",
-        markersize=10,
+        markersize=markersize,
+    )
+    plt.errorbar(
+        feed_ionic_strength_co_al_val,
+        avg_observed_cobalt_rejection_co_al,
+        yerr=spread_observed_cobalt_rejection_co_al,
+        ecolor="grey",
+        capsize=4,
+    )
+    plt.errorbar(
+        feed_ionic_strength_co_al_val,
+        avg_actual_cobalt_rejection_co_al,
+        yerr=spread_actual_cobalt_rejection_co_al,
+        ecolor="grey",
+        capsize=4,
     )
     ax1.plot(
-        feed_ionic_strength_co_al,
-        observed_cobalt_rejection_co_al,
+        feed_ionic_strength_co_al_val,
+        avg_observed_cobalt_rejection_co_al,
         "bv",
         mfc="none",
-        markersize=10,
+        markersize=markersize,
     )
     ax1.plot(
-        feed_ionic_strength_co_al,
-        actual_cobalt_rejection_co_al,
+        feed_ionic_strength_co_al_val,
+        avg_actual_cobalt_rejection_co_al,
         "bv",
-        markersize=10,
+        markersize=markersize,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_co_al_val,
+        avg_observed_cobalt_rejection_li_co_al,
+        yerr=spread_observed_cobalt_rejection_li_co_al,
+        ecolor="grey",
+        capsize=4,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_co_al_val,
+        avg_actual_cobalt_rejection_li_co_al,
+        yerr=spread_actual_cobalt_rejection_li_co_al,
+        ecolor="grey",
+        capsize=4,
     )
     ax1.plot(
-        feed_ionic_strength_li_co_al,
-        observed_cobalt_rejection_li_co_al,
+        feed_ionic_strength_li_co_al_val,
+        avg_observed_cobalt_rejection_li_co_al,
         "bD",
         mfc="none",
-        markersize=10,
+        markersize=markersize,
     )
     ax1.plot(
-        feed_ionic_strength_li_co_al,
-        actual_cobalt_rejection_li_co_al,
+        feed_ionic_strength_li_co_al_val,
+        avg_actual_cobalt_rejection_li_co_al,
         "bD",
-        markersize=10,
+        markersize=markersize,
     )
 
     # aluminum
+    plt.errorbar(
+        feed_ionic_strength_al_val,
+        avg_observed_aluminum_rejection_al,
+        yerr=spread_observed_aluminum_rejection_al,
+        ecolor="grey",
+        capsize=4,
+    )
+    plt.errorbar(
+        feed_ionic_strength_al_val,
+        avg_actual_aluminum_rejection_al,
+        yerr=spread_actual_aluminum_rejection_al,
+        ecolor="grey",
+        capsize=4,
+    )
     ax1.plot(
-        feed_ionic_strength_al,
-        observed_aluminum_rejection_al,
+        feed_ionic_strength_al_val,
+        avg_observed_aluminum_rejection_al,
         "go",
         mfc="none",
-        markersize=10,
+        markersize=markersize,
     )
     ax1.plot(
-        feed_ionic_strength_al,
-        actual_aluminum_rejection_al,
+        feed_ionic_strength_al_val,
+        avg_actual_aluminum_rejection_al,
         "go",
-        markersize=10,
+        markersize=markersize,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_al_val,
+        avg_observed_aluminum_rejection_li_al,
+        yerr=spread_observed_aluminum_rejection_li_al,
+        ecolor="grey",
+        capsize=4,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_al_val,
+        avg_actual_aluminum_rejection_li_al,
+        yerr=spread_actual_aluminum_rejection_li_al,
+        ecolor="grey",
+        capsize=4,
     )
     ax1.plot(
-        feed_ionic_strength_li_al,
-        observed_aluminum_rejection_li_al,
+        feed_ionic_strength_li_al_val,
+        avg_observed_aluminum_rejection_li_al,
         "g^",
         mfc="none",
-        markersize=10,
+        markersize=markersize,
     )
     ax1.plot(
-        feed_ionic_strength_li_al,
-        actual_aluminum_rejection_li_al,
+        feed_ionic_strength_li_al_val,
+        avg_actual_aluminum_rejection_li_al,
         "g^",
-        markersize=10,
+        markersize=markersize,
+    )
+    plt.errorbar(
+        feed_ionic_strength_co_al_val,
+        avg_observed_aluminum_rejection_co_al,
+        yerr=spread_observed_aluminum_rejection_co_al,
+        ecolor="grey",
+        capsize=4,
+    )
+    plt.errorbar(
+        feed_ionic_strength_co_al_val,
+        avg_actual_aluminum_rejection_co_al,
+        yerr=spread_actual_aluminum_rejection_co_al,
+        ecolor="grey",
+        capsize=4,
     )
     ax1.plot(
-        feed_ionic_strength_co_al,
-        observed_aluminum_rejection_co_al,
+        feed_ionic_strength_co_al_val,
+        avg_observed_aluminum_rejection_co_al,
         "gv",
         mfc="none",
-        markersize=10,
+        markersize=markersize,
     )
     ax1.plot(
-        feed_ionic_strength_co_al,
-        actual_aluminum_rejection_co_al,
+        feed_ionic_strength_co_al_val,
+        avg_actual_aluminum_rejection_co_al,
         "gv",
-        markersize=10,
+        markersize=markersize,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_co_al_val,
+        avg_observed_aluminum_rejection_li_co_al,
+        yerr=spread_observed_aluminum_rejection_li_co_al,
+        ecolor="grey",
+        capsize=4,
+    )
+    plt.errorbar(
+        feed_ionic_strength_li_co_al_val,
+        avg_actual_aluminum_rejection_li_co_al,
+        yerr=spread_actual_aluminum_rejection_li_co_al,
+        ecolor="grey",
+        capsize=4,
     )
     ax1.plot(
-        feed_ionic_strength_li_co_al,
-        observed_aluminum_rejection_li_co_al,
+        feed_ionic_strength_li_co_al_val,
+        avg_observed_aluminum_rejection_li_co_al,
         "gD",
         mfc="none",
-        markersize=10,
+        markersize=markersize,
     )
     ax1.plot(
-        feed_ionic_strength_li_co_al,
-        actual_aluminum_rejection_li_co_al,
+        feed_ionic_strength_li_co_al_val,
+        avg_actual_aluminum_rejection_li_co_al,
         "gD",
-        markersize=10,
+        markersize=markersize,
     )
 
     ax1.axhline(0, color="black", linewidth=1)
@@ -2468,18 +2887,18 @@ def plot_rejection_versus_feed_ionic_strength(
     )
     ax1.set_ylabel("Percent Rejection (%)", fontsize=14, fontweight="bold")
     ax1.tick_params(direction="in", labelsize=14)
-    ax1.plot([], [], "ko", markersize=10, label="Single Salt")
-    ax1.plot([], [], "k*", markersize=10, label="LiCl + CoCl$_2$")
-    ax1.plot([], [], "k^", markersize=10, label="LiCl + AlCl$_3$")
-    ax1.plot([], [], "kv", markersize=10, label="CoCl$_2$ + AlCl$_3$")
-    ax1.plot([], [], "kD", markersize=10, label="LiCl + CoCl$_2$ + AlCl$_3$")
+    ax1.plot([], [], "ko", markersize=markersize, label="Single Salt")
+    ax1.plot([], [], "k*", markersize=markersize, label="LiCl + CoCl$_2$")
+    ax1.plot([], [], "k^", markersize=markersize, label="LiCl + AlCl$_3$")
+    ax1.plot([], [], "kv", markersize=markersize, label="CoCl$_2$ + AlCl$_3$")
+    ax1.plot([], [], "kD", markersize=markersize, label="LiCl + CoCl$_2$ + AlCl$_3$")
     ax1.plot([], [], marker="None", linestyle="None", label="Rejection (fill)")
-    ax1.plot([], [], "ks", mfc="none", markersize=8, label="Observed")
-    ax1.plot([], [], "ks", markersize=8, label="Actual")
+    ax1.plot([], [], "ks", mfc="none", markersize=markersize, label="Observed")
+    ax1.plot([], [], "ks", markersize=markersize, label="Actual")
     ax1.plot([], [], marker="None", linestyle="None", label="Solute (color)")
-    ax1.plot([], [], "rs", markersize=8, label="Lithium")
-    ax1.plot([], [], "bs", markersize=8, label="Cobalt")
-    ax1.plot([], [], "gs", markersize=8, label="Aluminum")
+    ax1.plot([], [], "rs", markersize=markersize, label="Lithium")
+    ax1.plot([], [], "bs", markersize=markersize, label="Cobalt")
+    ax1.plot([], [], "gs", markersize=markersize, label="Aluminum")
     ax1.legend(loc="best", title="Solution (marker)", title_fontsize=10, fontsize=10)
 
     plt.tight_layout()
