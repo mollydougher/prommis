@@ -41,7 +41,7 @@ from prommis.nanofiltration.multi_component_diafiltration import (
 
 def main():
     # set default arguments
-    anion_list = ["chloride"]
+    anion_list = ["Cl"]
     inlet_flow_volume = {"feed": 12.5, "diafiltrate": 3.75}
     include_boundary_layer = True
     NFE_module_length = 10
@@ -51,12 +51,12 @@ def main():
     # single salt systems
     # lithium chloride
     m_li_cl = build_model(
-        cation_list=["lithium"],
+        cation_list=["Li"],
         anion_list=anion_list,
         inlet_flow_volume=inlet_flow_volume,
         inlet_concentration={
-            "feed": {"lithium": 245, "cobalt": 288, "chloride": 821},
-            "diafiltrate": {"lithium": 14, "cobalt": 3, "chloride": 20},
+            "feed": {"Li": 245, "Cl": 245},
+            "diafiltrate": {"Li": 14, "Cl": 14},
         },
         include_boundary_layer=include_boundary_layer,
         NFE_module_length=NFE_module_length,
@@ -66,12 +66,12 @@ def main():
 
     # cobalt chloride
     m_co_cl = build_model(
-        cation_list=["cobalt"],
+        cation_list=["Co"],
         anion_list=anion_list,
         inlet_flow_volume=inlet_flow_volume,
         inlet_concentration={
-            "feed": {"cobalt": 288, "chloride": 576},
-            "diafiltrate": {"cobalt": 3, "chloride": 6},
+            "feed": {"Co": 288, "Cl": 576},
+            "diafiltrate": {"Co": 3, "Cl": 6},
         },
         include_boundary_layer=include_boundary_layer,
         NFE_module_length=NFE_module_length,
@@ -81,12 +81,12 @@ def main():
 
     # aluminum chloride
     m_al_cl = build_model(
-        cation_list=["aluminum"],
+        cation_list=["Al"],
         anion_list=anion_list,
         inlet_flow_volume=inlet_flow_volume,
         inlet_concentration={
-            "feed": {"aluminum": 20, "chloride": 60},
-            "diafiltrate": {"aluminum": 3, "chloride": 9},
+            "feed": {"Al": 20, "Cl": 60},
+            "diafiltrate": {"Al": 3, "Cl": 9},
         },
         include_boundary_layer=include_boundary_layer,
         NFE_module_length=NFE_module_length,
@@ -97,12 +97,12 @@ def main():
     # two salt systems
     # lithium chloride + cobalt chloride
     m_li_co_cl = build_model(
-        cation_list=["lithium", "cobalt"],
+        cation_list=["Li", "Co"],
         anion_list=anion_list,
         inlet_flow_volume=inlet_flow_volume,
         inlet_concentration={
-            "feed": {"lithium": 245, "cobalt": 288, "chloride": 821},
-            "diafiltrate": {"lithium": 14, "cobalt": 3, "chloride": 20},
+            "feed": {"Li": 245, "Co": 288, "Cl": 821},
+            "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
         },
         include_boundary_layer=include_boundary_layer,
         NFE_module_length=NFE_module_length,
@@ -112,12 +112,12 @@ def main():
 
     # lithium chloride + aluminum chloride
     m_li_al_cl = build_model(
-        cation_list=["lithium", "aluminum"],
+        cation_list=["Li", "Al"],
         anion_list=anion_list,
         inlet_flow_volume=inlet_flow_volume,
         inlet_concentration={
-            "feed": {"lithium": 245, "aluminum": 20, "chloride": 305},
-            "diafiltrate": {"lithium": 14, "aluminum": 3, "chloride": 23},
+            "feed": {"Li": 245, "Al": 20, "Cl": 305},
+            "diafiltrate": {"Li": 14, "Al": 3, "Cl": 23},
         },
         include_boundary_layer=include_boundary_layer,
         NFE_module_length=NFE_module_length,
@@ -127,12 +127,12 @@ def main():
 
     # cobalt chloride + aluminum chloride
     m_co_al_cl = build_model(
-        cation_list=["cobalt", "aluminum"],
+        cation_list=["Co", "Al"],
         anion_list=anion_list,
         inlet_flow_volume=inlet_flow_volume,
         inlet_concentration={
-            "feed": {"cobalt": 288, "aluminum": 20, "chloride": 636},
-            "diafiltrate": {"cobalt": 3, "aluminum": 3, "chloride": 15},
+            "feed": {"Co": 288, "Al": 20, "Cl": 636},
+            "diafiltrate": {"Co": 3, "Al": 3, "Cl": 15},
         },
         include_boundary_layer=include_boundary_layer,
         NFE_module_length=NFE_module_length,
@@ -140,12 +140,31 @@ def main():
         NFE_membrane_thickness=NFE_membrane_thickness,
     )
 
-    # m_li_co_al_cl = build_model(
-    #     num_salts=3, salt_system="lithium_cobalt_aluminum_chloride"
-    # )
+    # lithium chloride + cobalt chloride + aluminum chloride
+    m_li_co_al_cl = build_model(
+        cation_list=["Li", "Co", "Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 245, "Co": 288, "Al": 20, "Cl": 881},
+            "diafiltrate": {"Li": 14, "Co": 3, "Al": 3, "Cl": 29},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
 
     # solve models
-    model_list = [m_li_cl, m_co_cl, m_al_cl, m_li_co_cl, m_li_al_cl, m_co_al_cl]
+    model_list = [
+        m_li_cl,
+        m_co_cl,
+        m_al_cl,
+        m_li_co_cl,
+        m_li_al_cl,
+        m_co_al_cl,
+        m_li_co_al_cl,
+    ]
     for model in model_list:
         solve_model(model)
         unfix_pressure(model)
@@ -157,6 +176,7 @@ def main():
     # m_li_co_cl.fs.membrane.applied_pressure.display()
     # m_li_al_cl.fs.membrane.applied_pressure.display()
     # m_co_al_cl.fs.membrane.applied_pressure.display()
+    # m_li_co_al_cl.fs.membrane.applied_pressure.display()
 
     # store results
     m_li_cl_results_dict = extract_and_store_results(m_li_cl)
@@ -165,6 +185,7 @@ def main():
     m_li_co_cl_results_dict = extract_and_store_results(m_li_co_cl)
     m_li_al_cl_results_dict = extract_and_store_results(m_li_al_cl)
     m_co_al_cl_results_dict = extract_and_store_results(m_co_al_cl)
+    m_li_co_al_cl_results_dict = extract_and_store_results(m_li_co_al_cl)
 
     dict_list = [
         m_li_cl_results_dict,
@@ -194,15 +215,15 @@ def main():
         #     m_co_al_cl_results_dict,
         #     compact=True,
         # )
-        plot_rejection_versus_area(
-            m_li_cl_results_dict,
-            m_co_cl_results_dict,
-            m_al_cl_results_dict,
-            m_li_co_cl_results_dict,
-            m_li_al_cl_results_dict,
-            m_co_al_cl_results_dict,
-            compact=False,
-        )
+        # plot_rejection_versus_area(
+        #     m_li_cl_results_dict,
+        #     m_co_cl_results_dict,
+        #     m_al_cl_results_dict,
+        #     m_li_co_cl_results_dict,
+        #     m_li_al_cl_results_dict,
+        #     m_co_al_cl_results_dict,
+        #     compact=False,
+        # )
         # plot_rejection_versus_concentration(
         #     m_li_cl_results_dict,
         #     m_co_cl_results_dict,
@@ -237,6 +258,7 @@ def main():
             m_li_co_cl_results_dict,
             m_li_al_cl_results_dict,
             m_co_al_cl_results_dict,
+            m_li_co_al_cl_results_dict,
         )
         # plot_flux_versus_length(
         #     m_li_cl_results_dict,
@@ -303,7 +325,10 @@ def build_model(
     # fix the degrees of freedom to their default values
     m.fs.membrane.total_module_length.fix()
     m.fs.membrane.total_membrane_length.fix()
-    m.fs.membrane.applied_pressure.fix()
+    if len(cation_list) == 1:
+        m.fs.membrane.applied_pressure.fix(5)
+    else:
+        m.fs.membrane.applied_pressure.fix()
     m.fs.membrane.feed_flow_volume.fix(inlet_flow_volume["feed"])
     m.fs.membrane.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
     for t in m.fs.membrane.time:
@@ -399,16 +424,22 @@ def extract_and_store_results(m):
     conc_ret_cation_1 = []
     if len(m.fs.membrane.config.cation_list) > 1:
         conc_ret_cation_2 = []
+    if len(m.fs.membrane.config.cation_list) > 2:
+        conc_ret_cation_3 = []
 
     # store values for concentration at solution-membrane interface
     conc_int_cation_1 = []
     if len(m.fs.membrane.config.cation_list) > 1:
         conc_int_cation_2 = []
+    if len(m.fs.membrane.config.cation_list) > 2:
+        conc_int_cation_3 = []
 
     # store values for concentration in the permeate
     conc_perm_cation_1 = []
     if len(m.fs.membrane.config.cation_list) > 1:
         conc_perm_cation_2 = []
+    if len(m.fs.membrane.config.cation_list) > 2:
+        conc_perm_cation_3 = []
 
     # store values for concentration in the boundary layer (2D)
     conc_bl_cation_1_by_z = []
@@ -416,12 +447,18 @@ def extract_and_store_results(m):
     if len(m.fs.membrane.config.cation_list) > 1:
         conc_bl_cation_2_by_z = []
         conc_bl_cation_2_dict_by_z = {}
+    if len(m.fs.membrane.config.cation_list) > 2:
+        conc_bl_cation_3_by_z = []
+        conc_bl_cation_3_dict_by_z = {}
 
     conc_bl_cation_1_by_x = []
     conc_bl_cation_1_dict_by_x = {}
     if len(m.fs.membrane.config.cation_list) > 1:
         conc_bl_cation_2_by_x = []
         conc_bl_cation_2_dict_by_x = {}
+    if len(m.fs.membrane.config.cation_list) > 2:
+        conc_bl_cation_3_by_x = []
+        conc_bl_cation_3_dict_by_x = {}
 
     # store values for concentration gradient in the boundary layer (2D)
     conc_grad_bl_cation_1_by_x = []
@@ -429,6 +466,9 @@ def extract_and_store_results(m):
     if len(m.fs.membrane.config.cation_list) > 1:
         conc_grad_bl_cation_2_by_x = []
         conc_grad_bl_cation_2_dict_by_x = {}
+    if len(m.fs.membrane.config.cation_list) > 2:
+        conc_grad_bl_cation_3_by_x = []
+        conc_grad_bl_cation_3_dict_by_x = {}
 
     # store values for concentration in the membrane (2D)
     conc_mem_cation_1_by_z = []
@@ -436,12 +476,18 @@ def extract_and_store_results(m):
     if len(m.fs.membrane.config.cation_list) > 1:
         conc_mem_cation_2_by_z = []
         conc_mem_cation_2_dict_by_z = {}
+    if len(m.fs.membrane.config.cation_list) > 2:
+        conc_mem_cation_3_by_z = []
+        conc_mem_cation_3_dict_by_z = {}
 
     conc_mem_cation_1_by_x = []
     conc_mem_cation_1_dict_by_x = {}
     if len(m.fs.membrane.config.cation_list) > 1:
         conc_mem_cation_2_by_x = []
         conc_mem_cation_2_dict_by_x = {}
+    if len(m.fs.membrane.config.cation_list) > 2:
+        conc_mem_cation_3_by_x = []
+        conc_mem_cation_3_dict_by_x = {}
 
     # store values for concentration gradient in the membrane (2D)
     conc_grad_mem_cation_1_by_x = []
@@ -449,6 +495,9 @@ def extract_and_store_results(m):
     if len(m.fs.membrane.config.cation_list) > 1:
         conc_grad_mem_cation_2_by_x = []
         conc_grad_mem_cation_2_dict_by_x = {}
+    if len(m.fs.membrane.config.cation_list) > 2:
+        conc_grad_mem_cation_3_by_x = []
+        conc_grad_mem_cation_3_dict_by_x = {}
 
     # store values for water flux across membrane
     water_flux = []
@@ -457,6 +506,8 @@ def extract_and_store_results(m):
     cation_1_flux = []
     if len(m.fs.membrane.config.cation_list) > 1:
         cation_2_flux = []
+    if len(m.fs.membrane.config.cation_list) > 2:
+        cation_3_flux = []
 
     # store values for percent recovery
     percent_recovery = []
@@ -467,6 +518,9 @@ def extract_and_store_results(m):
     if len(m.fs.membrane.config.cation_list) > 1:
         cation_2_rejection_observed = []
         cation_2_rejection_actual = []
+    if len(m.fs.membrane.config.cation_list) > 2:
+        cation_3_rejection_observed = []
+        cation_3_rejection_actual = []
 
     for x_val in m.fs.membrane.dimensionless_module_length:
         if x_val != 0:
@@ -527,6 +581,27 @@ def extract_and_store_results(m):
                 conc_int_cation_2.append(conc_int_cation_2_val)
                 conc_perm_cation_2.append(conc_perm_cation_2_val)
 
+            if len(m.fs.membrane.config.cation_list) > 2:
+                conc_ret_cation_3_val = value(
+                    m.fs.membrane.retentate_conc_mol_comp[
+                        0, x_val, m.fs.membrane.config.cation_list[2]
+                    ]
+                )
+                conc_int_cation_3_val = value(
+                    m.fs.membrane.boundary_layer_conc_mol_comp[
+                        0, x_val, 1, m.fs.membrane.config.cation_list[2]
+                    ]
+                )
+                conc_perm_cation_3_val = value(
+                    m.fs.membrane.permeate_conc_mol_comp[
+                        0, x_val, m.fs.membrane.config.cation_list[2]
+                    ]
+                )
+
+                conc_ret_cation_3.append(conc_ret_cation_3_val)
+                conc_int_cation_3.append(conc_int_cation_3_val)
+                conc_perm_cation_3.append(conc_perm_cation_3_val)
+
             # flux
             water_flux.append(value(m.fs.membrane.volume_flux_water[0, x_val]))
 
@@ -545,6 +620,14 @@ def extract_and_store_results(m):
                         ]
                     )
                 )
+            if len(m.fs.membrane.config.cation_list) > 2:
+                cation_3_flux.append(
+                    value(
+                        m.fs.membrane.molar_ion_flux[
+                            0, x_val, m.fs.membrane.config.cation_list[2]
+                        ]
+                    )
+                )
 
             # rejection
             cation_1_rejection_observed.append(
@@ -559,6 +642,13 @@ def extract_and_store_results(m):
                 )
                 cation_2_rejection_actual.append(
                     (1 - (conc_perm_cation_2_val / conc_int_cation_2_val)) * 100
+                )
+            if len(m.fs.membrane.config.cation_list) > 2:
+                cation_3_rejection_observed.append(
+                    (1 - (conc_perm_cation_3_val / conc_ret_cation_3_val)) * 100
+                )
+                cation_3_rejection_actual.append(
+                    (1 - (conc_perm_cation_3_val / conc_int_cation_3_val)) * 100
                 )
 
             # recovery
@@ -596,12 +686,23 @@ def extract_and_store_results(m):
                     )
 
                     conc_bl_cation_2_by_z.append(conc_bl_cation_2_val_by_z)
+                if len(m.fs.membrane.config.cation_list) > 2:
+                    conc_bl_cation_3_val_by_z = value(
+                        m.fs.membrane.boundary_layer_conc_mol_comp[
+                            0, x_val, z_val, m.fs.membrane.config.cation_list[2]
+                        ]
+                    )
+
+                    conc_bl_cation_3_by_z.append(conc_bl_cation_3_val_by_z)
 
         conc_bl_cation_1_dict_by_z[f"{z_val}"] = conc_bl_cation_1_by_z
         conc_bl_cation_1_by_z = []
         if len(m.fs.membrane.config.cation_list) > 1:
             conc_bl_cation_2_dict_by_z[f"{z_val}"] = conc_bl_cation_2_by_z
             conc_bl_cation_2_by_z = []
+        if len(m.fs.membrane.config.cation_list) > 2:
+            conc_bl_cation_3_dict_by_z[f"{z_val}"] = conc_bl_cation_3_by_z
+            conc_bl_cation_3_by_z = []
 
     for x_val in m.fs.membrane.dimensionless_module_length:
         if x_val != 0:
@@ -635,6 +736,21 @@ def extract_and_store_results(m):
                     conc_bl_cation_2_by_x.append(conc_bl_cation_2_val_by_x)
                     conc_grad_bl_cation_2_by_x.append(conc_grad_bl_cation_2_val_by_x)
 
+                if len(m.fs.membrane.config.cation_list) > 2:
+                    conc_bl_cation_3_val_by_x = value(
+                        m.fs.membrane.boundary_layer_conc_mol_comp[
+                            0, x_val, z_val, m.fs.membrane.config.cation_list[2]
+                        ]
+                    )
+                    conc_grad_bl_cation_3_val_by_x = value(
+                        m.fs.membrane.d_boundary_layer_conc_mol_comp_dz[
+                            0, x_val, z_val, m.fs.membrane.config.cation_list[2]
+                        ]
+                    )
+
+                    conc_bl_cation_3_by_x.append(conc_bl_cation_3_val_by_x)
+                    conc_grad_bl_cation_3_by_x.append(conc_grad_bl_cation_3_val_by_x)
+
             conc_bl_cation_1_dict_by_x[f"{x_val}"] = conc_bl_cation_1_by_x
             conc_grad_bl_cation_1_dict_by_x[f"{x_val}"] = conc_grad_bl_cation_1_by_x
             conc_bl_cation_1_by_x = []
@@ -644,6 +760,11 @@ def extract_and_store_results(m):
                 conc_grad_bl_cation_2_dict_by_x[f"{x_val}"] = conc_grad_bl_cation_2_by_x
                 conc_bl_cation_2_by_x = []
                 conc_grad_bl_cation_2_by_x = []
+            if len(m.fs.membrane.config.cation_list) > 2:
+                conc_bl_cation_3_dict_by_x[f"{x_val}"] = conc_bl_cation_3_by_x
+                conc_grad_bl_cation_3_dict_by_x[f"{x_val}"] = conc_grad_bl_cation_3_by_x
+                conc_bl_cation_3_by_x = []
+                conc_grad_bl_cation_3_by_x = []
 
     # membrane
     for z_val in m.fs.membrane.dimensionless_membrane_thickness:
@@ -668,12 +789,23 @@ def extract_and_store_results(m):
                     )
 
                     conc_mem_cation_2_by_z.append(conc_mem_cation_2_val_by_z)
+                if len(m.fs.membrane.config.cation_list) > 2:
+                    conc_mem_cation_3_val_by_z = value(
+                        m.fs.membrane.membrane_conc_mol_comp[
+                            0, x_val, z_val, m.fs.membrane.config.cation_list[2]
+                        ]
+                    )
+
+                    conc_mem_cation_3_by_z.append(conc_mem_cation_3_val_by_z)
 
         conc_mem_cation_1_dict_by_z[f"{z_val}"] = conc_mem_cation_1_by_z
         conc_mem_cation_1_by_z = []
         if len(m.fs.membrane.config.cation_list) > 1:
             conc_mem_cation_2_dict_by_z[f"{z_val}"] = conc_mem_cation_2_by_z
             conc_mem_cation_2_by_z = []
+        if len(m.fs.membrane.config.cation_list) > 2:
+            conc_mem_cation_3_dict_by_z[f"{z_val}"] = conc_mem_cation_3_by_z
+            conc_mem_cation_3_by_z = []
 
     for x_val in m.fs.membrane.dimensionless_module_length:
         if x_val != 0:
@@ -707,6 +839,21 @@ def extract_and_store_results(m):
                     conc_mem_cation_2_by_x.append(conc_mem_cation_2_val_by_x)
                     conc_grad_mem_cation_2_by_x.append(conc_grad_mem_cation_2_val_by_x)
 
+                if len(m.fs.membrane.config.cation_list) > 2:
+                    conc_mem_cation_3_val_by_x = value(
+                        m.fs.membrane.membrane_conc_mol_comp[
+                            0, x_val, z_val, m.fs.membrane.config.cation_list[2]
+                        ]
+                    )
+                    conc_grad_mem_cation_3_val_by_x = value(
+                        m.fs.membrane.d_membrane_conc_mol_comp_dz[
+                            0, x_val, z_val, m.fs.membrane.config.cation_list[2]
+                        ]
+                    )
+
+                    conc_mem_cation_3_by_x.append(conc_mem_cation_3_val_by_x)
+                    conc_grad_mem_cation_3_by_x.append(conc_grad_mem_cation_3_val_by_x)
+
             conc_mem_cation_1_dict_by_x[f"{x_val}"] = conc_mem_cation_1_by_x
             conc_grad_mem_cation_1_dict_by_x[f"{x_val}"] = conc_grad_mem_cation_1_by_x
             conc_mem_cation_1_by_x = []
@@ -718,6 +865,13 @@ def extract_and_store_results(m):
                 )
                 conc_mem_cation_2_by_x = []
                 conc_grad_mem_cation_2_by_x = []
+            if len(m.fs.membrane.config.cation_list) > 2:
+                conc_mem_cation_3_dict_by_x[f"{x_val}"] = conc_mem_cation_3_by_x
+                conc_grad_mem_cation_3_dict_by_x[f"{x_val}"] = (
+                    conc_grad_mem_cation_3_by_x
+                )
+                conc_mem_cation_3_by_x = []
+                conc_grad_mem_cation_3_by_x = []
 
     results_dict = {
         "cation_list": m.fs.membrane.config.cation_list,
@@ -760,6 +914,24 @@ def extract_and_store_results(m):
                 "cation_2_flux": cation_2_flux,
                 "cation_2_rejection_observed": cation_2_rejection_observed,
                 "cation_2_rejection_actual": cation_2_rejection_actual,
+            }
+        )
+    if len(m.fs.membrane.config.cation_list) > 2:
+        results_dict.update(
+            {
+                "cation_3": m.fs.membrane.config.cation_list[2],
+                "cation_3_retentate_concentration": conc_ret_cation_3,
+                "cation_3_interface_concentration": conc_int_cation_3,
+                "cation_3_permeate_concentration": conc_perm_cation_3,
+                "cation_3_boundary_layer_concentration_by_z": conc_bl_cation_3_dict_by_z,
+                "cation_3_boundary_layer_concentration_by_x": conc_bl_cation_3_dict_by_x,
+                "cation_3_boundary_layer_concentration_gradient_by_x": conc_grad_bl_cation_3_dict_by_x,
+                "cation_3_membrane_concentration_by_z": conc_mem_cation_3_dict_by_z,
+                "cation_3_membrane_concentration_by_x": conc_mem_cation_3_dict_by_x,
+                "cation_3_membrane_concentration_gradient_by_x": conc_grad_mem_cation_3_dict_by_x,
+                "cation_3_flux": cation_3_flux,
+                "cation_3_rejection_observed": cation_3_rejection_observed,
+                "cation_3_rejection_actual": cation_3_rejection_actual,
             }
         )
 
@@ -2023,7 +2195,7 @@ def plot_rejection_versus_feed_ionic_strength(
     m_li_co_cl_results_dict,
     m_li_al_cl_results_dict,
     m_co_al_cl_results_dict,
-    # m_li_co_al_cl_results_dict,
+    m_li_co_al_cl_results_dict,
 ):
     """
     Plots rejection versus ionic strength of bulk fluid and feed.
@@ -2037,7 +2209,7 @@ def plot_rejection_versus_feed_ionic_strength(
     feed_ionic_strength_li_co_val = m_li_co_cl_results_dict["feed_ionic_strength"]
     feed_ionic_strength_li_al_val = m_li_al_cl_results_dict["feed_ionic_strength"]
     feed_ionic_strength_co_al_val = m_co_al_cl_results_dict["feed_ionic_strength"]
-    # feed_ionic_strength_li_co_al_val = m_li_co_al_cl_results_dict["feed_ionic_strength"]
+    feed_ionic_strength_li_co_al_val = m_li_co_al_cl_results_dict["feed_ionic_strength"]
 
     feed_ionic_strength_li = [
         feed_ionic_strength_li_val for i in range(len(x_axis_values))
@@ -2057,7 +2229,9 @@ def plot_rejection_versus_feed_ionic_strength(
     feed_ionic_strength_co_al = [
         feed_ionic_strength_co_al_val for i in range(len(x_axis_values))
     ]
-    # feed_ionic_strength_li_co_al_val = [feed_ionic_strength_li_co_al_val]
+    feed_ionic_strength_li_co_al = [
+        feed_ionic_strength_li_co_al_val for i in range(len(x_axis_values))
+    ]
 
     # lithium rejections
     observed_lithium_rejection_li = m_li_cl_results_dict["cation_1_rejection_observed"]
@@ -2074,12 +2248,12 @@ def plot_rejection_versus_feed_ionic_strength(
     actual_lithium_rejection_li_al = m_li_al_cl_results_dict[
         "cation_1_rejection_actual"
     ]
-    # observed_lithium_rejection_li_co_al = m_li_co_al_cl_results_dict[
-    #     "cation_1_rejection_observed"
-    # ]
-    # actual_lithium_rejection_li_co_al = m_li_co_al_cl_results_dict[
-    #     "cation_1_rejection_actual"
-    # ]
+    observed_lithium_rejection_li_co_al = m_li_co_al_cl_results_dict[
+        "cation_1_rejection_observed"
+    ]
+    actual_lithium_rejection_li_co_al = m_li_co_al_cl_results_dict[
+        "cation_1_rejection_actual"
+    ]
 
     # cobalt rejections
     observed_cobalt_rejection_co = m_co_cl_results_dict["cation_1_rejection_observed"]
@@ -2092,10 +2266,12 @@ def plot_rejection_versus_feed_ionic_strength(
         "cation_1_rejection_observed"
     ]
     actual_cobalt_rejection_co_al = m_co_al_cl_results_dict["cation_1_rejection_actual"]
-    # observed_cobalt_rejection_li_co_al = m_li_co_al_cl_results_dict[
-    #     "cation_2_rejection_observed"
-    # ]
-    # actual_cobalt_rejection_li_co_al = m_li_co_al_cl_results_dict["cation_2_rejection_actual"]
+    observed_cobalt_rejection_li_co_al = m_li_co_al_cl_results_dict[
+        "cation_2_rejection_observed"
+    ]
+    actual_cobalt_rejection_li_co_al = m_li_co_al_cl_results_dict[
+        "cation_2_rejection_actual"
+    ]
 
     # aluminum rejections
     observed_aluminum_rejection_al = m_al_cl_results_dict["cation_1_rejection_observed"]
@@ -2112,15 +2288,16 @@ def plot_rejection_versus_feed_ionic_strength(
     actual_aluminum_rejection_co_al = m_co_al_cl_results_dict[
         "cation_2_rejection_actual"
     ]
-    # observed_aluminum_rejection_li_co_al = m_li_co_al_cl_results_dict[
-    #     "cation_3_rejection_observed"
-    # ]
-    # actual_aluminum_rejection_li_co_al = m_li_co_al_cl_results_dict[
-    #     "cation_3_rejection_actual"
-    # ]
+    observed_aluminum_rejection_li_co_al = m_li_co_al_cl_results_dict[
+        "cation_3_rejection_observed"
+    ]
+    actual_aluminum_rejection_li_co_al = m_li_co_al_cl_results_dict[
+        "cation_3_rejection_actual"
+    ]
 
     fig, ax1 = plt.subplots(1, 1, dpi=100, figsize=(7, 6))
 
+    # lithium
     ax1.plot(
         feed_ionic_strength_li,
         observed_lithium_rejection_li,
@@ -2161,6 +2338,21 @@ def plot_rejection_versus_feed_ionic_strength(
         markersize=10,
     )
     ax1.plot(
+        feed_ionic_strength_li_co_al,
+        observed_lithium_rejection_li_co_al,
+        "rD",
+        mfc="none",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li_co_al,
+        actual_lithium_rejection_li_co_al,
+        "rD",
+        markersize=10,
+    )
+
+    # cobalt
+    ax1.plot(
         feed_ionic_strength_co,
         observed_cobalt_rejection_co,
         "bo",
@@ -2189,16 +2381,31 @@ def plot_rejection_versus_feed_ionic_strength(
     ax1.plot(
         feed_ionic_strength_co_al,
         observed_cobalt_rejection_co_al,
-        "bD",
+        "bv",
         mfc="none",
         markersize=10,
     )
     ax1.plot(
         feed_ionic_strength_co_al,
         actual_cobalt_rejection_co_al,
+        "bv",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li_co_al,
+        observed_cobalt_rejection_li_co_al,
+        "bD",
+        mfc="none",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li_co_al,
+        actual_cobalt_rejection_li_co_al,
         "bD",
         markersize=10,
     )
+
+    # aluminum
     ax1.plot(
         feed_ionic_strength_al,
         observed_aluminum_rejection_al,
@@ -2228,13 +2435,26 @@ def plot_rejection_versus_feed_ionic_strength(
     ax1.plot(
         feed_ionic_strength_co_al,
         observed_aluminum_rejection_co_al,
-        "gD",
+        "gv",
         mfc="none",
         markersize=10,
     )
     ax1.plot(
         feed_ionic_strength_co_al,
         actual_aluminum_rejection_co_al,
+        "gv",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li_co_al,
+        observed_aluminum_rejection_li_co_al,
+        "gD",
+        mfc="none",
+        markersize=10,
+    )
+    ax1.plot(
+        feed_ionic_strength_li_co_al,
+        actual_aluminum_rejection_li_co_al,
         "gD",
         markersize=10,
     )
@@ -2251,7 +2471,8 @@ def plot_rejection_versus_feed_ionic_strength(
     ax1.plot([], [], "ko", markersize=10, label="Single Salt")
     ax1.plot([], [], "k*", markersize=10, label="LiCl + CoCl$_2$")
     ax1.plot([], [], "k^", markersize=10, label="LiCl + AlCl$_3$")
-    ax1.plot([], [], "kD", markersize=10, label="CoCl$_2$ + AlCl$_3$")
+    ax1.plot([], [], "kv", markersize=10, label="CoCl$_2$ + AlCl$_3$")
+    ax1.plot([], [], "kD", markersize=10, label="LiCl + CoCl$_2$ + AlCl$_3$")
     ax1.plot([], [], marker="None", linestyle="None", label="Rejection (fill)")
     ax1.plot([], [], "ks", mfc="none", markersize=8, label="Observed")
     ax1.plot([], [], "ks", markersize=8, label="Actual")
