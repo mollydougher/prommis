@@ -50,12 +50,90 @@ def main():
 
     # single salt systems
     # lithium chloride
-    m_li_cl = build_model(
+    m_li_cl_a = build_model(
         cation_list=["Li"],
         anion_list=anion_list,
         inlet_flow_volume=inlet_flow_volume,
         inlet_concentration={
-            "feed": {"Li": 245, "Cl": 245},
+            "feed": {"Li": 25, "Cl": 25},
+            "diafiltrate": {"Li": 14, "Cl": 14},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_cl_b = build_model(
+        cation_list=["Li"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 50, "Cl": 50},
+            "diafiltrate": {"Li": 14, "Cl": 14},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_cl_c = build_model(
+        cation_list=["Li"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 100, "Cl": 100},
+            "diafiltrate": {"Li": 14, "Cl": 14},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_cl_d = build_model(
+        cation_list=["Li"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 200, "Cl": 200},
+            "diafiltrate": {"Li": 14, "Cl": 14},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_cl_e = build_model(
+        cation_list=["Li"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 300, "Cl": 300},
+            "diafiltrate": {"Li": 14, "Cl": 14},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_cl_f = build_model(
+        cation_list=["Li"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 500, "Cl": 500},
+            "diafiltrate": {"Li": 14, "Cl": 14},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_cl_g = build_model(
+        cation_list=["Li"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 700, "Cl": 700},
             "diafiltrate": {"Li": 14, "Cl": 14},
         },
         include_boundary_layer=include_boundary_layer,
@@ -65,12 +143,77 @@ def main():
     )
 
     # cobalt chloride
-    m_co_cl = build_model(
+    m_co_cl_a = build_model(
         cation_list=["Co"],
         anion_list=anion_list,
         inlet_flow_volume=inlet_flow_volume,
         inlet_concentration={
-            "feed": {"Co": 288, "Cl": 576},
+            "feed": {"Co": 25, "Cl": 50},
+            "diafiltrate": {"Co": 3, "Cl": 6},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_co_cl_b = build_model(
+        cation_list=["Co"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Co": 50, "Cl": 100},
+            "diafiltrate": {"Co": 3, "Cl": 6},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_co_cl_c = build_model(
+        cation_list=["Co"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Co": 100, "Cl": 200},
+            "diafiltrate": {"Co": 3, "Cl": 6},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_co_cl_d = build_model(
+        cation_list=["Co"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Co": 200, "Cl": 400},
+            "diafiltrate": {"Co": 3, "Cl": 6},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_co_cl_e = build_model(
+        cation_list=["Co"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Co": 300, "Cl": 600},
+            "diafiltrate": {"Co": 3, "Cl": 6},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_co_cl_f = build_model(
+        cation_list=["Co"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Co": 400, "Cl": 800},
             "diafiltrate": {"Co": 3, "Cl": 6},
         },
         include_boundary_layer=include_boundary_layer,
@@ -80,12 +223,64 @@ def main():
     )
 
     # aluminum chloride
-    m_al_cl = build_model(
+    m_al_cl_a = build_model(
         cation_list=["Al"],
         anion_list=anion_list,
         inlet_flow_volume=inlet_flow_volume,
         inlet_concentration={
-            "feed": {"Al": 20, "Cl": 60},
+            "feed": {"Al": 10, "Cl": 30},
+            "diafiltrate": {"Al": 3, "Cl": 9},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_al_cl_b = build_model(
+        cation_list=["Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Al": 25, "Cl": 75},
+            "diafiltrate": {"Al": 3, "Cl": 9},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_al_cl_c = build_model(
+        cation_list=["Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Al": 50, "Cl": 150},
+            "diafiltrate": {"Al": 3, "Cl": 9},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_al_cl_d = build_model(
+        cation_list=["Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Al": 100, "Cl": 300},
+            "diafiltrate": {"Al": 3, "Cl": 9},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_al_cl_e = build_model(
+        cation_list=["Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Al": 200, "Cl": 600},
             "diafiltrate": {"Al": 3, "Cl": 9},
         },
         include_boundary_layer=include_boundary_layer,
@@ -96,12 +291,77 @@ def main():
 
     # two salt systems
     # lithium chloride + cobalt chloride
-    m_li_co_cl = build_model(
+    # m_li_co_cl_a = build_model(
+    #     cation_list=["Li", "Co"],
+    #     anion_list=anion_list,
+    #     inlet_flow_volume=inlet_flow_volume,
+    #     inlet_concentration={
+    #         "feed": {"Li": 10, "Co": 10, "Cl": 30},
+    #         "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
+    #     },
+    #     include_boundary_layer=include_boundary_layer,
+    #     NFE_module_length=NFE_module_length,
+    #     NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+    #     NFE_membrane_thickness=NFE_membrane_thickness,
+    # )
+    m_li_co_cl_b = build_model(
         cation_list=["Li", "Co"],
         anion_list=anion_list,
         inlet_flow_volume=inlet_flow_volume,
         inlet_concentration={
-            "feed": {"Li": 245, "Co": 288, "Cl": 821},
+            "feed": {"Li": 25, "Co": 25, "Cl": 75},
+            "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_co_cl_c = build_model(
+        cation_list=["Li", "Co"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 50, "Co": 50, "Cl": 150},
+            "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_co_cl_d = build_model(
+        cation_list=["Li", "Co"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 100, "Co": 100, "Cl": 300},
+            "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_co_cl_e = build_model(
+        cation_list=["Li", "Co"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 200, "Co": 200, "Cl": 600},
+            "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_co_cl_f = build_model(
+        cation_list=["Li", "Co"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 250, "Co": 250, "Cl": 750},
             "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
         },
         include_boundary_layer=include_boundary_layer,
@@ -111,12 +371,77 @@ def main():
     )
 
     # lithium chloride + aluminum chloride
-    m_li_al_cl = build_model(
+    m_li_al_cl_a = build_model(
         cation_list=["Li", "Al"],
         anion_list=anion_list,
         inlet_flow_volume=inlet_flow_volume,
         inlet_concentration={
-            "feed": {"Li": 245, "Al": 20, "Cl": 305},
+            "feed": {"Li": 200, "Al": 20, "Cl": 260},
+            "diafiltrate": {"Li": 14, "Al": 3, "Cl": 23},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_al_cl_b = build_model(
+        cation_list=["Li", "Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 250, "Al": 25, "Cl": 325},
+            "diafiltrate": {"Li": 14, "Al": 3, "Cl": 23},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_al_cl_c = build_model(
+        cation_list=["Li", "Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 300, "Al": 30, "Cl": 390},
+            "diafiltrate": {"Li": 14, "Al": 3, "Cl": 23},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_al_cl_d = build_model(
+        cation_list=["Li", "Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 350, "Al": 35, "Cl": 455},
+            "diafiltrate": {"Li": 14, "Al": 3, "Cl": 23},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_al_cl_e = build_model(
+        cation_list=["Li", "Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 400, "Al": 40, "Cl": 520},
+            "diafiltrate": {"Li": 14, "Al": 3, "Cl": 23},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_al_cl_f = build_model(
+        cation_list=["Li", "Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 450, "Al": 45, "Cl": 585},
             "diafiltrate": {"Li": 14, "Al": 3, "Cl": 23},
         },
         include_boundary_layer=include_boundary_layer,
@@ -126,12 +451,77 @@ def main():
     )
 
     # cobalt chloride + aluminum chloride
-    m_co_al_cl = build_model(
+    # m_co_al_cl_a = build_model(
+    #     cation_list=["Co", "Al"],
+    #     anion_list=anion_list,
+    #     inlet_flow_volume=inlet_flow_volume,
+    #     inlet_concentration={
+    #         "feed": {"Co": 50, "Al": 5, "Cl": 115},
+    #         "diafiltrate": {"Co": 3, "Al": 3, "Cl": 15},
+    #     },
+    #     include_boundary_layer=include_boundary_layer,
+    #     NFE_module_length=NFE_module_length,
+    #     NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+    #     NFE_membrane_thickness=NFE_membrane_thickness,
+    # )
+    m_co_al_cl_b = build_model(
         cation_list=["Co", "Al"],
         anion_list=anion_list,
         inlet_flow_volume=inlet_flow_volume,
         inlet_concentration={
-            "feed": {"Co": 288, "Al": 20, "Cl": 636},
+            "feed": {"Co": 75, "Al": 7.5, "Cl": 172.5},
+            "diafiltrate": {"Co": 3, "Al": 3, "Cl": 15},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_co_al_cl_c = build_model(
+        cation_list=["Co", "Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Co": 100, "Al": 10, "Cl": 230},
+            "diafiltrate": {"Co": 3, "Al": 3, "Cl": 15},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_co_al_cl_d = build_model(
+        cation_list=["Co", "Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Co": 150, "Al": 15, "Cl": 345},
+            "diafiltrate": {"Co": 3, "Al": 3, "Cl": 15},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_co_al_cl_e = build_model(
+        cation_list=["Co", "Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Co": 200, "Al": 20, "Cl": 460},
+            "diafiltrate": {"Co": 3, "Al": 3, "Cl": 15},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_co_al_cl_f = build_model(
+        cation_list=["Co", "Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Co": 250, "Al": 25, "Cl": 575},
             "diafiltrate": {"Co": 3, "Al": 3, "Cl": 15},
         },
         include_boundary_layer=include_boundary_layer,
@@ -141,12 +531,12 @@ def main():
     )
 
     # lithium chloride + cobalt chloride + aluminum chloride
-    m_li_co_al_cl = build_model(
+    m_li_co_al_cl_a = build_model(
         cation_list=["Li", "Co", "Al"],
         anion_list=anion_list,
         inlet_flow_volume=inlet_flow_volume,
         inlet_concentration={
-            "feed": {"Li": 245, "Co": 288, "Al": 20, "Cl": 881},
+            "feed": {"Li": 250, "Co": 250, "Al": 25, "Cl": 825},
             "diafiltrate": {"Li": 14, "Co": 3, "Al": 3, "Cl": 29},
         },
         include_boundary_layer=include_boundary_layer,
@@ -154,16 +544,102 @@ def main():
         NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
         NFE_membrane_thickness=NFE_membrane_thickness,
     )
+    m_li_co_al_cl_b = build_model(
+        cation_list=["Li", "Co", "Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 200, "Co": 200, "Al": 20, "Cl": 660},
+            "diafiltrate": {"Li": 14, "Co": 3, "Al": 3, "Cl": 29},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    m_li_co_al_cl_c = build_model(
+        cation_list=["Li", "Co", "Al"],
+        anion_list=anion_list,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration={
+            "feed": {"Li": 150, "Co": 150, "Al": 15, "Cl": 495},
+            "diafiltrate": {"Li": 14, "Co": 3, "Al": 3, "Cl": 29},
+        },
+        include_boundary_layer=include_boundary_layer,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+    # m_li_co_al_cl_d = build_model(
+    #     cation_list=["Li", "Co", "Al"],
+    #     anion_list=anion_list,
+    #     inlet_flow_volume=inlet_flow_volume,
+    #     inlet_concentration={
+    #         "feed": {"Li": 100, "Co": 100, "Al": 10, "Cl": 330},
+    #         "diafiltrate": {"Li": 14, "Co": 3, "Al": 3, "Cl": 29},
+    #     },
+    #     include_boundary_layer=include_boundary_layer,
+    #     NFE_module_length=NFE_module_length,
+    #     NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+    #     NFE_membrane_thickness=NFE_membrane_thickness,
+    # )
+    # m_li_co_al_cl_e = build_model(
+    #     cation_list=["Li", "Co", "Al"],
+    #     anion_list=anion_list,
+    #     inlet_flow_volume=inlet_flow_volume,
+    #     inlet_concentration={
+    #         "feed": {"Li": 50, "Co": 50, "Al": 5, "Cl": 165},
+    #         "diafiltrate": {"Li": 14, "Co": 3, "Al": 3, "Cl": 29},
+    #     },
+    #     include_boundary_layer=include_boundary_layer,
+    #     NFE_module_length=NFE_module_length,
+    #     NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+    #     NFE_membrane_thickness=NFE_membrane_thickness,
+    # )
 
     # solve models
     model_list = [
-        m_li_cl,
-        m_co_cl,
-        m_al_cl,
-        m_li_co_cl,
-        m_li_al_cl,
-        m_co_al_cl,
-        m_li_co_al_cl,
+        m_li_cl_a,
+        m_li_cl_b,
+        m_li_cl_c,
+        m_li_cl_d,
+        m_li_cl_e,
+        m_li_cl_f,
+        m_li_cl_g,
+        m_co_cl_a,
+        m_co_cl_b,
+        m_co_cl_c,
+        m_co_cl_d,
+        m_co_cl_e,
+        m_co_cl_f,
+        m_al_cl_a,
+        m_al_cl_b,
+        m_al_cl_c,
+        m_al_cl_d,
+        m_al_cl_e,
+        # m_li_co_cl_a,
+        m_li_co_cl_b,
+        m_li_co_cl_c,
+        m_li_co_cl_d,
+        m_li_co_cl_e,
+        m_li_co_cl_f,
+        m_li_al_cl_a,
+        m_li_al_cl_b,
+        m_li_al_cl_c,
+        m_li_al_cl_d,
+        m_li_al_cl_e,
+        m_li_al_cl_f,
+        # m_co_al_cl_a,
+        m_co_al_cl_b,
+        m_co_al_cl_c,
+        m_co_al_cl_d,
+        m_co_al_cl_e,
+        m_co_al_cl_f,
+        m_li_co_al_cl_a,
+        m_li_co_al_cl_b,
+        m_li_co_al_cl_c,
+        # m_li_co_al_cl_d,
+        # m_li_co_al_cl_e,
     ]
     for model in model_list:
         solve_model(model)
@@ -179,29 +655,113 @@ def main():
     # m_li_co_al_cl.fs.membrane.applied_pressure.display()
 
     # store results
-    m_li_cl_results_dict = extract_and_store_results(m_li_cl)
-    m_co_cl_results_dict = extract_and_store_results(m_co_cl)
-    m_al_cl_results_dict = extract_and_store_results(m_al_cl)
-    m_li_co_cl_results_dict = extract_and_store_results(m_li_co_cl)
-    m_li_al_cl_results_dict = extract_and_store_results(m_li_al_cl)
-    m_co_al_cl_results_dict = extract_and_store_results(m_co_al_cl)
-    m_li_co_al_cl_results_dict = extract_and_store_results(m_li_co_al_cl)
+    m_li_cl_results_dict_a = extract_and_store_results(m_li_cl_a)
+    m_li_cl_results_dict_b = extract_and_store_results(m_li_cl_b)
+    m_li_cl_results_dict_c = extract_and_store_results(m_li_cl_c)
+    m_li_cl_results_dict_d = extract_and_store_results(m_li_cl_d)
+    m_li_cl_results_dict_e = extract_and_store_results(m_li_cl_e)
+    m_li_cl_results_dict_f = extract_and_store_results(m_li_cl_f)
+    m_li_cl_results_dict_g = extract_and_store_results(m_li_cl_g)
 
-    dict_list = [
-        m_li_cl_results_dict,
-        m_co_cl_results_dict,
-        m_al_cl_results_dict,
-        m_li_co_cl_results_dict,
-        m_li_al_cl_results_dict,
-        m_co_al_cl_results_dict,
+    m_co_cl_results_dict_a = extract_and_store_results(m_co_cl_a)
+    m_co_cl_results_dict_b = extract_and_store_results(m_co_cl_b)
+    m_co_cl_results_dict_c = extract_and_store_results(m_co_cl_c)
+    m_co_cl_results_dict_d = extract_and_store_results(m_co_cl_d)
+    m_co_cl_results_dict_e = extract_and_store_results(m_co_cl_e)
+    m_co_cl_results_dict_f = extract_and_store_results(m_co_cl_f)
+
+    m_al_cl_results_dict_a = extract_and_store_results(m_al_cl_a)
+    m_al_cl_results_dict_b = extract_and_store_results(m_al_cl_b)
+    m_al_cl_results_dict_c = extract_and_store_results(m_al_cl_c)
+    m_al_cl_results_dict_d = extract_and_store_results(m_al_cl_d)
+    m_al_cl_results_dict_e = extract_and_store_results(m_al_cl_e)
+
+    # m_li_co_cl_results_dict_a = extract_and_store_results(m_li_co_cl_a)
+    m_li_co_cl_results_dict_b = extract_and_store_results(m_li_co_cl_b)
+    m_li_co_cl_results_dict_c = extract_and_store_results(m_li_co_cl_c)
+    m_li_co_cl_results_dict_d = extract_and_store_results(m_li_co_cl_d)
+    m_li_co_cl_results_dict_e = extract_and_store_results(m_li_co_cl_e)
+    m_li_co_cl_results_dict_f = extract_and_store_results(m_li_co_cl_f)
+
+    m_li_al_cl_results_dict_a = extract_and_store_results(m_li_al_cl_a)
+    m_li_al_cl_results_dict_b = extract_and_store_results(m_li_al_cl_b)
+    m_li_al_cl_results_dict_c = extract_and_store_results(m_li_al_cl_c)
+    m_li_al_cl_results_dict_d = extract_and_store_results(m_li_al_cl_d)
+    m_li_al_cl_results_dict_e = extract_and_store_results(m_li_al_cl_e)
+    m_li_al_cl_results_dict_f = extract_and_store_results(m_li_al_cl_f)
+
+    # m_co_al_cl_results_dict_a = extract_and_store_results(m_co_al_cl_a)
+    m_co_al_cl_results_dict_b = extract_and_store_results(m_co_al_cl_b)
+    m_co_al_cl_results_dict_c = extract_and_store_results(m_co_al_cl_c)
+    m_co_al_cl_results_dict_d = extract_and_store_results(m_co_al_cl_d)
+    m_co_al_cl_results_dict_e = extract_and_store_results(m_co_al_cl_e)
+    m_co_al_cl_results_dict_f = extract_and_store_results(m_co_al_cl_f)
+
+    m_li_co_al_cl_results_dict_a = extract_and_store_results(m_li_co_al_cl_a)
+    m_li_co_al_cl_results_dict_b = extract_and_store_results(m_li_co_al_cl_b)
+    m_li_co_al_cl_results_dict_c = extract_and_store_results(m_li_co_al_cl_c)
+    # m_li_co_al_cl_results_dict_d = extract_and_store_results(m_li_co_al_cl_d)
+    # m_li_co_al_cl_results_dict_e = extract_and_store_results(m_li_co_al_cl_e)
+
+    plot_list = [
+        m_li_cl_results_dict_a,
+        m_li_cl_results_dict_b,
+        m_li_cl_results_dict_c,
+        m_li_cl_results_dict_d,
+        m_li_cl_results_dict_e,
+        m_li_cl_results_dict_f,
+        m_li_cl_results_dict_g,
+        m_co_cl_results_dict_a,
+        m_co_cl_results_dict_b,
+        m_co_cl_results_dict_c,
+        m_co_cl_results_dict_d,
+        m_co_cl_results_dict_e,
+        m_co_cl_results_dict_f,
+        m_al_cl_results_dict_a,
+        m_al_cl_results_dict_b,
+        m_al_cl_results_dict_c,
+        m_al_cl_results_dict_d,
+        m_al_cl_results_dict_e,
+        # m_li_co_cl_results_dict_a,
+        m_li_co_cl_results_dict_b,
+        m_li_co_cl_results_dict_c,
+        m_li_co_cl_results_dict_d,
+        m_li_co_cl_results_dict_e,
+        m_li_co_cl_results_dict_f,
+        m_li_al_cl_results_dict_a,
+        m_li_al_cl_results_dict_b,
+        m_li_al_cl_results_dict_c,
+        m_li_al_cl_results_dict_d,
+        m_li_al_cl_results_dict_e,
+        m_li_al_cl_results_dict_f,
+        # m_co_al_cl_results_dict_a,
+        m_co_al_cl_results_dict_b,
+        m_co_al_cl_results_dict_c,
+        m_co_al_cl_results_dict_d,
+        m_co_al_cl_results_dict_e,
+        m_co_al_cl_results_dict_f,
+        m_li_co_al_cl_results_dict_a,
+        m_li_co_al_cl_results_dict_b,
+        m_li_co_al_cl_results_dict_c,
+        # m_li_co_al_cl_results_dict_d,
+        # m_li_co_al_cl_results_dict_e,
     ]
 
+    # dict_list = [
+    #     m_li_cl_results_dict,
+    #     m_co_cl_results_dict,
+    #     m_al_cl_results_dict,
+    #     m_li_co_cl_results_dict,
+    #     m_li_al_cl_results_dict,
+    #     m_co_al_cl_results_dict,
+    # ]
+
     # plot individual results
-    plot_individual = False
-    if plot_individual:
-        for results_dict in dict_list:
-            plot_results_by_length(results_dict)
-            plot_results_by_thickness(results_dict)
+    # plot_individual = False
+    # if plot_individual:
+    #     for results_dict in dict_list:
+    #         plot_results_by_length(results_dict)
+    #         plot_results_by_thickness(results_dict)
 
     # plot overall results
     plot_overall = True
@@ -251,14 +811,17 @@ def main():
         # #     m_co_al_cl_results_dict,
         # #     x_axis_conc="bulk-ionic-strength",
         # # )
-        plot_rejection_versus_feed_ionic_strength(
-            m_li_cl_results_dict,
-            m_co_cl_results_dict,
-            m_al_cl_results_dict,
-            m_li_co_cl_results_dict,
-            m_li_al_cl_results_dict,
-            m_co_al_cl_results_dict,
-            m_li_co_al_cl_results_dict,
+        # plot_rejection_versus_feed_ionic_strength(
+        #     m_li_cl_results_dict,
+        #     m_co_cl_results_dict,
+        #     m_al_cl_results_dict,
+        #     m_li_co_cl_results_dict,
+        #     m_li_al_cl_results_dict,
+        #     m_co_al_cl_results_dict,
+        #     m_li_co_al_cl_results_dict,
+        # )
+        plot_rejection_versus_feed_ionic_strength_split(
+            plot_list,
         )
         # plot_flux_versus_length(
         #     m_li_cl_results_dict,
@@ -2900,6 +3463,395 @@ def plot_rejection_versus_feed_ionic_strength(
     ax1.plot([], [], "bs", markersize=markersize, label="Cobalt")
     ax1.plot([], [], "gs", markersize=markersize, label="Aluminum")
     ax1.legend(loc="best", title="Solution (marker)", title_fontsize=10, fontsize=10)
+
+    plt.tight_layout()
+
+
+def plot_rejection_versus_feed_ionic_strength_split(
+    list_of_results_dicts,
+):
+    """
+    Plots rejection versus ionic strength of bulk fluid and feed.
+    """
+    markersize = 10
+    # single salt plot
+    fig1, ax1 = plt.subplots(1, 1, dpi=75, figsize=(7, 6))
+
+    # two salt plots
+    fig2, (ax2, ax3, ax4) = plt.subplots(1, 3, dpi=75, figsize=(18, 6))
+
+    # three salt plot
+    fig3, ax5 = plt.subplots(1, 1, dpi=75, figsize=(7, 6))
+
+    for results_dict in list_of_results_dicts:
+        # feed ionic strength
+        feed_ionic_strength_val = results_dict["feed_ionic_strength"]
+
+        # cation rejections
+        observed_cation_1_rejection = results_dict["cation_1_rejection_observed"]
+        avg_observed_cation_1_rejection = np.average(observed_cation_1_rejection)
+        spread_observed_cation_1_rejection = np.array(
+            [
+                [avg_observed_cation_1_rejection - min(observed_cation_1_rejection)],
+                [max(observed_cation_1_rejection) - avg_observed_cation_1_rejection],
+            ]
+        )
+
+        actual_cation_1_rejection = results_dict["cation_1_rejection_actual"]
+        avg_actual_cation_1_rejection = np.average(actual_cation_1_rejection)
+        spread_actual_cation_1_rejection = np.array(
+            [
+                [avg_actual_cation_1_rejection - min(actual_cation_1_rejection)],
+                [max(actual_cation_1_rejection) - avg_actual_cation_1_rejection],
+            ]
+        )
+
+        if len(results_dict["cation_list"]) == 2:
+            observed_cation_2_rejection = results_dict["cation_2_rejection_observed"]
+            avg_observed_cation_2_rejection = np.average(observed_cation_2_rejection)
+            spread_observed_cation_2_rejection = np.array(
+                [
+                    [
+                        avg_observed_cation_2_rejection
+                        - min(observed_cation_2_rejection)
+                    ],
+                    [
+                        max(observed_cation_2_rejection)
+                        - avg_observed_cation_2_rejection
+                    ],
+                ]
+            )
+
+            actual_cation_2_rejection = results_dict["cation_2_rejection_actual"]
+            avg_actual_cation_2_rejection = np.average(actual_cation_2_rejection)
+            spread_actual_cation_2_rejection = np.array(
+                [
+                    [avg_actual_cation_2_rejection - min(actual_cation_2_rejection)],
+                    [max(actual_cation_2_rejection) - avg_actual_cation_2_rejection],
+                ]
+            )
+
+        if len(results_dict["cation_list"]) == 3:
+            observed_cation_2_rejection = results_dict["cation_2_rejection_observed"]
+            avg_observed_cation_2_rejection = np.average(observed_cation_2_rejection)
+            spread_observed_cation_2_rejection = np.array(
+                [
+                    [
+                        avg_observed_cation_2_rejection
+                        - min(observed_cation_2_rejection)
+                    ],
+                    [
+                        max(observed_cation_2_rejection)
+                        - avg_observed_cation_2_rejection
+                    ],
+                ]
+            )
+
+            actual_cation_2_rejection = results_dict["cation_2_rejection_actual"]
+            avg_actual_cation_2_rejection = np.average(actual_cation_2_rejection)
+            spread_actual_cation_2_rejection = np.array(
+                [
+                    [avg_actual_cation_2_rejection - min(actual_cation_2_rejection)],
+                    [max(actual_cation_2_rejection) - avg_actual_cation_2_rejection],
+                ]
+            )
+
+            observed_cation_3_rejection = results_dict["cation_3_rejection_observed"]
+            avg_observed_cation_3_rejection = np.average(observed_cation_3_rejection)
+            spread_observed_cation_3_rejection = np.array(
+                [
+                    [
+                        avg_observed_cation_3_rejection
+                        - min(observed_cation_3_rejection)
+                    ],
+                    [
+                        max(observed_cation_3_rejection)
+                        - avg_observed_cation_3_rejection
+                    ],
+                ]
+            )
+
+            actual_cation_3_rejection = results_dict["cation_3_rejection_actual"]
+            avg_actual_cation_3_rejection = np.average(actual_cation_3_rejection)
+            spread_actual_cation_3_rejection = np.array(
+                [
+                    [avg_actual_cation_3_rejection - min(actual_cation_3_rejection)],
+                    [max(actual_cation_3_rejection) - avg_actual_cation_3_rejection],
+                ]
+            )
+
+        if len(results_dict["cation_list"]) == 1:
+            if results_dict["cation_1"] == "Li":
+                data_key = "ro"
+            elif results_dict["cation_1"] == "Co":
+                data_key = "bo"
+            elif results_dict["cation_1"] == "Al":
+                data_key = "go"
+
+            ax1.errorbar(
+                feed_ionic_strength_val,
+                avg_observed_cation_1_rejection,
+                yerr=spread_observed_cation_1_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+            ax1.errorbar(
+                feed_ionic_strength_val,
+                avg_actual_cation_1_rejection,
+                yerr=spread_actual_cation_1_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+
+            ax1.plot(
+                feed_ionic_strength_val,
+                avg_observed_cation_1_rejection,
+                data_key,
+                mfc="none",
+                markersize=markersize,
+            )
+            ax1.plot(
+                feed_ionic_strength_val,
+                avg_actual_cation_1_rejection,
+                data_key,
+                markersize=markersize,
+            )
+
+        if len(results_dict["cation_list"]) == 2:
+            if results_dict["cation_list"] == ["Li", "Co"]:
+                data_key_cation_1 = "r*"
+                data_key_cation_2 = "b*"
+                ax = ax2
+            elif results_dict["cation_list"] == ["Li", "Al"]:
+                data_key_cation_1 = "r^"
+                data_key_cation_2 = "g^"
+                ax = ax3
+            elif results_dict["cation_list"] == ["Co", "Al"]:
+                data_key_cation_1 = "bv"
+                data_key_cation_2 = "gv"
+                ax = ax4
+
+            ax.errorbar(
+                feed_ionic_strength_val,
+                avg_observed_cation_1_rejection,
+                yerr=spread_observed_cation_1_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+            ax.errorbar(
+                feed_ionic_strength_val,
+                avg_actual_cation_1_rejection,
+                yerr=spread_actual_cation_1_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+            ax.errorbar(
+                feed_ionic_strength_val,
+                avg_observed_cation_2_rejection,
+                yerr=spread_observed_cation_2_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+            ax.errorbar(
+                feed_ionic_strength_val,
+                avg_actual_cation_2_rejection,
+                yerr=spread_actual_cation_2_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+
+            ax.plot(
+                feed_ionic_strength_val,
+                avg_observed_cation_1_rejection,
+                data_key_cation_1,
+                mfc="none",
+                markersize=markersize,
+            )
+            ax.plot(
+                feed_ionic_strength_val,
+                avg_actual_cation_1_rejection,
+                data_key_cation_1,
+                markersize=markersize,
+            )
+            ax.plot(
+                feed_ionic_strength_val,
+                avg_observed_cation_2_rejection,
+                data_key_cation_2,
+                mfc="none",
+                markersize=markersize,
+            )
+            ax.plot(
+                feed_ionic_strength_val,
+                avg_actual_cation_2_rejection,
+                data_key_cation_2,
+                markersize=markersize,
+            )
+
+        if len(results_dict["cation_list"]) == 3:
+            data_key_cation_1 = "rD"
+            data_key_cation_2 = "bD"
+            data_key_cation_3 = "gD"
+
+            ax5.errorbar(
+                feed_ionic_strength_val,
+                avg_observed_cation_1_rejection,
+                yerr=spread_observed_cation_1_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+            ax5.errorbar(
+                feed_ionic_strength_val,
+                avg_actual_cation_1_rejection,
+                yerr=spread_actual_cation_1_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+            ax5.errorbar(
+                feed_ionic_strength_val,
+                avg_observed_cation_2_rejection,
+                yerr=spread_observed_cation_2_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+            ax5.errorbar(
+                feed_ionic_strength_val,
+                avg_actual_cation_2_rejection,
+                yerr=spread_actual_cation_2_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+            ax5.errorbar(
+                feed_ionic_strength_val,
+                avg_observed_cation_3_rejection,
+                yerr=spread_observed_cation_3_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+            ax5.errorbar(
+                feed_ionic_strength_val,
+                avg_actual_cation_3_rejection,
+                yerr=spread_actual_cation_3_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+
+            ax5.plot(
+                feed_ionic_strength_val,
+                avg_observed_cation_1_rejection,
+                data_key_cation_1,
+                mfc="none",
+                markersize=markersize,
+            )
+            ax5.plot(
+                feed_ionic_strength_val,
+                avg_actual_cation_1_rejection,
+                data_key_cation_1,
+                markersize=markersize,
+            )
+            ax5.plot(
+                feed_ionic_strength_val,
+                avg_observed_cation_2_rejection,
+                data_key_cation_2,
+                mfc="none",
+                markersize=markersize,
+            )
+            ax5.plot(
+                feed_ionic_strength_val,
+                avg_actual_cation_2_rejection,
+                data_key_cation_2,
+                markersize=markersize,
+            )
+            ax5.plot(
+                feed_ionic_strength_val,
+                avg_observed_cation_3_rejection,
+                data_key_cation_3,
+                mfc="none",
+                markersize=markersize,
+            )
+            ax5.plot(
+                feed_ionic_strength_val,
+                avg_actual_cation_3_rejection,
+                data_key_cation_3,
+                markersize=markersize,
+            )
+
+    for ax in [ax1, ax2, ax3, ax4, ax5]:
+        ax.axhline(0, color="black", linewidth=1)
+        ax.set_xlabel(
+            "Inlet Feed Ionic Strength (mol/m$^3$)",
+            fontsize=14,
+            fontweight="bold",
+        )
+        ax.tick_params(direction="in", labelsize=14)
+
+    for ax in [ax1, ax2, ax5]:
+        ax.set_ylabel("Percent Rejection (%)", fontsize=14, fontweight="bold")
+
+    # for ax in [ax2, ax3, ax4]:
+    #     ax.set_xlim(0, 800)
+    #     ax.set_ylim(-20, 100)
+
+    # ax1.plot([], [], "ko", markersize=markersize, label="Single Salt")
+    # ax1.plot([], [], "k*", markersize=markersize, label="LiCl + CoCl$_2$")
+    # ax1.plot([], [], "k^", markersize=markersize, label="LiCl + AlCl$_3$")
+    # ax1.plot([], [], "kv", markersize=markersize, label="CoCl$_2$ + AlCl$_3$")
+    # ax1.plot([], [], "kD", markersize=markersize, label="LiCl + CoCl$_2$ + AlCl$_3$")
+    # ax1.plot([], [], marker="None", linestyle="None", label="Rejection (fill)")
+    # ax1.plot([], [], "ks", mfc="none", markersize=markersize, label="Observed")
+    # ax1.plot([], [], "ks", markersize=markersize, label="Actual")
+    # ax1.plot([], [], marker="None", linestyle="None", label="Solute (color)")
+    # ax1.plot([], [], "rs", markersize=markersize, label="Lithium")
+    # ax1.plot([], [], "bs", markersize=markersize, label="Cobalt")
+    # ax1.plot([], [], "gs", markersize=markersize, label="Aluminum")
+    # ax1.legend(loc="best", title="Solution (marker)", title_fontsize=10, fontsize=10, bbox_to_anchor=(0.43, 0.54))
+
+    # single salt
+    fig1.suptitle("Single Salt Systems", fontsize=14, fontweight="bold")
+    ax1.plot([], [], "ko", markersize=markersize, label="Single Salt")
+    ax1.plot([], [], marker="None", linestyle="None", label="Rejection (fill)")
+    ax1.plot([], [], "ks", mfc="none", markersize=markersize, label="Observed")
+    ax1.plot([], [], "ks", markersize=markersize, label="Actual")
+    ax1.plot([], [], marker="None", linestyle="None", label="Solute (color)")
+    ax1.plot([], [], "rs", markersize=markersize, label="Lithium")
+    ax1.plot([], [], "bs", markersize=markersize, label="Cobalt")
+    ax1.plot([], [], "gs", markersize=markersize, label="Aluminum")
+    ax1.legend(loc="best", title="Solution (marker)", title_fontsize=10, fontsize=10)
+
+    # two salts
+    fig2.suptitle("Two Salt Systems", fontsize=14, fontweight="bold")
+    ax2.set_title("LiCl + CoCl$_2$", fontsize=12)
+    ax3.set_title("LiCl + AlCl$_3$", fontsize=12)
+    ax4.set_title("CoCl$_2$ + AlCl$_3$", fontsize=12)
+    ax3.plot([], [], "k*", markersize=markersize, label="LiCl + CoCl$_2$")
+    ax3.plot([], [], "k^", markersize=markersize, label="LiCl + AlCl$_3$")
+    ax3.plot([], [], "kv", markersize=markersize, label="CoCl$_2$ + AlCl$_3$")
+    ax3.plot([], [], marker="None", linestyle="None", label="Rejection (fill)")
+    ax3.plot([], [], "ks", mfc="none", markersize=markersize, label="Observed")
+    ax3.plot([], [], "ks", markersize=markersize, label="Actual")
+    ax3.plot([], [], marker="None", linestyle="None", label="Solute (color)")
+    ax3.plot([], [], "rs", markersize=markersize, label="Lithium")
+    ax3.plot([], [], "bs", markersize=markersize, label="Cobalt")
+    ax3.plot([], [], "gs", markersize=markersize, label="Aluminum")
+    ax3.legend(loc="best", title="Solution (marker)", title_fontsize=10, fontsize=10)
+
+    # three salts
+    fig3.suptitle("Three Salt Systems", fontsize=14, fontweight="bold")
+    ax5.set_title("LiCl + CoCl$_2$ + AlCl$_3$", fontsize=12)
+    ax5.plot([], [], "kD", markersize=markersize, label="LiCl + CoCl$_2$ + AlCl$_3$")
+    ax5.plot([], [], marker="None", linestyle="None", label="Rejection (fill)")
+    ax5.plot([], [], "ks", mfc="none", markersize=markersize, label="Observed")
+    ax5.plot([], [], "ks", markersize=markersize, label="Actual")
+    ax5.plot([], [], marker="None", linestyle="None", label="Solute (color)")
+    ax5.plot([], [], "rs", markersize=markersize, label="Lithium")
+    ax5.plot([], [], "bs", markersize=markersize, label="Cobalt")
+    ax5.plot([], [], "gs", markersize=markersize, label="Aluminum")
+    ax5.legend(
+        loc="best",
+        title="Solution (marker)",
+        title_fontsize=10,
+        fontsize=10,
+        bbox_to_anchor=(0.25, 0.5),
+    )
 
     plt.tight_layout()
 
