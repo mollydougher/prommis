@@ -35,6 +35,10 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         Co (cobalt ion, 2+)
         Al (aluminum ion, 3+)
         Cl (chloride ion, -)
+        SO4 (sulfate ion, 2-)
+
+    The partition coefficients and hindered diffusion coefficients assume
+    a negatively charged membrane.
     """
 
     CONFIG = PhysicalParameterBlock.CONFIG()
@@ -76,22 +80,46 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             "Co": 2,
             "Al": 3,
             "Cl": -1,
+            "SO4": -2,
         }
 
         # infinite dilution solute diffusion coefficient
         # source: https://www.aqion.de/site/diffusion-coefficients
-        # assumption: no hindered transport (D_bulk = D_membrane)
+        # assumption: no hindered transport within the boundary layer (D_water = D_bl)
         boundary_layer_diffusion_coefficient_dict = {
             "Li": 3.71,  # mm2 / h
             "Co": 2.64,  # mm2 / h
             "Al": 2.01,  # mm2 / h
             "Cl": 7.31,  # mm2 / h
+            "SO4": 3.85,  # mm2 / h
         }
+        # use a hindered diffusion coefficient to estimate membrane diffusion coefficient
+        # factor = D_solution / D_membrane
+        # estimated from: https://www.science.org/doi/epdf/10.1126/sciadv.adu8302
+        if self.config.anion_list[0] == "Cl":
+            hindered_diffusion_coefficient_dict = {
+                "cation": 0.0003,
+                "anion": 0.008,
+            }
+        elif self.config.anion_list[0] == "SO4":
+            hindered_diffusion_coefficient_dict = {
+                "cation": 0.0007,
+                "anion": 0.05,
+            }
+
         membrane_diffusion_coefficient_dict = {
-            "Li": 3.71,  # mm2 / h
-            "Co": 2.64,  # mm2 / h
-            "Al": 2.01,  # mm2 / h
-            "Cl": 7.31,  # mm2 / h
+            "Li": hindered_diffusion_coefficient_dict["cation"]
+            * boundary_layer_diffusion_coefficient_dict["Li"],  # mm2 / h
+            "Co": hindered_diffusion_coefficient_dict["cation"]
+            * boundary_layer_diffusion_coefficient_dict["Co"]
+            / 10,  # mm2 / h
+            "Al": hindered_diffusion_coefficient_dict["cation"]
+            * boundary_layer_diffusion_coefficient_dict["Al"]
+            / 100,  # mm2 / h
+            "Cl": hindered_diffusion_coefficient_dict["anion"]
+            * boundary_layer_diffusion_coefficient_dict["Cl"],  # mm2 / h
+            "SO4": hindered_diffusion_coefficient_dict["anion"]
+            * boundary_layer_diffusion_coefficient_dict["SO4"],  # mm2 / h
         }
 
         # thermal reflection coefficient, related to solute rejection
@@ -100,47 +128,86 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             "Co": 1,
             "Al": 1,
             "Cl": 1,
+            "SO4": 1,
         }
 
         # partition coefficient at the solution-membrane interfaces
-        # Reference: https://doi.org/10.1126/sciadv.adu8302
-        # Assumptions:
-        # membrane fixed charge is negative (Donnan effects are incorporated)
-        # monovalent ions of similar size (i.e., Na and Li) behave similarly
-        # H,Li is estimated from the data in Fig 1D (Na) of above reference at 200 mM
-        # H,Co (divalent) is estimated as one order of magnitude smaller than H,Li (monovalent)
-        # H,Al (trivalent) is estimated as one order of magnitude smaller than H,Co (divalent)
-        # H,Cl is estimated from the data in Fig 1C of above reference at 200 mM
+        # estimated from: https://doi.org/10.1126/sciadv.adu8302
         # while H on the retentate and permeate sides can differ, we assume them to be equal for now
+        if self.config.anion_list[0] == "Cl":
+            ion_partition_coefficient_dict = {
+                "retentate": {
+                    "cation": 0.3,
+                    "anion": 0.02,
+                },
+                "permeate": {
+                    "cation": 0.3,
+                    "anion": 0.02,
+                },
+            }
+        elif self.config.anion_list[0] == "SO4":
+            ion_partition_coefficient_dict = {
+                "retentate": {
+                    "cation": 0.06,
+                    "anion": 0.003,
+                },
+                "permeate": {
+                    "cation": 0.06,
+                    "anion": 0.003,
+                },
+            }
+
         partition_coefficient_dict = {
             "retentate": {
-                "Li": 0.4,
-                "Co": 0.04,
-                "Al": 0.004,
-                "Cl": 0.01,
+                "Li": ion_partition_coefficient_dict["retentate"]["cation"],
+                "Co": charge_dict["Co"]
+                * ion_partition_coefficient_dict["retentate"]["cation"],
+                "Al": charge_dict["Al"]
+                * ion_partition_coefficient_dict["retentate"]["cation"],
+                "Cl": ion_partition_coefficient_dict["retentate"]["anion"],
+                "SO4": ion_partition_coefficient_dict["retentate"]["anion"],
             },
             "permeate": {
-                "Li": 0.4,
-                "Co": 0.04,
-                "Al": 0.004,
-                "Cl": 0.01,
+                "Li": ion_partition_coefficient_dict["permeate"]["cation"],
+                "Co": charge_dict["Co"]
+                * ion_partition_coefficient_dict["permeate"]["cation"],
+                "Al": charge_dict["Al"]
+                * ion_partition_coefficient_dict["permeate"]["cation"],
+                "Cl": ion_partition_coefficient_dict["permeate"]["anion"],
+                "SO4": ion_partition_coefficient_dict["permeate"]["anion"],
             },
         }
 
-        if self.config.cation_list == ["Li"]:
-            salt_system = "Li_Cl"
-        elif self.config.cation_list == ["Co"]:
-            salt_system = "Co_Cl2"
-        elif self.config.cation_list == ["Al"]:
-            salt_system = "Al_Cl3"
-        elif self.config.cation_list == ["Li", "Co"]:
-            salt_system = "Li_Co_Cl3"
-        elif self.config.cation_list == ["Li", "Al"]:
-            salt_system = "Li_Al_Cl4"
-        elif self.config.cation_list == ["Co", "Al"]:
-            salt_system = "Co_Al_Cl5"
-        elif self.config.cation_list == ["Li", "Co", "Al"]:
-            salt_system = "Li_Co_Al_Cl6"
+        if self.config.anion_list[0] == "Cl":
+            if self.config.cation_list == ["Li"]:
+                salt_system = "Li_Cl"
+            elif self.config.cation_list == ["Co"]:
+                salt_system = "Co_Cl2"
+            elif self.config.cation_list == ["Al"]:
+                salt_system = "Al_Cl3"
+            elif self.config.cation_list == ["Li", "Co"]:
+                salt_system = "Li_Co_Cl3"
+            elif self.config.cation_list == ["Li", "Al"]:
+                salt_system = "Li_Al_Cl4"
+            elif self.config.cation_list == ["Co", "Al"]:
+                salt_system = "Co_Al_Cl5"
+            elif self.config.cation_list == ["Li", "Co", "Al"]:
+                salt_system = "Li_Co_Al_Cl6"
+        elif self.config.anion_list[0] == "SO4":
+            if self.config.cation_list == ["Li"]:
+                salt_system = "Li2_SO4"
+            elif self.config.cation_list == ["Co"]:
+                salt_system = "Co_SO4"
+            elif self.config.cation_list == ["Al"]:
+                salt_system = "Al2_(SO4)3"
+            elif self.config.cation_list == ["Li", "Co"]:
+                salt_system = "Li2_Co_(SO4)2"
+            elif self.config.cation_list == ["Li", "Al"]:
+                salt_system = "Li2_Al2_(SO4)4"
+            elif self.config.cation_list == ["Co", "Al"]:
+                salt_system = "Co_Al2_(SO4)4"
+            elif self.config.cation_list == ["Li", "Co", "Al"]:
+                salt_system = "Li2_Co_Al2_(SO4)5"
 
         num_solutes_dict = {
             "Li_Cl": {
@@ -175,6 +242,39 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
                 "Co": 1,
                 "Al": 1,
                 "Cl": 6,
+            },
+            "Li2_SO4": {
+                "Li": 2,
+                "SO4": 1,
+            },
+            "Co_SO4": {
+                "Co": 1,
+                "SO4": 1,
+            },
+            "Al2_(SO4)3": {
+                "Al": 2,
+                "SO4": 3,
+            },
+            "Li2_Co_(SO4)2": {
+                "Li": 2,
+                "Co": 1,
+                "SO4": 2,
+            },
+            "Li2_Al2_(SO4)4": {
+                "Li": 2,
+                "Al": 2,
+                "SO4": 4,
+            },
+            "Co_Al2_(SO4)4": {
+                "Co": 1,
+                "Al": 2,
+                "SO4": 4,
+            },
+            "Li2_Co_Al2_(SO4)5": {
+                "Li": 2,
+                "Co": 1,
+                "Al": 2,
+                "SO4": 5,
             },
         }
 
