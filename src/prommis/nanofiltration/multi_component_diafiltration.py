@@ -297,6 +297,7 @@ from pyomo.environ import (
     Suffix,
     TransformationFactory,
     Var,
+    log,
     units,
     value,
 )
@@ -325,30 +326,52 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
 
         for t in model.time:
             for x in model.dimensionless_module_length:
-                model.retentate_flow_volume[t, x].set_value(
-                    value(model.combined_feed_flow_volume[t]) * 1 / 3
-                )
-                model.d_retentate_flow_volume_dx[t, x].set_value(-10)
-                model.permeate_flow_volume[t, x].set_value(
-                    value(model.combined_feed_flow_volume[t]) * 2 / 3
-                )
-                for j in model.solutes:
-                    model.retentate_conc_mol_comp[t, x, j].set_value(
-                        value(model.combined_feed_conc_mol_comp[t, j]) * 0.95
+                if x == 0:
+                    model.retentate_flow_volume[t, x].set_value(
+                        value(model.combined_feed_flow_volume[t])
                     )
+                    model.permeate_flow_volume[t, x].set_value(
+                        value(model.combined_feed_flow_volume[t])
+                    )
+                else:
+                    model.retentate_flow_volume[t, x].set_value(
+                        value(model.combined_feed_flow_volume[t]) * 1 / 3
+                    )
+                    model.permeate_flow_volume[t, x].set_value(
+                        value(model.combined_feed_flow_volume[t]) * 2 / 3
+                    )
+                model.d_retentate_flow_volume_dx[t, x].set_value(-10)
+                for j in model.solutes:
+                    if x == 0:
+                        model.retentate_conc_mol_comp[t, x, j].set_value(
+                            value(model.combined_feed_conc_mol_comp[t, j])
+                        )
+                        model.permeate_conc_mol_comp[t, x, j].set_value(1e-10)
+                    else:
+                        model.retentate_conc_mol_comp[t, x, j].set_value(
+                            value(model.combined_feed_conc_mol_comp[t, j]) * 0.95
+                        )
+                        model.permeate_conc_mol_comp[t, x, j].set_value(
+                            value(model.combined_feed_conc_mol_comp[t, j]) * 0.5
+                        )
                     if len(model.config.cation_list) == 1:
                         model.d_retentate_conc_mol_comp_dx[t, x, j].set_value(1)
                     else:
                         model.d_retentate_conc_mol_comp_dx[t, x, j].set_value(10)
-                    model.permeate_conc_mol_comp[t, x, j].set_value(
-                        value(model.combined_feed_conc_mol_comp[t, j]) * 0.8
-                    )
                 if model.config.include_boundary_layer:
                     for z in model.dimensionless_boundary_layer_thickness:
                         for j in model.solutes:
-                            model.boundary_layer_conc_mol_comp[t, x, z, j].set_value(
-                                value(model.combined_feed_conc_mol_comp[t, j]) * 0.75
-                            )
+                            if x == 0:
+                                model.boundary_layer_conc_mol_comp[
+                                    t, x, z, j
+                                ].set_value(1e-10)
+                            else:
+                                model.boundary_layer_conc_mol_comp[
+                                    t, x, z, j
+                                ].set_value(
+                                    value(model.combined_feed_conc_mol_comp[t, j])
+                                    * 0.95
+                                )
                             model.d_boundary_layer_conc_mol_comp_dz[
                                 t, x, z, j
                             ].set_value(10)
@@ -379,19 +402,13 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
 
                 for z in model.dimensionless_membrane_thickness:
                     for j in model.solutes:
-                        model.membrane_conc_mol_comp[t, x, z, j].set_value(
-                            value(model.combined_feed_conc_mol_comp[t, j]) * 0.5
-                        )
-                        #     if value(model.config.property_package.charge[j]) == 1:
-                        #         model.membrane_conc_mol_comp[t, x, z, j].set_value(
-                        #             value(model.combined_feed_conc_mol_comp[t, j]) * 0.2
-                        #         )
-                        #     elif value(model.config.property_package.charge[j]) >= 2:
-                        #         model.membrane_conc_mol_comp[t, x, z, j].set_value(
-                        #             value(model.combined_feed_conc_mol_comp[t, j]) * 0.2
-                        #         )
-                        # update anion concentration to consider fixed membrane charge
-                        if x != 0:
+                        if x == 0:
+                            model.membrane_conc_mol_comp[t, x, z, j].set_value(1e-10)
+                        else:
+                            model.membrane_conc_mol_comp[t, x, z, j].set_value(
+                                value(model.combined_feed_conc_mol_comp[t, j]) * 0.2
+                            )
+                            # update anion concentration to consider fixed membrane charge
                             calculate_variable_from_constraint(
                                 model.membrane_conc_mol_comp[
                                     t, x, z, model.config.anion_list[0]
@@ -404,15 +421,6 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                         else:
                             model.d_membrane_conc_mol_comp_dz[t, x, z, j].set_value(0.1)
 
-                for k in model.cations:
-                    # use interface relationship to calculate mem conc
-                    if x != 0:
-                        calculate_variable_from_constraint(
-                            model.membrane_conc_mol_comp[t, x, 0, k],
-                            model.cation_equilibrium_boundary_layer_membrane_interface[
-                                t, x, k
-                            ],
-                        )
                 for z in model.dimensionless_membrane_thickness:
                     # update diffusion and convection coefficients
                     # improves numerics for multi-salt systems
@@ -453,6 +461,8 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                                         t, x, z, k, j
                                     ],
                                 )
+
+        # model.display()
 
         super().initialization_routine(model)
 
@@ -696,7 +706,7 @@ and used when constructing these,
         self.volume_flux_water = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=0.06,
+            initialize=0.1,
             units=units.m**3 / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric water flux of water across the membrane",
@@ -767,7 +777,7 @@ and used when constructing these,
         self.osmotic_pressure = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=4,
+            initialize=20,
             units=units.bar,
             bounds=[1e-11, None],
             doc="Osmostic pressure difference across the membrane",
@@ -863,14 +873,14 @@ and used when constructing these,
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=160,
+            initialize=1,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D * c
             doc="Denominator of diffusion and convection coefficients in membrane",
         )
 
         def initialize_membrane_cross_diffusion_coefficient_bilinear(m, t, w, l, j, k):
             vals = {
-                k: {j: -0.1 for j in self.config.cation_list}
+                k: {j: -0.001 for j in self.config.cation_list}
                 for k in self.config.cation_list
             }
             return vals[j][k]
@@ -888,7 +898,7 @@ and used when constructing these,
         )
 
         def initialize_membrane_convection_coefficient_bilinear(m, t, w, l, j):
-            vals = {k: 160 for k in self.config.cation_list}
+            vals = {k: 1 for k in self.config.cation_list}
             return vals[j]
 
         self.membrane_convection_coefficient_bilinear = Var(
@@ -903,7 +913,7 @@ and used when constructing these,
 
         def initialize_membrane_cross_diffusion_coefficient(m, t, w, l, j, k):
             vals = {
-                k: {j: -0.0001 for j in self.config.cation_list}
+                k: {j: -0.001 for j in self.config.cation_list}
                 for k in self.config.cation_list
             }
             return vals[j][k]
@@ -1496,13 +1506,19 @@ and used when constructing these,
                 conc_mem = blk.membrane_conc_mol_comp
                 H_r = blk.config.property_package.partition_coefficient_retentate
                 return (
-                    (H_r[k] ** (-charge[a0]))
-                    * (H_r[a0] ** charge[k])
-                    * (conc_bl[t, x, 1, k] ** (-charge[a0]))
-                    * (conc_bl[t, x, 1, a0] ** charge[k])
+                    charge[k]
+                    * (
+                        log(H_r[a0])
+                        + log(conc_bl[t, x, 1, a0] * units.m**3 / units.mol)
+                        - log(conc_mem[t, x, 0, a0] * units.m**3 / units.mol)
+                    )
                 ) == (
-                    (conc_mem[t, x, 0, k] ** (-charge[a0]))
-                    * (conc_mem[t, x, 0, a0] ** charge[k])
+                    charge[a0]
+                    * (
+                        log(H_r[k])
+                        + log(conc_bl[t, x, 1, k] * units.m**3 / units.mol)
+                        - log(conc_mem[t, x, 0, k] * units.m**3 / units.mol)
+                    )
                 )
 
             self.cation_equilibrium_boundary_layer_membrane_interface = Constraint(
@@ -1522,13 +1538,19 @@ and used when constructing these,
                 conc_r = blk.retentate_conc_mol_comp
                 H_r = blk.config.property_package.partition_coefficient_retentate
                 return (
-                    (H_r[k] ** (-charge[a0]))
-                    * (H_r[a0] ** charge[k])
-                    * (conc_r[t, x, k] ** (-charge[a0]))
-                    * (conc_r[t, x, a0] ** charge[k])
+                    charge[k]
+                    * (
+                        log(H_r[a0])
+                        + log(conc_r[t, x, a0] * units.m**3 / units.mol)
+                        - log(conc_mem[t, x, 0, a0] * units.m**3 / units.mol)
+                    )
                 ) == (
-                    (conc_mem[t, x, 0, k] ** (-charge[a0]))
-                    * (conc_mem[t, x, 0, a0] ** charge[k])
+                    charge[a0]
+                    * (
+                        log(H_r[k])
+                        + log(conc_r[t, x, k] * units.m**3 / units.mol)
+                        - log(conc_mem[t, x, 0, k] * units.m**3 / units.mol)
+                    )
                 )
 
             self.cation_equilibrium_retentate_membrane_interface = Constraint(
@@ -1547,13 +1569,19 @@ and used when constructing these,
             conc_p = blk.permeate_conc_mol_comp
             H_p = blk.config.property_package.partition_coefficient_permeate
             return (
-                (H_p[k] ** (-charge[a0]))
-                * (H_p[a0] ** charge[k])
-                * (conc_p[t, x, k] ** (-charge[a0]))
-                * (conc_p[t, x, a0] ** charge[k])
+                charge[k]
+                * (
+                    log(H_p[a0])
+                    + log(conc_p[t, x, a0] * units.m**3 / units.mol)
+                    - log(conc_mem[t, x, 1, a0] * units.m**3 / units.mol)
+                )
             ) == (
-                (conc_mem[t, x, 1, k] ** (-charge[a0]))
-                * (conc_mem[t, x, 1, a0] ** charge[k])
+                charge[a0]
+                * (
+                    log(H_p[k])
+                    + log(conc_p[t, x, k] * units.m**3 / units.mol)
+                    - log(conc_mem[t, x, 1, k] * units.m**3 / units.mol)
+                )
             )
 
         self.cation_equilibrium_membrane_permeate_interface = Constraint(
@@ -1755,20 +1783,26 @@ and used when constructing these,
             self.scaling_factor[
                 self.boundary_layer_cross_diffusion_coefficient_bilinear
             ] = 1e-4
-            self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = 1e1
-        self.scaling_factor[self.membrane_D_tilde] = 1e-1
+            # self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = 1e1
+        # self.scaling_factor[self.membrane_D_tilde] = 1e-1
         self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = 1e2
-        self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e-1
-        self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e4
+        # self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e-1
+        self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e2
         # self.scaling_factor[self.membrane_convection_coefficient] = 1e1
 
+        self.scaling_factor[
+            self.boundary_layer_cross_diffusion_coefficient_calculation
+        ] = 1e-1
+        self.scaling_factor[
+            self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
+        ] = 1e-1
         self.scaling_factor[self.membrane_cross_diffusion_coefficient_calculation] = 1e4
         self.scaling_factor[
             self.membrane_cross_diffusion_coefficient_bilinear_calculation
         ] = 1e4
 
         if len(self.config.cation_list) >= 2:
-            self.scaling_factor[self.lumped_water_flux] = 1e3
+            self.scaling_factor[self.lumped_water_flux] = 1e2
 
     def add_ports(self):
         self.feed_inlet = Port(doc="Feed Inlet Port")
@@ -1818,7 +1852,7 @@ and used when constructing these,
             return (
                 blk.feed_flow_volume[t] * blk.feed_conc_mol_comp[t, j]
                 + blk.diafiltrate_flow_volume[t] * blk.diafiltrate_conc_mol_comp[t, j]
-            )
+            ) / (blk.feed_flow_volume[t] + blk.diafiltrate_flow_volume[t])
 
         self.combined_feed_conc_mol_comp = Expression(
             self.time, self.solutes, rule=_combined_feed_conc_mol_comp

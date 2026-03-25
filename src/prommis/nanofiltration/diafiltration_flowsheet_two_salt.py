@@ -12,6 +12,7 @@ Author: Molly Dougher
 
 from pyomo.environ import (
     ConcreteModel,
+    Constraint,
     SolverFactory,
     TransformationFactory,
     assert_optimal_termination,
@@ -74,9 +75,9 @@ def main():
         cation_list=cation_list,
         anion_list=anion_list,
         include_boundary_layer=True,
-        NFE_module_length=10,
-        NFE_boundary_layer_thickness=5,
-        NFE_membrane_thickness=5,
+        NFE_module_length=7,
+        NFE_boundary_layer_thickness=10,
+        NFE_membrane_thickness=10,
     )
 
     # update parameter inputs if desired
@@ -105,6 +106,18 @@ def main():
 
     # check numerical warnings
     dt.assert_no_numerical_warnings()
+    dt.report_numerical_issues()
+    # dt.display_constraints_with_extreme_jacobians()
+
+    # m.fs.membrane.display()
+    # m.fs.membrane.osmotic_pressure.display()
+
+    # unfix_pressure(m)
+    # solve_model(m)
+    # dt.report_numerical_issues()
+    # dt.display_constraints_with_large_residuals()
+    # dt.compute_infeasibility_explanation()
+    # dt.display_variables_at_or_outside_bounds()
 
     # visualize the results
     overall_results_plot = plot_results_by_length(m)
@@ -135,7 +148,7 @@ def fix_variables(m, inlet_flow_volume, inlet_concentration):
     # fix degrees of freedom in the membrane
     m.fs.membrane.total_module_length.fix()
     m.fs.membrane.total_membrane_length.fix()
-    m.fs.membrane.applied_pressure.fix()
+    m.fs.membrane.applied_pressure.fix(25)
 
     m.fs.membrane.feed_flow_volume.fix(inlet_flow_volume["feed"])
     m.fs.membrane.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
@@ -184,6 +197,17 @@ def solve_model(m):
     assert_optimal_termination(results)
 
     scaling.propagate_solution(scaled_model, m)
+
+
+def unfix_pressure(m):
+    m.fs.membrane.applied_pressure.unfix()
+
+    initial_x_point = m.fs.membrane.dimensionless_module_length[2]
+
+    def _water_flux_constraint(m):
+        return m.fs.membrane.volume_flux_water[0, initial_x_point] == 0.08
+
+    m.water_flux_constraint = Constraint(rule=_water_flux_constraint)
 
 
 def plot_results_by_length(m):

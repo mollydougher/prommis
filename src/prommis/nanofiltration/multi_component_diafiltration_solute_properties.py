@@ -98,27 +98,33 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         # estimated from: https://www.science.org/doi/epdf/10.1126/sciadv.adu8302
         if self.config.anion_list[0] == "Cl":
             hindered_diffusion_coefficient_dict = {
-                "cation": 0.0003,
-                "anion": 0.008,
+                "Li": 0.0003,
+                "Co": 0.0003,
+                "Al": 0.0003,
+                "Cl": 0.008,
+                "SO4": 0,
             }
         elif self.config.anion_list[0] == "SO4":
             hindered_diffusion_coefficient_dict = {
-                "cation": 0.0007,
-                "anion": 0.05,
+                "Li": 0.0007,
+                "Co": 0.0007,
+                "Al": 0.0007,
+                "Cl": 0,
+                "SO4": 0.05,
             }
 
         membrane_diffusion_coefficient_dict = {
-            "Li": hindered_diffusion_coefficient_dict["cation"]
+            "Li": hindered_diffusion_coefficient_dict["Li"]
             * boundary_layer_diffusion_coefficient_dict["Li"],  # mm2 / h
-            "Co": hindered_diffusion_coefficient_dict["cation"]
+            "Co": hindered_diffusion_coefficient_dict["Co"]
             * boundary_layer_diffusion_coefficient_dict["Co"]
             / 10,  # mm2 / h
-            "Al": hindered_diffusion_coefficient_dict["cation"]
+            "Al": hindered_diffusion_coefficient_dict["Al"]
             * boundary_layer_diffusion_coefficient_dict["Al"]
             / 100,  # mm2 / h
-            "Cl": hindered_diffusion_coefficient_dict["anion"]
+            "Cl": hindered_diffusion_coefficient_dict["Cl"]
             * boundary_layer_diffusion_coefficient_dict["Cl"],  # mm2 / h
-            "SO4": hindered_diffusion_coefficient_dict["anion"]
+            "SO4": hindered_diffusion_coefficient_dict["SO4"]
             * boundary_layer_diffusion_coefficient_dict["SO4"],  # mm2 / h
         }
 
@@ -137,44 +143,52 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         if self.config.anion_list[0] == "Cl":
             ion_partition_coefficient_dict = {
                 "retentate": {
-                    "cation": 0.3,
-                    "anion": 0.02,
+                    "Li": 0.3,
+                    "Co": 0.4,
+                    "Al": 0.5,
+                    "Cl": 0.02,
+                    "SO4": 0,
                 },
                 "permeate": {
-                    "cation": 0.3,
-                    "anion": 0.02,
+                    "Li": 0.3,
+                    "Co": 0.4,
+                    "Al": 0.5,
+                    "Cl": 0.02,
+                    "SO4": 0,
                 },
             }
         elif self.config.anion_list[0] == "SO4":
             ion_partition_coefficient_dict = {
                 "retentate": {
-                    "cation": 0.06,
-                    "anion": 0.003,
+                    "Li": 0.06,
+                    "Co": 0.06,
+                    "Al": 0.06,
+                    "Cl": 0,
+                    "SO4": 0.003,
                 },
                 "permeate": {
-                    "cation": 0.06,
-                    "anion": 0.003,
+                    "Li": 0.06,
+                    "Co": 0.06,
+                    "Al": 0.06,
+                    "Cl": 0,
+                    "SO4": 0.003,
                 },
             }
 
         partition_coefficient_dict = {
             "retentate": {
-                "Li": ion_partition_coefficient_dict["retentate"]["cation"],
-                "Co": charge_dict["Co"]
-                * ion_partition_coefficient_dict["retentate"]["cation"],
-                "Al": charge_dict["Al"]
-                * ion_partition_coefficient_dict["retentate"]["cation"],
-                "Cl": ion_partition_coefficient_dict["retentate"]["anion"],
-                "SO4": ion_partition_coefficient_dict["retentate"]["anion"],
+                "Li": ion_partition_coefficient_dict["retentate"]["Li"],
+                "Co": ion_partition_coefficient_dict["retentate"]["Co"],
+                "Al": ion_partition_coefficient_dict["retentate"]["Al"],
+                "Cl": ion_partition_coefficient_dict["retentate"]["Cl"],
+                "SO4": ion_partition_coefficient_dict["retentate"]["SO4"],
             },
             "permeate": {
-                "Li": ion_partition_coefficient_dict["permeate"]["cation"],
-                "Co": charge_dict["Co"]
-                * ion_partition_coefficient_dict["permeate"]["cation"],
-                "Al": charge_dict["Al"]
-                * ion_partition_coefficient_dict["permeate"]["cation"],
-                "Cl": ion_partition_coefficient_dict["permeate"]["anion"],
-                "SO4": ion_partition_coefficient_dict["permeate"]["anion"],
+                "Li": ion_partition_coefficient_dict["permeate"]["Li"],
+                "Co": ion_partition_coefficient_dict["permeate"]["Co"],
+                "Al": ion_partition_coefficient_dict["permeate"]["Al"],
+                "Cl": ion_partition_coefficient_dict["permeate"]["Cl"],
+                "SO4": ion_partition_coefficient_dict["permeate"]["SO4"],
             },
         }
 
