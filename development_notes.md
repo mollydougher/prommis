@@ -36,3 +36,28 @@
 - Improve the initialization path so it reflects model physics better and reduces the burden on the nonlinear solve.
 - Revisit the membrane flux formulation to make sure the `z`-indexed implementation is mathematically tight and numerically sensible.
 - Expand scaling coverage in a targeted way based on the worst-conditioned variables and constraints.
+
+### Additional clarifications
+- The first common failure mode is BT initialization failure.
+- Single-salt cases appear somewhat more stable than two-salt and three-salt cases, but this has not been characterized rigorously.
+- The main numerical offenders seen so far are:
+  - `volume_flux_water`
+  - `membrane_D_tilde`
+  - `membrane_cross_diffusion_coefficient_bilinear`
+  - `membrane_convection_coefficient_bilinear`
+  - `membrane_cross_diffusion_coefficient`
+  - `membrane_convection_coefficient`
+  - `lumped_water_flux`
+- A staged, physics-informed initializer is preferred.
+- It is acceptable to temporarily fix variables or deactivate constraints during initialization if that materially improves robustness.
+- The initializer should be designed to work generically for one-, two-, and three-salt systems.
+
+### Working hypothesis
+- BT is likely failing because the current initializer seeds the highly coupled membrane transport block with weak guesses, especially for the coefficient calculations tied to `membrane_D_tilde`.
+- A better path is to initialize from a reduced transport picture first:
+  - build consistent inlet retentate and anion states from mixing + electroneutrality
+  - estimate osmotic pressure and water flux from bulk states
+  - initialize permeate with a simple low-rejection or moderate-rejection assumption
+  - initialize membrane interface concentrations from partitioning relationships
+  - initialize the membrane thickness profile from a simple interpolation between interfaces
+  - only then release the full cross-diffusion constraints
