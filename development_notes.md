@@ -61,3 +61,30 @@
   - initialize membrane interface concentrations from partitioning relationships
   - initialize the membrane thickness profile from a simple interpolation between interfaces
   - only then release the full cross-diffusion constraints
+
+### Implemented changes
+- Replaced the old constant-fraction initializer in `MultiComponentDiafiltrationInitializer` with a staged heuristic initializer.
+- The new routine now:
+  - computes the retentate inlet state from feed/diafiltrate mixing
+  - computes anion concentrations from electroneutrality instead of arbitrary guesses
+  - initializes permeate cation concentrations using a valence-based sieving heuristic where lower-valence cations permeate more strongly
+  - computes osmotic pressure from the initialized bulk concentrations
+  - computes water flux from `L_p (P - \Delta \pi)` with a positive floor
+  - initializes membrane interface cation concentrations from partition coefficients
+  - computes membrane anion concentrations from membrane electroneutrality
+  - fills the membrane interior with a linear profile in `z`
+  - initializes membrane transport coefficients from the seeded membrane concentrations
+  - initializes derivative variables from finite differences instead of arbitrary `1`s
+
+### Verification
+- `python -m py_compile src/prommis/nanofiltration/multi_component_diafiltration.py` passed.
+- Targeted pytest build slice passed for representative Li and Li/Co cases.
+- Direct smoke tests that build, initialize, and solve the Li and Li/Co cases both succeeded in `prommis-codex`.
+
+### Remaining risks / next steps
+- The initializer is still heuristic; it is more physics-informed than before, but not yet based on a reduced solve sequence with temporary constraint activation/deactivation.
+- The transport-coefficient block and water-flux block are still the main likely sources of poor conditioning.
+- The next iteration should probably:
+  - add staged activation/deactivation during initialization
+  - broaden scaling coverage using diagnostics on solved multi-salt cases
+  - compare diagnostics before/after this initializer on Li/Co and Li/Co/Al systems

@@ -258,39 +258,377 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
     Multi-Component Diafiltration Initializer Class.
     """
 
+    @staticmethod
+    def _safe_positive(val, floor):
+        return max(floor, val)
+
+    @staticmethod
+    def _backward_difference(curr, prev, curr_pt, prev_pt):
+        delta = curr_pt - prev_pt
+        if abs(delta) <= 1e-12:
+            return 0
+        return (curr - prev) / delta
+
+    def _anion_from_electroneutrality(self, model, cation_conc, include_fixed_charge=False):
+        props = model.config.property_package
+        anion = model.config.anion_list[0]
+        charge_balance = sum(
+            value(props.charge[k]) * cation_conc[k] for k in model.cations
+        )
+        if include_fixed_charge:
+            charge_balance += value(model.membrane_fixed_charge)
+        anion_charge = value(props.charge[anion])
+        return -charge_balance / anion_charge
+
+    def _sieving_guess(self, model, ion):
+        charge = abs(value(model.config.property_package.charge[ion]))
+        return max(0.08, min(0.85, 0.65 / charge))
+
+    def _compute_osmotic_pressure(self, model, retentate_conc, permeate_conc):
+        props = model.config.property_package
+        return value(
+            units.convert(
+                Constants.gas_constant
+                * model.temperature
+                * sum(
+                    value(props.num_solutes[j])
+                    * value(props.sigma[j])
+                    * (
+                        (retentate_conc[j] - permeate_conc[j])
+                        * units.mol
+                        / units.m**3
+                    )
+                    for j in model.solutes
+                ),
+                to_units=units.bar,
+            )
+        )
+
+    def _initialize_transport_coefficients(self, model, t, x, z, floor):
+        props = model.config.property_package
+        anion = model.config.anion_list[0]
+        anion_charge = value(props.charge[anion])
+        anion_diffusivity = value(props.diffusion_coefficient[anion])
+        fixed_charge = value(model.membrane_fixed_charge)
+
+        d_tilde = sum(
+            (
+                (
+                    value(props.charge[k]) ** 2 * value(props.diffusion_coefficient[k])
+                    - value(props.charge[k]) * anion_charge * anion_diffusivity
+                )
+                * value(model.membrane_conc_mol_comp[t, x, z, k])
+            )
+            for k in model.cations
+        ) - (anion_charge * anion_diffusivity * fixed_charge)
+
+        if abs(d_tilde) <= floor:
+            d_tilde = floor
+
+        model.membrane_D_tilde[t, x, z].set_value(d_tilde)
+
+        for k in model.cations:
+            k_charge = value(props.charge[k])
+            k_diffusivity = value(props.diffusion_coefficient[k])
+
+            convection_bilinear = d_tilde + (k_charge * k_diffusivity * fixed_charge)
+            model.membrane_convection_coefficient_bilinear[t, x, z, k].set_value(
+                convection_bilinear
+            )
+            model.membrane_convection_coefficient[t, x, z, k].set_value(
+                convection_bilinear / d_tilde
+            )
+
+            for j in model.cations:
+                j_charge = value(props.charge[j])
+                j_diffusivity = value(props.diffusion_coefficient[j])
+
+                if k != j:
+                    bilinear = (
+                        (k_charge * j_charge * k_diffusivity * j_diffusivity)
+                        - (k_charge * j_charge * k_diffusivity * anion_diffusivity)
+                    ) * value(model.membrane_conc_mol_comp[t, x, z, k])
+                else:
+                    bilinear = 0
+                    for i in model.cations:
+                        i_charge = value(props.charge[i])
+                        i_diffusivity = value(props.diffusion_coefficient[i])
+
+                        if k != i:
+                            bilinear += (
+                                (
+                                    i_charge
+                                    * anion_charge
+                                    * k_diffusivity
+                                    * anion_diffusivity
+                                )
+                                - (i_charge**2 * i_diffusivity * k_diffusivity)
+                            ) * value(model.membrane_conc_mol_comp[t, x, z, i])
+                        else:
+                            bilinear += (
+                                (
+                                    i_charge
+                                    * anion_charge
+                                    * k_diffusivity
+                                    * anion_diffusivity
+                                )
+                                - (i_charge**2 * i_diffusivity * anion_diffusivity)
+                            ) * value(model.membrane_conc_mol_comp[t, x, z, i])
+
+                    bilinear += (
+                        anion_charge
+                        * k_diffusivity
+                        * anion_diffusivity
+                        * fixed_charge
+                    )
+
+                model.membrane_cross_diffusion_coefficient_bilinear[
+                    t, x, z, k, j
+                ].set_value(bilinear)
+                model.membrane_cross_diffusion_coefficient[t, x, z, k, j].set_value(
+                    bilinear / d_tilde
+                )
+
     def initialization_routine(self, model):
         """
-        Initializes the retentate and permeate streams, membrane concentration,
-        and un-initialized derivative variables.
-
-        Note: derivative variables are initialized to an arbitrary value.
+        Initializes the retentate, permeate, and membrane states using a
+        staged heuristic consistent with electroneutrality, osmotic pressure,
+        and interfacial partitioning.
 
         Method then calls the block triangularization initializer method.
         """
 
+        props = model.config.property_package
+        floor = value(model.numerical_zero_tolerance)
+        anion = model.config.anion_list[0]
+        x_points = list(model.dimensionless_module_length)
+        z_points = list(model.dimensionless_membrane_thickness)
+
         for t in model.time:
-            for x in model.dimensionless_module_length:
-                model.retentate_flow_volume[t, x].set_value(
-                    value(model.feed_flow_volume[t]) * 1 / 3
-                )
-                model.d_retentate_flow_volume_dx[t, x].set_value(1)
-                model.permeate_flow_volume[t, x].set_value(
-                    value(model.feed_flow_volume[t]) * 2 / 3
-                )
-                for j in model.solutes:
-                    model.retentate_conc_mol_comp[t, x, j].set_value(
-                        value(model.feed_conc_mol_comp[t, j]) * 0.95
-                    )
-                    model.d_retentate_conc_mol_comp_dx[t, x, j].set_value(1)
-                    model.permeate_conc_mol_comp[t, x, j].set_value(
-                        value(model.feed_conc_mol_comp[t, j]) * 0.8
-                    )
-                for z in model.dimensionless_membrane_thickness:
-                    for j in model.solutes:
-                        model.membrane_conc_mol_comp[t, x, z, j].set_value(
-                            value(model.feed_conc_mol_comp[t, j]) * 0.1
+            feed_flow = value(model.feed_flow_volume[t])
+            diafiltrate_flow = value(model.diafiltrate_flow_volume[t])
+            inlet_flow = feed_flow + diafiltrate_flow
+            membrane_area = value(model.total_membrane_length * model.total_module_length)
+            pressure = value(model.applied_pressure[t])
+
+            inlet_retentate_cations = {}
+            for k in model.cations:
+                inlet_retentate_cations[k] = (
+                    feed_flow * value(model.feed_conc_mol_comp[t, k])
+                    + diafiltrate_flow * value(model.diafiltrate_conc_mol_comp[t, k])
+                ) / inlet_flow
+            inlet_retentate_anion = self._safe_positive(
+                self._anion_from_electroneutrality(model, inlet_retentate_cations),
+                floor,
+            )
+
+            previous_retentate_flow = inlet_flow
+            previous_retentate = {
+                **inlet_retentate_cations,
+                anion: inlet_retentate_anion,
+            }
+
+            for x_index, x in enumerate(x_points):
+                x_float = float(x)
+
+                if x_index == 0:
+                    model.retentate_flow_volume[t, x].set_value(inlet_flow)
+                    model.permeate_flow_volume[t, x].set_value(floor)
+                    model.volume_flux_water[t, x].set_value(floor)
+                    model.osmotic_pressure[t, x].set_value(floor)
+
+                    for k in model.cations:
+                        model.retentate_conc_mol_comp[t, x, k].set_value(
+                            inlet_retentate_cations[k]
                         )
-                        model.d_membrane_conc_mol_comp_dz[t, x, z, j].set_value(1)
+                    model.retentate_conc_mol_comp[t, x, anion].set_value(
+                        inlet_retentate_anion
+                    )
+
+                    for j in model.solutes:
+                        model.permeate_conc_mol_comp[t, x, j].set_value(floor)
+                        model.molar_ion_flux[t, x, j].set_value(floor)
+                        model.d_retentate_conc_mol_comp_dx[t, x, j].set_value(floor)
+
+                    model.d_retentate_flow_volume_dx[t, x].set_value(floor)
+
+                    for z in z_points:
+                        for k in model.cations:
+                            model.membrane_conc_mol_comp[t, x, z, k].set_value(floor)
+                            model.d_membrane_conc_mol_comp_dz[t, x, z, k].set_value(0)
+                        model.membrane_conc_mol_comp[t, x, z, anion].set_value(floor)
+                        model.d_membrane_conc_mol_comp_dz[t, x, z, anion].set_value(0)
+                        model.membrane_D_tilde[t, x, z].set_value(floor)
+                        for k in model.cations:
+                            model.membrane_convection_coefficient_bilinear[
+                                t, x, z, k
+                            ].set_value(floor)
+                            model.membrane_convection_coefficient[t, x, z, k].set_value(
+                                1
+                            )
+                            for j in model.cations:
+                                model.membrane_cross_diffusion_coefficient_bilinear[
+                                    t, x, z, k, j
+                                ].set_value(floor)
+                                model.membrane_cross_diffusion_coefficient[
+                                    t, x, z, k, j
+                                ].set_value(floor)
+                    continue
+
+                retentate_cations = {}
+                permeate_cations = {}
+                for k in model.cations:
+                    retention_factor = 1 + (1 - self._sieving_guess(model, k)) * 0.12 * x_float
+                    retentate_cations[k] = self._safe_positive(
+                        inlet_retentate_cations[k] * retention_factor,
+                        floor,
+                    )
+                    permeate_cations[k] = self._safe_positive(
+                        retentate_cations[k] * self._sieving_guess(model, k),
+                        floor,
+                    )
+
+                retentate_anion = self._safe_positive(
+                    self._anion_from_electroneutrality(model, retentate_cations),
+                    floor,
+                )
+                permeate_anion = self._safe_positive(
+                    self._anion_from_electroneutrality(model, permeate_cations),
+                    floor,
+                )
+
+                retentate_state = {**retentate_cations, anion: retentate_anion}
+                permeate_state = {**permeate_cations, anion: permeate_anion}
+
+                osmotic_pressure = self._safe_positive(
+                    self._compute_osmotic_pressure(
+                        model, retentate_state, permeate_state
+                    ),
+                    floor,
+                )
+                water_flux = self._safe_positive(
+                    value(model.membrane_permeability) * (pressure - osmotic_pressure),
+                    floor,
+                )
+                permeate_flow = self._safe_positive(
+                    x_float * membrane_area * water_flux,
+                    floor,
+                )
+                retentate_flow = self._safe_positive(inlet_flow - permeate_flow, floor)
+
+                model.retentate_flow_volume[t, x].set_value(retentate_flow)
+                model.permeate_flow_volume[t, x].set_value(permeate_flow)
+                model.volume_flux_water[t, x].set_value(water_flux)
+                model.osmotic_pressure[t, x].set_value(osmotic_pressure)
+
+                for j in model.solutes:
+                    model.retentate_conc_mol_comp[t, x, j].set_value(retentate_state[j])
+                    model.permeate_conc_mol_comp[t, x, j].set_value(permeate_state[j])
+                    model.molar_ion_flux[t, x, j].set_value(
+                        self._safe_positive(permeate_state[j] * water_flux, floor)
+                    )
+
+                previous_x = x_points[x_index - 1]
+                model.d_retentate_flow_volume_dx[t, x].set_value(
+                    self._backward_difference(
+                        retentate_flow,
+                        previous_retentate_flow,
+                        x_float,
+                        float(previous_x),
+                    )
+                )
+
+                for j in model.solutes:
+                    model.d_retentate_conc_mol_comp_dx[t, x, j].set_value(
+                        self._backward_difference(
+                            retentate_state[j],
+                            previous_retentate[j],
+                            x_float,
+                            float(previous_x),
+                        )
+                    )
+
+                retentate_membrane_interface = {}
+                permeate_membrane_interface = {}
+                for k in model.cations:
+                    retentate_membrane_interface[k] = self._safe_positive(
+                        value(props.partition_coefficient_retentate[k])
+                        * retentate_state[k],
+                        floor,
+                    )
+                    permeate_membrane_interface[k] = self._safe_positive(
+                        value(props.partition_coefficient_permeate[k])
+                        * permeate_state[k],
+                        floor,
+                    )
+
+                retentate_membrane_interface[anion] = self._safe_positive(
+                    self._anion_from_electroneutrality(
+                        model,
+                        retentate_membrane_interface,
+                        include_fixed_charge=True,
+                    ),
+                    floor,
+                )
+                permeate_membrane_interface[anion] = self._safe_positive(
+                    self._anion_from_electroneutrality(
+                        model,
+                        permeate_membrane_interface,
+                        include_fixed_charge=True,
+                    ),
+                    floor,
+                )
+
+                for z in z_points:
+                    z_float = float(z)
+                    for j in model.solutes:
+                        membrane_value = self._safe_positive(
+                            retentate_membrane_interface[j]
+                            + z_float
+                            * (
+                                permeate_membrane_interface[j]
+                                - retentate_membrane_interface[j]
+                            ),
+                            floor,
+                        )
+                        model.membrane_conc_mol_comp[t, x, z, j].set_value(
+                            membrane_value
+                        )
+
+                for z_index, z in enumerate(z_points):
+                    z_float = float(z)
+                    if z_index == 0:
+                        next_z = z_points[min(1, len(z_points) - 1)]
+                    else:
+                        previous_z = z_points[z_index - 1]
+
+                    for j in model.solutes:
+                        if z_index == 0 and len(z_points) > 1:
+                            derivative = self._backward_difference(
+                                value(model.membrane_conc_mol_comp[t, x, next_z, j]),
+                                value(model.membrane_conc_mol_comp[t, x, z, j]),
+                                float(next_z),
+                                z_float,
+                            )
+                        elif z_index == 0:
+                            derivative = 0
+                        else:
+                            derivative = self._backward_difference(
+                                value(model.membrane_conc_mol_comp[t, x, z, j]),
+                                value(
+                                    model.membrane_conc_mol_comp[t, x, previous_z, j]
+                                ),
+                                z_float,
+                                float(previous_z),
+                            )
+                        model.d_membrane_conc_mol_comp_dz[t, x, z, j].set_value(
+                            derivative
+                        )
+
+                    self._initialize_transport_coefficients(model, t, x, z, floor)
+
+                previous_retentate_flow = retentate_flow
+                previous_retentate = retentate_state
 
         super().initialization_routine(model)
 
