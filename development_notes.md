@@ -23,3 +23,16 @@
 - Confirm intended handling of inlet anion concentration at `x=0`.
 - Confirm whether repeated membrane-flux equations over every `z` point are intentional or part of the stabilization strategy.
 - Confirm expected workflow for changing membrane charge, permeability, and discretization in experiments.
+
+### Clarifications from Molly
+- The retentate inlet mixing condition is intentionally written only for cations; the retentate electroneutrality equation is expected to recover the anion concentration and serve as a consistency check.
+- The membrane anion concentration at `x=0` is intentionally omitted; only cation membrane concentrations need explicit boundary treatment there.
+- The flux equation is written for every `z` point because it contains `z`-dependent variables, though the implementation may still be revisited if there is a cleaner formulation.
+- The current initializer values are pragmatic guesses intended to help BT initialization, not a final physics-based initialization strategy.
+- There are no current plans to add a real time domain.
+- The current scaling strategy is based on observed numerical behavior and is still open to improvement.
+
+### Current focus
+- Improve the initialization path so it reflects model physics better and reduces the burden on the nonlinear solve.
+- Revisit the membrane flux formulation to make sure the `z`-indexed implementation is mathematically tight and numerically sensible.
+- Expand scaling coverage in a targeted way based on the worst-conditioned variables and constraints.
