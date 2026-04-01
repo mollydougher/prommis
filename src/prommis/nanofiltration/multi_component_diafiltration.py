@@ -316,6 +316,13 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
     Multi-Component Diafiltration Initializer Class.
     """
 
+    # the following function (_sieving_guess) was implemented by Codex
+    # see branch: codex-debug
+    # TODO: verify these sieving coefficient values make sense
+    def _sieving_guess(self, model, ion):
+        charge = abs(value(model.config.property_package.charge[ion]))
+        return max(0.08, min(0.85, 0.65 / charge))
+
     def initialization_routine(self, model):
         """
         Initializes the retentate and permeate streams, membrane and boundary
@@ -324,23 +331,77 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
         Method then calls the block triangularization initializer method.
         """
 
+        anion = model.config.anion_list[0]
+
         for t in model.time:
+            inlet_flow_volume = value(model.combined_feed_flow_volume[t])
+            inlet_conc_mol_comp = {
+                k: value(model.combined_feed_conc_mol_comp[t, k]) for k in model.cations
+            }
+            active_membrane_area = value(
+                model.total_membrane_length * model.total_module_length
+            )
+            applied_pressure = value(model.applied_pressure[t])
+            numerical_zero = value(model.numerical_zero_tolerance)
+
             for x in model.dimensionless_module_length:
+                # initial conditions
                 if x == 0:
-                    model.retentate_flow_volume[t, x].set_value(
-                        value(model.combined_feed_flow_volume[t])
+                    model.retentate_flow_volume[t, x].set_value(inlet_flow_volume)
+                    model.d_retentate_flow_volume_dx[t, x].set_value(inlet_flow_volume)
+                    model.permeate_flow_volume[t, x].set_value(numerical_zero)
+                    model.volume_flux_water[t, x].set_value(numerical_zero)
+                    model.osmotic_pressure[t, x].set_value(numerical_zero)
+
+                    for k in model.cations:
+                        model.retentate_conc_mol_comp[t, x, k].set_value(
+                            inlet_conc_mol_comp[k]
+                        )
+                    calculate_variable_from_constraint(
+                        model.retentate_conc_mol_comp[t, x, anion],
+                        model.electroneutrality_retentate[t, x],
                     )
-                    model.permeate_flow_volume[t, x].set_value(
-                        value(model.combined_feed_flow_volume[t])
-                    )
-                else:
-                    model.retentate_flow_volume[t, x].set_value(
-                        value(model.combined_feed_flow_volume[t]) * 1 / 3
-                    )
-                    model.permeate_flow_volume[t, x].set_value(
-                        value(model.combined_feed_flow_volume[t]) * 2 / 3
-                    )
+
+                    for j in model.solutes:
+                        model.permeate_conc_mol_comp[t, x, j].set_value(numerical_zero)
+                        model.molar_ion_flux[t, x, j].set_value(numerical_zero)
+                        model.d_retentate_conc_mol_comp_dx[t, x, j].set_value(
+                            numerical_zero
+                        )
+
+                    for z in model.dimensionless_membrane_thickness:
+                        for j in model.solutes:
+                            model.membrane_conc_mol_comp[t, x, z, j].set_value(
+                                numerical_zero
+                            )
+                            model.d_membrane_conc_mol_comp_dz[t, x, z, j].set_value(
+                                numerical_zero
+                            )
+
+                        model.membrane_D_tilde[t, x, z].set_value(numerical_zero)
+
+                        for k in model.cations:
+                            model.membrane_convection_coefficient_bilinear[
+                                t, x, z, k
+                            ].set_value(numerical_zero)
+                            model.membrane_convection_coefficient[t, x, z, k].set_value(
+                                1
+                            )
+                            for j in model.cations:
+                                model.membrane_cross_diffusion_coefficient_bilinear[
+                                    t, x, z, k, j
+                                ].set_value(numerical_zero)
+                                model.membrane_cross_diffusion_coefficient[
+                                    t, x, z, k, j
+                                ].set_value(numerical_zero)
+                    continue
+
+                # all other x values
+                # TODO: keep implementing the changes conceptualized with Codex
+                model.retentate_flow_volume[t, x].set_value(inlet_flow_volume * 1 / 3)
+                model.permeate_flow_volume[t, x].set_value(inlet_flow_volume * 2 / 3)
                 model.d_retentate_flow_volume_dx[t, x].set_value(-10)
+
                 for j in model.solutes:
                     if x == 0:
                         model.retentate_conc_mol_comp[t, x, j].set_value(
@@ -461,8 +522,6 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                                         t, x, z, k, j
                                     ],
                                 )
-
-        # model.display()
 
         super().initialization_routine(model)
 
