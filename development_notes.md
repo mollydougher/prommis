@@ -84,6 +84,11 @@
   - `test_diagnostics_Li_Co`
   - `test_diagnostics_Li_Co_Al`
   and both passed in `prommis-codex`.
+- A direct custom Li/Co run written to `/tmp/Li_Co_ipopt.log` converged in 3 IPOPT iterations.
+- A direct custom Li/Co/Al run with hand-chosen feed/diafiltrate/pressure values still exposed an initializer weakness:
+  - membrane anion initialization attempted negative values before clamping
+  - BT later failed with a locally infeasible solve
+  - this does not contradict the passing diagnostics tests, since the custom case inputs may differ from the tested fixture values
 
 ### Remaining risks / next steps
 - The initializer is still heuristic; it is more physics-informed than before, but not yet based on a reduced solve sequence with temporary constraint activation/deactivation.
@@ -92,3 +97,4 @@
   - add staged activation/deactivation during initialization
   - broaden scaling coverage using more detailed diagnostics than the current pass/fail checks
   - compare solve iteration counts and robustness before/after scaling changes on Li/Co and Li/Co/Al systems
+  - tighten the membrane anion/interface initialization so multi-cation cases do not generate negative provisional membrane concentrations
