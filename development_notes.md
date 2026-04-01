@@ -80,11 +80,15 @@
 - `python -m py_compile src/prommis/nanofiltration/multi_component_diafiltration.py` passed.
 - Targeted pytest build slice passed for representative Li and Li/Co cases.
 - Direct smoke tests that build, initialize, and solve the Li and Li/Co cases both succeeded in `prommis-codex`.
+- User ran:
+  - `test_diagnostics_Li_Co`
+  - `test_diagnostics_Li_Co_Al`
+  and both passed in `prommis-codex`.
 
 ### Remaining risks / next steps
 - The initializer is still heuristic; it is more physics-informed than before, but not yet based on a reduced solve sequence with temporary constraint activation/deactivation.
 - The transport-coefficient block and water-flux block are still the main likely sources of poor conditioning.
 - The next iteration should probably:
   - add staged activation/deactivation during initialization
-  - broaden scaling coverage using diagnostics on solved multi-salt cases
-  - compare diagnostics before/after this initializer on Li/Co and Li/Co/Al systems
+  - broaden scaling coverage using more detailed diagnostics than the current pass/fail checks
+  - compare solve iteration counts and robustness before/after scaling changes on Li/Co and Li/Co/Al systems
