@@ -90,6 +90,9 @@
 - Current direct-run IPOPT baseline:
   - `Li_Co`: 3 iterations
   - `Li_Co_Al`: 3 iterations
+- Denser direct-run benchmark (`NFE_module_length=20`, `NFE_membrane_thickness=10`):
+  - `Li_Co_dense`: 3 iterations
+  - `Li_Co_Al_dense`: 3 iterations
 
 ### Remaining risks / next steps
 - The initializer is still heuristic; it is more physics-informed than before, but not yet based on a reduced solve sequence with temporary constraint activation/deactivation.
