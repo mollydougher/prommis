@@ -280,6 +280,32 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
         anion_charge = value(props.charge[anion])
         return -charge_balance / anion_charge
 
+    def _project_membrane_interface_cations(self, model, cation_conc, floor):
+        props = model.config.property_package
+        required_charge = max(floor, -value(model.membrane_fixed_charge) + floor)
+        current_charge = sum(
+            value(props.charge[k]) * cation_conc[k] for k in model.cations
+        )
+
+        if current_charge >= required_charge:
+            return cation_conc
+
+        if current_charge <= floor:
+            total_charge = sum(value(props.charge[k]) for k in model.cations)
+            charge_share = {
+                k: value(props.charge[k]) / total_charge for k in model.cations
+            }
+            return {
+                k: max(
+                    floor,
+                    required_charge * charge_share[k] / value(props.charge[k]),
+                )
+                for k in model.cations
+            }
+
+        scale = required_charge / current_charge
+        return {k: max(floor, cation_conc[k] * scale) for k in model.cations}
+
     def _sieving_guess(self, model, ion):
         charge = abs(value(model.config.property_package.charge[ion]))
         return max(0.08, min(0.85, 0.65 / charge))
@@ -561,6 +587,17 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                         * permeate_state[k],
                         floor,
                     )
+
+                retentate_membrane_interface = self._project_membrane_interface_cations(
+                    model,
+                    retentate_membrane_interface,
+                    floor,
+                )
+                permeate_membrane_interface = self._project_membrane_interface_cations(
+                    model,
+                    permeate_membrane_interface,
+                    floor,
+                )
 
                 retentate_membrane_interface[anion] = self._safe_positive(
                     self._anion_from_electroneutrality(
