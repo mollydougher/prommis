@@ -118,6 +118,20 @@
   - `Li_Co_Al_high4x`: feed `Li=400`, `Co=400`, `Al=400`, `Cl=2400`; diafiltrate `Li=10`, `Co=10`, `Al=10`, `Cl=60`
   - `Li_Co_Al_Alrich`: feed `Li=50`, `Co=50`, `Al=500`, `Cl=1650`; diafiltrate `Li=10`, `Co=10`, `Al=10`, `Cl=30`
 
+### Low-pressure-margin benchmarks
+- Goal: keep `applied_pressure > osmotic_pressure` so `volume_flux_water` remains positive while reducing the pressure margin.
+- Li/Co high-concentration case (`feed Li=340, Co=340, Cl=1020`; diafiltrate `Li=10, Co=10, Cl=30`):
+  - `Li_Co_margin_large`: `P=6.0 bar`, `osmotic_pressure=2.790789 bar`, `volume_flux_water=0.032092`
+  - `Li_Co_margin_med`: `P=4.5 bar`, `osmotic_pressure=2.098419 bar`, `volume_flux_water=0.024016`
+  - `Li_Co_margin_small`: `P=3.5 bar`, `osmotic_pressure=1.636327 bar`, `volume_flux_water=0.018637`
+  - `Li_Co_margin_tight`: `P=3.0 bar`, `osmotic_pressure=1.404705 bar`, `volume_flux_water=0.015953`
+- Li/Co/Al high-concentration case (`feed Li=200, Co=200, Al=200, Cl=1200`; diafiltrate `Li=10, Co=10, Al=10, Cl=60`):
+  - `Li_Co_Al_margin_large`: `P=10.0 bar`, `osmotic_pressure=8.657132 bar`, `volume_flux_water=0.013429`
+  - `Li_Co_Al_margin_med`: `P=8.0 bar`, `osmotic_pressure=6.945219 bar`, `volume_flux_water=0.010548`
+  - `Li_Co_Al_margin_small`: `P=6.8 bar`, `osmotic_pressure=5.913371 bar`, `volume_flux_water=0.008866`
+  - `Li_Co_Al_margin_tight`: `P=6.2 bar`, `osmotic_pressure=5.396107 bar`, `volume_flux_water=0.008039`
+- All of the above low-margin benchmark cases initialized and solved successfully in 3 IPOPT iterations.
+
 ### Remaining risks / next steps
 - The initializer is still heuristic; it is more physics-informed than before, but not yet based on a reduced solve sequence with temporary constraint activation/deactivation.
 - The transport-coefficient block and water-flux block are still the main likely sources of poor conditioning.
