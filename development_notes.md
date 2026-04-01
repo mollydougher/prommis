@@ -87,6 +87,9 @@
   and both passed in `prommis-codex`.
 - A direct custom Li/Co run written to `/tmp/Li_Co_ipopt.log` converged in 3 IPOPT iterations.
 - After adding the membrane-interface projection step, the same direct custom Li/Co and Li/Co/Al runs both initialized and solved successfully.
+- Current direct-run IPOPT baseline:
+  - `Li_Co`: 3 iterations
+  - `Li_Co_Al`: 3 iterations
 
 ### Remaining risks / next steps
 - The initializer is still heuristic; it is more physics-informed than before, but not yet based on a reduced solve sequence with temporary constraint activation/deactivation.
