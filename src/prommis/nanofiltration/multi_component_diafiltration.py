@@ -503,14 +503,58 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
 
                 retentate_cations = {}
                 permeate_cations = {}
+                previous_x = x_points[x_index - 1]
+                delta_x = x_float - float(previous_x)
+                previous_qr = self._safe_positive(previous_retentate_flow, floor)
+                provisional_permeate_cations = {}
+
                 for k in model.cations:
-                    retention_factor = 1 + (1 - self._sieving_guess(model, k)) * 0.12 * x_float
+                    provisional_permeate_cations[k] = self._safe_positive(
+                        previous_retentate[k] * self._sieving_guess(model, k),
+                        floor,
+                    )
+
+                provisional_permeate_anion = self._safe_positive(
+                    self._anion_from_electroneutrality(
+                        model,
+                        provisional_permeate_cations,
+                    ),
+                    floor,
+                )
+                provisional_permeate_state = {
+                    **provisional_permeate_cations,
+                    anion: provisional_permeate_anion,
+                }
+                provisional_osmotic_pressure = self._safe_positive(
+                    self._compute_osmotic_pressure(
+                        model,
+                        previous_retentate,
+                        provisional_permeate_state,
+                    ),
+                    floor,
+                )
+                water_flux = self._safe_positive(
+                    value(model.membrane_permeability)
+                    * (pressure - provisional_osmotic_pressure),
+                    floor,
+                )
+
+                for k in model.cations:
+                    sieving = self._sieving_guess(model, k)
+                    previous_ck = previous_retentate[k]
+                    dc_dx = (
+                        membrane_area
+                        * water_flux
+                        * previous_ck
+                        * (1 - sieving)
+                        / previous_qr
+                    )
                     retentate_cations[k] = self._safe_positive(
-                        inlet_retentate_cations[k] * retention_factor,
+                        previous_ck + delta_x * dc_dx,
                         floor,
                     )
                     permeate_cations[k] = self._safe_positive(
-                        retentate_cations[k] * self._sieving_guess(model, k),
+                        retentate_cations[k] * sieving,
                         floor,
                     )
 
@@ -554,7 +598,6 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                         self._safe_positive(permeate_state[j] * water_flux, floor)
                     )
 
-                previous_x = x_points[x_index - 1]
                 model.d_retentate_flow_volume_dx[t, x].set_value(
                     self._backward_difference(
                         retentate_flow,

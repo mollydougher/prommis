@@ -76,6 +76,11 @@
   - initializes membrane transport coefficients from the seeded membrane concentrations
   - initializes derivative variables from finite differences instead of arbitrary `1`s
 - Added a membrane-interface projection step for cation concentrations so the provisional membrane interface state remains compatible with electroneutrality and nonnegative anion concentration before building the membrane profile.
+- Replaced the hand-tuned retentate `retention_factor` profile in the initializer with a reduced cation-balance marching step in `x`, using:
+  - local sieving guesses
+  - provisional local water flux from osmotic pressure
+  - previous retentate concentration and retentate flow
+  so that the retentate concentration initialization is more directly tied to the model equations.
 
 ### Verification
 - `python -m py_compile src/prommis/nanofiltration/multi_component_diafiltration.py` passed.
@@ -87,6 +92,9 @@
   and both passed in `prommis-codex`.
 - A direct custom Li/Co run written to `/tmp/Li_Co_ipopt.log` converged in 3 IPOPT iterations.
 - After adding the membrane-interface projection step, the same direct custom Li/Co and Li/Co/Al runs both initialized and solved successfully.
+- After replacing the `retention_factor` heuristic with the reduced-balance marching update, representative direct Li/Co and Li/Co/Al runs still initialized and solved successfully.
+- After replacing the `retention_factor` heuristic with the reduced-balance marching update, the previously run concentration and low-pressure-margin stress sweeps were rerun and still solved successfully.
+- Across those rerun sweeps, every case still converged in 3 IPOPT iterations.
 - Current direct-run IPOPT baseline:
   - `Li_Co`: 3 iterations
   - `Li_Co_Al`: 3 iterations
