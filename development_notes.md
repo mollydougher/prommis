@@ -93,6 +93,30 @@
 - Denser direct-run benchmark (`NFE_module_length=20`, `NFE_membrane_thickness=10`):
   - `Li_Co_dense`: 3 iterations
   - `Li_Co_Al_dense`: 3 iterations
+- Extreme-concentration stress sweep also remained robust, with all tested cases initializing and solving successfully in 3 IPOPT iterations:
+  - `Li_Co_base`
+  - `Li_Co_high2x`
+  - `Li_Co_high4x`
+  - `Li_Co_skewedLi`
+  - `Li_Co_skewedCo`
+  - `Li_Co_Al_base`
+  - `Li_Co_Al_high2x`
+  - `Li_Co_Al_high4x`
+  - `Li_Co_Al_Alrich`
+
+### Stress-sweep concentrations
+- All concentrations below are in `mol/m^3`.
+- Li/Co feed cases:
+  - `Li_Co_base`: feed `Li=170`, `Co=170`, `Cl=510`; diafiltrate `Li=10`, `Co=10`, `Cl=30`
+  - `Li_Co_high2x`: feed `Li=340`, `Co=340`, `Cl=1020`; diafiltrate `Li=10`, `Co=10`, `Cl=30`
+  - `Li_Co_high4x`: feed `Li=680`, `Co=680`, `Cl=2040`; diafiltrate `Li=10`, `Co=10`, `Cl=30`
+  - `Li_Co_skewedLi`: feed `Li=900`, `Co=50`, `Cl=1000`; diafiltrate `Li=10`, `Co=10`, `Cl=20`
+  - `Li_Co_skewedCo`: feed `Li=50`, `Co=450`, `Cl=950`; diafiltrate `Li=10`, `Co=10`, `Cl=20`
+- Li/Co/Al feed cases:
+  - `Li_Co_Al_base`: feed `Li=100`, `Co=100`, `Al=100`, `Cl=600`; diafiltrate `Li=10`, `Co=10`, `Al=10`, `Cl=60`
+  - `Li_Co_Al_high2x`: feed `Li=200`, `Co=200`, `Al=200`, `Cl=1200`; diafiltrate `Li=10`, `Co=10`, `Al=10`, `Cl=60`
+  - `Li_Co_Al_high4x`: feed `Li=400`, `Co=400`, `Al=400`, `Cl=2400`; diafiltrate `Li=10`, `Co=10`, `Al=10`, `Cl=60`
+  - `Li_Co_Al_Alrich`: feed `Li=50`, `Co=50`, `Al=500`, `Cl=1650`; diafiltrate `Li=10`, `Co=10`, `Al=10`, `Cl=30`
 
 ### Remaining risks / next steps
 - The initializer is still heuristic; it is more physics-informed than before, but not yet based on a reduced solve sequence with temporary constraint activation/deactivation.
