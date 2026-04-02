@@ -332,6 +332,15 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
         """
 
         anion = model.config.anion_list[0]
+        module_discretization_points = list(model.dimensionless_module_length)
+        membrane_discretization_points = list(model.dimensionless_membrane_thickness)
+        charge = model.config.property_package.charge
+        partition_coefficient_retentate = (
+            model.config.property_package.partition_coefficient_retentate
+        )
+        partition_coefficient_permeate = (
+            model.config.property_package.partition_coefficient_permeate
+        )
 
         for t in model.time:
             inlet_flow_volume = value(model.combined_feed_flow_volume[t])
@@ -341,11 +350,13 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
             active_membrane_area = value(
                 model.total_membrane_length * model.total_module_length
             )
-            applied_pressure = value(model.applied_pressure[t])
             numerical_zero = value(model.numerical_zero_tolerance)
 
-            for x in model.dimensionless_module_length:
+            module_discretization_index = 0
+            for x in module_discretization_points:
                 # initial conditions
+                # set retenate to the inlet conditions
+                # set all other conditions to numerically zero
                 if x == 0:
                     model.retentate_flow_volume[t, x].set_value(inlet_flow_volume)
                     model.d_retentate_flow_volume_dx[t, x].set_value(inlet_flow_volume)
@@ -394,97 +405,270 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                                 model.membrane_cross_diffusion_coefficient[
                                     t, x, z, k, j
                                 ].set_value(numerical_zero)
+                    module_discretization_index += 1
                     continue
 
                 # all other x values
-                # TODO: keep implementing the changes conceptualized with Codex
-                model.retentate_flow_volume[t, x].set_value(inlet_flow_volume * 1 / 3)
-                model.permeate_flow_volume[t, x].set_value(inlet_flow_volume * 2 / 3)
-                model.d_retentate_flow_volume_dx[t, x].set_value(-10)
+                # update the previous values
+                previous_module_discretization_point = module_discretization_points[
+                    module_discretization_index - 1
+                ]
+                delta_module_discretization = x - previous_module_discretization_point
 
-                for j in model.solutes:
-                    if x == 0:
-                        model.retentate_conc_mol_comp[t, x, j].set_value(
-                            value(model.combined_feed_conc_mol_comp[t, j])
+                # initalize bulk variables
+                # temporarily set new retentate concentration to previous retentate concentration
+                previous_retentate_conc_mol_comp = {
+                    k: value(
+                        model.retentate_conc_mol_comp[
+                            t, previous_module_discretization_point, k
+                        ]
+                    )
+                    for k in model.cations
+                }
+                for k in model.cations:
+                    model.retentate_conc_mol_comp[t, x, k].set_value(
+                        previous_retentate_conc_mol_comp[k]
+                    )
+                calculate_variable_from_constraint(
+                    model.retentate_conc_mol_comp[t, x, anion],
+                    model.electroneutrality_retentate[t, x],
+                )
+                # temporarily use retentate concentration to guess next permeate concentration
+                # with assumed sieving coefficients
+                previous_permeate_conc_mol_comp = {
+                    k: previous_retentate_conc_mol_comp[k]
+                    * self._sieving_guess(model, k)
+                    for k in model.cations
+                }
+                for k in model.cations:
+                    model.permeate_conc_mol_comp[t, x, k].set_value(
+                        previous_permeate_conc_mol_comp[k]
+                    )
+                calculate_variable_from_constraint(
+                    model.permeate_conc_mol_comp[t, x, anion],
+                    model.electroneutrality_permeate[t, x],
+                )
+                # TODO: need to guess a BL concentration for osmotic pressure calc
+                # assume the retentate concentration = interface concentration for now
+                for k in model.cations:
+                    model.boundary_layer_conc_mol_comp[t, x, 1, k].set_value(
+                        previous_retentate_conc_mol_comp[k]
+                    )
+
+                # temporarily update the osmostic pressure and water flux
+                calculate_variable_from_constraint(
+                    model.osmotic_pressure[t, x],
+                    model.osmotic_pressure_calculation[t, x],
+                )
+                calculate_variable_from_constraint(
+                    model.volume_flux_water[t, x], model.lumped_water_flux[t, x]
+                )
+
+                # calculate the retentate concentration gradient
+                # simplifies the equation in constraint cation_mol_balance by
+                # approximating j_i ~ J_w * c_{k,p} = J_w * c_{k,r} * S_k
+                # thus, dc{r,k}_dx ~ A_m / q_r * J_w * c_{k,r} * (1 - S_k)
+                new_retentate_conc_mol_comp = {}
+                new_permeate_conc_mol_comp = {}
+                previous_retentate_flow = value(
+                    model.retentate_flow_volume[t, previous_module_discretization_point]
+                )
+                for k in model.cations:
+                    dc_dx = (
+                        active_membrane_area
+                        / previous_retentate_flow
+                        * value(model.volume_flux_water[t, x])
+                        * value(model.retentate_conc_mol_comp[t, x, k])
+                        * (1 - self._sieving_guess(model, k))
+                    )
+                    # use the dc_dx calculation to update retentate and permeate
+                    # concentration guesses
+                    # dc_dx ~ (c_new - c_prev) / delta_x
+                    new_retentate_conc_mol_comp[k] = previous_retentate_conc_mol_comp[
+                        k
+                    ] + (dc_dx * delta_module_discretization)
+                    new_permeate_conc_mol_comp[k] = new_retentate_conc_mol_comp[
+                        k
+                    ] * self._sieving_guess(model, k)
+
+                # update retentate and permeate concentrations
+                for k in model.cations:
+                    model.retentate_conc_mol_comp[t, x, k].set_value(
+                        new_retentate_conc_mol_comp[k]
+                    )
+                calculate_variable_from_constraint(
+                    model.retentate_conc_mol_comp[t, x, anion],
+                    model.electroneutrality_retentate[t, x],
+                )
+                for k in model.cations:
+                    model.permeate_conc_mol_comp[t, x, k].set_value(
+                        new_permeate_conc_mol_comp[k]
+                    )
+                calculate_variable_from_constraint(
+                    model.permeate_conc_mol_comp[t, x, anion],
+                    model.electroneutrality_permeate[t, x],
+                )
+                # TODO: need to guess a BL concentration for osmotic pressure calc
+                # assume the retentate concentration = interface concentration for now
+                for k in model.cations:
+                    model.boundary_layer_conc_mol_comp[t, x, 1, k].set_value(
+                        new_retentate_conc_mol_comp[k]
+                    )
+
+                # update the osmostic pressure and water flux and molar ion flux
+                calculate_variable_from_constraint(
+                    model.osmotic_pressure[t, x],
+                    model.osmotic_pressure_calculation[t, x],
+                )
+                calculate_variable_from_constraint(
+                    model.volume_flux_water[t, x], model.lumped_water_flux[t, x]
+                )
+                for k in model.cations:
+                    calculate_variable_from_constraint(
+                        model.molar_ion_flux[t, x, k],
+                        model.cation_bulk_flux_equation[t, x, k],
+                    )
+                calculate_variable_from_constraint(
+                    model.molar_ion_flux[t, x, anion], model.anion_flux_membrane[t, x]
+                )
+
+                # update retentate and permeate flow rates
+                # q_tot = q_r + q_p
+                calculate_variable_from_constraint(
+                    model.permeate_flow_volume[t, x],
+                    model.overall_bulk_flux_equation[t, x],
+                )
+                model.retentate_flow_volume[t, x].set_value(
+                    inlet_flow_volume - value(model.permeate_flow_volume[t, x])
+                )
+
+                # update retentate derivative variables
+                # dv_dx ~ (v_new - v_prev) / delta_x
+                model.d_retentate_flow_volume_dx[t, x].set_value(
+                    (value(model.retentate_flow_volume[t, x]) - previous_retentate_flow)
+                    / delta_module_discretization
+                )
+                for k in model.cations:
+                    model.d_retentate_conc_mol_comp_dx[t, x, k].set_value(
+                        (
+                            value(model.retentate_conc_mol_comp[t, x, k])
+                            - previous_retentate_conc_mol_comp[k]
                         )
-                        model.permeate_conc_mol_comp[t, x, j].set_value(1e-10)
-                    else:
-                        model.retentate_conc_mol_comp[t, x, j].set_value(
-                            value(model.combined_feed_conc_mol_comp[t, j]) * 0.95
+                        / delta_module_discretization
+                    )
+
+                # initialize interface variables
+                # TODO: get better initialization for interface concentration
+                # assumes the simplification H ~ c_{k,m} / c_{k,s}
+                membrane_concentration_retentate_side = {}
+                membrane_concentration_permeate_side = {}
+
+                for k in model.cations:
+                    membrane_concentration_retentate_side[k] = (
+                        partition_coefficient_retentate[k]
+                        * value(model.boundary_layer_conc_mol_comp[t, x, 1, k])
+                    )
+                    membrane_concentration_permeate_side[k] = (
+                        partition_coefficient_permeate[k]
+                        * value(model.permeate_conc_mol_comp[t, x, k])
+                    )
+
+                # need to keep anion concentrations in membrane positive
+                # set a minumum total cation charge such that the anion charge is at least +numerical zero
+
+                minimum_required_cation_charge = (
+                    -value(model.membrane_fixed_charge) + numerical_zero
+                )
+
+                current_cation_charge_retentate = sum(
+                    value(charge[k] * membrane_concentration_retentate_side[k])
+                    for k in model.cations
+                )
+                print(current_cation_charge_retentate)
+                current_cation_charge_permeate = sum(
+                    value(charge[k] * membrane_concentration_permeate_side[k])
+                    for k in model.cations
+                )
+                print(current_cation_charge_permeate)
+
+                if current_cation_charge_retentate <= minimum_required_cation_charge:
+                    for k in membrane_concentration_retentate_side:
+                        membrane_concentration_retentate_side[k] *= (
+                            minimum_required_cation_charge
+                            / current_cation_charge_retentate
                         )
-                        model.permeate_conc_mol_comp[t, x, j].set_value(
-                            value(model.combined_feed_conc_mol_comp[t, j]) * 0.5
+
+                if current_cation_charge_permeate <= minimum_required_cation_charge:
+                    for k in membrane_concentration_permeate_side:
+                        membrane_concentration_permeate_side[k] *= (
+                            minimum_required_cation_charge
+                            / current_cation_charge_retentate
                         )
-                    if len(model.config.cation_list) == 1:
-                        model.d_retentate_conc_mol_comp_dx[t, x, j].set_value(1)
-                    else:
-                        model.d_retentate_conc_mol_comp_dx[t, x, j].set_value(10)
-                if model.config.include_boundary_layer:
-                    for z in model.dimensionless_boundary_layer_thickness:
-                        for j in model.solutes:
-                            if x == 0:
-                                model.boundary_layer_conc_mol_comp[
-                                    t, x, z, j
-                                ].set_value(1e-10)
-                            else:
-                                model.boundary_layer_conc_mol_comp[
-                                    t, x, z, j
-                                ].set_value(
-                                    value(model.combined_feed_conc_mol_comp[t, j])
-                                    * 0.95
+
+                # project linear membrane concentrations across z
+                # c_{k,m} = ((c_{k,m-p}-c_{k,bl-m})/(1-0)) * z + c_{k,bl-m}
+                for z in membrane_discretization_points:
+                    for k in model.cations:
+                        model.membrane_conc_mol_comp[t, x, z, k].set_value(
+                            (
+                                (
+                                    membrane_concentration_permeate_side[k]
+                                    - membrane_concentration_retentate_side[k]
                                 )
-                            model.d_boundary_layer_conc_mol_comp_dz[
-                                t, x, z, j
-                            ].set_value(10)
-                        # update diffusion coefficients
-                        if x != 0:
-                            calculate_variable_from_constraint(
-                                model.boundary_layer_D_tilde[t, x, z],
-                                model.boundary_layer_D_tilde_calculation[t, x, z],
+                                * z
+                                * units.mol
+                                / units.m**3
                             )
-                            for k in model.cations:
-                                for j in model.cations:
-                                    calculate_variable_from_constraint(
-                                        model.boundary_layer_cross_diffusion_coefficient_bilinear[
-                                            t, x, z, k, j
-                                        ],
-                                        model.boundary_layer_cross_diffusion_coefficient_calculation[
-                                            t, x, z, k, j
-                                        ],
-                                    )
-                                    calculate_variable_from_constraint(
-                                        model.boundary_layer_cross_diffusion_coefficient[
-                                            t, x, z, k, j
-                                        ],
-                                        model.boundary_layer_cross_diffusion_coefficient_bilinear_calculation[
-                                            t, x, z, k, j
-                                        ],
-                                    )
+                            + (
+                                membrane_concentration_retentate_side[k]
+                                * units.mol
+                                / units.m**3
+                            )
+                        )
+                    calculate_variable_from_constraint(
+                        model.membrane_conc_mol_comp[t, x, z, anion],
+                        model.electroneutrality_membrane[t, x, z],
+                    )
 
-                for z in model.dimensionless_membrane_thickness:
-                    for j in model.solutes:
-                        if x == 0:
-                            model.membrane_conc_mol_comp[t, x, z, j].set_value(1e-10)
-                        else:
-                            model.membrane_conc_mol_comp[t, x, z, j].set_value(
-                                value(model.combined_feed_conc_mol_comp[t, j]) * 0.2
-                            )
-                            # update anion concentration to consider fixed membrane charge
-                            calculate_variable_from_constraint(
-                                model.membrane_conc_mol_comp[
-                                    t, x, z, model.config.anion_list[0]
-                                ],
-                                model.electroneutrality_membrane[t, x, z],
-                            )
-                        # Note: this threshold is not rigorously tested
-                        if value(model.feed_ionic_strength[t]) < 800:
-                            model.d_membrane_conc_mol_comp_dz[t, x, z, j].set_value(1)
-                        else:
-                            model.d_membrane_conc_mol_comp_dz[t, x, z, j].set_value(0.1)
+                # update retentate derivative variables
+                # dv_dz ~ (v_new - v_prev) / delta_z
+                membrane_discretization_index = 0
+                for z in membrane_discretization_points:
+                    # update the previous values
+                    if z == 0:
+                        model.d_membrane_conc_mol_comp_dz[t, x, z, k].set_value(
+                            numerical_zero
+                        )
+                    else:
+                        previous_membrane_discretization_point = (
+                            membrane_discretization_points[
+                                membrane_discretization_index - 1
+                            ]
+                        )
+                        delta_membrane_discretization = (
+                            z - previous_membrane_discretization_point
+                        )
 
-                for z in model.dimensionless_membrane_thickness:
-                    # update diffusion and convection coefficients
-                    # improves numerics for multi-salt systems
+                        for k in model.cations:
+                            model.d_membrane_conc_mol_comp_dz[t, x, z, k].set_value(
+                                (
+                                    value(model.membrane_conc_mol_comp[t, x, z, k])
+                                    - value(
+                                        model.membrane_conc_mol_comp[
+                                            t,
+                                            x,
+                                            previous_membrane_discretization_point,
+                                            k,
+                                        ]
+                                    )
+                                )
+                                / delta_membrane_discretization
+                            )
+
+                    membrane_discretization_index += 1
+
+                # update membrane flux coefficients
+                for z in membrane_discretization_points:
                     if x != 0:
                         calculate_variable_from_constraint(
                             model.membrane_D_tilde[t, x, z],
@@ -522,6 +706,41 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                                         t, x, z, k, j
                                     ],
                                 )
+
+                # TODO: implement boundary layer profile
+
+                if model.config.include_boundary_layer:
+                    for z in model.dimensionless_boundary_layer_thickness:
+                        for j in model.solutes:
+                            model.d_boundary_layer_conc_mol_comp_dz[
+                                t, x, z, j
+                            ].set_value(10)
+                        # update diffusion coefficients
+                        if x != 0:
+                            calculate_variable_from_constraint(
+                                model.boundary_layer_D_tilde[t, x, z],
+                                model.boundary_layer_D_tilde_calculation[t, x, z],
+                            )
+                            for k in model.cations:
+                                for j in model.cations:
+                                    calculate_variable_from_constraint(
+                                        model.boundary_layer_cross_diffusion_coefficient_bilinear[
+                                            t, x, z, k, j
+                                        ],
+                                        model.boundary_layer_cross_diffusion_coefficient_calculation[
+                                            t, x, z, k, j
+                                        ],
+                                    )
+                                    calculate_variable_from_constraint(
+                                        model.boundary_layer_cross_diffusion_coefficient[
+                                            t, x, z, k, j
+                                        ],
+                                        model.boundary_layer_cross_diffusion_coefficient_bilinear_calculation[
+                                            t, x, z, k, j
+                                        ],
+                                    )
+
+                module_discretization_index += 1
 
         super().initialization_routine(model)
 
