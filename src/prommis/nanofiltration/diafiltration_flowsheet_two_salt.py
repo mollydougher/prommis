@@ -51,7 +51,7 @@ def main():
     anion_list = ["Cl"]
     inlet_flow_volume = {"feed": 12.5, "diafiltrate": 3.75}
     inlet_concentration = {
-        "feed": {"Li": 245, "Co": 288, "Cl": 821},
+        "feed": {"Li": 50, "Co": 50, "Cl": 150},
         "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
     }
 
