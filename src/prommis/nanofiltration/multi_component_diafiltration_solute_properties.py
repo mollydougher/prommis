@@ -112,20 +112,20 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         # H,Al (trivalent) is estimated as two orders of magnitude smaller than H,Li (monovalent)
         # H,Cl is estimated from the data in Fig 1C of above reference at 200 mM
         # while H on the retentate and permeate sides can differ, we assume them to be equal for now
-        partition_coefficient_dict = {
-            "retentate": {
-                "Li": 0.4,
-                "Co": 0.04,
-                "Al": 0.004,
-                "Cl": 0.01,
-            },
-            "permeate": {
-                "Li": 0.4,
-                "Co": 0.04,
-                "Al": 0.004,
-                "Cl": 0.01,
-            },
-        }
+        # partition_coefficient_dict = {
+        #     "retentate": {
+        #         "Li": 0.4,
+        #         "Co": 0.04,
+        #         "Al": 0.004,
+        #         "Cl": 0.01,
+        #     },
+        #     "permeate": {
+        #         "Li": 0.4,
+        #         "Co": 0.04,
+        #         "Al": 0.004,
+        #         "Cl": 0.01,
+        #     },
+        # }
 
         if self.config.cation_list == ["Li"]:
             salt_system = "Li_Cl"
@@ -190,12 +190,12 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             membrane_diffusion_coefficient_dict
         )
         initialize_sigma_dict = _subset(sigma_dict)
-        initialize_partition_coefficient_retentate_dict = _subset(
-            partition_coefficient_dict["retentate"]
-        )
-        initialize_partition_coefficient_permeate_dict = _subset(
-            partition_coefficient_dict["permeate"]
-        )
+        # initialize_partition_coefficient_retentate_dict = _subset(
+        #     partition_coefficient_dict["retentate"]
+        # )
+        # initialize_partition_coefficient_permeate_dict = _subset(
+        #     partition_coefficient_dict["permeate"]
+        # )
         initialize_num_solutes_dict = _subset(num_solutes_dict[salt_system])
 
         # initialize properties
@@ -223,17 +223,17 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             initialize=initialize_sigma_dict,
         )
 
-        self.partition_coefficient_retentate = Param(
-            self.component_list,
-            units=units.dimensionless,
-            initialize=initialize_partition_coefficient_retentate_dict,
-        )
+        # self.partition_coefficient_retentate = Param(
+        #     self.component_list,
+        #     units=units.dimensionless,
+        #     initialize=initialize_partition_coefficient_retentate_dict,
+        # )
 
-        self.partition_coefficient_permeate = Param(
-            self.component_list,
-            units=units.dimensionless,
-            initialize=initialize_partition_coefficient_permeate_dict,
-        )
+        # self.partition_coefficient_permeate = Param(
+        #     self.component_list,
+        #     units=units.dimensionless,
+        #     initialize=initialize_partition_coefficient_permeate_dict,
+        # )
 
         self.num_solutes = Param(
             self.component_list,

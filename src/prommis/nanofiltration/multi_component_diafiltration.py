@@ -1488,11 +1488,11 @@ and used when constructing these,
                 charge = blk.config.property_package.charge
                 conc_bl = blk.boundary_layer_conc_mol_comp
                 conc_mem = blk.membrane_conc_mol_comp
-                H_r = blk.config.property_package.partition_coefficient_retentate
+                # H_r = blk.config.property_package.partition_coefficient_retentate
                 return (
-                    (H_r[k] ** (-charge[a0]))
-                    * (H_r[a0] ** charge[k])
-                    * (conc_bl[t, x, 1, k] ** (-charge[a0]))
+                    # (H_r[k] ** (-charge[a0]))
+                    # * (H_r[a0] ** charge[k])
+                    (conc_bl[t, x, 1, k] ** (-charge[a0]))
                     * (conc_bl[t, x, 1, a0] ** charge[k])
                 ) == (
                     (conc_mem[t, x, 0, k] ** (-charge[a0]))
@@ -1539,11 +1539,11 @@ and used when constructing these,
             charge = blk.config.property_package.charge
             conc_mem = blk.membrane_conc_mol_comp
             conc_p = blk.permeate_conc_mol_comp
-            H_p = blk.config.property_package.partition_coefficient_permeate
+            # H_p = blk.config.property_package.partition_coefficient_permeate
             return (
-                (H_p[k] ** (-charge[a0]))
-                * (H_p[a0] ** charge[k])
-                * (conc_p[t, x, k] ** (-charge[a0]))
+                # (H_p[k] ** (-charge[a0]))
+                # * (H_p[a0] ** charge[k])
+                (conc_p[t, x, k] ** (-charge[a0]))
                 * (conc_p[t, x, a0] ** charge[k])
             ) == (
                 (conc_mem[t, x, 1, k] ** (-charge[a0]))
