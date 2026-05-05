@@ -315,6 +315,137 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
     Multi-Component Diafiltration Initializer Class.
     """
 
+    def _weighted_solute_concentration(self, model, conc):
+        n = model.config.property_package.num_solutes
+        sigma = model.config.property_package.sigma
+        return sum(value(n[j]) * value(sigma[j]) * conc[j] for j in model.solutes)
+
+    def _set_permeate_concentration_guesses(self, model, t, x):
+        """
+        Set permeate guesses to match the osmotic pressure guess.
+
+        A single scale factor is applied to all ions so the permeate guess
+        remains electroneutral when the feed composition is electroneutral.
+        """
+        eps = value(model.numerical_zero_tolerance)
+        if x == 0:
+            for j in model.solutes:
+                model.permeate_conc_mol_comp[t, x, j].set_value(eps)
+            return
+
+        if model.config.include_boundary_layer:
+            solution_conc = {
+                j: max(value(model.boundary_layer_conc_mol_comp[t, x, 1, j]), eps)
+                for j in model.solutes
+            }
+        else:
+            solution_conc = {
+                j: max(value(model.retentate_conc_mol_comp[t, x, j]), eps)
+                for j in model.solutes
+            }
+        feed_conc = {
+            j: max(value(model.feed_conc_mol_comp[t, j]), eps) for j in model.solutes
+        }
+
+        target_pressure_bar = max(value(model.osmotic_pressure[t, x]), 0)
+        target_weighted_gap = (
+            target_pressure_bar
+            * 1e5
+            / (value(Constants.gas_constant) * value(model.temperature))
+        )
+        solution_weighted_conc = self._weighted_solute_concentration(
+            model, solution_conc
+        )
+        feed_weighted_conc = self._weighted_solute_concentration(model, feed_conc)
+        target_permeate_weighted_conc = max(
+            solution_weighted_conc - target_weighted_gap, eps
+        )
+        scale = target_permeate_weighted_conc / feed_weighted_conc
+
+        for j in model.solutes:
+            model.permeate_conc_mol_comp[t, x, j].set_value(
+                max(scale * feed_conc[j], eps)
+            )
+
+    def _donnan_membrane_concentration_guesses(self, model, source_conc):
+        """
+        Calculate membrane concentration guesses for H=1 Donnan partitioning.
+        """
+        a0 = model.config.anion_list[0]
+        charge = model.config.property_package.charge
+        chi = value(model.membrane_fixed_charge)
+
+        def electroneutrality_residual(donnan_ratio):
+            return (
+                chi
+                + sum(
+                    value(charge[k])
+                    * source_conc[k]
+                    * donnan_ratio ** value(charge[k])
+                    for k in model.cations
+                )
+                + value(charge[a0]) * source_conc[a0] / donnan_ratio
+            )
+
+        lower = value(model.numerical_zero_tolerance)
+        upper = 1.0
+        while electroneutrality_residual(upper) <= 0:
+            upper *= 2
+
+        for _ in range(100):
+            midpoint = 0.5 * (lower + upper)
+            if electroneutrality_residual(midpoint) <= 0:
+                lower = midpoint
+            else:
+                upper = midpoint
+
+        donnan_ratio = 0.5 * (lower + upper)
+        membrane_conc = {
+            k: source_conc[k] * donnan_ratio ** value(charge[k])
+            for k in model.cations
+        }
+        membrane_conc[a0] = source_conc[a0] / donnan_ratio
+        return membrane_conc
+
+    def _set_membrane_concentration_guesses(self, model, t, x, z):
+        """
+        Set positive membrane concentration guesses compatible with H=1.
+        """
+        eps = value(model.numerical_zero_tolerance)
+
+        if x == 0:
+            for j in model.solutes:
+                model.membrane_conc_mol_comp[t, x, z, j].set_value(eps)
+            return
+
+        if model.config.include_boundary_layer:
+            feed_side_source = {
+                j: max(value(model.boundary_layer_conc_mol_comp[t, x, 1, j]), eps)
+                for j in model.solutes
+            }
+        else:
+            feed_side_source = {
+                j: max(value(model.retentate_conc_mol_comp[t, x, j]), eps)
+                for j in model.solutes
+            }
+        permeate_side_source = {
+            j: max(value(model.permeate_conc_mol_comp[t, x, j]), eps)
+            for j in model.solutes
+        }
+
+        feed_side_membrane_conc = self._donnan_membrane_concentration_guesses(
+            model, feed_side_source
+        )
+        permeate_side_membrane_conc = self._donnan_membrane_concentration_guesses(
+            model, permeate_side_source
+        )
+        z_value = value(z)
+        for j in model.solutes:
+            model.membrane_conc_mol_comp[t, x, z, j].set_value(
+                (1 - z_value) * feed_side_membrane_conc[j]
+                + z_value * permeate_side_membrane_conc[j]
+            )
+
     def initialization_routine(self, model):
         """
         Initializes the retentate and permeate streams, membrane and boundary
@@ -340,9 +471,6 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                         model.d_retentate_conc_mol_comp_dx[t, x, j].set_value(1)
                     else:
                         model.d_retentate_conc_mol_comp_dx[t, x, j].set_value(10)
-                    model.permeate_conc_mol_comp[t, x, j].set_value(
-                        value(model.feed_conc_mol_comp[t, j]) * 0.8
-                    )
                 if model.config.include_boundary_layer:
                     for z in model.dimensionless_boundary_layer_thickness:
                         for j in model.solutes:
@@ -377,30 +505,11 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                                         ],
                                     )
 
+                self._set_permeate_concentration_guesses(model, t, x)
+
                 for z in model.dimensionless_membrane_thickness:
+                    self._set_membrane_concentration_guesses(model, t, x, z)
                     for j in model.solutes:
-                        # adjust membrane concentration based on charge for 3 salt system
-                        if len(model.config.cation_list) == 1:
-                            model.membrane_conc_mol_comp[t, x, z, j].set_value(
-                                value(model.feed_conc_mol_comp[t, j]) * 0.1
-                            )
-                        else:
-                            if value(model.config.property_package.charge[j]) == 1:
-                                model.membrane_conc_mol_comp[t, x, z, j].set_value(
-                                    value(model.feed_conc_mol_comp[t, j]) * 0.2
-                                )
-                            elif value(model.config.property_package.charge[j]) >= 2:
-                                model.membrane_conc_mol_comp[t, x, z, j].set_value(
-                                    value(model.feed_conc_mol_comp[t, j]) * 1e-2
-                                )
-                            # update anion concentration to consider fixed membrane charge
-                            if x != 0:
-                                calculate_variable_from_constraint(
-                                    model.membrane_conc_mol_comp[
-                                        t, x, z, model.config.anion_list[0]
-                                    ],
-                                    model.electroneutrality_membrane[t, x, z],
-                                )
                         # Note: this threshold is not rigorously tested
                         if value(model.feed_ionic_strength[t]) < 800:
                             model.d_membrane_conc_mol_comp_dz[t, x, z, j].set_value(1)
