@@ -297,6 +297,7 @@ from pyomo.environ import (
     Suffix,
     TransformationFactory,
     Var,
+    prod,
     units,
     value,
 )
@@ -857,14 +858,14 @@ and used when constructing these,
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=620,
+            initialize=6,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D * c
             doc="Denominator of diffusion and convection coefficients in membrane",
         )
 
         def initialize_membrane_cross_diffusion_coefficient_bilinear(m, t, w, l, j, k):
             vals = {
-                k: {j: -3000 for j in self.config.cation_list}
+                k: {j: -0.3 for j in self.config.cation_list}
                 for k in self.config.cation_list
             }
             return vals[j][k]
@@ -882,7 +883,7 @@ and used when constructing these,
         )
 
         def initialize_membrane_convection_coefficient_bilinear(m, t, w, l, j):
-            vals = {k: 100 for k in self.config.cation_list}
+            vals = {k: 1 for k in self.config.cation_list}
             return vals[j]
 
         self.membrane_convection_coefficient_bilinear = Var(
@@ -897,7 +898,7 @@ and used when constructing these,
 
         def initialize_membrane_cross_diffusion_coefficient(m, t, w, l, j, k):
             vals = {
-                k: {j: -5 for j in self.config.cation_list}
+                k: {j: -0.05 for j in self.config.cation_list}
                 for k in self.config.cation_list
             }
             return vals[j][k]
@@ -1484,20 +1485,10 @@ and used when constructing these,
             def _cation_equilibrium_boundary_layer_membrane_interface(blk, t, x, k):
                 if x == 0:
                     return Constraint.Skip
-                a0 = self.config.anion_list[0]
-                charge = blk.config.property_package.charge
                 conc_bl = blk.boundary_layer_conc_mol_comp
                 conc_mem = blk.membrane_conc_mol_comp
                 H_r = blk.config.property_package.partition_coefficient_retentate
-                return (
-                    (H_r[k] ** (-charge[a0]))
-                    * (H_r[a0] ** charge[k])
-                    * (conc_bl[t, x, 1, k] ** (-charge[a0]))
-                    * (conc_bl[t, x, 1, a0] ** charge[k])
-                ) == (
-                    (conc_mem[t, x, 0, k] ** (-charge[a0]))
-                    * (conc_mem[t, x, 0, a0] ** charge[k])
-                )
+                return conc_mem[t, x, 0, k] == (H_r[k] * conc_bl[t, x, 1, k])
 
             self.cation_equilibrium_boundary_layer_membrane_interface = Constraint(
                 self.time,
@@ -1510,20 +1501,10 @@ and used when constructing these,
             def _cation_equilibrium_retentate_membrane_interface(blk, t, x, k):
                 if x == 0:
                     return Constraint.Skip
-                a0 = self.config.anion_list[0]
-                charge = blk.config.property_package.charge
                 conc_mem = blk.membrane_conc_mol_comp
                 conc_r = blk.retentate_conc_mol_comp
                 H_r = blk.config.property_package.partition_coefficient_retentate
-                return (
-                    (H_r[k] ** (-charge[a0]))
-                    * (H_r[a0] ** charge[k])
-                    * (conc_r[t, x, k] ** (-charge[a0]))
-                    * (conc_r[t, x, a0] ** charge[k])
-                ) == (
-                    (conc_mem[t, x, 0, k] ** (-charge[a0]))
-                    * (conc_mem[t, x, 0, a0] ** charge[k])
-                )
+                return conc_mem[t, x, 0, k] == (H_r[k] * conc_r[t, x, k])
 
             self.cation_equilibrium_retentate_membrane_interface = Constraint(
                 self.time,
@@ -1535,20 +1516,10 @@ and used when constructing these,
         def _cation_equilibrium_membrane_permeate_interface(blk, t, x, k):
             if x == 0:
                 return Constraint.Skip
-            a0 = self.config.anion_list[0]
-            charge = blk.config.property_package.charge
             conc_mem = blk.membrane_conc_mol_comp
             conc_p = blk.permeate_conc_mol_comp
             H_p = blk.config.property_package.partition_coefficient_permeate
-            return (
-                (H_p[k] ** (-charge[a0]))
-                * (H_p[a0] ** charge[k])
-                * (conc_p[t, x, k] ** (-charge[a0]))
-                * (conc_p[t, x, a0] ** charge[k])
-            ) == (
-                (conc_mem[t, x, 1, k] ** (-charge[a0]))
-                * (conc_mem[t, x, 1, a0] ** charge[k])
-            )
+            return conc_mem[t, x, 1, k] == (H_p[k] * conc_p[t, x, k])
 
         self.cation_equilibrium_membrane_permeate_interface = Constraint(
             self.time,
@@ -1750,11 +1721,11 @@ and used when constructing these,
                 self.boundary_layer_cross_diffusion_coefficient_bilinear
             ] = 1e-4
             self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = 1e1
-        self.scaling_factor[self.membrane_D_tilde] = 1e-1
-        self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = 1e-2
-        self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e-1
-        self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e1
-        self.scaling_factor[self.membrane_convection_coefficient] = 1e1
+        self.scaling_factor[self.membrane_D_tilde] = 1e1
+        self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = 1e2
+        self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e1
+        self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e4
+        self.scaling_factor[self.membrane_convection_coefficient] = 1e2
 
         if len(self.config.cation_list) >= 2:
             for t in self.time:

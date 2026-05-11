@@ -88,10 +88,10 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             "Cl": 7.31,  # mm2 / h
         }
         membrane_diffusion_coefficient_dict = {
-            "Li": 3.71,  # mm2 / h
-            "Co": 2.64,  # mm2 / h
-            "Al": 2.01,  # mm2 / h
-            "Cl": 7.31,  # mm2 / h
+            "Li": 3.71 * 0.01,  # mm2 / h
+            "Co": 2.64 * 0.01,  # mm2 / h
+            "Al": 2.01 * 0.01,  # mm2 / h
+            "Cl": 7.31 * 0.01,  # mm2 / h
         }
 
         # thermal reflection coefficient, related to solute rejection
@@ -114,15 +114,15 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         # while H on the retentate and permeate sides can differ, we assume them to be equal for now
         partition_coefficient_dict = {
             "retentate": {
-                "Li": 0.4,
-                "Co": 0.04,
-                "Al": 0.004,
+                "Li": 0.3,
+                "Co": 0.03,
+                "Al": 0.003,
                 "Cl": 0.01,
             },
             "permeate": {
-                "Li": 0.4,
-                "Co": 0.04,
-                "Al": 0.004,
+                "Li": 0.3,
+                "Co": 0.03,
+                "Al": 0.003,
                 "Cl": 0.01,
             },
         }

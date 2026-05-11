@@ -74,7 +74,7 @@ def main():
         cation_list=cation_list,
         anion_list=anion_list,
         include_boundary_layer=True,
-        NFE_module_length=10,
+        NFE_module_length=12,
         NFE_boundary_layer_thickness=5,
         NFE_membrane_thickness=5,
     )
@@ -90,8 +90,8 @@ def main():
     fix_variables(m, inlet_flow_volume, inlet_concentration)
 
     # initialize membrane model
-    initialized_membrane_model = m.fs.membrane.default_initializer()
-    initialized_membrane_model.initialize(m.fs.membrane)
+    # initialized_membrane_model = m.fs.membrane.default_initializer()
+    # initialized_membrane_model.initialize(m.fs.membrane)
 
     # add and connect flowsheet streams
     add_and_connect_streams(m)
@@ -135,7 +135,7 @@ def fix_variables(m, inlet_flow_volume, inlet_concentration):
     # fix degrees of freedom in the membrane
     m.fs.membrane.total_module_length.fix()
     m.fs.membrane.total_membrane_length.fix()
-    m.fs.membrane.applied_pressure.fix()
+    m.fs.membrane.applied_pressure.fix(30)
 
     m.fs.membrane.feed_flow_volume.fix(inlet_flow_volume["feed"])
     m.fs.membrane.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
