@@ -15,6 +15,7 @@ from pyomo.environ import (
     SolverFactory,
     TransformationFactory,
     assert_optimal_termination,
+    units,
     value,
 )
 from pyomo.network import Arc
@@ -250,7 +251,14 @@ def plot_results_by_length(m):
                 value(m.fs.membrane.permeate_conc_mol_comp[0, x_val, "Co"])
             )
 
-            water_flux.append(value(m.fs.membrane.volume_flux_water[0, x_val]))
+            water_flux.append(
+                value(
+                    units.convert(
+                        m.fs.membrane.volume_flux_water[0, x_val],
+                        to_units=units.L / units.m**2 / units.h,
+                    )
+                )
+            )
             Li_flux.append(value(m.fs.membrane.molar_ion_flux[0, x_val, "Li"]))
             Co_flux.append(value(m.fs.membrane.molar_ion_flux[0, x_val, "Co"]))
 
@@ -342,7 +350,7 @@ def plot_results_by_length(m):
 
     ax3.plot(x_axis_values, water_flux, linewidth=2)
     ax3.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
-    ax3.set_ylabel("Water Flux (m$^3$/m$^2$/h)", fontsize=10, fontweight="bold")
+    ax3.set_ylabel("Water Flux (LMH)", fontsize=10, fontweight="bold")
     ax3.tick_params(direction="in", labelsize=10)
 
     ax4.plot(x_axis_values, Li_flux, linewidth=2, label="Li")

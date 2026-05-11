@@ -590,9 +590,9 @@ and used when constructing these,
             doc="Fixed charge on the membrane",
         )
         self.membrane_permeability = Param(
-            initialize=0.01,
+            initialize=11,
             mutable=True,
-            units=units.m / units.h / units.bar,
+            units=units.L / units.m**2 / units.h / units.bar,
             doc="Hydraulic permeability coefficient",
         )
         self.temperature = Param(
@@ -1033,7 +1033,9 @@ and used when constructing these,
             if x == 0:
                 return Constraint.Skip
             return blk.volume_flux_water[t, x] == (
-                blk.membrane_permeability
+                units.convert(
+                    blk.membrane_permeability, to_units=units.m / units.h / units.bar
+                )
                 * (blk.applied_pressure[t] - blk.osmotic_pressure[t, x])
             )
 
