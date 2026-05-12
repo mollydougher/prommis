@@ -324,130 +324,262 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
         Method then calls the block triangularization initializer method.
         """
 
-        for t in model.time:
-            for x in model.dimensionless_module_length:
-                model.retentate_flow_volume[t, x].set_value(
-                    value(model.feed_flow_volume[t]) * 1 / 3
-                )
-                model.d_retentate_flow_volume_dx[t, x].set_value(-10)
-                model.permeate_flow_volume[t, x].set_value(
-                    value(model.feed_flow_volume[t]) * 2 / 3
-                )
-                for j in model.solutes:
-                    model.retentate_conc_mol_comp[t, x, j].set_value(
-                        value(model.feed_conc_mol_comp[t, j]) * 0.95
-                    )
-                    if len(model.config.cation_list) == 1:
-                        model.d_retentate_conc_mol_comp_dx[t, x, j].set_value(1)
-                    else:
-                        model.d_retentate_conc_mol_comp_dx[t, x, j].set_value(10)
-                    model.permeate_conc_mol_comp[t, x, j].set_value(
-                        value(model.feed_conc_mol_comp[t, j]) * 0.8
-                    )
-                if model.config.include_boundary_layer:
-                    for z in model.dimensionless_boundary_layer_thickness:
-                        for j in model.solutes:
-                            model.boundary_layer_conc_mol_comp[t, x, z, j].set_value(
-                                value(model.feed_conc_mol_comp[t, j]) * 0.75
-                            )
-                            model.d_boundary_layer_conc_mol_comp_dz[
-                                t, x, z, j
-                            ].set_value(10)
-                        # update diffusion coefficients
-                        if x != 0:
-                            calculate_variable_from_constraint(
-                                model.boundary_layer_D_tilde[t, x, z],
-                                model.boundary_layer_D_tilde_calculation[t, x, z],
-                            )
-                            for k in model.cations:
-                                for j in model.cations:
-                                    calculate_variable_from_constraint(
-                                        model.boundary_layer_cross_diffusion_coefficient_bilinear[
-                                            t, x, z, k, j
-                                        ],
-                                        model.boundary_layer_cross_diffusion_coefficient_calculation[
-                                            t, x, z, k, j
-                                        ],
-                                    )
-                                    calculate_variable_from_constraint(
-                                        model.boundary_layer_cross_diffusion_coefficient[
-                                            t, x, z, k, j
-                                        ],
-                                        model.boundary_layer_cross_diffusion_coefficient_bilinear_calculation[
-                                            t, x, z, k, j
-                                        ],
-                                    )
+        a0 = model.config.anion_list[0]
 
-                for z in model.dimensionless_membrane_thickness:
+        for t in model.time:
+            # set initial conditions
+            model.retentate_flow_volume[t, 0].set_value(
+                value(model.total_feed_flow_volume[t])
+            )
+            model.permeate_flow_volume[t, 0].set_value(
+                value(model.numerical_zero_tolerance)
+            )
+            model.volume_flux_water[t, 0].set_value(
+                value(model.numerical_zero_tolerance)
+            )
+
+            for j in model.solutes:
+                model.retentate_conc_mol_comp[t, 0, j].set_value(
+                    value(model.total_feed_conc_mol_comp[t, j])
+                )
+                model.permeate_conc_mol_comp[t, 0, j].set_value(
+                    value(model.numerical_zero_tolerance)
+                )
+
+            x_prev = 0
+            for x in model.dimensionless_module_length:
+                if x != 0:
+                    # temporary retentate concentration
                     for j in model.solutes:
-                        # adjust membrane concentration based on charge for 3 salt system
-                        if len(model.config.cation_list) == 1:
-                            model.membrane_conc_mol_comp[t, x, z, j].set_value(
-                                value(model.feed_conc_mol_comp[t, j]) * 0.1
+                        model.retentate_conc_mol_comp[t, x, j].set_value(
+                            value(model.retentate_conc_mol_comp[t, x_prev, j])
+                        )
+                    # guess permeate concentration with constant sieving coefficient = 0.5
+                    for k in model.cations:
+                        model.permeate_conc_mol_comp[t, x, k].set_value(
+                            value(model.retentate_conc_mol_comp[t, x, k]) * 0.5
+                        )
+                    calculate_variable_from_constraint(
+                        model.permeate_conc_mol_comp[t, x, a0],
+                        model.electroneutrality_permeate[t, x],
+                    )
+                    if model.config.include_boundary_layer:
+                        # geuss interface concentration with constant CP modulus = 1.01
+                        for k in model.cations:
+                            model.boundary_layer_conc_mol_comp[t, x, 1, k].set_value(
+                                value(model.retentate_conc_mol_comp[t, x, k]) * 1.01
                             )
-                        else:
-                            if value(model.config.property_package.charge[j]) == 1:
-                                model.membrane_conc_mol_comp[t, x, z, j].set_value(
-                                    value(model.feed_conc_mol_comp[t, j]) * 0.2
+                        calculate_variable_from_constraint(
+                            model.boundary_layer_conc_mol_comp[t, x, 1, a0],
+                            model.electroneutrality_boundary_layer[t, x, 1],
+                        )
+                    # calculate osmotic pressure and fluxes
+                    calculate_variable_from_constraint(
+                        model.osmotic_pressure[t, x],
+                        model.osmotic_pressure_calculation[t, x],
+                    )
+                    calculate_variable_from_constraint(
+                        model.volume_flux_water[t, x], model.lumped_water_flux[t, x]
+                    )
+                    for k in model.cations:
+                        calculate_variable_from_constraint(
+                            model.molar_ion_flux[t, x, k],
+                            model.cation_bulk_flux_equation[t, x, k],
+                        )
+                    calculate_variable_from_constraint(
+                        model.molar_ion_flux[t, x, a0], model.anion_flux_membrane[t, x]
+                    )
+                    # calculate flow rates
+                    calculate_variable_from_constraint(
+                        model.permeate_flow_volume[t, x],
+                        model.overall_bulk_flux_equation[t, x],
+                    )
+                    model.retentate_flow_volume[t, x].set_value(
+                        value(model.total_feed_flow_volume[t])
+                        - value(model.permeate_flow_volume[t, x])
+                    )
+                    # calculate derivatives
+                    calculate_variable_from_constraint(
+                        model.d_retentate_flow_volume_dx[t, x],
+                        model.overall_mol_balance[t, x],
+                    )
+                    for k in model.cations:
+                        calculate_variable_from_constraint(
+                            model.d_retentate_conc_mol_comp_dx[t, x, k],
+                            model.cation_mol_balance[t, x, k],
+                        )
+                        # d_cr / d_x = (cr(x) - cr(x_prev)) / (x - x_prev)
+                        # (d_cr / d_x)*(x - x_prev) + cr(x_prev)= cr(x)
+                        model.retentate_conc_mol_comp[t, x, k].set_value(
+                            (
+                                value(model.d_retentate_conc_mol_comp_dx[t, x, k])
+                                * (x - x_prev)
+                            )
+                            + value(model.retentate_conc_mol_comp[t, x_prev, k])
+                        )
+                        calculate_variable_from_constraint(
+                            model.retentate_conc_mol_comp[t, x, a0],
+                            model.electroneutrality_retentate[t, x],
+                        )
+
+                    if model.config.include_boundary_layer:
+                        z_bl_prev = 0
+                        z_thickness = model.dimensionless_boundary_layer_thickness[
+                            -1
+                        ] / value(model.config.NFE_boundary_layer_thickness)
+                        for z_bl in model.dimensionless_boundary_layer_thickness:
+                            # slope = (c_int - c_r) / (1 - 0)
+                            # c_bl = slope * z_bl + c_r
+                            for k in model.cations:
+                                slope = value(
+                                    model.boundary_layer_conc_mol_comp[t, x, 1, k]
+                                ) - value(model.retentate_conc_mol_comp[t, x, k])
+                                model.boundary_layer_conc_mol_comp[
+                                    t, x, z_bl, k
+                                ].set_value(
+                                    slope * z_bl
+                                    + value(model.retentate_conc_mol_comp[t, x, k])
                                 )
-                            elif value(model.config.property_package.charge[j]) >= 2:
-                                model.membrane_conc_mol_comp[t, x, z, j].set_value(
-                                    value(model.feed_conc_mol_comp[t, j]) * 1e-2
+                            calculate_variable_from_constraint(
+                                model.boundary_layer_conc_mol_comp[t, x, z_bl, a0],
+                                model.electroneutrality_boundary_layer[t, x, z_bl],
+                            )
+                            for j in model.solutes:
+                                # d_c_bl / d_z_bl = (c_bl(z_bl_prev) - c_bl(z_bl)) / (z_bl_prev - z_bl)
+                                model.d_boundary_layer_conc_mol_comp_dz[
+                                    t, x, z_bl, j
+                                ].set_value(
+                                    (
+                                        value(
+                                            model.boundary_layer_conc_mol_comp[
+                                                t, x, z_bl_prev, j
+                                            ]
+                                        )
+                                        - value(
+                                            model.boundary_layer_conc_mol_comp[
+                                                t, x, z_bl, j
+                                            ]
+                                        )
+                                    )
+                                    / (z_thickness)
                                 )
-                            # update anion concentration to consider fixed membrane charge
+                            # update diffusion coefficients
                             if x != 0:
                                 calculate_variable_from_constraint(
-                                    model.membrane_conc_mol_comp[
-                                        t, x, z, model.config.anion_list[0]
+                                    model.boundary_layer_D_tilde[t, x, z_bl],
+                                    model.boundary_layer_D_tilde_calculation[
+                                        t, x, z_bl
                                     ],
-                                    model.electroneutrality_membrane[t, x, z],
                                 )
-                        # Note: this threshold is not rigorously tested
-                        if value(model.feed_ionic_strength[t]) < 800:
-                            model.d_membrane_conc_mol_comp_dz[t, x, z, j].set_value(1)
-                        else:
-                            model.d_membrane_conc_mol_comp_dz[t, x, z, j].set_value(0.1)
-
-                    # update diffusion and convection coefficients
-                    # improves numerics for multi-salt systems
-                    if len(model.config.cation_list) >= 3:
-                        if x != 0:
+                                for k in model.cations:
+                                    for j in model.cations:
+                                        calculate_variable_from_constraint(
+                                            model.boundary_layer_cross_diffusion_coefficient_bilinear[
+                                                t, x, z_bl, k, j
+                                            ],
+                                            model.boundary_layer_cross_diffusion_coefficient_calculation[
+                                                t, x, z_bl, k, j
+                                            ],
+                                        )
+                                        calculate_variable_from_constraint(
+                                            model.boundary_layer_cross_diffusion_coefficient[
+                                                t, x, z_bl, k, j
+                                            ],
+                                            model.boundary_layer_cross_diffusion_coefficient_bilinear_calculation[
+                                                t, x, z_bl, k, j
+                                            ],
+                                        )
+                            z_bl_prev = z_bl
+                    z_m_prev = 0
+                    z_thickness = model.dimensionless_membrane_thickness[-1] / value(
+                        model.config.NFE_membrane_thickness
+                    )
+                    for z_m in model.dimensionless_membrane_thickness:
+                        # interface concentrations
+                        for k in model.cations:
                             calculate_variable_from_constraint(
-                                model.membrane_D_tilde[t, x, z],
-                                model.membrane_D_tilde_calculation[t, x, z],
+                                model.membrane_conc_mol_comp[t, x, 0, k],
+                                model.cation_equilibrium_boundary_layer_membrane_interface[
+                                    t, x, k
+                                ],
                             )
+                            calculate_variable_from_constraint(
+                                model.membrane_conc_mol_comp[t, x, 1, k],
+                                model.cation_equilibrium_membrane_permeate_interface[
+                                    t, x, k
+                                ],
+                            )
+                            # slope = (c_m(1) - c_m(0)) / (1 - 0)
+                            # c_m(x) = slope * z_m + c_m(0)
                             for k in model.cations:
+                                slope = value(
+                                    model.membrane_conc_mol_comp[t, x, 1, k]
+                                ) - value(model.membrane_conc_mol_comp[t, x, 0, k])
+                                model.membrane_conc_mol_comp[t, x, z_m, k].set_value(
+                                    slope * z_m
+                                    + value(model.membrane_conc_mol_comp[t, x, 0, k])
+                                )
+                            calculate_variable_from_constraint(
+                                model.membrane_conc_mol_comp[t, x, z_m, a0],
+                                model.electroneutrality_membrane[t, x, z_m],
+                            )
+                            for j in model.solutes:
+                                # d_cm / d_z_m = (c_m(z_m_prev) - c_m(z_m)) / (z_m_prev - z_m)
+                                model.d_membrane_conc_mol_comp_dz[
+                                    t, x, z_m, j
+                                ].set_value(
+                                    (
+                                        value(
+                                            model.membrane_conc_mol_comp[
+                                                t, x, z_m_prev, j
+                                            ]
+                                        )
+                                        - value(
+                                            model.membrane_conc_mol_comp[t, x, z_m, j]
+                                        )
+                                    )
+                                    / (z_thickness)
+                                )
+
+                        # update diffusion and convection coefficients
+                        calculate_variable_from_constraint(
+                            model.membrane_D_tilde[t, x, z_m],
+                            model.membrane_D_tilde_calculation[t, x, z_m],
+                        )
+                        for k in model.cations:
+                            calculate_variable_from_constraint(
+                                model.membrane_convection_coefficient_bilinear[
+                                    t, x, z_m, k
+                                ],
+                                model.membrane_convection_coefficient_calculation[
+                                    t, x, z_m, k
+                                ],
+                            )
+                            calculate_variable_from_constraint(
+                                model.membrane_convection_coefficient[t, x, z_m, k],
+                                model.membrane_convection_coefficient_bilinear_calculation[
+                                    t, x, z_m, k
+                                ],
+                            )
+                            for j in model.cations:
                                 calculate_variable_from_constraint(
-                                    model.membrane_convection_coefficient_bilinear[
-                                        t, x, z, k
+                                    model.membrane_cross_diffusion_coefficient_bilinear[
+                                        t, x, z_m, k, j
                                     ],
-                                    model.membrane_convection_coefficient_calculation[
-                                        t, x, z, k
+                                    model.membrane_cross_diffusion_coefficient_calculation[
+                                        t, x, z_m, k, j
                                     ],
                                 )
                                 calculate_variable_from_constraint(
-                                    model.membrane_convection_coefficient[t, x, z, k],
-                                    model.membrane_convection_coefficient_bilinear_calculation[
-                                        t, x, z, k
+                                    model.membrane_cross_diffusion_coefficient[
+                                        t, x, z_m, k, j
+                                    ],
+                                    model.membrane_cross_diffusion_coefficient_bilinear_calculation[
+                                        t, x, z_m, k, j
                                     ],
                                 )
-                                for j in model.cations:
-                                    calculate_variable_from_constraint(
-                                        model.membrane_cross_diffusion_coefficient_bilinear[
-                                            t, x, z, k, j
-                                        ],
-                                        model.membrane_cross_diffusion_coefficient_calculation[
-                                            t, x, z, k, j
-                                        ],
-                                    )
-                                    calculate_variable_from_constraint(
-                                        model.membrane_cross_diffusion_coefficient[
-                                            t, x, z, k, j
-                                        ],
-                                        model.membrane_cross_diffusion_coefficient_bilinear_calculation[
-                                            t, x, z, k, j
-                                        ],
-                                    )
+                        z_m_prev = z_m
+                x_prev = x
 
         super().initialization_routine(model)
 
@@ -639,7 +771,7 @@ and used when constructing these,
         )
         self.applied_pressure = Var(
             self.time,
-            initialize=10,
+            initialize=30,
             units=units.bar,
             bounds=[1e-11, 41],  # maximum operating presssure (NF270-440)
             doc="Pressure applied to membrane",
@@ -1769,7 +1901,7 @@ and used when constructing these,
         self.permeate_outlet.add(self._permeate_conc_mol_comp_ref, "conc_mol_comp")
 
     def add_helpful_expressions(self):
-        def _feed_ionic_strength(
+        def _total_feed_ionic_strength(
             blk,
             t,
         ):
@@ -1789,4 +1921,26 @@ and used when constructing these,
                 for j in blk.solutes
             )
 
-        self.feed_ionic_strength = Expression(self.time, rule=_feed_ionic_strength)
+        self.total_feed_ionic_strength = Expression(
+            self.time, rule=_total_feed_ionic_strength
+        )
+
+        def _total_feed_flow_volume(
+            blk,
+            t,
+        ):
+            return blk.feed_flow_volume[t] + blk.diafiltrate_flow_volume[t]
+
+        self.total_feed_flow_volume = Expression(
+            self.time, rule=_total_feed_flow_volume
+        )
+
+        def _total_feed_conc_mol_comp(blk, t, j):
+            return (
+                blk.feed_flow_volume[t] * blk.feed_conc_mol_comp[t, j]
+                + blk.diafiltrate_flow_volume[t] * blk.diafiltrate_conc_mol_comp[t, j]
+            ) / (blk.feed_flow_volume[t] + blk.diafiltrate_flow_volume[t])
+
+        self.total_feed_conc_mol_comp = Expression(
+            self.time, self.solutes, rule=_total_feed_conc_mol_comp
+        )
