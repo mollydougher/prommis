@@ -102,29 +102,13 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             "Cl": 1,
         }
 
-        # partition coefficient at the solution-membrane interfaces
-        # Reference: https://doi.org/10.1126/sciadv.adu8302
-        # Assumptions:
-        # membrane fixed charge is negative (Donnan effects are incorporated)
-        # monovalent ions of similar size (i.e., Na and Li) behave similarly
-        # H,Li is estimated from the data in Fig 1D (Na) of above reference at 200 mM
-        # H,Co (divalent) is estimated as one order of magnitude smaller than H,Li (monovalent)
-        # H,Al (trivalent) is estimated as two orders of magnitude smaller than H,Li (monovalent)
-        # H,Cl is estimated from the data in Fig 1C of above reference at 200 mM
-        # while H on the retentate and permeate sides can differ, we assume them to be equal for now
-        partition_coefficient_dict = {
-            "retentate": {
-                "Li": 0.3,
-                "Co": 0.03,
-                "Al": 0.003,
-                "Cl": 0.01,
-            },
-            "permeate": {
-                "Li": 0.3,
-                "Co": 0.03,
-                "Al": 0.003,
-                "Cl": 0.01,
-            },
+        # steric component of partition coefficient at the solution-membrane interfaces
+        # (1 - (radius_ion/radius_pore))**2
+        steric_partition_coefficient_dict = {
+            "Li": 0.06,
+            "Co": 0.02,
+            "Al": 0.002,
+            "Cl": 0.1,
         }
 
         if self.config.cation_list == ["Li"]:
@@ -190,11 +174,8 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             membrane_diffusion_coefficient_dict
         )
         initialize_sigma_dict = _subset(sigma_dict)
-        initialize_partition_coefficient_retentate_dict = _subset(
-            partition_coefficient_dict["retentate"]
-        )
-        initialize_partition_coefficient_permeate_dict = _subset(
-            partition_coefficient_dict["permeate"]
+        initialize_steric_partition_coefficient_dict = _subset(
+            steric_partition_coefficient_dict
         )
         initialize_num_solutes_dict = _subset(num_solutes_dict[salt_system])
 
@@ -223,16 +204,10 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             initialize=initialize_sigma_dict,
         )
 
-        self.partition_coefficient_retentate = Param(
+        self.steric_partition_coefficient = Param(
             self.component_list,
             units=units.dimensionless,
-            initialize=initialize_partition_coefficient_retentate_dict,
-        )
-
-        self.partition_coefficient_permeate = Param(
-            self.component_list,
-            units=units.dimensionless,
-            initialize=initialize_partition_coefficient_permeate_dict,
+            initialize=initialize_steric_partition_coefficient_dict,
         )
 
         self.num_solutes = Param(

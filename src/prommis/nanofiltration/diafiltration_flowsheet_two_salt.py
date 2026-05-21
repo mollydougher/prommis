@@ -75,7 +75,7 @@ def main():
         cation_list=cation_list,
         anion_list=anion_list,
         include_boundary_layer=True,
-        NFE_module_length=12,
+        NFE_module_length=15,
         NFE_boundary_layer_thickness=5,
         NFE_membrane_thickness=5,
     )
@@ -107,6 +107,9 @@ def main():
     # check numerical warnings
     dt.assert_no_numerical_warnings()
 
+    m.fs.membrane.overall_partition_coefficient_feed_side.display()
+    m.fs.membrane.overall_partition_coefficient_permeate_side.display()
+
     # visualize the results
     overall_results_plot = plot_results_by_length(m)
     boundary_layer_results_plot = plot_results_by_thickness(m, phase="Boundary Layer")
@@ -136,7 +139,7 @@ def fix_variables(m, inlet_flow_volume, inlet_concentration):
     # fix degrees of freedom in the membrane
     m.fs.membrane.total_module_length.fix()
     m.fs.membrane.total_membrane_length.fix()
-    m.fs.membrane.applied_pressure.fix(30)
+    m.fs.membrane.applied_pressure.fix(20)
 
     m.fs.membrane.feed_flow_volume.fix(inlet_flow_volume["feed"])
     m.fs.membrane.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
