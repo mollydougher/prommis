@@ -316,6 +316,23 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
     Multi-Component Diafiltration Initializer Class.
     """
 
+    CONFIG = BlockTriangularizationInitializer.CONFIG()
+
+    CONFIG.declare(
+        "H_feed_guess",
+        ConfigValue(
+            default=1.2,
+            doc="Guessed initial value of H",
+        ),
+    )
+    CONFIG.declare(
+        "H_permeate_guess",
+        ConfigValue(
+            default=1.2,
+            doc="Guessed initial value of H",
+        ),
+    )
+
     def initialization_routine(self, model):
         """
         Initializes the retentate and permeate streams, membrane and boundary
@@ -387,7 +404,7 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                     # guess permeate concentration with constant sieving coefficient
                     for k in model.cations:
                         if value(charge[k]) == 3:
-                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.2)
+                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.5)
                         elif value(charge[k]) == 2:
                             conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.4)
                         else:
@@ -503,21 +520,15 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                     z_m_prev = 0
                     # interface concentrations
                     for k in model.cations:
-                        calculate_variable_from_constraint(
-                            conc_mem[t, x, 0, k],
-                            model.cation_equilibrium_boundary_layer_membrane_interface[
-                                t, x, k
-                            ],
+                        conc_mem[t, x, 0, k].set_value(
+                            value(self.config.H_feed_guess) * value(conc_ret[t, x, k])
                         )
                         calculate_variable_from_constraint(
                             conc_mem[t, x, 0, a0],
                             model.electroneutrality_membrane[t, x, 0],
                         )
-                        calculate_variable_from_constraint(
-                            conc_mem[t, x, 1, k],
-                            model.cation_equilibrium_membrane_permeate_interface[
-                                t, x, k
-                            ],
+                        conc_mem[t, x, 1, k].set_value(
+                            value(self.config.H_permeate_guess) * value(conc_perm[t, x, k])
                         )
                     for z_m in model.dimensionless_membrane_thickness:
                         if z_m != 0:
@@ -1876,8 +1887,12 @@ and used when constructing these,
             self.scaling_factor[self.boundary_layer_D_tilde] = 1e-3
             self.scaling_factor[
                 self.boundary_layer_cross_diffusion_coefficient_bilinear
-            ] = 1e-4
-            self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = 1e1
+            ] = 1e1
+            self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = 1e2
+            self.scaling_factor[
+                self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
+            ] = 1e-2
+            self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient_calculation] = 1e-2
         self.scaling_factor[self.membrane_D_tilde] = 1e1
         self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = 1e2
         self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e1
