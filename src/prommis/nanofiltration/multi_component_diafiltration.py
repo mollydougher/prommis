@@ -286,6 +286,8 @@ The following constraints (which are expected to be zero) are enforced to improv
 .. math:: j_i(\bar{x}=0) = \epsilon \qquad \forall \, i \in \mathcal{I}
 """
 
+# TODO: update documentation
+
 from pyomo.common.config import ConfigBlock, ConfigValue, ListOf
 from pyomo.dae import ContinuousSet, DerivativeVar
 from pyomo.environ import (
@@ -528,7 +530,8 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                             model.electroneutrality_membrane[t, x, 0],
                         )
                         conc_mem[t, x, 1, k].set_value(
-                            value(self.config.H_permeate_guess) * value(conc_perm[t, x, k])
+                            value(self.config.H_permeate_guess)
+                            * value(conc_perm[t, x, k])
                         )
                     for z_m in model.dimensionless_membrane_thickness:
                         if z_m != 0:
@@ -1034,14 +1037,14 @@ and used when constructing these,
         )
 
         def initialize_membrane_convection_coefficient_bilinear(m, t, w, l, j):
-            vals = {k: 1 for k in self.config.cation_list}
+            vals = {k: 1 for k in self.solutes}
             return vals[j]
 
         self.membrane_convection_coefficient_bilinear = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            self.cations,
+            self.solutes,
             initialize=initialize_membrane_convection_coefficient_bilinear,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D,tilde
             doc="Convection coefficient for cations in membrane",
@@ -1066,14 +1069,14 @@ and used when constructing these,
         )
 
         def initialize_membrane_convection_coefficient(m, t, w, l, j):
-            vals = {k: 0.2 for k in self.config.cation_list}
+            vals = {k: 0.2 for k in self.solutes}
             return vals[j]
 
         self.membrane_convection_coefficient = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            self.cations,
+            self.solutes,
             initialize=initialize_membrane_convection_coefficient,
             units=units.dimensionless,
             doc="Convection coefficient for cations in membrane",
@@ -1350,12 +1353,12 @@ and used when constructing these,
             rule=_membrane_cross_diffusion_coefficient_bilinear_calculation,
         )
 
-        def _membrane_convection_coefficient_bilinear_calculation(blk, t, x, z, k):
+        def _membrane_convection_coefficient_bilinear_calculation(blk, t, x, z, j):
             if x == 0:
                 return Constraint.Skip
             return (
-                blk.membrane_convection_coefficient_bilinear[t, x, z, k]
-                == blk.membrane_convection_coefficient[t, x, z, k]
+                blk.membrane_convection_coefficient_bilinear[t, x, z, j]
+                == blk.membrane_convection_coefficient[t, x, z, j]
                 * blk.membrane_D_tilde[t, x, z]
             )
 
@@ -1363,7 +1366,7 @@ and used when constructing these,
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            self.cations,
+            self.solutes,
             rule=_membrane_convection_coefficient_bilinear_calculation,
         )
 
@@ -1425,21 +1428,21 @@ and used when constructing these,
             rule=_membrane_cross_diffusion_coefficient_calculation,
         )
 
-        def _membrane_convection_coefficient_calculation(blk, t, x, z, k):
+        def _membrane_convection_coefficient_calculation(blk, t, x, z, j):
             if x == 0:
                 return Constraint.Skip
             charge = blk.config.property_package.charge
             chi = blk.membrane_fixed_charge
             D_mem = blk.config.property_package.membrane_diffusion_coefficient
-            return blk.membrane_convection_coefficient_bilinear[t, x, z, k] == (
-                blk.membrane_D_tilde[t, x, z] + (charge[k] * D_mem[k] * chi)
+            return blk.membrane_convection_coefficient_bilinear[t, x, z, j] == (
+                blk.membrane_D_tilde[t, x, z] + (charge[j] * D_mem[j] * chi)
             )
 
         self.membrane_convection_coefficient_calculation = Constraint(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            self.cations,
+            self.solutes,
             rule=_membrane_convection_coefficient_calculation,
         )
 
@@ -1892,7 +1895,9 @@ and used when constructing these,
             self.scaling_factor[
                 self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
             ] = 1e-2
-            self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient_calculation] = 1e-2
+            self.scaling_factor[
+                self.boundary_layer_cross_diffusion_coefficient_calculation
+            ] = 1e-2
         self.scaling_factor[self.membrane_D_tilde] = 1e1
         self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = 1e2
         self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e1
@@ -1944,15 +1949,15 @@ and used when constructing these,
             t,
         ):
             charge = blk.config.property_package.charge
+            q_feed = blk.feed_flow_volume
+            q_diaf = blk.diafiltrate_flow_volume
+            conc_feed = blk.feed_conc_mol_comp
+            conc_diaf = blk.diafiltrate_conc_mol_comp
             return 0.5 * sum(
                 (
                     (
-                        (
-                            blk.feed_flow_volume[t] * blk.feed_conc_mol_comp[t, j]
-                            + blk.diafiltrate_flow_volume[t]
-                            * blk.diafiltrate_conc_mol_comp[t, j]
-                        )
-                        / (blk.feed_flow_volume[t] + blk.diafiltrate_flow_volume[t])
+                        (q_feed[t] * conc_feed[t, j] + q_diaf[t] * conc_diaf[t, j])
+                        / (q_feed[t] + q_diaf[t])
                     )
                     * charge[j] ** 2
                 )
@@ -1974,10 +1979,13 @@ and used when constructing these,
         )
 
         def _total_feed_conc_mol_comp(blk, t, j):
-            return (
-                blk.feed_flow_volume[t] * blk.feed_conc_mol_comp[t, j]
-                + blk.diafiltrate_flow_volume[t] * blk.diafiltrate_conc_mol_comp[t, j]
-            ) / (blk.feed_flow_volume[t] + blk.diafiltrate_flow_volume[t])
+            q_feed = blk.feed_flow_volume
+            q_diaf = blk.diafiltrate_flow_volume
+            conc_feed = blk.feed_conc_mol_comp
+            conc_diaf = blk.diafiltrate_conc_mol_comp
+            return (q_feed[t] * conc_feed[t, j] + q_diaf[t] * conc_diaf[t, j]) / (
+                q_feed[t] + q_diaf[t]
+            )
 
         self.total_feed_conc_mol_comp = Expression(
             self.time, self.solutes, rule=_total_feed_conc_mol_comp
@@ -2007,4 +2015,241 @@ and used when constructing these,
             self.dimensionless_module_length,
             self.solutes,
             rule=_overall_partition_coefficient_permeate_side,
+        )
+
+        def _observed_rejection_percent(blk, t, x, j):
+            return (
+                1
+                - (
+                    blk.permeate_conc_mol_comp[t, x, j]
+                    / blk.retentate_conc_mol_comp[t, x, j]
+                )
+            ) * 100
+
+        self.observed_rejection_percent = Expression(
+            self.time,
+            self.dimensionless_module_length,
+            self.solutes,
+            rule=_observed_rejection_percent,
+        )
+
+        def _actual_rejection_percent(blk, t, x, j):
+            return (
+                1
+                - (
+                    blk.permeate_conc_mol_comp[t, x, j]
+                    / blk.boundary_layer_conc_mol_comp[t, x, 1, j]
+                )
+            ) * 100
+
+        self.actual_rejection_percent = Expression(
+            self.time,
+            self.dimensionless_module_length,
+            self.solutes,
+            rule=_actual_rejection_percent,
+        )
+
+        def _boundary_layer_convective_flux(blk, t, x, z, j):
+            if x == 0:
+                return Constraint.Skip
+            return units.convert(
+                (
+                    blk.boundary_layer_conc_mol_comp[t, x, z, j]
+                    * blk.volume_flux_water[t, x]
+                ),
+                to_units=units.mol / units.m**2 / units.h,
+            )
+
+        self.boundary_layer_convective_flux = Expression(
+            self.time,
+            self.dimensionless_module_length,
+            self.dimensionless_boundary_layer_thickness,
+            self.solutes,
+            rule=_boundary_layer_convective_flux,
+        )
+
+        def _boundary_layer_diffusive_flux(blk, t, x, z, j):
+            if x == 0:
+                return Constraint.Skip
+            return units.convert(
+                (
+                    -blk.config.property_package.boundary_layer_diffusion_coefficient[j]
+                    * blk.d_boundary_layer_conc_mol_comp_dz[t, x, z, j]
+                    / blk.total_boundary_layer_thickness
+                ),
+                to_units=units.mol / units.m**2 / units.h,
+            )
+
+        self.boundary_layer_diffusive_flux = Expression(
+            self.time,
+            self.dimensionless_module_length,
+            self.dimensionless_boundary_layer_thickness,
+            self.solutes,
+            rule=_boundary_layer_diffusive_flux,
+        )
+
+        def _boundary_layer_electric_potential_gradient(blk, t, x, z, j):
+            if x == 0:
+                return Constraint.Skip
+            R = Constants.gas_constant  # J / mol / K
+            T = blk.temperature
+            F = Constants.faraday_constant  # C / mol
+            charge = blk.config.property_package.charge
+            D_bl = blk.config.property_package.boundary_layer_diffusion_coefficient
+            d_conc_bl = blk.d_boundary_layer_conc_mol_comp_dz
+            conc_bl = blk.boundary_layer_conc_mol_comp
+            return (-R * T / F) * (
+                (
+                    sum(
+                        charge[j]
+                        * D_bl[j]
+                        * (d_conc_bl[t, x, z, j] / blk.total_boundary_layer_thickness)
+                        for j in blk.solutes
+                    )
+                )
+                / (
+                    sum(
+                        charge[j] ** 2 * D_bl[j] * conc_bl[t, x, z, j]
+                        for j in blk.solutes
+                    )
+                )
+            )
+
+        self.boundary_layer_electric_potential_gradient = Expression(
+            self.time,
+            self.dimensionless_module_length,
+            self.dimensionless_boundary_layer_thickness,
+            self.solutes,
+            rule=_boundary_layer_electric_potential_gradient,
+        )
+
+        def _boundary_layer_electromigrative_flux(blk, t, x, z, j):
+            if x == 0:
+                return Constraint.Skip
+            R = Constants.gas_constant  # J / mol / K
+            T = blk.temperature
+            F = Constants.faraday_constant  # C / mol
+            charge = blk.config.property_package.charge
+            D_bl = blk.config.property_package.boundary_layer_diffusion_coefficient
+            conc_bl = blk.boundary_layer_conc_mol_comp
+            return units.convert(
+                (
+                    -(charge[j] * D_bl[j] * F)
+                    / (R * T)
+                    * conc_bl[t, x, z, j]
+                    * blk.boundary_layer_electric_potential_gradient[t, x, z, j]
+                ),
+                to_units=units.mol / units.m**2 / units.h,
+            )
+
+        self.boundary_layer_electromigrative_flux = Expression(
+            self.time,
+            self.dimensionless_module_length,
+            self.dimensionless_boundary_layer_thickness,
+            self.solutes,
+            rule=_boundary_layer_electromigrative_flux,
+        )
+
+        def _membrane_convective_flux(blk, t, x, z, j):
+            if x == 0:
+                return Constraint.Skip
+            return units.convert(
+                (blk.membrane_conc_mol_comp[t, x, z, j] * blk.volume_flux_water[t, x]),
+                to_units=units.mol / units.m**2 / units.h,
+            )
+
+        self.membrane_convective_flux = Expression(
+            self.time,
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            self.solutes,
+            rule=_membrane_convective_flux,
+        )
+
+        def _membrane_diffusive_flux(blk, t, x, z, j):
+            if x == 0:
+                return Constraint.Skip
+            return units.convert(
+                (
+                    -blk.config.property_package.membrane_diffusion_coefficient[j]
+                    * blk.d_membrane_conc_mol_comp_dz[t, x, z, j]
+                    / blk.total_membrane_thickness
+                ),
+                to_units=units.mol / units.m**2 / units.h,
+            )
+
+        self.membrane_diffusive_flux = Expression(
+            self.time,
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            self.solutes,
+            rule=_membrane_diffusive_flux,
+        )
+
+        def _membrane_electric_potential_gradient(blk, t, x, z, j):
+            if x == 0:
+                return Constraint.Skip
+            R = Constants.gas_constant  # J / mol / K
+            T = blk.temperature
+            F = Constants.faraday_constant  # C / mol
+            charge = blk.config.property_package.charge
+            D_mem = blk.config.property_package.membrane_diffusion_coefficient
+            d_con_mem = blk.d_membrane_conc_mol_comp_dz
+            con_mem = blk.membrane_conc_mol_comp
+            J_w = blk.volume_flux_water
+            chi = blk.membrane_fixed_charge
+            return (-R * T / F) * (
+                (
+                    units.convert(
+                        sum(
+                            charge[j]
+                            * D_mem[j]
+                            * (d_con_mem[t, x, z, j] / blk.total_membrane_thickness)
+                            for j in blk.solutes
+                        ),
+                        to_units=units.mol / units.m**2 / units.h,
+                    )
+                    + (J_w[t, x] * chi)
+                )
+                / (
+                    sum(
+                        charge[j] ** 2 * D_mem[j] * con_mem[t, x, z, j]
+                        for j in blk.solutes
+                    )
+                )
+            )
+
+        self.membrane_electric_potential_gradient = Expression(
+            self.time,
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            self.solutes,
+            rule=_membrane_electric_potential_gradient,
+        )
+
+        def _membrane_electromigrative_flux(blk, t, x, z, j):
+            if x == 0:
+                return Constraint.Skip
+            R = Constants.gas_constant  # J / mol / K
+            T = blk.temperature
+            F = Constants.faraday_constant  # C / mol
+            charge = blk.config.property_package.charge
+            D_mem = blk.config.property_package.membrane_diffusion_coefficient
+            conc_mem = blk.membrane_conc_mol_comp
+            return units.convert(
+                (
+                    -(charge[j] * D_mem[j] * F)
+                    / (R * T)
+                    * conc_mem[t, x, z, j]
+                    * blk.membrane_electric_potential_gradient[t, x, z, j]
+                ),
+                to_units=units.mol / units.m**2 / units.h,
+            )
+
+        self.membrane_electromigrative_flux = Expression(
+            self.time,
+            self.dimensionless_module_length,
+            self.dimensionless_membrane_thickness,
+            self.solutes,
+            rule=_membrane_electromigrative_flux,
         )

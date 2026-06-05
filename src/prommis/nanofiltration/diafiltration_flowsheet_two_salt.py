@@ -91,7 +91,9 @@ def main():
     fix_variables(m, inlet_flow_volume, inlet_concentration)
 
     # initialize membrane model
-    initialized_membrane_model = m.fs.membrane.default_initializer()
+    initialized_membrane_model = m.fs.membrane.default_initializer(
+        H_feed_guess=0.5, H_permeate_guess=0.5
+    )
     initialized_membrane_model.initialize(m.fs.membrane)
 
     # add and connect flowsheet streams
@@ -106,9 +108,6 @@ def main():
 
     # check numerical warnings
     dt.assert_no_numerical_warnings()
-
-    m.fs.membrane.overall_partition_coefficient_feed_side.display()
-    m.fs.membrane.overall_partition_coefficient_permeate_side.display()
 
     # visualize the results
     overall_results_plot = plot_results_by_length(m)
@@ -364,13 +363,7 @@ def plot_results_by_length(m):
     ax4.legend()
 
     ax5.plot(x_axis_values, Li_rejection_obs, linewidth=2, label="Li (observed)")
-    ax5.plot(
-        x_axis_values,
-        Li_rejection_act,
-        "--",
-        linewidth=2,
-        label="Li (actual)",
-    )
+    ax5.plot(x_axis_values, Li_rejection_act, "--", linewidth=2, label="Li (actual)")
     ax5.plot(x_axis_values, Co_rejection_obs, linewidth=2, label="Co (observed)")
     ax5.plot(x_axis_values, Co_rejection_act, "--", linewidth=2, label="Co (actual)")
     ax5.set_xlabel("Module Length (m)", fontsize=10, fontweight="bold")
