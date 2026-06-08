@@ -50,6 +50,7 @@ def main():
 
     single_salt_plots()
     two_salt_plots()
+    combined_plots()
 
     plt.show()
 
@@ -1288,6 +1289,880 @@ def two_salt_plots():
                 ecolor="grey",
                 capsize=4,
             )
+            ax_rej.errorbar(
+                feed_ionic_strength_val,
+                avg_actual_rejection,
+                yerr=spread_actual_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+
+            ax_flux.plot(
+                feed_ionic_strength_val,
+                avg_flux,
+                color=color,
+                marker=marker,
+                alpha=alpha,
+                markersize=markersize,
+            )
+            ax_flux.errorbar(
+                feed_ionic_strength_val,
+                avg_flux,
+                yerr=spread_flux,
+                ecolor="grey",
+                capsize=4,
+            )
+
+            ax_hfeed.plot(
+                feed_ionic_strength_val,
+                avg_H_feed,
+                color=color,
+                marker=marker,
+                alpha=alpha,
+                markersize=markersize,
+            )
+            ax_hfeed.errorbar(
+                feed_ionic_strength_val,
+                avg_H_feed,
+                yerr=spread_H_feed,
+                ecolor="grey",
+                capsize=4,
+            )
+
+            ax_hperm.plot(
+                feed_ionic_strength_val,
+                avg_H_perm,
+                color=color,
+                marker=marker,
+                alpha=alpha,
+                markersize=markersize,
+            )
+            ax_hperm.errorbar(
+                feed_ionic_strength_val,
+                avg_H_perm,
+                yerr=spread_H_perm,
+                ecolor="grey",
+                capsize=4,
+            )
+
+
+def combined_plots():
+    """
+    Plots rejection versus ionic strength of bulk fluid and feed.
+    """
+    markersize = 10
+    fontsize = 14
+
+    anion_list = ["Cl"]
+    inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
+    include_boundary_layer = True
+    NFE_module_length = 15
+    NFE_boundary_layer_thickness = 5
+    NFE_membrane_thickness = 5
+
+    default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
+    NFE_args = [
+        NFE_module_length,
+        NFE_boundary_layer_thickness,
+        NFE_membrane_thickness,
+    ]
+
+    fig1, (
+        (ax1a, ax1b, ax1c, ax1d),  # rejection
+        (ax2a, ax2b, ax2c, ax2d),  # solute flux
+        (ax3a, ax3b, ax3c, ax3d),  # H_feed
+        (ax4a, ax4b, ax4c, ax4d),  # H_permeate
+    ) = plt.subplots(4, 4, dpi=75, figsize=(20, 12), constrained_layout=True)
+    # fig1.tight_layout()
+
+    for ax in [ax4a, ax4b, ax4c, ax4d]:
+        ax.set_xlabel(
+            "Inlet Feed Ionic Strength\n(mol/m$^3$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+
+    ax1a.set_title("Lithium", fontsize=fontsize, fontweight="bold")
+    ax1b.set_title("Cobalt", fontsize=fontsize, fontweight="bold")
+    ax1c.set_title("Aluminum", fontsize=fontsize, fontweight="bold")
+    ax1d.set_title("Chloride", fontsize=fontsize, fontweight="bold")
+
+    ax1a.set_ylabel("Actual Ion\nRejection (%)", fontsize=fontsize, fontweight="bold")
+    for ax in [ax1a, ax1b, ax1c, ax1d]:
+        ax.set_ylim(10, 70)
+    ax2a.set_ylabel("Ion Flux (mol/m$^2$/h)", fontsize=fontsize, fontweight="bold")
+    # for ax in [ax2a, ax2b, ax2c, ax2d]:
+    #     ax.set_ylim(0, 15)
+    ax3a.set_ylabel(
+        "$c_{membrane}/c_{interface}$", fontsize=fontsize, fontweight="bold"
+    )
+    # for ax in [ax3a, ax3b, ax3c]:
+    #     ax.set_ylim(0, 1.1)
+    # for ax in [ax4a, ax4b, ax4c]:
+    #     ax.set_ylim(0, 3)
+    # for ax in [ax3d, ax4d]:
+    #     ax.set_ylim(0, 0.07)
+    ax4a.set_ylabel("$c_{membrane}/c_{permeate}$", fontsize=fontsize, fontweight="bold")
+
+    cmap = plt.colormaps["viridis"]
+    cmap_loc = np.linspace(0, 1.0, 6)
+    li_color = cmap(cmap_loc[0])
+    co_color = cmap(cmap_loc[1])
+    al_color = cmap(cmap_loc[2])
+    li_co_color = cmap(cmap_loc[3])
+    li_al_color = cmap(cmap_loc[4])
+    co_al_color = cmap(cmap_loc[5])
+
+    # lithium legend
+    ax4a.plot(
+        [],
+        [],
+        color=li_color,
+        marker="o",
+        markersize=markersize,
+        linestyle="None",
+        label="LiCl",
+    )
+    ax4a.plot(
+        [],
+        [],
+        color=li_co_color,
+        marker="o",
+        markersize=markersize,
+        linestyle="None",
+        label="LiCl + CoCl$_2$",
+    )
+    ax4a.plot(
+        [],
+        [],
+        color=li_al_color,
+        marker="o",
+        markersize=markersize,
+        linestyle="None",
+        label="LiCl + AlCl$_3$",
+    )
+
+    # cobalt legend
+    ax4b.plot(
+        [],
+        [],
+        color=co_color,
+        marker="v",
+        markersize=markersize,
+        linestyle="None",
+        label="CoCl$_2$",
+    )
+    ax4b.plot(
+        [],
+        [],
+        color=li_co_color,
+        marker="v",
+        markersize=markersize,
+        linestyle="None",
+        label="LiCl + CoCl$_2$",
+    )
+    ax4b.plot(
+        [],
+        [],
+        color=co_al_color,
+        marker="v",
+        markersize=markersize,
+        linestyle="None",
+        label="CoCl$_2$ + AlCl$_3$",
+    )
+
+    # aluminum legend
+    ax4c.plot(
+        [],
+        [],
+        color=al_color,
+        marker="^",
+        markersize=markersize,
+        linestyle="None",
+        label="AlCl$_3$",
+    )
+    ax4c.plot(
+        [],
+        [],
+        color=li_al_color,
+        marker="^",
+        markersize=markersize,
+        linestyle="None",
+        label="LiCl + AlCl$_3$",
+    )
+    ax4c.plot(
+        [],
+        [],
+        color=co_al_color,
+        marker="^",
+        markersize=markersize,
+        linestyle="None",
+        label="CoCl$_2$ + AlCl$_3$",
+    )
+
+    # chloride legend
+    ax4d.plot(
+        [],
+        [],
+        color=li_color,
+        marker="*",
+        markersize=markersize,
+        linestyle="None",
+        label="LiCl",
+    )
+    ax4d.plot(
+        [],
+        [],
+        color=co_color,
+        marker="*",
+        markersize=markersize,
+        linestyle="None",
+        label="CoCl$_2$",
+    )
+    ax4d.plot(
+        [],
+        [],
+        color=al_color,
+        marker="*",
+        markersize=markersize,
+        linestyle="None",
+        label="AlCl$_3$",
+    )
+    ax4d.plot(
+        [],
+        [],
+        color=li_co_color,
+        marker="*",
+        markersize=markersize,
+        linestyle="None",
+        label="LiCl + CoCl$_2$",
+    )
+    ax4d.plot(
+        [],
+        [],
+        color=li_al_color,
+        marker="*",
+        markersize=markersize,
+        linestyle="None",
+        label="LiCl + AlCl$_3$",
+    )
+    ax4d.plot(
+        [],
+        [],
+        color=co_al_color,
+        marker="*",
+        markersize=markersize,
+        linestyle="None",
+        label="CoCl$_2$ + AlCl$_3$",
+    )
+
+    for ax in [ax4a, ax4b, ax4c]:
+        ax.legend(loc="best", fontsize=fontsize, bbox_to_anchor=(0.75, -0.5))
+    ax4d.legend(loc="best", fontsize=fontsize, bbox_to_anchor=(0.95, -0.5), ncol=2)
+
+    for ax in fig1.axes:
+        ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+        ax.set_xlim(0, 1200)
+
+    model_folder_1 = Path("multi_component_case_studies/single_salt")
+    # 41 characters (0-40) make up folder name before model name
+    # multi_component_case_studies/single_salt/
+
+    for case_study_file in model_folder_1.iterdir():
+        cation = str(case_study_file)[41:43]
+        chloride_multiplier = float(str(case_study_file)[45])
+        concentration = float(50)  # mM
+        model = build_model(
+            cation_list=[cation],
+            inlet_concentration={
+                "feed": {
+                    cation: concentration,
+                    "Cl": chloride_multiplier * concentration,
+                },
+                "diafiltrate": {
+                    cation: 1e-10,
+                    "Cl": 1e-10,
+                },
+            },
+            default_args=default_args,
+            H_feed_guess=1,
+            H_permeate_guess=1,
+            NFE_args=NFE_args,
+            initialize=False,
+        )
+        from_json(model, fname=case_study_file)
+
+        feed_ionic_strength_val = value(model.fs.membrane.total_feed_ionic_strength[0])
+
+        for solute in model.fs.membrane.solutes:
+            observed_rejection = []
+            actual_rejection = []
+            flux = []
+            H_feed = []
+            H_perm = []
+            bl_convection_by_x = []
+            bl_convection_dict_by_x = {}
+            bl_diffusion_by_x = []
+            bl_diffusion_dict_by_x = {}
+            bl_electromigration_by_x = []
+            bl_electromigration_dict_by_x = {}
+            mem_convection_by_x = []
+            mem_convection_dict_by_x = {}
+            mem_diffusion_by_x = []
+            mem_diffusion_dict_by_x = {}
+            mem_electromigration_by_x = []
+            mem_electromigration_dict_by_x = {}
+
+            for t in model.fs.membrane.time:
+                for x in model.fs.membrane.dimensionless_module_length:
+                    if x != 0:
+                        observed_rejection.append(
+                            value(
+                                model.fs.membrane.observed_rejection_percent[
+                                    t, x, solute
+                                ]
+                            )
+                        )
+                        actual_rejection.append(
+                            value(
+                                model.fs.membrane.actual_rejection_percent[t, x, solute]
+                            )
+                        )
+                        flux.append(
+                            value(model.fs.membrane.molar_ion_flux[t, x, solute])
+                        )
+                        H_feed.append(
+                            value(
+                                model.fs.membrane.overall_partition_coefficient_feed_side[
+                                    t, x, solute
+                                ]
+                            )
+                        )
+                        H_perm.append(
+                            value(
+                                model.fs.membrane.overall_partition_coefficient_permeate_side[
+                                    t, x, solute
+                                ]
+                            )
+                        )
+                        for (
+                            z_bl
+                        ) in model.fs.membrane.dimensionless_boundary_layer_thickness:
+                            bl_convection_by_x.append(
+                                value(
+                                    model.fs.membrane.boundary_layer_convective_flux[
+                                        0, x, z_bl, solute
+                                    ]
+                                )
+                            )
+                            bl_diffusion_by_x.append(
+                                value(
+                                    model.fs.membrane.boundary_layer_diffusive_flux[
+                                        0, x, z_bl, solute
+                                    ]
+                                )
+                            )
+                            bl_electromigration_by_x.append(
+                                value(
+                                    model.fs.membrane.boundary_layer_electromigrative_flux[
+                                        0, x, z_bl, solute
+                                    ]
+                                )
+                            )
+                        bl_convection_dict_by_x[f"{x}"] = bl_convection_by_x
+                        bl_diffusion_dict_by_x[f"{x}"] = bl_diffusion_by_x
+                        bl_electromigration_dict_by_x[f"{x}"] = bl_electromigration_by_x
+                        bl_convection_by_x = []
+                        bl_diffusion_by_x = []
+                        bl_electromigration_by_x = []
+
+                        for z_mem in model.fs.membrane.dimensionless_membrane_thickness:
+                            mem_convection_by_x.append(
+                                value(
+                                    model.fs.membrane.membrane_convective_flux[
+                                        0, x, z_mem, solute
+                                    ]
+                                )
+                            )
+                            mem_diffusion_by_x.append(
+                                value(
+                                    model.fs.membrane.membrane_diffusive_flux[
+                                        0, x, z_mem, solute
+                                    ]
+                                )
+                            )
+                            mem_electromigration_by_x.append(
+                                value(
+                                    model.fs.membrane.membrane_electromigrative_flux[
+                                        0, x, z_mem, solute
+                                    ]
+                                )
+                            )
+                        mem_convection_dict_by_x[f"{x}"] = mem_convection_by_x
+                        mem_diffusion_dict_by_x[f"{x}"] = mem_diffusion_by_x
+                        mem_electromigration_dict_by_x[f"{x}"] = (
+                            mem_electromigration_by_x
+                        )
+                        mem_convection_by_x = []
+                        mem_diffusion_by_x = []
+                        mem_electromigration_by_x = []
+
+            avg_observed_rejection = np.average(observed_rejection)
+            spread_observed_rejection = calculate_spread(observed_rejection)
+
+            avg_actual_rejection = np.average(actual_rejection)
+            spread_actual_rejection = calculate_spread(actual_rejection)
+
+            avg_flux = np.average(flux)
+            spread_flux = calculate_spread(flux)
+
+            avg_H_feed = np.average(H_feed)
+            spread_H_feed = calculate_spread(H_feed)
+
+            avg_H_perm = np.average(H_perm)
+            spread_H_perm = calculate_spread(H_perm)
+
+            bl_convection_averaged_over_z = [
+                sum(bl_convection_dict_by_x[k]) / len(bl_convection_dict_by_x[k])
+                for k in bl_convection_dict_by_x.keys()
+            ]
+            avg_bl_convection = np.average(bl_convection_averaged_over_z)
+            spread_bl_convection = calculate_spread(bl_convection_averaged_over_z)
+
+            bl_diffusion_averaged_over_z = [
+                sum(bl_diffusion_dict_by_x[k]) / len(bl_diffusion_dict_by_x[k])
+                for k in bl_diffusion_dict_by_x.keys()
+            ]
+            avg_bl_diffusion = np.average(bl_diffusion_averaged_over_z)
+            spread_bl_diffusion = calculate_spread(bl_diffusion_averaged_over_z)
+
+            bl_electromigration_averaged_over_z = [
+                sum(bl_electromigration_dict_by_x[k])
+                / len(bl_electromigration_dict_by_x[k])
+                for k in bl_electromigration_dict_by_x.keys()
+            ]
+            avg_bl_electromigration = np.average(bl_electromigration_averaged_over_z)
+            spread_bl_electromigration = calculate_spread(
+                bl_electromigration_averaged_over_z
+            )
+
+            mem_convection_averaged_over_z = [
+                sum(mem_convection_dict_by_x[k]) / len(mem_convection_dict_by_x[k])
+                for k in mem_convection_dict_by_x.keys()
+            ]
+            avg_mem_convection = np.average(mem_convection_averaged_over_z)
+            spread_mem_convection = calculate_spread(mem_convection_averaged_over_z)
+
+            mem_diffusion_averaged_over_z = [
+                sum(mem_diffusion_dict_by_x[k]) / len(mem_diffusion_dict_by_x[k])
+                for k in mem_diffusion_dict_by_x.keys()
+            ]
+            avg_mem_diffusion = np.average(mem_diffusion_averaged_over_z)
+            spread_mem_diffusion = calculate_spread(mem_diffusion_averaged_over_z)
+
+            mem_electromigration_averaged_over_z = [
+                sum(mem_electromigration_dict_by_x[k])
+                / len(mem_electromigration_dict_by_x[k])
+                for k in mem_electromigration_dict_by_x.keys()
+            ]
+            avg_mem_electromigration = np.average(mem_electromigration_averaged_over_z)
+            spread_mem_electromigration = calculate_spread(
+                mem_electromigration_averaged_over_z
+            )
+
+            alpha = 1
+
+            if solute == "Li":
+                color = li_color
+                marker = "o"
+                ax_rej = ax1a
+                ax_flux = ax2a
+                ax_hfeed = ax3a
+                ax_hperm = ax4a
+            elif solute == "Co":
+                color = co_color
+                marker = "v"
+                ax_rej = ax1b
+                ax_flux = ax2b
+                ax_hfeed = ax3b
+                ax_hperm = ax4b
+            elif solute == "Al":
+                color = al_color
+                marker = "^"
+                ax_rej = ax1c
+                ax_flux = ax2c
+                ax_hfeed = ax3c
+                ax_hperm = ax4c
+            elif solute == "Cl":
+                marker = "*"
+                ax_rej = ax1d
+                ax_flux = ax2d
+                ax_hfeed = ax3d
+                ax_hperm = ax4d
+
+                if model.fs.membrane.cations.at(1) == "Li":
+                    color = li_color
+                elif model.fs.membrane.cations.at(1) == "Co":
+                    color = co_color
+                elif model.fs.membrane.cations.at(1) == "Al":
+                    color = al_color
+
+            # ax_rej.plot(
+            #     feed_ionic_strength_val,
+            #     avg_observed_rejection,
+            #     key,
+            #     alpha=alpha,
+            #     mfc="none",
+            #     markersize=markersize,
+            # )
+            ax_rej.plot(
+                feed_ionic_strength_val,
+                avg_actual_rejection,
+                color=color,
+                marker=marker,
+                alpha=alpha,
+                markersize=markersize,
+            )
+            # ax_rej.errorbar(
+            #     feed_ionic_strength_val,
+            #     avg_observed_rejection,
+            #     yerr=spread_observed_rejection,
+            #     ecolor="grey",
+            #     capsize=4,
+            # )
+            ax_rej.errorbar(
+                feed_ionic_strength_val,
+                avg_actual_rejection,
+                yerr=spread_actual_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+
+            ax_flux.plot(
+                feed_ionic_strength_val,
+                avg_flux,
+                color=color,
+                marker=marker,
+                alpha=alpha,
+                markersize=markersize,
+            )
+            ax_flux.errorbar(
+                feed_ionic_strength_val,
+                avg_flux,
+                yerr=spread_flux,
+                ecolor="grey",
+                capsize=4,
+            )
+
+            ax_hfeed.plot(
+                feed_ionic_strength_val,
+                avg_H_feed,
+                color=color,
+                marker=marker,
+                alpha=alpha,
+                markersize=markersize,
+            )
+            ax_hfeed.errorbar(
+                feed_ionic_strength_val,
+                avg_H_feed,
+                yerr=spread_H_feed,
+                ecolor="grey",
+                capsize=4,
+            )
+
+            ax_hperm.plot(
+                feed_ionic_strength_val,
+                avg_H_perm,
+                color=color,
+                marker=marker,
+                alpha=alpha,
+                markersize=markersize,
+            )
+            ax_hperm.errorbar(
+                feed_ionic_strength_val,
+                avg_H_perm,
+                yerr=spread_H_perm,
+                ecolor="grey",
+                capsize=4,
+            )
+
+    model_folder_2 = Path("multi_component_case_studies/two_salt")
+    # 38 characters (0-37) make up folder name before model name
+    # multi_component_case_studies/two_salt/
+
+    for case_study_file in model_folder_2.iterdir():
+        cation_1 = str(case_study_file)[38:40]
+        cation_2 = str(case_study_file)[40:42]
+        chloride_multiplier = float(str(case_study_file)[44])
+        concentration = float(50)  # mM
+        model = build_model(
+            cation_list=[cation_1, cation_2],
+            inlet_concentration={
+                "feed": {
+                    cation_1: concentration,
+                    cation_2: concentration,
+                    "Cl": chloride_multiplier * concentration,
+                },
+                "diafiltrate": {
+                    cation_1: 1e-10,
+                    cation_2: 1e-10,
+                    "Cl": 1e-10,
+                },
+            },
+            default_args=default_args,
+            H_feed_guess=1,
+            H_permeate_guess=1,
+            NFE_args=NFE_args,
+            initialize=False,
+        )
+        from_json(model, fname=case_study_file)
+
+        feed_ionic_strength_val = value(model.fs.membrane.total_feed_ionic_strength[0])
+
+        for solute in model.fs.membrane.solutes:
+            observed_rejection = []
+            actual_rejection = []
+            flux = []
+            H_feed = []
+            H_perm = []
+            bl_convection_by_x = []
+            bl_convection_dict_by_x = {}
+            bl_diffusion_by_x = []
+            bl_diffusion_dict_by_x = {}
+            bl_electromigration_by_x = []
+            bl_electromigration_dict_by_x = {}
+            mem_convection_by_x = []
+            mem_convection_dict_by_x = {}
+            mem_diffusion_by_x = []
+            mem_diffusion_dict_by_x = {}
+            mem_electromigration_by_x = []
+            mem_electromigration_dict_by_x = {}
+
+            for t in model.fs.membrane.time:
+                for x in model.fs.membrane.dimensionless_module_length:
+                    if x != 0:
+                        observed_rejection.append(
+                            value(
+                                model.fs.membrane.observed_rejection_percent[
+                                    t, x, solute
+                                ]
+                            )
+                        )
+                        actual_rejection.append(
+                            value(
+                                model.fs.membrane.actual_rejection_percent[t, x, solute]
+                            )
+                        )
+                        flux.append(
+                            value(model.fs.membrane.molar_ion_flux[t, x, solute])
+                        )
+                        H_feed.append(
+                            value(
+                                model.fs.membrane.overall_partition_coefficient_feed_side[
+                                    t, x, solute
+                                ]
+                            )
+                        )
+                        H_perm.append(
+                            value(
+                                model.fs.membrane.overall_partition_coefficient_permeate_side[
+                                    t, x, solute
+                                ]
+                            )
+                        )
+                        for (
+                            z_bl
+                        ) in model.fs.membrane.dimensionless_boundary_layer_thickness:
+                            bl_convection_by_x.append(
+                                value(
+                                    model.fs.membrane.boundary_layer_convective_flux[
+                                        0, x, z_bl, solute
+                                    ]
+                                )
+                            )
+                            bl_diffusion_by_x.append(
+                                value(
+                                    model.fs.membrane.boundary_layer_diffusive_flux[
+                                        0, x, z_bl, solute
+                                    ]
+                                )
+                            )
+                            bl_electromigration_by_x.append(
+                                value(
+                                    model.fs.membrane.boundary_layer_electromigrative_flux[
+                                        0, x, z_bl, solute
+                                    ]
+                                )
+                            )
+                        bl_convection_dict_by_x[f"{x}"] = bl_convection_by_x
+                        bl_diffusion_dict_by_x[f"{x}"] = bl_diffusion_by_x
+                        bl_electromigration_dict_by_x[f"{x}"] = bl_electromigration_by_x
+                        bl_convection_by_x = []
+                        bl_diffusion_by_x = []
+                        bl_electromigration_by_x = []
+
+                        for z_mem in model.fs.membrane.dimensionless_membrane_thickness:
+                            mem_convection_by_x.append(
+                                value(
+                                    model.fs.membrane.membrane_convective_flux[
+                                        0, x, z_mem, solute
+                                    ]
+                                )
+                            )
+                            mem_diffusion_by_x.append(
+                                value(
+                                    model.fs.membrane.membrane_diffusive_flux[
+                                        0, x, z_mem, solute
+                                    ]
+                                )
+                            )
+                            mem_electromigration_by_x.append(
+                                value(
+                                    model.fs.membrane.membrane_electromigrative_flux[
+                                        0, x, z_mem, solute
+                                    ]
+                                )
+                            )
+                        mem_convection_dict_by_x[f"{x}"] = mem_convection_by_x
+                        mem_diffusion_dict_by_x[f"{x}"] = mem_diffusion_by_x
+                        mem_electromigration_dict_by_x[f"{x}"] = (
+                            mem_electromigration_by_x
+                        )
+                        mem_convection_by_x = []
+                        mem_diffusion_by_x = []
+                        mem_electromigration_by_x = []
+
+            avg_observed_rejection = np.average(observed_rejection)
+            spread_observed_rejection = calculate_spread(observed_rejection)
+
+            avg_actual_rejection = np.average(actual_rejection)
+            spread_actual_rejection = calculate_spread(actual_rejection)
+
+            avg_flux = np.average(flux)
+            spread_flux = calculate_spread(flux)
+
+            avg_H_feed = np.average(H_feed)
+            spread_H_feed = calculate_spread(H_feed)
+
+            avg_H_perm = np.average(H_perm)
+            spread_H_perm = calculate_spread(H_perm)
+
+            bl_convection_averaged_over_z = [
+                sum(bl_convection_dict_by_x[k]) / len(bl_convection_dict_by_x[k])
+                for k in bl_convection_dict_by_x.keys()
+            ]
+            avg_bl_convection = np.average(bl_convection_averaged_over_z)
+            spread_bl_convection = calculate_spread(bl_convection_averaged_over_z)
+
+            bl_diffusion_averaged_over_z = [
+                sum(bl_diffusion_dict_by_x[k]) / len(bl_diffusion_dict_by_x[k])
+                for k in bl_diffusion_dict_by_x.keys()
+            ]
+            avg_bl_diffusion = np.average(bl_diffusion_averaged_over_z)
+            spread_bl_diffusion = calculate_spread(bl_diffusion_averaged_over_z)
+
+            bl_electromigration_averaged_over_z = [
+                sum(bl_electromigration_dict_by_x[k])
+                / len(bl_electromigration_dict_by_x[k])
+                for k in bl_electromigration_dict_by_x.keys()
+            ]
+            avg_bl_electromigration = np.average(bl_electromigration_averaged_over_z)
+            spread_bl_electromigration = calculate_spread(
+                bl_electromigration_averaged_over_z
+            )
+
+            mem_convection_averaged_over_z = [
+                sum(mem_convection_dict_by_x[k]) / len(mem_convection_dict_by_x[k])
+                for k in mem_convection_dict_by_x.keys()
+            ]
+            avg_mem_convection = np.average(mem_convection_averaged_over_z)
+            spread_mem_convection = calculate_spread(mem_convection_averaged_over_z)
+
+            mem_diffusion_averaged_over_z = [
+                sum(mem_diffusion_dict_by_x[k]) / len(mem_diffusion_dict_by_x[k])
+                for k in mem_diffusion_dict_by_x.keys()
+            ]
+            avg_mem_diffusion = np.average(mem_diffusion_averaged_over_z)
+            spread_mem_diffusion = calculate_spread(mem_diffusion_averaged_over_z)
+
+            mem_electromigration_averaged_over_z = [
+                sum(mem_electromigration_dict_by_x[k])
+                / len(mem_electromigration_dict_by_x[k])
+                for k in mem_electromigration_dict_by_x.keys()
+            ]
+            avg_mem_electromigration = np.average(mem_electromigration_averaged_over_z)
+            spread_mem_electromigration = calculate_spread(
+                mem_electromigration_averaged_over_z
+            )
+
+            if solute == "Li":
+                marker = "o"
+                ax_rej = ax1a
+                ax_flux = ax2a
+                ax_hfeed = ax3a
+                ax_hperm = ax4a
+                if cation_2 == "Co":
+                    color = li_co_color
+                elif cation_2 == "Al":
+                    color = li_al_color
+            elif solute == "Co":
+                marker = "v"
+                ax_rej = ax1b
+                ax_flux = ax2b
+                ax_hfeed = ax3b
+                ax_hperm = ax4b
+                if cation_1 == "Li":
+                    color = li_co_color
+                elif cation_2 == "Al":
+                    color = co_al_color
+            elif solute == "Al":
+                marker = "^"
+                ax_rej = ax1c
+                ax_flux = ax2c
+                ax_hfeed = ax3c
+                ax_hperm = ax4c
+                if cation_1 == "Li":
+                    color = li_al_color
+                elif cation_1 == "Co":
+                    color = co_al_color
+
+            elif solute == "Cl":
+                marker = "*"
+                ax_rej = ax1d
+                ax_flux = ax2d
+                ax_hfeed = ax3d
+                ax_hperm = ax4d
+                if cation_1 == "Li" and cation_2 == "Co":
+                    color = li_co_color
+                elif cation_1 == "Li" and cation_2 == "Al":
+                    color = li_al_color
+                elif cation_1 == "Co" and cation_2 == "Al":
+                    color = co_al_color
+
+            # ax_rej.plot(
+            #     feed_ionic_strength_val,
+            #     avg_observed_rejection,
+            #     key,
+            #     linestyle=":",
+            #     alpha=alpha,
+            #     mfc="none",
+            #     markersize=markersize,
+            # )
+            ax_rej.plot(
+                feed_ionic_strength_val,
+                avg_actual_rejection,
+                color=color,
+                marker=marker,
+                alpha=alpha,
+                markersize=markersize,
+            )
+            # ax_rej.errorbar(
+            #     feed_ionic_strength_val,
+            #     avg_observed_rejection,
+            #     yerr=spread_observed_rejection,
+            #     ecolor="grey",
+            #     capsize=4,
+            # )
             ax_rej.errorbar(
                 feed_ionic_strength_val,
                 avg_actual_rejection,
