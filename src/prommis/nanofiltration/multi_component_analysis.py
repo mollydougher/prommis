@@ -50,7 +50,7 @@ def main():
 
     single_salt_plots()
     two_salt_plots()
-    combined_plots()
+    combined_plots(save_figure=True)
 
     plt.show()
 
@@ -249,14 +249,18 @@ def solve_and_save_models(water_flux=0.02, run_single_salt=True, run_two_salt=Tr
                     except:
                         continue
     if run_two_salt:
-        cation_pairs = ["Li_Co", "Li_Al", "Co_Al"]
-        feed_concentrations = [12.5, 25, 50, 75, 100, 150, 200]
+
+        feed = {
+            "Li_Co": [18.75, 37.5, 75, 112.5, 150, 225],
+            "Li_Al": [10.7145, 21.429, 42.858, 64.286, 85.715, 128.572],
+            "Co_Al": [8.3334, 16.667, 33.334, 50, 66.667, 100],
+        }
 
         H_feed_guesses = np.arange(0.5, 2.1, 0.1)
         H_permeate_guesses = np.arange(0.5, 2.1, 0.1)
         H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
 
-        for salt in cation_pairs:
+        for salt in feed.keys():
             if salt == "Li_Co":
                 cation_1 = "Li"
                 cation_2 = "Co"
@@ -270,7 +274,7 @@ def solve_and_save_models(water_flux=0.02, run_single_salt=True, run_two_salt=Tr
                 cation_2 = "Al"
                 chloride_multiplier = 5
 
-            for concentration in feed_concentrations:
+            for concentration in feed[salt]:
                 for H_feed_guess, H_permeate_guess in H_guesses:
                     try:
                         model = build_model(
@@ -1346,7 +1350,7 @@ def two_salt_plots():
             )
 
 
-def combined_plots():
+def combined_plots(save_figure=True):
     """
     Plots rejection versus ionic strength of bulk fluid and feed.
     """
@@ -1562,7 +1566,7 @@ def combined_plots():
 
     for ax in fig1.axes:
         ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
-        ax.set_xlim(0, 1200)
+        ax.set_xlim(0, 1000)
 
     model_folder_1 = Path("multi_component_case_studies/single_salt")
     # 41 characters (0-40) make up folder name before model name
@@ -2218,6 +2222,8 @@ def combined_plots():
                 ecolor="grey",
                 capsize=4,
             )
+    if save_figure:
+        plt.savefig("rejection_flux_partition.png", dpi=600)
 
 
 if __name__ == "__main__":
