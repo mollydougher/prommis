@@ -44,8 +44,12 @@ from prommis.nanofiltration.multi_component_diafiltration import (
 def main():
     run_single_salt = False
     run_two_salt = False
+    run_three_salt = False
     solve_and_save_models(
-        water_flux=0.02, run_single_salt=run_single_salt, run_two_salt=run_two_salt
+        water_flux=0.02,
+        run_single_salt=run_single_salt,
+        run_two_salt=run_two_salt,
+        run_three_salt=run_three_salt,
     )
 
     plot_together = True
@@ -101,15 +105,16 @@ def build_model(
     m.fs.retentate_block = Product(property_package=m.fs.stream_properties)
     m.fs.permeate_block = Product(property_package=m.fs.stream_properties)
 
+    # m.fs.membrane.total_feed_ionic_strength.display()
     # fix the degrees of freedom to their default values
     m.fs.membrane.total_module_length.fix()
     m.fs.membrane.total_membrane_length.fix()
     if len(cation_list) == 1:
         m.fs.membrane.applied_pressure.fix(5)
-    elif value(m.fs.membrane.total_feed_ionic_strength[0]) > 100:
-        m.fs.membrane.applied_pressure.fix(10)
+    # elif value(m.fs.membrane.total_feed_ionic_strength[0]) >= 100:
+    #     m.fs.membrane.applied_pressure.fix(10)
     else:
-        m.fs.membrane.applied_pressure.fix()
+        m.fs.membrane.applied_pressure.fix(10)
     m.fs.membrane.feed_flow_volume.fix(inlet_flow_volume["feed"])
     m.fs.membrane.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
     for t in m.fs.membrane.time:
@@ -190,7 +195,9 @@ def unfix_pressure(m, water_flux=0.02):
     m.water_flux_constraint = Constraint(rule=_water_flux_constraint)
 
 
-def solve_and_save_models(water_flux=0.02, run_single_salt=True, run_two_salt=True):
+def solve_and_save_models(
+    water_flux=0.02, run_single_salt=True, run_two_salt=True, run_three_salt=True
+):
     # global variables
     anion_list = ["Cl"]
     inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
@@ -205,13 +212,16 @@ def solve_and_save_models(water_flux=0.02, run_single_salt=True, run_two_salt=Tr
 
     if run_single_salt:
         feed = {
-            "Li": [75, 150, 300, 450, 600, 900],
-            "Co": [25, 50, 100, 150, 200, 300],
-            "Al": [12.5, 25, 50, 75, 100, 150],
+            "Li": [50, 75, 100, 150, 200, 400, 600, 800],
+            "Co": [16.667, 25, 33.334, 50, 66.667, 133.334, 200, 266.667],
+            "Al": [8.334, 12.5, 16.667, 25, 33.334, 66.667, 100, 133.334],
         }
 
         H_feed_guesses = np.arange(0.5, 2.1, 0.1)
         H_permeate_guesses = np.arange(0.5, 2.1, 0.1)
+        # add in non equal guesses needed for some systems
+        H_feed_guesses = np.append(H_feed_guesses, 1)
+        H_permeate_guesses = np.append(H_permeate_guesses, 2)
         H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
 
         for cation in feed.keys():
@@ -223,6 +233,12 @@ def solve_and_save_models(water_flux=0.02, run_single_salt=True, run_two_salt=Tr
                 chloride_multiplier = 3
 
             for concentration in feed[cation]:
+                # start with the low H's at higher concentrations
+                if concentration >= 200:
+                    H_guesses = H_guesses
+                # start with the high H's at lower concentrations
+                else:
+                    H_guesses = np.flip(H_guesses, axis=0)
                 for H_feed_guess, H_permeate_guess in H_guesses:
                     try:
                         model = build_model(
@@ -256,13 +272,21 @@ def solve_and_save_models(water_flux=0.02, run_single_salt=True, run_two_salt=Tr
     if run_two_salt:
 
         feed = {
-            "Li_Co": [18.75, 37.5, 75, 112.5, 150, 225],
-            "Li_Al": [10.7145, 21.429, 42.858, 64.286, 85.715, 128.572],
-            "Co_Al": [8.3334, 16.667, 33.334, 50, 66.667, 100],
+            "Li_Co": [12.5, 18.75, 25, 37.5, 50, 100, 150, 200],
+            # "Li_Al": [7.143], # TODO: debug this system
+            "Li_Al": [7.143, 10.7145, 14.286, 21.429, 28.572, 57.143, 85.715, 114.286],
+            # "Co_Al": [5.556],# TODO: debug this system
+            "Co_Al": [5.556, 8.334, 11.112, 16.667, 22.223, 44.445, 66.667, 88.889],
         }
 
-        H_feed_guesses = np.arange(0.5, 2.5, 0.1)
-        H_permeate_guesses = np.arange(0.5, 2.5, 0.1)
+        H_feed_guesses = np.arange(0.5, 2.6, 0.1)
+        H_permeate_guesses = np.arange(0.5, 2.6, 0.1)
+        # add in non equal guesses
+        H_feed_guesses = np.append(
+            H_feed_guesses,
+            1,
+        )
+        H_permeate_guesses = np.append(H_permeate_guesses, 2)
         H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
 
         for salt in feed.keys():
@@ -280,6 +304,12 @@ def solve_and_save_models(water_flux=0.02, run_single_salt=True, run_two_salt=Tr
                 chloride_multiplier = 5
 
             for concentration in feed[salt]:
+                # start with the low H's at higher concentrations
+                if concentration >= 400:
+                    H_guesses = H_guesses
+                # start with the high H's at lower concentrations
+                else:
+                    H_guesses = np.flip(H_guesses, axis=0)
                 for H_feed_guess, H_permeate_guess in H_guesses:
                     try:
                         model = build_model(
@@ -308,6 +338,72 @@ def solve_and_save_models(water_flux=0.02, run_single_salt=True, run_two_salt=Tr
                         to_json(
                             model,
                             fname=f"multi_component_case_studies/two_salt/{cation_1}{cation_2}Cl{chloride_multiplier}_{concentration}mM_{concentration}mM",
+                        )
+                        break
+                    except:
+                        continue
+
+    if run_three_salt:
+
+        feed = {
+            "Li_Co_Al": [5, 7.5, 10, 15, 20, 40, 60, 80],
+            # "Li_Co_Al": [5], # TODO: debug this system
+        }
+
+        H_feed_guesses = np.arange(0.5, 2.6, 0.1)
+        H_permeate_guesses = np.arange(0.5, 2.6, 0.1)
+        # add in non equal guesses
+        H_feed_guesses = np.append(
+            H_feed_guesses,
+            1,
+        )
+        H_permeate_guesses = np.append(H_permeate_guesses, 2)
+        H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
+
+        for salt in feed.keys():
+            if salt == "Li_Co_Al":
+                cation_1 = "Li"
+                cation_2 = "Co"
+                cation_3 = "Al"
+                chloride_multiplier = 6
+
+            for concentration in feed[salt]:
+                # start with the low H's at higher concentrations
+                if concentration >= 400:
+                    H_guesses = H_guesses
+                # start with the high H's at lower concentrations
+                else:
+                    H_guesses = np.flip(H_guesses, axis=0)
+                for H_feed_guess, H_permeate_guess in H_guesses:
+                    try:
+                        model = build_model(
+                            cation_list=[cation_1, cation_2, cation_3],
+                            inlet_concentration={
+                                "feed": {
+                                    cation_1: concentration,
+                                    cation_2: concentration,
+                                    cation_3: concentration,
+                                    "Cl": chloride_multiplier * concentration,
+                                },
+                                "diafiltrate": {
+                                    cation_1: diafiltrate[cation_1],
+                                    cation_2: diafiltrate[cation_2],
+                                    cation_3: diafiltrate[cation_3],
+                                    "Cl": 1e-10,
+                                },
+                            },
+                            default_args=default_args,
+                            H_feed_guess=H_feed_guess,
+                            H_permeate_guess=H_permeate_guess,
+                            NFE_args=NFE_args,
+                            initialize=True,
+                        )
+                        solve_model(model)
+                        unfix_pressure(model, water_flux=water_flux)
+                        solve_model(model)
+                        to_json(
+                            model,
+                            fname=f"multi_component_case_studies/three_salt/{cation_1}{cation_2}{cation_3}Cl{chloride_multiplier}_{concentration}mM_{concentration}mM_{concentration}mM",
                         )
                         break
                     except:
@@ -1381,7 +1477,7 @@ def combined_plots(inset=True, save_figure=True):
         (ax2a, ax2b, ax2c, ax2d),  # solute flux
         (ax3a, ax3b, ax3c, ax3d),  # H_feed
         (ax4a, ax4b, ax4c, ax4d),  # H_permeate
-    ) = plt.subplots(4, 4, dpi=75, figsize=(16, 12), constrained_layout=True)
+    ) = plt.subplots(4, 4, dpi=75, figsize=(18, 18), constrained_layout=True)
     # fig1.tight_layout()
 
     for ax in [ax4a, ax4b, ax4c, ax4d]:
@@ -1422,7 +1518,7 @@ def combined_plots(inset=True, save_figure=True):
     # li_co_color = cmap(cmap_loc[1])
     # li_al_color = cmap(cmap_loc[4])
     # co_al_color = cmap(cmap_loc[5])
-    
+
     # qualitative cmap
     # cmap = plt.colormaps["Dark2"]
     # li_color = cmap(0)
@@ -1431,15 +1527,24 @@ def combined_plots(inset=True, save_figure=True):
     # li_co_color = cmap(3)
     # li_al_color = cmap(4)
     # co_al_color = cmap(5)
-    
+
     # color blind friendly
-    tol_bright_hex = ['#4477AA', '#EE6677', '#228833', '#CCBB44', '#66CCEE', '#AA3377', '#BBBBBB']
+    tol_bright_hex = [
+        "#4477AA",
+        "#EE6677",
+        "#228833",
+        "#CCBB44",
+        "#66CCEE",
+        "#AA3377",
+        "#BBBBBB",
+    ]
     li_color = tol_bright_hex[0]
     co_color = tol_bright_hex[1]
     al_color = tol_bright_hex[2]
     li_co_color = tol_bright_hex[3]
     li_al_color = tol_bright_hex[4]
     co_al_color = tol_bright_hex[5]
+    li_co_al_color = tol_bright_hex[6]
 
     # lithium legend
     ax4a.plot(
@@ -1468,6 +1573,15 @@ def combined_plots(inset=True, save_figure=True):
         markersize=markersize,
         linestyle="None",
         label="LiCl + AlCl$_3$",
+    )
+    ax4a.plot(
+        [],
+        [],
+        color=li_co_al_color,
+        marker="o",
+        markersize=markersize,
+        linestyle="None",
+        label="LiCl + CoCl$_2$ + AlCl$_3$",
     )
 
     # cobalt legend
@@ -1498,6 +1612,15 @@ def combined_plots(inset=True, save_figure=True):
         linestyle="None",
         label="CoCl$_2$ + AlCl$_3$",
     )
+    ax4b.plot(
+        [],
+        [],
+        color=li_co_al_color,
+        marker="v",
+        markersize=markersize,
+        linestyle="None",
+        label="LiCl + CoCl$_2$ + AlCl$_3$",
+    )
 
     # aluminum legend
     ax4c.plot(
@@ -1526,6 +1649,15 @@ def combined_plots(inset=True, save_figure=True):
         markersize=markersize,
         linestyle="None",
         label="CoCl$_2$ + AlCl$_3$",
+    )
+    ax4c.plot(
+        [],
+        [],
+        color=li_co_al_color,
+        marker="^",
+        markersize=markersize,
+        linestyle="None",
+        label="LiCl + CoCl$_2$ + AlCl$_3$",
     )
 
     # chloride legend
@@ -1583,44 +1715,75 @@ def combined_plots(inset=True, save_figure=True):
         linestyle="None",
         label="CoCl$_2$ + AlCl$_3$",
     )
+    ax4d.plot(
+        [],
+        [],
+        color=li_co_al_color,
+        marker="*",
+        markersize=markersize,
+        linestyle="None",
+        label="LiCl + CoCl$_2$ + AlCl$_3$",
+    )
 
     for ax in [ax4a, ax4b, ax4c]:
-        ax.legend(loc="best", fontsize=fontsize, bbox_to_anchor=(0.85, -0.45))
-    ax4d.legend(loc="best", fontsize=fontsize, bbox_to_anchor=(1.1, -0.45), ncol=2)
+        ax.legend(loc="best", fontsize=fontsize, bbox_to_anchor=(0.85, -0.3))
+    ax4d.legend(loc="best", fontsize=fontsize, bbox_to_anchor=(1.1, -0.3), ncol=2)
 
     for ax in fig1.axes:
         ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
-        ax.set_xlim(0, 1000)
+        ax.set_xlim(0, 900)
 
     if inset:
-        # creare inset axes for overlapping points
+        # create inset axes for overlapping points
+        inax2a = ax2a.inset_axes([0.1, 0.7, 0.45, 0.3])
+        inax2b = ax2b.inset_axes([0.1, 0.7, 0.45, 0.3])
+        inax2c = ax2c.inset_axes([0.1, 0.7, 0.45, 0.3])
+        inax2d = ax2d.inset_axes([0.1, 0.7, 0.45, 0.3])
+
         inax3a = ax3a.inset_axes([0.45, 0.5, 0.45, 0.4])
         inax3b = ax3b.inset_axes([0.45, 0.5, 0.45, 0.4])
         inax3c = ax3c.inset_axes([0.45, 0.5, 0.45, 0.4])
+        inax3d = ax3d.inset_axes([0.1, 0.7, 0.45, 0.3])
+
         inax4a = ax4a.inset_axes([0.45, 0.5, 0.45, 0.4])
         inax4b = ax4b.inset_axes([0.45, 0.5, 0.45, 0.4])
         inax4c = ax4c.inset_axes([0.45, 0.5, 0.45, 0.4])
+        inax4d = ax4d.inset_axes([0.1, 0.7, 0.45, 0.3])
 
         inset_axes_dict = {
+            ax2a: inax2a,
+            ax2b: inax2b,
+            ax2c: inax2c,
+            ax2d: inax2d,
             ax3a: inax3a,
             ax3b: inax3b,
             ax3c: inax3c,
+            ax3d: inax3d,
             ax4a: inax4a,
             ax4b: inax4b,
             ax4c: inax4c,
+            ax4d: inax4d,
         }
 
         for ax, inax in inset_axes_dict.items():
-            inax.set_xlim(400, 1000)
-            inax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
-            # ax.indicate_inset_zoom(inax, edgecolor="black")
+            inax.set_xlim(0, 250)
+            inax.tick_params(direction="in", top=True, right=True, labelsize=10)
+            ax.indicate_inset_zoom(inax, edgecolor="black")
 
-        inax3a.set_ylim(0.04,0.33)
-        inax3b.set_ylim(0.04,0.33)
-        inax3c.set_ylim(0.04,0.33)
-        inax4a.set_ylim(0.04, 0.5)
-        inax4b.set_ylim(0.04,0.5)
-        inax4c.set_ylim(0.04,0.5)
+        inax2a.set_ylim(0, 4)
+        inax2b.set_ylim(0, 1)
+        inax2c.set_ylim(0, 0.5)
+        inax2d.set_ylim(0, 3)
+
+        # inax3a.set_ylim(0.04, 0.33)
+        # inax3b.set_ylim(0.04, 0.33)
+        # inax3c.set_ylim(0.04, 0.33)
+        inax3d.set_ylim(0, 0.03)
+
+        # inax4a.set_ylim(0.04, 0.5)
+        # inax4b.set_ylim(0.04, 0.5)
+        # inax4c.set_ylim(0.04, 0.5)
+        inax4d.set_ylim(0, 0.02)
 
     model_folder_1 = Path("multi_component_case_studies/single_salt")
     # 41 characters (0-40) make up folder name before model name
@@ -1838,6 +2001,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3a
                 ax_hperm = ax4a
                 if inset:
+                    inax_flux = inax2a
                     inax_hfeed = inax3a
                     inax_hperm = inax4a
             elif solute == "Co":
@@ -1848,6 +2012,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3b
                 ax_hperm = ax4b
                 if inset:
+                    inax_flux = inax2b
                     inax_hfeed = inax3b
                     inax_hperm = inax4b
             elif solute == "Al":
@@ -1858,6 +2023,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3c
                 ax_hperm = ax4c
                 if inset:
+                    inax_flux = inax2c
                     inax_hfeed = inax3c
                     inax_hperm = inax4c
             elif solute == "Cl":
@@ -1866,6 +2032,10 @@ def combined_plots(inset=True, save_figure=True):
                 ax_flux = ax2d
                 ax_hfeed = ax3d
                 ax_hperm = ax4d
+                if inset:
+                    inax_flux = inax2d
+                    inax_hfeed = inax3d
+                    inax_hperm = inax4d
 
                 if model.fs.membrane.cations.at(1) == "Li":
                     color = li_color
@@ -1954,37 +2124,51 @@ def combined_plots(inset=True, save_figure=True):
             )
 
             if inset:
-                if solute != "Cl":
-                    inax_hfeed.plot(
-                        feed_ionic_strength_val,
-                        avg_H_feed,
-                        color=color,
-                        marker=marker,
-                        alpha=alpha,
-                        markersize=markersize,
-                    )
-                    inax_hfeed.errorbar(
-                        feed_ionic_strength_val,
-                        avg_H_feed,
-                        yerr=spread_H_feed,
-                        ecolor="grey",
-                        capsize=4,
-                    )
-                    inax_hperm.plot(
-                        feed_ionic_strength_val,
-                        avg_H_perm,
-                        color=color,
-                        marker=marker,
-                        alpha=alpha,
-                        markersize=markersize,
-                    )
-                    inax_hperm.errorbar(
-                        feed_ionic_strength_val,
-                        avg_H_perm,
-                        yerr=spread_H_perm,
-                        ecolor="grey",
-                        capsize=4,
-                    )
+                inax_flux.plot(
+                    feed_ionic_strength_val,
+                    avg_flux,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                inax_flux.errorbar(
+                    feed_ionic_strength_val,
+                    avg_flux,
+                    yerr=spread_flux,
+                    ecolor="grey",
+                    capsize=4,
+                )
+                inax_hfeed.plot(
+                    feed_ionic_strength_val,
+                    avg_H_feed,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                inax_hfeed.errorbar(
+                    feed_ionic_strength_val,
+                    avg_H_feed,
+                    yerr=spread_H_feed,
+                    ecolor="grey",
+                    capsize=4,
+                )
+                inax_hperm.plot(
+                    feed_ionic_strength_val,
+                    avg_H_perm,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                inax_hperm.errorbar(
+                    feed_ionic_strength_val,
+                    avg_H_perm,
+                    yerr=spread_H_perm,
+                    ecolor="grey",
+                    capsize=4,
+                )
 
     model_folder_2 = Path("multi_component_case_studies/two_salt")
     # 38 characters (0-37) make up folder name before model name
@@ -2202,6 +2386,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3a
                 ax_hperm = ax4a
                 if inset:
+                    inax_flux = inax2a
                     inax_hfeed = inax3a
                     inax_hperm = inax4a
                 if cation_2 == "Co":
@@ -2215,6 +2400,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3b
                 ax_hperm = ax4b
                 if inset:
+                    inax_flux = inax2b
                     inax_hfeed = inax3b
                     inax_hperm = inax4b
                 if cation_1 == "Li":
@@ -2228,6 +2414,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3c
                 ax_hperm = ax4c
                 if inset:
+                    inax_flux = inax2c
                     inax_hfeed = inax3c
                     inax_hperm = inax4c
                 if cation_1 == "Li":
@@ -2241,6 +2428,10 @@ def combined_plots(inset=True, save_figure=True):
                 ax_flux = ax2d
                 ax_hfeed = ax3d
                 ax_hperm = ax4d
+                if inset:
+                    inax_flux = inax2d
+                    inax_hfeed = inax3d
+                    inax_hperm = inax4d
                 if cation_1 == "Li" and cation_2 == "Co":
                     color = li_co_color
                 elif cation_1 == "Li" and cation_2 == "Al":
@@ -2328,37 +2519,431 @@ def combined_plots(inset=True, save_figure=True):
                 capsize=4,
             )
             if inset:
-                if solute != "Cl":
-                    inax_hfeed.plot(
-                        feed_ionic_strength_val,
-                        avg_H_feed,
-                        color=color,
-                        marker=marker,
-                        alpha=alpha,
-                        markersize=markersize,
-                    )
-                    inax_hfeed.errorbar(
-                        feed_ionic_strength_val,
-                        avg_H_feed,
-                        yerr=spread_H_feed,
-                        ecolor="grey",
-                        capsize=4,
-                    )
-                    inax_hperm.plot(
-                        feed_ionic_strength_val,
-                        avg_H_perm,
-                        color=color,
-                        marker=marker,
-                        alpha=alpha,
-                        markersize=markersize,
-                    )
-                    inax_hperm.errorbar(
-                        feed_ionic_strength_val,
-                        avg_H_perm,
-                        yerr=spread_H_perm,
-                        ecolor="grey",
-                        capsize=4,
-                    )
+                inax_flux.plot(
+                    feed_ionic_strength_val,
+                    avg_flux,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                inax_flux.errorbar(
+                    feed_ionic_strength_val,
+                    avg_flux,
+                    yerr=spread_flux,
+                    ecolor="grey",
+                    capsize=4,
+                )
+                inax_hfeed.plot(
+                    feed_ionic_strength_val,
+                    avg_H_feed,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                inax_hfeed.errorbar(
+                    feed_ionic_strength_val,
+                    avg_H_feed,
+                    yerr=spread_H_feed,
+                    ecolor="grey",
+                    capsize=4,
+                )
+                inax_hperm.plot(
+                    feed_ionic_strength_val,
+                    avg_H_perm,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                inax_hperm.errorbar(
+                    feed_ionic_strength_val,
+                    avg_H_perm,
+                    yerr=spread_H_perm,
+                    ecolor="grey",
+                    capsize=4,
+                )
+
+    model_folder_3 = Path("multi_component_case_studies/three_salt")
+    # 40 characters (0-39) make up folder name before model name
+    # multi_component_case_studies/three_salt/
+
+    for case_study_file in model_folder_3.iterdir():
+        cation_1 = str(case_study_file)[40:42]
+        cation_2 = str(case_study_file)[42:44]
+        cation_3 = str(case_study_file)[44:46]
+        chloride_multiplier = float(str(case_study_file)[48])
+        concentration = float(50)  # mM
+        model = build_model(
+            cation_list=[cation_1, cation_2, cation_3],
+            inlet_concentration={
+                "feed": {
+                    cation_1: concentration,
+                    cation_2: concentration,
+                    cation_3: concentration,
+                    "Cl": chloride_multiplier * concentration,
+                },
+                "diafiltrate": {
+                    cation_1: 1e-10,
+                    cation_2: 1e-10,
+                    cation_3: 1e-10,
+                    "Cl": 1e-10,
+                },
+            },
+            default_args=default_args,
+            H_feed_guess=1,
+            H_permeate_guess=1,
+            NFE_args=NFE_args,
+            initialize=False,
+        )
+        from_json(model, fname=case_study_file)
+
+        feed_ionic_strength_val = value(model.fs.membrane.total_feed_ionic_strength[0])
+
+        for solute in model.fs.membrane.solutes:
+            observed_rejection = []
+            actual_rejection = []
+            flux = []
+            H_feed = []
+            H_perm = []
+            bl_convection_by_x = []
+            bl_convection_dict_by_x = {}
+            bl_diffusion_by_x = []
+            bl_diffusion_dict_by_x = {}
+            bl_electromigration_by_x = []
+            bl_electromigration_dict_by_x = {}
+            mem_convection_by_x = []
+            mem_convection_dict_by_x = {}
+            mem_diffusion_by_x = []
+            mem_diffusion_dict_by_x = {}
+            mem_electromigration_by_x = []
+            mem_electromigration_dict_by_x = {}
+
+            for t in model.fs.membrane.time:
+                for x in model.fs.membrane.dimensionless_module_length:
+                    if x != 0:
+                        observed_rejection.append(
+                            value(
+                                model.fs.membrane.observed_rejection_percent[
+                                    t, x, solute
+                                ]
+                            )
+                        )
+                        actual_rejection.append(
+                            value(
+                                model.fs.membrane.actual_rejection_percent[t, x, solute]
+                            )
+                        )
+                        flux.append(
+                            value(model.fs.membrane.molar_ion_flux[t, x, solute])
+                        )
+                        H_feed.append(
+                            value(
+                                model.fs.membrane.overall_partition_coefficient_feed_side[
+                                    t, x, solute
+                                ]
+                            )
+                        )
+                        H_perm.append(
+                            value(
+                                model.fs.membrane.overall_partition_coefficient_permeate_side[
+                                    t, x, solute
+                                ]
+                            )
+                        )
+                        for (
+                            z_bl
+                        ) in model.fs.membrane.dimensionless_boundary_layer_thickness:
+                            bl_convection_by_x.append(
+                                value(
+                                    model.fs.membrane.boundary_layer_convective_flux[
+                                        0, x, z_bl, solute
+                                    ]
+                                )
+                            )
+                            bl_diffusion_by_x.append(
+                                value(
+                                    model.fs.membrane.boundary_layer_diffusive_flux[
+                                        0, x, z_bl, solute
+                                    ]
+                                )
+                            )
+                            bl_electromigration_by_x.append(
+                                value(
+                                    model.fs.membrane.boundary_layer_electromigrative_flux[
+                                        0, x, z_bl, solute
+                                    ]
+                                )
+                            )
+                        bl_convection_dict_by_x[f"{x}"] = bl_convection_by_x
+                        bl_diffusion_dict_by_x[f"{x}"] = bl_diffusion_by_x
+                        bl_electromigration_dict_by_x[f"{x}"] = bl_electromigration_by_x
+                        bl_convection_by_x = []
+                        bl_diffusion_by_x = []
+                        bl_electromigration_by_x = []
+
+                        for z_mem in model.fs.membrane.dimensionless_membrane_thickness:
+                            mem_convection_by_x.append(
+                                value(
+                                    model.fs.membrane.membrane_convective_flux[
+                                        0, x, z_mem, solute
+                                    ]
+                                )
+                            )
+                            mem_diffusion_by_x.append(
+                                value(
+                                    model.fs.membrane.membrane_diffusive_flux[
+                                        0, x, z_mem, solute
+                                    ]
+                                )
+                            )
+                            mem_electromigration_by_x.append(
+                                value(
+                                    model.fs.membrane.membrane_electromigrative_flux[
+                                        0, x, z_mem, solute
+                                    ]
+                                )
+                            )
+                        mem_convection_dict_by_x[f"{x}"] = mem_convection_by_x
+                        mem_diffusion_dict_by_x[f"{x}"] = mem_diffusion_by_x
+                        mem_electromigration_dict_by_x[f"{x}"] = (
+                            mem_electromigration_by_x
+                        )
+                        mem_convection_by_x = []
+                        mem_diffusion_by_x = []
+                        mem_electromigration_by_x = []
+
+            avg_observed_rejection = np.average(observed_rejection)
+            spread_observed_rejection = calculate_spread(observed_rejection)
+
+            avg_actual_rejection = np.average(actual_rejection)
+            spread_actual_rejection = calculate_spread(actual_rejection)
+
+            avg_flux = np.average(flux)
+            spread_flux = calculate_spread(flux)
+
+            avg_H_feed = np.average(H_feed)
+            spread_H_feed = calculate_spread(H_feed)
+
+            avg_H_perm = np.average(H_perm)
+            spread_H_perm = calculate_spread(H_perm)
+
+            bl_convection_averaged_over_z = [
+                sum(bl_convection_dict_by_x[k]) / len(bl_convection_dict_by_x[k])
+                for k in bl_convection_dict_by_x.keys()
+            ]
+            avg_bl_convection = np.average(bl_convection_averaged_over_z)
+            spread_bl_convection = calculate_spread(bl_convection_averaged_over_z)
+
+            bl_diffusion_averaged_over_z = [
+                sum(bl_diffusion_dict_by_x[k]) / len(bl_diffusion_dict_by_x[k])
+                for k in bl_diffusion_dict_by_x.keys()
+            ]
+            avg_bl_diffusion = np.average(bl_diffusion_averaged_over_z)
+            spread_bl_diffusion = calculate_spread(bl_diffusion_averaged_over_z)
+
+            bl_electromigration_averaged_over_z = [
+                sum(bl_electromigration_dict_by_x[k])
+                / len(bl_electromigration_dict_by_x[k])
+                for k in bl_electromigration_dict_by_x.keys()
+            ]
+            avg_bl_electromigration = np.average(bl_electromigration_averaged_over_z)
+            spread_bl_electromigration = calculate_spread(
+                bl_electromigration_averaged_over_z
+            )
+
+            mem_convection_averaged_over_z = [
+                sum(mem_convection_dict_by_x[k]) / len(mem_convection_dict_by_x[k])
+                for k in mem_convection_dict_by_x.keys()
+            ]
+            avg_mem_convection = np.average(mem_convection_averaged_over_z)
+            spread_mem_convection = calculate_spread(mem_convection_averaged_over_z)
+
+            mem_diffusion_averaged_over_z = [
+                sum(mem_diffusion_dict_by_x[k]) / len(mem_diffusion_dict_by_x[k])
+                for k in mem_diffusion_dict_by_x.keys()
+            ]
+            avg_mem_diffusion = np.average(mem_diffusion_averaged_over_z)
+            spread_mem_diffusion = calculate_spread(mem_diffusion_averaged_over_z)
+
+            mem_electromigration_averaged_over_z = [
+                sum(mem_electromigration_dict_by_x[k])
+                / len(mem_electromigration_dict_by_x[k])
+                for k in mem_electromigration_dict_by_x.keys()
+            ]
+            avg_mem_electromigration = np.average(mem_electromigration_averaged_over_z)
+            spread_mem_electromigration = calculate_spread(
+                mem_electromigration_averaged_over_z
+            )
+
+            color = li_co_al_color
+            if solute == "Li":
+                marker = "o"
+                ax_rej = ax1a
+                ax_flux = ax2a
+                ax_hfeed = ax3a
+                ax_hperm = ax4a
+                if inset:
+                    inax_flux = inax2a
+                    inax_hfeed = inax3a
+                    inax_hperm = inax4a
+            elif solute == "Co":
+                marker = "v"
+                ax_rej = ax1b
+                ax_flux = ax2b
+                ax_hfeed = ax3b
+                ax_hperm = ax4b
+                if inset:
+                    inax_flux = inax2b
+                    inax_hfeed = inax3b
+                    inax_hperm = inax4b
+            elif solute == "Al":
+                marker = "^"
+                ax_rej = ax1c
+                ax_flux = ax2c
+                ax_hfeed = ax3c
+                ax_hperm = ax4c
+                if inset:
+                    inax_flux = inax2c
+                    inax_hfeed = inax3c
+                    inax_hperm = inax4c
+            elif solute == "Cl":
+                marker = "*"
+                ax_rej = ax1d
+                ax_flux = ax2d
+                ax_hfeed = ax3d
+                ax_hperm = ax4d
+                if inset:
+                    inax_flux = inax2d
+                    inax_hfeed = inax3d
+                    inax_hperm = inax4d
+
+            # ax_rej.plot(
+            #     feed_ionic_strength_val,
+            #     avg_observed_rejection,
+            #     key,
+            #     linestyle=":",
+            #     alpha=alpha,
+            #     mfc="none",
+            #     markersize=markersize,
+            # )
+            ax_rej.plot(
+                feed_ionic_strength_val,
+                avg_actual_rejection,
+                color=color,
+                marker=marker,
+                alpha=alpha,
+                markersize=markersize,
+            )
+            # ax_rej.errorbar(
+            #     feed_ionic_strength_val,
+            #     avg_observed_rejection,
+            #     yerr=spread_observed_rejection,
+            #     ecolor="grey",
+            #     capsize=4,
+            # )
+            ax_rej.errorbar(
+                feed_ionic_strength_val,
+                avg_actual_rejection,
+                yerr=spread_actual_rejection,
+                ecolor="grey",
+                capsize=4,
+            )
+
+            ax_flux.plot(
+                feed_ionic_strength_val,
+                avg_flux,
+                color=color,
+                marker=marker,
+                alpha=alpha,
+                markersize=markersize,
+            )
+            ax_flux.errorbar(
+                feed_ionic_strength_val,
+                avg_flux,
+                yerr=spread_flux,
+                ecolor="grey",
+                capsize=4,
+            )
+
+            ax_hfeed.plot(
+                feed_ionic_strength_val,
+                avg_H_feed,
+                color=color,
+                marker=marker,
+                alpha=alpha,
+                markersize=markersize,
+            )
+            ax_hfeed.errorbar(
+                feed_ionic_strength_val,
+                avg_H_feed,
+                yerr=spread_H_feed,
+                ecolor="grey",
+                capsize=4,
+            )
+
+            ax_hperm.plot(
+                feed_ionic_strength_val,
+                avg_H_perm,
+                color=color,
+                marker=marker,
+                alpha=alpha,
+                markersize=markersize,
+            )
+            ax_hperm.errorbar(
+                feed_ionic_strength_val,
+                avg_H_perm,
+                yerr=spread_H_perm,
+                ecolor="grey",
+                capsize=4,
+            )
+            if inset:
+                inax_flux.plot(
+                    feed_ionic_strength_val,
+                    avg_flux,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                inax_flux.errorbar(
+                    feed_ionic_strength_val,
+                    avg_flux,
+                    yerr=spread_flux,
+                    ecolor="grey",
+                    capsize=4,
+                )
+                inax_hfeed.plot(
+                    feed_ionic_strength_val,
+                    avg_H_feed,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                inax_hfeed.errorbar(
+                    feed_ionic_strength_val,
+                    avg_H_feed,
+                    yerr=spread_H_feed,
+                    ecolor="grey",
+                    capsize=4,
+                )
+                inax_hperm.plot(
+                    feed_ionic_strength_val,
+                    avg_H_perm,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                inax_hperm.errorbar(
+                    feed_ionic_strength_val,
+                    avg_H_perm,
+                    yerr=spread_H_perm,
+                    ecolor="grey",
+                    capsize=4,
+                )
 
     if save_figure:
         plt.savefig("rejection_flux_partition.png", dpi=600)
