@@ -48,9 +48,12 @@ def main():
         water_flux=0.02, run_single_salt=run_single_salt, run_two_salt=run_two_salt
     )
 
-    single_salt_plots()
-    two_salt_plots()
-    combined_plots(save_figure=True)
+    plot_together = True
+    if plot_together:
+        combined_plots(save_figure=True)
+    else:
+        single_salt_plots()
+        two_salt_plots()
 
     plt.show()
 
@@ -103,6 +106,8 @@ def build_model(
     m.fs.membrane.total_membrane_length.fix()
     if len(cation_list) == 1:
         m.fs.membrane.applied_pressure.fix(5)
+    elif value(m.fs.membrane.total_feed_ionic_strength[0]) > 100:
+        m.fs.membrane.applied_pressure.fix(10)
     else:
         m.fs.membrane.applied_pressure.fix()
     m.fs.membrane.feed_flow_volume.fix(inlet_flow_volume["feed"])
@@ -256,8 +261,8 @@ def solve_and_save_models(water_flux=0.02, run_single_salt=True, run_two_salt=Tr
             "Co_Al": [8.3334, 16.667, 33.334, 50, 66.667, 100],
         }
 
-        H_feed_guesses = np.arange(0.5, 2.1, 0.1)
-        H_permeate_guesses = np.arange(0.5, 2.1, 0.1)
+        H_feed_guesses = np.arange(0.5, 2.5, 0.1)
+        H_permeate_guesses = np.arange(0.5, 2.5, 0.1)
         H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
 
         for salt in feed.keys():
@@ -1376,7 +1381,7 @@ def combined_plots(save_figure=True):
         (ax2a, ax2b, ax2c, ax2d),  # solute flux
         (ax3a, ax3b, ax3c, ax3d),  # H_feed
         (ax4a, ax4b, ax4c, ax4d),  # H_permeate
-    ) = plt.subplots(4, 4, dpi=75, figsize=(20, 12), constrained_layout=True)
+    ) = plt.subplots(4, 4, dpi=75, figsize=(16, 12), constrained_layout=True)
     # fig1.tight_layout()
 
     for ax in [ax4a, ax4b, ax4c, ax4d]:
@@ -1393,7 +1398,7 @@ def combined_plots(save_figure=True):
 
     ax1a.set_ylabel("Actual Ion\nRejection (%)", fontsize=fontsize, fontweight="bold")
     for ax in [ax1a, ax1b, ax1c, ax1d]:
-        ax.set_ylim(10, 70)
+        ax.set_ylim(10, 80)
     ax2a.set_ylabel("Ion Flux (mol/m$^2$/h)", fontsize=fontsize, fontweight="bold")
     # for ax in [ax2a, ax2b, ax2c, ax2d]:
     #     ax.set_ylim(0, 15)
@@ -1561,8 +1566,8 @@ def combined_plots(save_figure=True):
     )
 
     for ax in [ax4a, ax4b, ax4c]:
-        ax.legend(loc="best", fontsize=fontsize, bbox_to_anchor=(0.75, -0.5))
-    ax4d.legend(loc="best", fontsize=fontsize, bbox_to_anchor=(0.95, -0.5), ncol=2)
+        ax.legend(loc="best", fontsize=fontsize, bbox_to_anchor=(0.85, -0.45))
+    ax4d.legend(loc="best", fontsize=fontsize, bbox_to_anchor=(1.1, -0.45), ncol=2)
 
     for ax in fig1.axes:
         ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
