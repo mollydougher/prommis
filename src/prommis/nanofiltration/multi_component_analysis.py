@@ -1477,7 +1477,7 @@ def combined_plots(inset=True, save_figure=True):
         (ax2a, ax2b, ax2c, ax2d),  # solute flux
         (ax3a, ax3b, ax3c, ax3d),  # H_feed
         (ax4a, ax4b, ax4c, ax4d),  # H_permeate
-    ) = plt.subplots(4, 4, dpi=75, figsize=(18, 18), constrained_layout=True)
+    ) = plt.subplots(4, 4, dpi=50, figsize=(18, 18), constrained_layout=True)
     # fig1.tight_layout()
 
     for ax in [ax4a, ax4b, ax4c, ax4d]:
@@ -1493,8 +1493,8 @@ def combined_plots(inset=True, save_figure=True):
     ax1d.set_title("Chloride", fontsize=fontsize, fontweight="bold")
 
     ax1a.set_ylabel("Actual Ion\nRejection (%)", fontsize=fontsize, fontweight="bold")
-    for ax in [ax1a, ax1b, ax1c, ax1d]:
-        ax.set_ylim(15, 75)
+    # for ax in [ax1a, ax1b, ax1c, ax1d]:
+    #     ax.set_ylim(15, 75)
     ax2a.set_ylabel("Ion Flux (mol/m$^2$/h)", fontsize=fontsize, fontweight="bold")
     # for ax in [ax2a, ax2b, ax2c, ax2d]:
     #     ax.set_ylim(0, 15)
@@ -1735,55 +1735,55 @@ def combined_plots(inset=True, save_figure=True):
 
     if inset:
         # create inset axes for overlapping points
-        inax2a = ax2a.inset_axes([0.1, 0.7, 0.45, 0.3])
-        inax2b = ax2b.inset_axes([0.1, 0.7, 0.45, 0.3])
-        inax2c = ax2c.inset_axes([0.1, 0.7, 0.45, 0.3])
-        inax2d = ax2d.inset_axes([0.1, 0.7, 0.45, 0.3])
+        # inax2a = ax2a.inset_axes([0.1, 0.65, 0.45, 0.4])
+        # inax2b = ax2b.inset_axes([0.1, 0.65, 0.45, 0.4])
+        # inax2c = ax2c.inset_axes([0.1, 0.65, 0.45, 0.4])
+        # inax2d = ax2d.inset_axes([0.1, 0.65, 0.45, 0.4])
 
-        inax3a = ax3a.inset_axes([0.45, 0.5, 0.45, 0.4])
-        inax3b = ax3b.inset_axes([0.45, 0.5, 0.45, 0.4])
-        inax3c = ax3c.inset_axes([0.45, 0.5, 0.45, 0.4])
-        inax3d = ax3d.inset_axes([0.1, 0.7, 0.45, 0.3])
+        inax3a = ax3a.inset_axes([0.45, 0.4, 0.45, 0.5])
+        inax3b = ax3b.inset_axes([0.45, 0.4, 0.45, 0.5])
+        inax3c = ax3c.inset_axes([0.45, 0.4, 0.45, 0.5])
+        # inax3d = ax3d.inset_axes([0.1, 0.65, 0.45, 0.4])
 
-        inax4a = ax4a.inset_axes([0.45, 0.5, 0.45, 0.4])
-        inax4b = ax4b.inset_axes([0.45, 0.5, 0.45, 0.4])
-        inax4c = ax4c.inset_axes([0.45, 0.5, 0.45, 0.4])
-        inax4d = ax4d.inset_axes([0.1, 0.7, 0.45, 0.3])
+        inax4a = ax4a.inset_axes([0.45, 0.4, 0.45, 0.5])
+        inax4b = ax4b.inset_axes([0.45, 0.4, 0.45, 0.5])
+        inax4c = ax4c.inset_axes([0.45, 0.4, 0.45, 0.5])
+        # inax4d = ax4d.inset_axes([0.1, 0.65, 0.45, 0.4])
 
         inset_axes_dict = {
-            ax2a: inax2a,
-            ax2b: inax2b,
-            ax2c: inax2c,
-            ax2d: inax2d,
+            # ax2a: inax2a,
+            # ax2b: inax2b,
+            # ax2c: inax2c,
+            # ax2d: inax2d,
             ax3a: inax3a,
             ax3b: inax3b,
             ax3c: inax3c,
-            ax3d: inax3d,
+            # ax3d: inax3d,
             ax4a: inax4a,
             ax4b: inax4b,
             ax4c: inax4c,
-            ax4d: inax4d,
+            # ax4d: inax4d,
         }
 
         for ax, inax in inset_axes_dict.items():
-            inax.set_xlim(0, 250)
+            inax.set_xlim(25, 225)
             inax.tick_params(direction="in", top=True, right=True, labelsize=10)
             ax.indicate_inset_zoom(inax, edgecolor="black")
 
-        inax2a.set_ylim(0, 4)
-        inax2b.set_ylim(0, 1)
-        inax2c.set_ylim(0, 0.5)
-        inax2d.set_ylim(0, 3)
+        # inax2a.set_ylim(0, 3)
+        # inax2b.set_ylim(0, 0.9)
+        # inax2c.set_ylim(0, 0.35)
+        # inax2d.set_ylim(0, 3)
 
-        # inax3a.set_ylim(0.04, 0.33)
-        # inax3b.set_ylim(0.04, 0.33)
-        # inax3c.set_ylim(0.04, 0.33)
-        inax3d.set_ylim(0, 0.03)
+        inax3a.set_ylim(0.18, 0.57)
+        inax3b.set_ylim(0.2, 1.42)
+        inax3c.set_ylim(0.18, 1.2)
+        # inax3d.set_ylim(0.005, 0.03)
 
-        # inax4a.set_ylim(0.04, 0.5)
-        # inax4b.set_ylim(0.04, 0.5)
-        # inax4c.set_ylim(0.04, 0.5)
-        inax4d.set_ylim(0, 0.02)
+        inax4a.set_ylim(0.2, 1)
+        inax4b.set_ylim(0.4, 3.5)
+        inax4c.set_ylim(0.5, 3.1)
+        # inax4d.set_ylim(0.001, 0.02)
 
     model_folder_1 = Path("multi_component_case_studies/single_salt")
     # 41 characters (0-40) make up folder name before model name
@@ -2001,7 +2001,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3a
                 ax_hperm = ax4a
                 if inset:
-                    inax_flux = inax2a
+                    # inax_flux = inax2a
                     inax_hfeed = inax3a
                     inax_hperm = inax4a
             elif solute == "Co":
@@ -2012,7 +2012,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3b
                 ax_hperm = ax4b
                 if inset:
-                    inax_flux = inax2b
+                    # inax_flux = inax2b
                     inax_hfeed = inax3b
                     inax_hperm = inax4b
             elif solute == "Al":
@@ -2023,7 +2023,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3c
                 ax_hperm = ax4c
                 if inset:
-                    inax_flux = inax2c
+                    # inax_flux = inax2c
                     inax_hfeed = inax3c
                     inax_hperm = inax4c
             elif solute == "Cl":
@@ -2032,10 +2032,10 @@ def combined_plots(inset=True, save_figure=True):
                 ax_flux = ax2d
                 ax_hfeed = ax3d
                 ax_hperm = ax4d
-                if inset:
-                    inax_flux = inax2d
-                    inax_hfeed = inax3d
-                    inax_hperm = inax4d
+                # if inset:
+                # inax_flux = inax2d
+                # inax_hfeed = inax3d
+                # inax_hperm = inax4d
 
                 if model.fs.membrane.cations.at(1) == "Li":
                     color = li_color
@@ -2124,21 +2124,21 @@ def combined_plots(inset=True, save_figure=True):
             )
 
             if inset:
-                inax_flux.plot(
-                    feed_ionic_strength_val,
-                    avg_flux,
-                    color=color,
-                    marker=marker,
-                    alpha=alpha,
-                    markersize=markersize,
-                )
-                inax_flux.errorbar(
-                    feed_ionic_strength_val,
-                    avg_flux,
-                    yerr=spread_flux,
-                    ecolor="grey",
-                    capsize=4,
-                )
+                # inax_flux.plot(
+                #     feed_ionic_strength_val,
+                #     avg_flux,
+                #     color=color,
+                #     marker=marker,
+                #     alpha=alpha,
+                #     markersize=markersize,
+                # )
+                # inax_flux.errorbar(
+                #     feed_ionic_strength_val,
+                #     avg_flux,
+                #     yerr=spread_flux,
+                #     ecolor="grey",
+                #     capsize=4,
+                # )
                 inax_hfeed.plot(
                     feed_ionic_strength_val,
                     avg_H_feed,
@@ -2386,7 +2386,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3a
                 ax_hperm = ax4a
                 if inset:
-                    inax_flux = inax2a
+                    # inax_flux = inax2a
                     inax_hfeed = inax3a
                     inax_hperm = inax4a
                 if cation_2 == "Co":
@@ -2400,7 +2400,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3b
                 ax_hperm = ax4b
                 if inset:
-                    inax_flux = inax2b
+                    # inax_flux = inax2b
                     inax_hfeed = inax3b
                     inax_hperm = inax4b
                 if cation_1 == "Li":
@@ -2414,7 +2414,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3c
                 ax_hperm = ax4c
                 if inset:
-                    inax_flux = inax2c
+                    # inax_flux = inax2c
                     inax_hfeed = inax3c
                     inax_hperm = inax4c
                 if cation_1 == "Li":
@@ -2428,10 +2428,10 @@ def combined_plots(inset=True, save_figure=True):
                 ax_flux = ax2d
                 ax_hfeed = ax3d
                 ax_hperm = ax4d
-                if inset:
-                    inax_flux = inax2d
-                    inax_hfeed = inax3d
-                    inax_hperm = inax4d
+                # if inset:
+                #     inax_flux = inax2d
+                #     inax_hfeed = inax3d
+                #     inax_hperm = inax4d
                 if cation_1 == "Li" and cation_2 == "Co":
                     color = li_co_color
                 elif cation_1 == "Li" and cation_2 == "Al":
@@ -2519,21 +2519,21 @@ def combined_plots(inset=True, save_figure=True):
                 capsize=4,
             )
             if inset:
-                inax_flux.plot(
-                    feed_ionic_strength_val,
-                    avg_flux,
-                    color=color,
-                    marker=marker,
-                    alpha=alpha,
-                    markersize=markersize,
-                )
-                inax_flux.errorbar(
-                    feed_ionic_strength_val,
-                    avg_flux,
-                    yerr=spread_flux,
-                    ecolor="grey",
-                    capsize=4,
-                )
+                # inax_flux.plot(
+                #     feed_ionic_strength_val,
+                #     avg_flux,
+                #     color=color,
+                #     marker=marker,
+                #     alpha=alpha,
+                #     markersize=markersize,
+                # )
+                # inax_flux.errorbar(
+                #     feed_ionic_strength_val,
+                #     avg_flux,
+                #     yerr=spread_flux,
+                #     ecolor="grey",
+                #     capsize=4,
+                # )
                 inax_hfeed.plot(
                     feed_ionic_strength_val,
                     avg_H_feed,
@@ -2785,7 +2785,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3a
                 ax_hperm = ax4a
                 if inset:
-                    inax_flux = inax2a
+                    # inax_flux = inax2a
                     inax_hfeed = inax3a
                     inax_hperm = inax4a
             elif solute == "Co":
@@ -2795,7 +2795,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3b
                 ax_hperm = ax4b
                 if inset:
-                    inax_flux = inax2b
+                    # inax_flux = inax2b
                     inax_hfeed = inax3b
                     inax_hperm = inax4b
             elif solute == "Al":
@@ -2805,7 +2805,7 @@ def combined_plots(inset=True, save_figure=True):
                 ax_hfeed = ax3c
                 ax_hperm = ax4c
                 if inset:
-                    inax_flux = inax2c
+                    # inax_flux = inax2c
                     inax_hfeed = inax3c
                     inax_hperm = inax4c
             elif solute == "Cl":
@@ -2814,10 +2814,10 @@ def combined_plots(inset=True, save_figure=True):
                 ax_flux = ax2d
                 ax_hfeed = ax3d
                 ax_hperm = ax4d
-                if inset:
-                    inax_flux = inax2d
-                    inax_hfeed = inax3d
-                    inax_hperm = inax4d
+                # if inset:
+                #     inax_flux = inax2d
+                #     inax_hfeed = inax3d
+                #     inax_hperm = inax4d
 
             # ax_rej.plot(
             #     feed_ionic_strength_val,
@@ -2899,21 +2899,21 @@ def combined_plots(inset=True, save_figure=True):
                 capsize=4,
             )
             if inset:
-                inax_flux.plot(
-                    feed_ionic_strength_val,
-                    avg_flux,
-                    color=color,
-                    marker=marker,
-                    alpha=alpha,
-                    markersize=markersize,
-                )
-                inax_flux.errorbar(
-                    feed_ionic_strength_val,
-                    avg_flux,
-                    yerr=spread_flux,
-                    ecolor="grey",
-                    capsize=4,
-                )
+                # inax_flux.plot(
+                #     feed_ionic_strength_val,
+                #     avg_flux,
+                #     color=color,
+                #     marker=marker,
+                #     alpha=alpha,
+                #     markersize=markersize,
+                # )
+                # inax_flux.errorbar(
+                #     feed_ionic_strength_val,
+                #     avg_flux,
+                #     yerr=spread_flux,
+                #     ecolor="grey",
+                #     capsize=4,
+                # )
                 inax_hfeed.plot(
                     feed_ionic_strength_val,
                     avg_H_feed,
