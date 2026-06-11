@@ -24,6 +24,7 @@ from pyomo.network import Arc
 
 from idaes.core import FlowsheetBlock
 from idaes.core.util import to_json, from_json
+from idaes.core.util.exceptions import InitializationError
 from idaes.core.util.model_diagnostics import DiagnosticsToolbox
 from idaes.models.unit_models import Feed, Product
 
@@ -45,16 +46,20 @@ def main():
     run_single_salt = False
     run_two_salt = False
     run_three_salt = False
+    run_salt_ratio = False
     solve_and_save_models(
         water_flux=0.02,
         run_single_salt=run_single_salt,
         run_two_salt=run_two_salt,
         run_three_salt=run_three_salt,
+        run_salt_ratio=run_salt_ratio,
     )
 
     plot_together = True
     if plot_together:
-        combined_plots(inset=True, save_figure=True)
+        # combined_plots_equimolar(inset=True, save_figure=True)
+        # combined_plots_vary_salt_ratio(save_figure=True)
+        plot_only_rejections(save_figure=True)
     else:
         single_salt_plots()
         two_salt_plots()
@@ -196,7 +201,11 @@ def unfix_pressure(m, water_flux=0.02):
 
 
 def solve_and_save_models(
-    water_flux=0.02, run_single_salt=True, run_two_salt=True, run_three_salt=True
+    water_flux=0.02,
+    run_single_salt=True,
+    run_two_salt=True,
+    run_three_salt=True,
+    run_salt_ratio=True,
 ):
     # global variables
     anion_list = ["Cl"]
@@ -408,6 +417,125 @@ def solve_and_save_models(
                         break
                     except:
                         continue
+
+    if run_salt_ratio:
+        # cation 2 multiplier order
+        cation_2_multiplier = [3, 2, 1, 0.5, 0.3333]
+
+        # feed = {ionic_strength: {salt: [cation_1_conc]}}
+        feed = {
+            "050_mM": {
+                "Li_Co": [5, 7.143, 12.5, 20, 25],
+                "Li_Al": [2.632, 3.846, 7.143, 12.5, 16.667],
+                "Co_Al": [2.381, 3.333, 5.556, 8.333, 10],
+            },
+            "075_mM": {
+                "Li_Co": [7.5, 10.714, 18.75, 30, 37.5],
+                "Li_Al": [3.947, 5.769, 10.714, 18.75, 25],
+                "Co_Al": [3.571, 5, 8.333, 12.5, 15],
+            },
+            "100_mM": {
+                "Li_Co": [10, 14.286, 25, 40, 50],
+                "Li_Al": [5.263, 7.692, 14.286, 25, 33.333],
+                "Co_Al": [4.762, 6.667, 11.111, 16.667, 20],
+            },
+            "150_mM": {
+                "Li_Co": [15, 21.429, 37.5, 60, 75],
+                "Li_Al": [7.895, 11.538, 21.429, 37.5, 50],
+                "Co_Al": [7.143, 10, 16.667, 25, 30],
+            },
+            "200_mM": {
+                "Li_Co": [20, 28.571, 50, 80, 100],
+                "Li_Al": [10.526, 15.385, 28.571, 50, 66.667],
+                "Co_Al": [9.524, 13.333, 22.222, 33.333, 40],
+            },
+            "400_mM": {
+                "Li_Co": [40, 57.143, 100, 160, 200],
+                "Li_Al": [21.053, 30.769, 57.143, 100, 133.333],
+                "Co_Al": [19.048, 26.667, 44.444, 66.667, 80],
+            },
+        }
+
+        H_feed_guesses = np.arange(0.5, 2.6, 0.1)
+        H_permeate_guesses = np.arange(0.5, 2.6, 0.1)
+        # add in non equal guesses
+        H_feed_guesses = np.append(
+            H_feed_guesses,
+            1,
+        )
+        H_permeate_guesses = np.append(H_permeate_guesses, 2)
+        H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
+
+        for ionic_strength, conc_dict in feed.items():
+            for salt in conc_dict.keys():
+                if salt == "Li_Co":
+                    cation_1 = "Li"
+                    cation_2 = "Co"
+                    z_1 = 1
+                    z_2 = 2
+                    chloride_multiplier = 3
+                elif salt == "Li_Al":
+                    cation_1 = "Li"
+                    cation_2 = "Al"
+                    z_1 = 1
+                    z_2 = 3
+                    chloride_multiplier = 4
+                elif salt == "Co_Al":
+                    cation_1 = "Co"
+                    cation_2 = "Al"
+                    z_1 = 2
+                    z_2 = 3
+                    chloride_multiplier = 5
+
+                for cation_1_concentration in conc_dict[salt]:
+                    multiplier_index = conc_dict[salt].index(cation_1_concentration)
+                    cation_2_concentration = (
+                        cation_2_multiplier[multiplier_index] * cation_1_concentration
+                    )
+
+                    # start with the low H's at higher concentrations
+                    if cation_1_concentration >= 400:
+                        H_guesses = H_guesses
+                    # start with the high H's at lower concentrations
+                    else:
+                        H_guesses = np.flip(H_guesses, axis=0)
+                    for H_feed_guess, H_permeate_guess in H_guesses:
+                        try:
+                            model = build_model(
+                                cation_list=[cation_1, cation_2],
+                                inlet_concentration={
+                                    "feed": {
+                                        cation_1: cation_1_concentration,
+                                        cation_2: cation_2_concentration,
+                                        "Cl": z_1 * cation_1_concentration
+                                        + z_2 * cation_2_concentration,
+                                    },
+                                    "diafiltrate": {
+                                        cation_1: diafiltrate[cation_1],
+                                        cation_2: diafiltrate[cation_2],
+                                        "Cl": 1e-10,
+                                    },
+                                },
+                                default_args=default_args,
+                                H_feed_guess=H_feed_guess,
+                                H_permeate_guess=H_permeate_guess,
+                                NFE_args=NFE_args,
+                                initialize=True,
+                            )
+
+                            solve_model(model)
+                            unfix_pressure(model, water_flux=water_flux)
+                            solve_model(model)
+
+                            to_json(
+                                model,
+                                fname=f"multi_component_case_studies/vary_salt_ratio/{ionic_strength}/{cation_2_multiplier[multiplier_index]}_{cation_1}{cation_2}Cl{chloride_multiplier}_{cation_1_concentration}mM_{cation_2_concentration}mM",
+                            )
+
+                            break
+
+                        except InitializationError:
+                            continue
 
 
 def calculate_spread(list):
@@ -1451,7 +1579,7 @@ def two_salt_plots():
             )
 
 
-def combined_plots(inset=True, save_figure=True):
+def combined_plots_equimolar(inset=True, save_figure=True):
     """
     Plots rejection versus ionic strength of bulk fluid and feed.
     """
@@ -2947,6 +3075,875 @@ def combined_plots(inset=True, save_figure=True):
 
     if save_figure:
         plt.savefig("rejection_flux_partition.png", dpi=600)
+
+
+def combined_plots_vary_salt_ratio(inset=True, save_figure=True):
+    """
+    Plots rejection versus ionic strength of bulk fluid and feed.
+    """
+    markersize = 8
+    fontsize = 14
+
+    anion_list = ["Cl"]
+    inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
+    include_boundary_layer = True
+    NFE_module_length = 15
+    NFE_boundary_layer_thickness = 5
+    NFE_membrane_thickness = 5
+
+    default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
+    NFE_args = [
+        NFE_module_length,
+        NFE_boundary_layer_thickness,
+        NFE_membrane_thickness,
+    ]
+
+    # color blind friendly
+    tol_bright_hex = [
+        "#4477AA",
+        "#EE6677",
+        "#228833",
+        "#CCBB44",
+        "#66CCEE",
+        "#AA3377",
+        "#BBBBBB",
+    ]
+    color_033 = tol_bright_hex[0]
+    color_05 = tol_bright_hex[1]
+    color_1 = tol_bright_hex[2]
+    color_2 = tol_bright_hex[3]
+    color_3 = tol_bright_hex[4]
+
+    # each plot is a salt solution
+    fig1, (
+        (ax1a, ax1b, ax1c),  # rejection
+        (ax2a, ax2b, ax2c),  # solute flux
+        (ax3a, ax3b, ax3c),  # H_feed
+        (ax4a, ax4b, ax4c),  # H_permeate
+    ) = plt.subplots(4, 3, dpi=75, figsize=(12, 12), constrained_layout=True)
+    fig1.suptitle("LiCl + CoCl$_2$", fontsize=fontsize, fontweight="bold")
+    fig2, (
+        (ax5a, ax5b, ax5c),  # rejection
+        (ax6a, ax6b, ax6c),  # solute flux
+        (ax7a, ax7b, ax7c),  # H_feed
+        (ax8a, ax8b, ax8c),  # H_permeate
+    ) = plt.subplots(4, 3, dpi=75, figsize=(12, 12), constrained_layout=True)
+    fig2.suptitle("LiCl + AlCl$_3$", fontsize=fontsize, fontweight="bold")
+    fig3, (
+        (ax9a, ax9b, ax9c),  # rejection
+        (ax10a, ax10b, ax10c),  # solute flux
+        (ax11a, ax11b, ax11c),  # H_feed
+        (ax12a, ax12b, ax12c),  # H_permeate
+    ) = plt.subplots(4, 3, dpi=75, figsize=(12, 12), constrained_layout=True)
+    fig3.suptitle("CoCl$_2$ + AlCl$_3$", fontsize=fontsize, fontweight="bold")
+
+    x_axis_labels = [
+        ax4a,
+        ax4b,
+        ax4c,
+        ax8a,
+        ax8b,
+        ax8c,
+        ax12a,
+        ax12b,
+        ax12c,
+    ]
+
+    for ax in x_axis_labels:
+        ax.set_xlabel(
+            "Inlet Feed Ionic Strength\n(mol/m$^3$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+    for ax in [ax1a, ax5a, ax9a]:
+        ax.plot(
+            [],
+            [],
+            color=color_033,
+            marker="o",
+            markersize=markersize,
+            linestyle="None",
+            label="0.33",
+        )
+        ax.plot(
+            [],
+            [],
+            color=color_05,
+            marker="o",
+            markersize=markersize,
+            linestyle="None",
+            label="0.5",
+        )
+        ax.plot(
+            [],
+            [],
+            color=color_1,
+            marker="o",
+            markersize=markersize,
+            linestyle="None",
+            label="1",
+        )
+        ax.plot(
+            [],
+            [],
+            color=color_2,
+            marker="o",
+            markersize=markersize,
+            linestyle="None",
+            label="2",
+        )
+        ax.plot(
+            [],
+            [],
+            color=color_3,
+            marker="o",
+            markersize=markersize,
+            linestyle="None",
+            label="3",
+        )
+        ax.legend(loc="best", fontsize=fontsize)
+        # ax.legend(loc="best", fontsize=fontsize, bbox_to_anchor=(0.85, -0.5))
+
+    for ax in [ax1a, ax5a]:
+        ax.set_title("Lithium", fontsize=fontsize, fontweight="bold")
+        ax.set_ylabel("Actual Ion\nRejection (%)", fontsize=fontsize, fontweight="bold")
+    for ax in [ax1b, ax9a]:
+        ax.set_title("Cobalt", fontsize=fontsize, fontweight="bold")
+    for ax in [ax5b, ax9b]:
+        ax.set_title("Aluminum", fontsize=fontsize, fontweight="bold")
+    for ax in [ax1c, ax5c, ax9c]:
+        ax.set_title("Chloride", fontsize=fontsize, fontweight="bold")
+    for ax in [ax2a, ax6a, ax10a]:
+        ax.set_ylabel("Ion Flux (mol/m$^2$/h)", fontsize=fontsize, fontweight="bold")
+    for ax in [ax3a, ax7a, ax11a]:
+        ax.set_ylabel(
+            "$c_{membrane}/c_{interface}$", fontsize=fontsize, fontweight="bold"
+        )
+    for ax in [ax4a, ax8a, ax12a]:
+        ax.set_ylabel(
+            "$c_{membrane}/c_{permeate}$", fontsize=fontsize, fontweight="bold"
+        )
+
+    IS_min = 25
+    IS_max = 225
+    for ax in fig1.axes:
+        ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+        ax.set_xlim(IS_min, IS_max)
+    for ax in fig2.axes:
+        ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+        ax.set_xlim(IS_min, IS_max)
+    for ax in fig3.axes:
+        ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+        ax.set_xlim(IS_min, IS_max)
+
+    # if inset:
+    #     # create inset axes for overlapping points
+    #     # inax2a = ax2a.inset_axes([0.1, 0.65, 0.45, 0.4])
+    #     # inax2b = ax2b.inset_axes([0.1, 0.65, 0.45, 0.4])
+    #     # inax2c = ax2c.inset_axes([0.1, 0.65, 0.45, 0.4])
+    #     # inax2d = ax2d.inset_axes([0.1, 0.65, 0.45, 0.4])
+
+    #     inax3a = ax3a.inset_axes([0.45, 0.4, 0.45, 0.5])
+    #     inax3b = ax3b.inset_axes([0.45, 0.4, 0.45, 0.5])
+    #     inax3c = ax3c.inset_axes([0.45, 0.4, 0.45, 0.5])
+    #     # inax3d = ax3d.inset_axes([0.1, 0.65, 0.45, 0.4])
+
+    #     inax4a = ax4a.inset_axes([0.45, 0.4, 0.45, 0.5])
+    #     inax4b = ax4b.inset_axes([0.45, 0.4, 0.45, 0.5])
+    #     inax4c = ax4c.inset_axes([0.45, 0.4, 0.45, 0.5])
+    #     # inax4d = ax4d.inset_axes([0.1, 0.65, 0.45, 0.4])
+
+    #     inset_axes_dict = {
+    #         # ax2a: inax2a,
+    #         # ax2b: inax2b,
+    #         # ax2c: inax2c,
+    #         # ax2d: inax2d,
+    #         ax3a: inax3a,
+    #         ax3b: inax3b,
+    #         ax3c: inax3c,
+    #         # ax3d: inax3d,
+    #         ax4a: inax4a,
+    #         ax4b: inax4b,
+    #         ax4c: inax4c,
+    #         # ax4d: inax4d,
+    #     }
+
+    #     for ax, inax in inset_axes_dict.items():
+    #         inax.set_xlim(25, 225)
+    #         inax.tick_params(direction="in", top=True, right=True, labelsize=10)
+    #         ax.indicate_inset_zoom(inax, edgecolor="black")
+
+    #     # inax2a.set_ylim(0, 3)
+    #     # inax2b.set_ylim(0, 0.9)
+    #     # inax2c.set_ylim(0, 0.35)
+    #     # inax2d.set_ylim(0, 3)
+
+    #     inax3a.set_ylim(0.18, 0.57)
+    #     inax3b.set_ylim(0.2, 1.42)
+    #     inax3c.set_ylim(0.18, 1.2)
+    #     # inax3d.set_ylim(0.005, 0.03)
+
+    #     inax4a.set_ylim(0.2, 1)
+    #     inax4b.set_ylim(0.4, 3.5)
+    #     inax4c.set_ylim(0.5, 3.1)
+    #     # inax4d.set_ylim(0.001, 0.02)
+
+    ionic_strengths = ["050_mM", "075_mM", "100_mM", "150_mM", "200_mM"]  # , "400_mM"]
+
+    for ionic_strength in ionic_strengths:
+        model_folder = Path(
+            f"multi_component_case_studies/vary_salt_ratio/{ionic_strength}"
+        )
+        # 52 characters (0-51) make up folder name before model name
+        # multi_component_case_studies/vary_salt_ratio/100_mM/
+
+        for case_study_file in model_folder.iterdir():
+            if str(case_study_file)[52:55] == "0.5":
+                ratio = str(case_study_file)[52:55]
+                cation_1 = str(case_study_file)[56:58]
+                cation_2 = str(case_study_file)[58:60]
+                chloride_multiplier = float(str(case_study_file)[62])
+            elif str(case_study_file)[52:55] == "0.3":
+                ratio = str(case_study_file)[52:56]
+                cation_1 = str(case_study_file)[59:61]
+                cation_2 = str(case_study_file)[61:63]
+                chloride_multiplier = float(str(case_study_file)[65])
+            else:
+                ratio = str(case_study_file)[52]
+                cation_1 = str(case_study_file)[54:56]
+                cation_2 = str(case_study_file)[56:58]
+                chloride_multiplier = float(str(case_study_file)[60])
+            concentration = float(50)  # mM
+            model = build_model(
+                cation_list=[cation_1, cation_2],
+                inlet_concentration={
+                    "feed": {
+                        cation_1: concentration,
+                        cation_2: concentration,
+                        "Cl": chloride_multiplier * concentration,
+                    },
+                    "diafiltrate": {
+                        cation_1: 1e-10,
+                        cation_2: 1e-10,
+                        "Cl": 1e-10,
+                    },
+                },
+                default_args=default_args,
+                H_feed_guess=1,
+                H_permeate_guess=1,
+                NFE_args=NFE_args,
+                initialize=False,
+            )
+            from_json(model, fname=case_study_file)
+
+            feed_ionic_strength_val = value(
+                model.fs.membrane.total_feed_ionic_strength[0]
+            )
+
+            for solute in model.fs.membrane.solutes:
+                observed_rejection = []
+                actual_rejection = []
+                flux = []
+                H_feed = []
+                H_perm = []
+                bl_convection_by_x = []
+                bl_convection_dict_by_x = {}
+                bl_diffusion_by_x = []
+                bl_diffusion_dict_by_x = {}
+                bl_electromigration_by_x = []
+                bl_electromigration_dict_by_x = {}
+                mem_convection_by_x = []
+                mem_convection_dict_by_x = {}
+                mem_diffusion_by_x = []
+                mem_diffusion_dict_by_x = {}
+                mem_electromigration_by_x = []
+                mem_electromigration_dict_by_x = {}
+
+                for t in model.fs.membrane.time:
+                    for x in model.fs.membrane.dimensionless_module_length:
+                        if x != 0:
+                            observed_rejection.append(
+                                value(
+                                    model.fs.membrane.observed_rejection_percent[
+                                        t, x, solute
+                                    ]
+                                )
+                            )
+                            actual_rejection.append(
+                                value(
+                                    model.fs.membrane.actual_rejection_percent[
+                                        t, x, solute
+                                    ]
+                                )
+                            )
+                            flux.append(
+                                value(model.fs.membrane.molar_ion_flux[t, x, solute])
+                            )
+                            H_feed.append(
+                                value(
+                                    model.fs.membrane.overall_partition_coefficient_feed_side[
+                                        t, x, solute
+                                    ]
+                                )
+                            )
+                            H_perm.append(
+                                value(
+                                    model.fs.membrane.overall_partition_coefficient_permeate_side[
+                                        t, x, solute
+                                    ]
+                                )
+                            )
+                            for (
+                                z_bl
+                            ) in (
+                                model.fs.membrane.dimensionless_boundary_layer_thickness
+                            ):
+                                bl_convection_by_x.append(
+                                    value(
+                                        model.fs.membrane.boundary_layer_convective_flux[
+                                            0, x, z_bl, solute
+                                        ]
+                                    )
+                                )
+                                bl_diffusion_by_x.append(
+                                    value(
+                                        model.fs.membrane.boundary_layer_diffusive_flux[
+                                            0, x, z_bl, solute
+                                        ]
+                                    )
+                                )
+                                bl_electromigration_by_x.append(
+                                    value(
+                                        model.fs.membrane.boundary_layer_electromigrative_flux[
+                                            0, x, z_bl, solute
+                                        ]
+                                    )
+                                )
+                            bl_convection_dict_by_x[f"{x}"] = bl_convection_by_x
+                            bl_diffusion_dict_by_x[f"{x}"] = bl_diffusion_by_x
+                            bl_electromigration_dict_by_x[f"{x}"] = (
+                                bl_electromigration_by_x
+                            )
+                            bl_convection_by_x = []
+                            bl_diffusion_by_x = []
+                            bl_electromigration_by_x = []
+
+                            for (
+                                z_mem
+                            ) in model.fs.membrane.dimensionless_membrane_thickness:
+                                mem_convection_by_x.append(
+                                    value(
+                                        model.fs.membrane.membrane_convective_flux[
+                                            0, x, z_mem, solute
+                                        ]
+                                    )
+                                )
+                                mem_diffusion_by_x.append(
+                                    value(
+                                        model.fs.membrane.membrane_diffusive_flux[
+                                            0, x, z_mem, solute
+                                        ]
+                                    )
+                                )
+                                mem_electromigration_by_x.append(
+                                    value(
+                                        model.fs.membrane.membrane_electromigrative_flux[
+                                            0, x, z_mem, solute
+                                        ]
+                                    )
+                                )
+                            mem_convection_dict_by_x[f"{x}"] = mem_convection_by_x
+                            mem_diffusion_dict_by_x[f"{x}"] = mem_diffusion_by_x
+                            mem_electromigration_dict_by_x[f"{x}"] = (
+                                mem_electromigration_by_x
+                            )
+                            mem_convection_by_x = []
+                            mem_diffusion_by_x = []
+                            mem_electromigration_by_x = []
+
+                avg_observed_rejection = np.average(observed_rejection)
+                spread_observed_rejection = calculate_spread(observed_rejection)
+
+                avg_actual_rejection = np.average(actual_rejection)
+                spread_actual_rejection = calculate_spread(actual_rejection)
+
+                avg_flux = np.average(flux)
+                spread_flux = calculate_spread(flux)
+
+                avg_H_feed = np.average(H_feed)
+                spread_H_feed = calculate_spread(H_feed)
+
+                avg_H_perm = np.average(H_perm)
+                spread_H_perm = calculate_spread(H_perm)
+
+                bl_convection_averaged_over_z = [
+                    sum(bl_convection_dict_by_x[k]) / len(bl_convection_dict_by_x[k])
+                    for k in bl_convection_dict_by_x.keys()
+                ]
+                avg_bl_convection = np.average(bl_convection_averaged_over_z)
+                spread_bl_convection = calculate_spread(bl_convection_averaged_over_z)
+
+                bl_diffusion_averaged_over_z = [
+                    sum(bl_diffusion_dict_by_x[k]) / len(bl_diffusion_dict_by_x[k])
+                    for k in bl_diffusion_dict_by_x.keys()
+                ]
+                avg_bl_diffusion = np.average(bl_diffusion_averaged_over_z)
+                spread_bl_diffusion = calculate_spread(bl_diffusion_averaged_over_z)
+
+                bl_electromigration_averaged_over_z = [
+                    sum(bl_electromigration_dict_by_x[k])
+                    / len(bl_electromigration_dict_by_x[k])
+                    for k in bl_electromigration_dict_by_x.keys()
+                ]
+                avg_bl_electromigration = np.average(
+                    bl_electromigration_averaged_over_z
+                )
+                spread_bl_electromigration = calculate_spread(
+                    bl_electromigration_averaged_over_z
+                )
+
+                mem_convection_averaged_over_z = [
+                    sum(mem_convection_dict_by_x[k]) / len(mem_convection_dict_by_x[k])
+                    for k in mem_convection_dict_by_x.keys()
+                ]
+                avg_mem_convection = np.average(mem_convection_averaged_over_z)
+                spread_mem_convection = calculate_spread(mem_convection_averaged_over_z)
+
+                mem_diffusion_averaged_over_z = [
+                    sum(mem_diffusion_dict_by_x[k]) / len(mem_diffusion_dict_by_x[k])
+                    for k in mem_diffusion_dict_by_x.keys()
+                ]
+                avg_mem_diffusion = np.average(mem_diffusion_averaged_over_z)
+                spread_mem_diffusion = calculate_spread(mem_diffusion_averaged_over_z)
+
+                mem_electromigration_averaged_over_z = [
+                    sum(mem_electromigration_dict_by_x[k])
+                    / len(mem_electromigration_dict_by_x[k])
+                    for k in mem_electromigration_dict_by_x.keys()
+                ]
+                avg_mem_electromigration = np.average(
+                    mem_electromigration_averaged_over_z
+                )
+                spread_mem_electromigration = calculate_spread(
+                    mem_electromigration_averaged_over_z
+                )
+
+                alpha = 1
+                marker = "o"
+
+                if ratio == "0.33":
+                    color = color_033
+                elif ratio == "0.5":
+                    color = color_05
+                elif ratio == "1":
+                    color = color_1
+                elif ratio == "2":
+                    color = color_2
+                elif ratio == "3":
+                    color = color_3
+
+                if cation_1 == "Li" and cation_2 == "Co":
+                    rejection_axes = [ax1a, ax1b, ax1c]
+                    flux_axes = [ax2a, ax2b, ax2c]
+                    hfeed_axes = [ax3a, ax3b, ax3c]
+                    hperm_axes = [ax4a, ax4b, ax4c]
+                elif cation_1 == "Li" and cation_2 == "Al":
+                    rejection_axes = [ax5a, ax5b, ax5c]
+                    flux_axes = [ax6a, ax6b, ax6c]
+                    hfeed_axes = [ax7a, ax7b, ax7c]
+                    hperm_axes = [ax8a, ax8b, ax8c]
+                elif cation_1 == "Co" and cation_2 == "Al":
+                    rejection_axes = [ax9a, ax9b, ax9c]
+                    flux_axes = [ax10a, ax10b, ax10c]
+                    hfeed_axes = [ax11a, ax11b, ax11c]
+                    hperm_axes = [ax12a, ax12b, ax12c]
+
+                if solute == cation_1:
+                    ax_rej = rejection_axes[0]
+                    ax_flux = flux_axes[0]
+                    ax_hfeed = hfeed_axes[0]
+                    ax_hperm = hperm_axes[0]
+                elif solute == cation_2:
+                    ax_rej = rejection_axes[1]
+                    ax_flux = flux_axes[1]
+                    ax_hfeed = hfeed_axes[1]
+                    ax_hperm = hperm_axes[1]
+                elif solute == "Cl":
+                    ax_rej = rejection_axes[2]
+                    ax_flux = flux_axes[2]
+                    ax_hfeed = hfeed_axes[2]
+                    ax_hperm = hperm_axes[2]
+
+                ax_rej.plot(
+                    feed_ionic_strength_val,
+                    avg_actual_rejection,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                ax_rej.errorbar(
+                    feed_ionic_strength_val,
+                    avg_actual_rejection,
+                    yerr=spread_actual_rejection,
+                    ecolor="grey",
+                    capsize=4,
+                )
+
+                ax_flux.plot(
+                    feed_ionic_strength_val,
+                    avg_flux,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                ax_flux.errorbar(
+                    feed_ionic_strength_val,
+                    avg_flux,
+                    yerr=spread_flux,
+                    ecolor="grey",
+                    capsize=4,
+                )
+
+                ax_hfeed.plot(
+                    feed_ionic_strength_val,
+                    avg_H_feed,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                ax_hfeed.errorbar(
+                    feed_ionic_strength_val,
+                    avg_H_feed,
+                    yerr=spread_H_feed,
+                    ecolor="grey",
+                    capsize=4,
+                )
+
+                ax_hperm.plot(
+                    feed_ionic_strength_val,
+                    avg_H_perm,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                ax_hperm.errorbar(
+                    feed_ionic_strength_val,
+                    avg_H_perm,
+                    yerr=spread_H_perm,
+                    ecolor="grey",
+                    capsize=4,
+                )
+                # if inset:
+                #     # inax_flux.plot(
+                #     #     feed_ionic_strength_val,
+                #     #     avg_flux,
+                #     #     color=color,
+                #     #     marker=marker,
+                #     #     alpha=alpha,
+                #     #     markersize=markersize,
+                #     # )
+                #     # inax_flux.errorbar(
+                #     #     feed_ionic_strength_val,
+                #     #     avg_flux,
+                #     #     yerr=spread_flux,
+                #     #     ecolor="grey",
+                #     #     capsize=4,
+                #     # )
+                #     inax_hfeed.plot(
+                #         feed_ionic_strength_val,
+                #         avg_H_feed,
+                #         color=color,
+                #         marker=marker,
+                #         alpha=alpha,
+                #         markersize=markersize,
+                #     )
+                #     inax_hfeed.errorbar(
+                #         feed_ionic_strength_val,
+                #         avg_H_feed,
+                #         yerr=spread_H_feed,
+                #         ecolor="grey",
+                #         capsize=4,
+                #     )
+                #     inax_hperm.plot(
+                #         feed_ionic_strength_val,
+                #         avg_H_perm,
+                #         color=color,
+                #         marker=marker,
+                #         alpha=alpha,
+                #         markersize=markersize,
+                #     )
+                #     inax_hperm.errorbar(
+                #         feed_ionic_strength_val,
+                #         avg_H_perm,
+                #         yerr=spread_H_perm,
+                #         ecolor="grey",
+                #         capsize=4,
+                #     )
+
+    if save_figure:
+        fig1.savefig("Li_Co_rejection_flux_partition_vary_salt_ratio.png", dpi=600)
+        fig2.savefig("Li_Al_rejection_flux_partition_vary_salt_ratio.png", dpi=600)
+        fig3.savefig("Co_Al_rejection_flux_partition_vary_salt_ratio.png", dpi=600)
+
+
+def plot_only_rejections(save_figure=True):
+    """
+    Plots rejection versus ionic strength of bulk fluid and feed.
+    """
+    markersize = 8
+    fontsize = 14
+
+    anion_list = ["Cl"]
+    inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
+    include_boundary_layer = True
+    NFE_module_length = 15
+    NFE_boundary_layer_thickness = 5
+    NFE_membrane_thickness = 5
+
+    default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
+    NFE_args = [
+        NFE_module_length,
+        NFE_boundary_layer_thickness,
+        NFE_membrane_thickness,
+    ]
+
+    # color blind friendly
+    tol_bright_hex = [
+        "#4477AA",
+        "#EE6677",
+        "#228833",
+        "#CCBB44",
+        "#66CCEE",
+        "#AA3377",
+        "#BBBBBB",
+    ]
+    color_033 = tol_bright_hex[0]
+    color_05 = tol_bright_hex[1]
+    color_1 = tol_bright_hex[2]
+    color_2 = tol_bright_hex[3]
+    color_3 = tol_bright_hex[4]
+
+    # each plot is a salt solution
+    fig1, (ax1a, ax1b, ax1c) = plt.subplots(
+        1, 3, dpi=75, figsize=(15, 5), constrained_layout=True
+    )
+    fig1.suptitle("LiCl + CoCl$_2$", fontsize=fontsize, fontweight="bold")
+    fig2, (ax5a, ax5b, ax5c) = plt.subplots(
+        1, 3, dpi=75, figsize=(15, 5), constrained_layout=True
+    )
+    fig2.suptitle("LiCl + AlCl$_3$", fontsize=fontsize, fontweight="bold")
+    fig3, (ax9a, ax9b, ax9c) = plt.subplots(
+        1, 3, dpi=75, figsize=(15, 5), constrained_layout=True
+    )
+    fig3.suptitle("CoCl$_2$ + AlCl$_3$", fontsize=fontsize, fontweight="bold")
+
+    for ax in [ax1a, ax5a, ax9a]:
+        ax.plot(
+            [],
+            [],
+            color=color_033,
+            marker="o",
+            markersize=markersize,
+            linestyle="None",
+            label="0.33",
+        )
+        ax.plot(
+            [],
+            [],
+            color=color_05,
+            marker="o",
+            markersize=markersize,
+            linestyle="None",
+            label="0.5",
+        )
+        ax.plot(
+            [],
+            [],
+            color=color_1,
+            marker="o",
+            markersize=markersize,
+            linestyle="None",
+            label="1",
+        )
+        ax.plot(
+            [],
+            [],
+            color=color_2,
+            marker="o",
+            markersize=markersize,
+            linestyle="None",
+            label="2",
+        )
+        ax.plot(
+            [],
+            [],
+            color=color_3,
+            marker="o",
+            markersize=markersize,
+            linestyle="None",
+            label="3",
+        )
+        ax.legend(loc="best", fontsize=fontsize)
+        # ax.legend(loc="best", fontsize=fontsize, bbox_to_anchor=(0.85, -0.5))
+
+    for ax in [ax1a, ax5a]:
+        ax.set_title("Lithium", fontsize=fontsize, fontweight="bold")
+        ax.set_ylabel("Actual Ion\nRejection (%)", fontsize=fontsize, fontweight="bold")
+    for ax in [ax1b, ax9a]:
+        ax.set_title("Cobalt", fontsize=fontsize, fontweight="bold")
+    for ax in [ax5b, ax9b]:
+        ax.set_title("Aluminum", fontsize=fontsize, fontweight="bold")
+    for ax in [ax1c, ax5c, ax9c]:
+        ax.set_title("Chloride", fontsize=fontsize, fontweight="bold")
+
+    IS_min = 25
+    IS_max = 425
+    for ax in fig1.axes:
+        ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+        ax.set_xlim(IS_min, IS_max)
+        ax.set_xlabel(
+            "Inlet Feed Ionic Strength\n(mol/m$^3$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+    for ax in fig2.axes:
+        ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+        ax.set_xlim(IS_min, IS_max)
+        ax.set_xlabel(
+            "Inlet Feed Ionic Strength\n(mol/m$^3$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+    for ax in fig3.axes:
+        ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+        ax.set_xlim(IS_min, IS_max)
+        ax.set_xlabel(
+            "Inlet Feed Ionic Strength\n(mol/m$^3$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+
+    ionic_strengths = ["050_mM", "075_mM", "100_mM", "150_mM", "200_mM", "400_mM"]
+
+    for ionic_strength in ionic_strengths:
+        model_folder = Path(
+            f"multi_component_case_studies/vary_salt_ratio/{ionic_strength}"
+        )
+        # 52 characters (0-51) make up folder name before model name
+        # multi_component_case_studies/vary_salt_ratio/100_mM/
+
+        for case_study_file in model_folder.iterdir():
+            if str(case_study_file)[52:55] == "0.5":
+                ratio = str(case_study_file)[52:55]
+                cation_1 = str(case_study_file)[56:58]
+                cation_2 = str(case_study_file)[58:60]
+                chloride_multiplier = float(str(case_study_file)[62])
+            elif str(case_study_file)[52:55] == "0.3":
+                ratio = str(case_study_file)[52:56]
+                cation_1 = str(case_study_file)[59:61]
+                cation_2 = str(case_study_file)[61:63]
+                chloride_multiplier = float(str(case_study_file)[65])
+            else:
+                ratio = str(case_study_file)[52]
+                cation_1 = str(case_study_file)[54:56]
+                cation_2 = str(case_study_file)[56:58]
+                chloride_multiplier = float(str(case_study_file)[60])
+            concentration = float(50)  # mM
+            model = build_model(
+                cation_list=[cation_1, cation_2],
+                inlet_concentration={
+                    "feed": {
+                        cation_1: concentration,
+                        cation_2: concentration,
+                        "Cl": chloride_multiplier * concentration,
+                    },
+                    "diafiltrate": {
+                        cation_1: 1e-10,
+                        cation_2: 1e-10,
+                        "Cl": 1e-10,
+                    },
+                },
+                default_args=default_args,
+                H_feed_guess=1,
+                H_permeate_guess=1,
+                NFE_args=NFE_args,
+                initialize=False,
+            )
+            from_json(model, fname=case_study_file)
+
+            feed_ionic_strength_val = value(
+                model.fs.membrane.total_feed_ionic_strength[0]
+            )
+
+            for solute in model.fs.membrane.solutes:
+                actual_rejection = []
+
+                for t in model.fs.membrane.time:
+                    for x in model.fs.membrane.dimensionless_module_length:
+                        if x != 0:
+                            actual_rejection.append(
+                                value(
+                                    model.fs.membrane.actual_rejection_percent[
+                                        t, x, solute
+                                    ]
+                                )
+                            )
+
+                avg_actual_rejection = np.average(actual_rejection)
+                spread_actual_rejection = calculate_spread(actual_rejection)
+
+                alpha = 1
+                marker = "o"
+
+                if ratio == "0.33":
+                    color = color_033
+                elif ratio == "0.5":
+                    color = color_05
+                elif ratio == "1":
+                    color = color_1
+                elif ratio == "2":
+                    color = color_2
+                elif ratio == "3":
+                    color = color_3
+
+                if cation_1 == "Li" and cation_2 == "Co":
+                    rejection_axes = [ax1a, ax1b, ax1c]
+                elif cation_1 == "Li" and cation_2 == "Al":
+                    rejection_axes = [ax5a, ax5b, ax5c]
+                elif cation_1 == "Co" and cation_2 == "Al":
+                    rejection_axes = [ax9a, ax9b, ax9c]
+
+                if solute == cation_1:
+                    ax_rej = rejection_axes[0]
+                elif solute == cation_2:
+                    ax_rej = rejection_axes[1]
+                elif solute == "Cl":
+                    ax_rej = rejection_axes[2]
+
+                ax_rej.plot(
+                    feed_ionic_strength_val,
+                    avg_actual_rejection,
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                ax_rej.errorbar(
+                    feed_ionic_strength_val,
+                    avg_actual_rejection,
+                    yerr=spread_actual_rejection,
+                    ecolor="grey",
+                    capsize=4,
+                )
+
+    if save_figure:
+        fig1.savefig("Li_Co_rejection_vary_salt_ratio.png", dpi=600)
+        fig2.savefig("Li_Al_rejection_vary_salt_ratio.png", dpi=600)
+        fig3.savefig("Co_Al_rejection_vary_salt_ratio.png", dpi=600)
 
 
 if __name__ == "__main__":
