@@ -58,7 +58,9 @@ def main():
 
     plot_together = True
     if plot_together:
-        combined_plots_equimolar(x_axis="cation_concentration", inset=False, save_figure=True)
+        combined_plots_equimolar(
+            x_axis="cation_concentration", inset=False, save_figure=False
+        )
         # combined_plots_vary_salt_ratio(save_figure=True)
         # plot_only_rejections(save_figure=True)
     else:
@@ -208,6 +210,7 @@ def solve_and_save_models(
     run_two_salt=True,
     run_three_salt=True,
     run_salt_ratio=True,
+    set_IS=False,  # set concentration
 ):
     # global variables
     anion_list = ["Cl"]
@@ -222,13 +225,21 @@ def solve_and_save_models(
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
     IS_key = ["050", "075", "100", "150", "200", "400", "600", "800"]
+    CONC_key = ["025", "050", "075", "100", "150", "200", "250", "300"]
 
     if run_single_salt:
-        feed = {
-            "Li": [50, 75, 100, 150, 200, 400, 600, 800],
-            "Co": [16.667, 25, 33.334, 50, 66.667, 133.334, 200, 266.667],
-            "Al": [8.334, 12.5, 16.667, 25, 33.334, 66.667, 100, 133.334],
-        }
+        if set_IS:
+            feed = {
+                "Li": [50, 75, 100, 150, 200, 400, 600, 800],
+                "Co": [16.667, 25, 33.334, 50, 66.667, 133.334, 200, 266.667],
+                "Al": [8.334, 12.5, 16.667, 25, 33.334, 66.667, 100, 133.334],
+            }
+        else:
+            feed = {
+                "Li": [25, 50, 75, 100, 150, 200, 250, 300],
+                "Co": [25, 50, 75, 100, 150, 200, 250, 300],
+                "Al": [25, 50, 75, 100, 150, 200, 250, 300],
+            }
 
         H_feed_guesses = np.arange(0.5, 2.1, 0.1)
         H_permeate_guesses = np.arange(0.5, 2.1, 0.1)
@@ -275,10 +286,11 @@ def solve_and_save_models(
                         solve_model(model)
                         unfix_pressure(model, water_flux=water_flux)
                         solve_model(model)
-                        to_json(
-                            model,
-                            fname=f"multi_component_case_studies/single_salt/IS{IS_key[feed[cation].index(concentration)]}_{cation}Cl{chloride_multiplier}_{concentration}mM",
-                        )
+                        if set_IS:
+                            fname = f"multi_component_case_studies/single_salt/IS/IS{IS_key[feed[cation].index(concentration)]}_{cation}Cl{chloride_multiplier}_{concentration}mM"
+                        else:
+                            fname = f"multi_component_case_studies/single_salt/CONC/CONC{CONC_key[feed[cation].index(concentration)]}_{cation}Cl{chloride_multiplier}_{concentration}mM"
+                        to_json(model, fname=fname)
                         break
                     except:
                         continue
@@ -1672,7 +1684,7 @@ def combined_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=Tr
         (ax4a, ax4b, ax4c, ax4d),  # H_permeate
     ) = plt.subplots(4, 4, dpi=50, figsize=(18, 18), constrained_layout=True)
 
-    if x_axis == "ionic_strength": 
+    if x_axis == "ionic_strength":
         for ax in [ax4a, ax4b, ax4c, ax4d]:
             ax.set_xlabel(
                 "Inlet Feed Ionic Strength\n(mol/m$\mathbf{^3}$)",
@@ -1879,30 +1891,44 @@ def combined_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=Tr
         inax4c.set_ylim(0.5, 3.1)
         # inax4d.set_ylim(0.001, 0.02)
 
-    model_folder_1 = Path("multi_component_case_studies/single_salt")
-    # 41 characters (0-40) make up folder name before model name
-    # multi_component_case_studies/single_salt/
-    model_folder_2 = Path("multi_component_case_studies/two_salt")
-    # 38 characters (0-37) make up folder name before model name
-    # multi_component_case_studies/two_salt/
-    model_folder_3 = Path("multi_component_case_studies/three_salt")
-    # 40 characters (0-39) make up folder name before model name
-    # multi_component_case_studies/three_salt/
+    if x_axis == "ionic_strength":
+        model_folder_1 = Path("multi_component_case_studies/single_salt/IS")
+        # 44 characters (0-43) make up folder name before model name
+        # multi_component_case_studies/single_salt/IS/
+        model_folder_2 = Path("multi_component_case_studies/two_salt")
+        # 38 characters (0-37) make up folder name before model name
+        # multi_component_case_studies/two_salt/
+        model_folder_3 = Path("multi_component_case_studies/three_salt")
+        # 40 characters (0-39) make up folder name before model name
+        # multi_component_case_studies/three_salt/
 
-    case_study_list_1 = [file for file in model_folder_1.iterdir()]
-    case_study_list_2 = [file for file in model_folder_2.iterdir()]
-    case_study_list_3 = [file for file in model_folder_3.iterdir()]
-    case_studies = {
-        "single": case_study_list_1,
-        "two": case_study_list_2,
-        "three": case_study_list_3,
-    }
+        case_study_list_1 = [file for file in model_folder_1.iterdir()]
+        case_study_list_2 = [file for file in model_folder_2.iterdir()]
+        case_study_list_3 = [file for file in model_folder_3.iterdir()]
+        case_studies = {
+            "single": case_study_list_1,
+            "two": case_study_list_2,
+            "three": case_study_list_3,
+        }
+    else:
+        model_folder_1 = Path("multi_component_case_studies/single_salt/CONC")
+        # 46 characters (0-45) make up folder name before model name
+        # multi_component_case_studies/single_salt/CONC/
+
+        case_study_list_1 = [file for file in model_folder_1.iterdir()]
+        case_studies = {
+            "single": case_study_list_1,
+        }
 
     for type, case_study_files in case_studies.items():
         for case_study in case_study_files:
             if type == "single":
-                cation = str(case_study)[47:49]
-                chloride_multiplier = float(str(case_study)[51])
+                if x_axis == "ionic_strength":
+                    cation = str(case_study)[50:52]
+                    chloride_multiplier = float(str(case_study)[54])
+                else:
+                    cation = str(case_study)[54:56]
+                    chloride_multiplier = float(str(case_study)[58])
                 concentration = float(50)  # mM
                 cation_list = [cation]
                 inlet_concentration = {
@@ -1975,7 +2001,9 @@ def combined_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=Tr
                         model.fs.membrane.total_feed_ionic_strength[0]
                     )
                 elif x_axis == "cation_concentration":
-                    x_value = value(model.fs.membrane.retentate_conc_mol_comp[0, 0, solute])
+                    x_value = value(
+                        model.fs.membrane.retentate_conc_mol_comp[0, 0, solute]
+                    )
 
                 alpha = 1
 
