@@ -1726,29 +1726,29 @@ and used when constructing these,
 
         if self.config.include_boundary_layer:
 
-            def _boundary_layer_conc_mol_comp_boundary_condition(blk, t, z, k):
+            def _boundary_layer_conc_mol_comp_boundary_condition(blk, t, z, j):
                 return (
-                    blk.boundary_layer_conc_mol_comp[t, 0, z, k]
+                    blk.boundary_layer_conc_mol_comp[t, 0, z, j]
                     == self.numerical_zero_tolerance * units.mol / units.m**3
                 )
 
             self.boundary_layer_conc_mol_comp_boundary_condition = Constraint(
                 self.time,
                 self.dimensionless_boundary_layer_thickness,
-                self.cations,
+                self.solutes,
                 rule=_boundary_layer_conc_mol_comp_boundary_condition,
             )
 
-        def _membrane_conc_mol_comp_boundary_condition(blk, t, z, k):
+        def _membrane_conc_mol_comp_boundary_condition(blk, t, z, j):
             return (
-                blk.membrane_conc_mol_comp[t, 0, z, k]
+                blk.membrane_conc_mol_comp[t, 0, z, j]
                 == self.numerical_zero_tolerance * units.mol / units.m**3
             )
 
         self.membrane_conc_mol_comp_boundary_condition = Constraint(
             self.time,
             self.dimensionless_membrane_thickness,
-            self.cations,
+            self.solutes,
             rule=_membrane_conc_mol_comp_boundary_condition,
         )
 
@@ -1854,29 +1854,29 @@ and used when constructing these,
                 if x != 0:
                     self.d_retentate_conc_mol_comp_dx_disc_eq[t, x, a0].deactivate()
 
-                if self.config.include_boundary_layer:
-                    for z in self.dimensionless_boundary_layer_thickness:
-                        # anion concentration gradient in boundary layer variable is created by default but
-                        # is not needed in model; fix to reduce number of variables
-                        self.d_boundary_layer_conc_mol_comp_dz[t, x, z, a0].fix(
-                            value(self.numerical_zero_tolerance)
-                        )
-                        # associated discretization equation not needed in model
-                        if z != 0:
-                            self.d_boundary_layer_conc_mol_comp_dz_disc_eq[
-                                t, x, z, a0
-                            ].deactivate()
-                for z in self.dimensionless_membrane_thickness:
-                    # anion concentration gradient in membrane variable is created by default but
-                    # is not needed in model; fix to reduce number of variables
-                    self.d_membrane_conc_mol_comp_dz[t, x, z, a0].fix(
-                        value(self.numerical_zero_tolerance)
-                    )
-                    # associated discretization equation not needed in model
-                    if z != 0:
-                        self.d_membrane_conc_mol_comp_dz_disc_eq[
-                            t, x, z, a0
-                        ].deactivate()
+                # if self.config.include_boundary_layer:
+                #     for z in self.dimensionless_boundary_layer_thickness:
+                #         # anion concentration gradient in boundary layer variable is created by default but
+                #         # is not needed in model; fix to reduce number of variables
+                #         self.d_boundary_layer_conc_mol_comp_dz[t, x, z, a0].fix(
+                #             value(self.numerical_zero_tolerance)
+                #         )
+                #         # associated discretization equation not needed in model
+                #         if z != 0:
+                #             self.d_boundary_layer_conc_mol_comp_dz_disc_eq[
+                #                 t, x, z, a0
+                #             ].deactivate()
+                # for z in self.dimensionless_membrane_thickness:
+                #     # anion concentration gradient in membrane variable is created by default but
+                #     # is not needed in model; fix to reduce number of variables
+                #     self.d_membrane_conc_mol_comp_dz[t, x, z, a0].fix(
+                #         value(self.numerical_zero_tolerance)
+                #     )
+                #     # associated discretization equation not needed in model
+                #     if z != 0:
+                #         self.d_membrane_conc_mol_comp_dz_disc_eq[
+                #             t, x, z, a0
+                #         ].deactivate()
 
     def add_scaling_factors(self):
         """
@@ -2049,6 +2049,33 @@ and used when constructing these,
             rule=_actual_rejection_percent,
         )
 
+        def _observed_sieving_coefficient(blk, t, x, j):
+            return (
+                blk.permeate_conc_mol_comp[t, x, j]
+                / blk.retentate_conc_mol_comp[t, x, j]
+            )
+
+        self.observed_sieving_coefficient = Expression(
+            self.time,
+            self.dimensionless_module_length,
+            self.solutes,
+            rule=_observed_sieving_coefficient,
+        )
+
+        def _observed_membrane_selectivity(blk, t, x, j, k):
+            return (
+                blk.observed_sieving_coefficient[t, x, j]
+                / blk.observed_sieving_coefficient[t, x, k]
+            )
+
+        self.observed_membrane_selectivity = Expression(
+            self.time,
+            self.dimensionless_module_length,
+            self.cations,
+            self.cations,
+            rule=_observed_membrane_selectivity,
+        )
+
         def _boundary_layer_convective_flux(blk, t, x, z, j):
             if x == 0:
                 return Constraint.Skip
@@ -2088,7 +2115,7 @@ and used when constructing these,
             rule=_boundary_layer_diffusive_flux,
         )
 
-        def _boundary_layer_electric_potential_gradient(blk, t, x, z, j):
+        def _boundary_layer_electric_potential_gradient(blk, t, x, z):
             if x == 0:
                 return Constraint.Skip
             R = Constants.gas_constant  # J / mol / K
@@ -2119,7 +2146,6 @@ and used when constructing these,
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_boundary_layer_thickness,
-            self.solutes,
             rule=_boundary_layer_electric_potential_gradient,
         )
 
@@ -2137,7 +2163,7 @@ and used when constructing these,
                     -(charge[j] * D_bl[j] * F)
                     / (R * T)
                     * conc_bl[t, x, z, j]
-                    * blk.boundary_layer_electric_potential_gradient[t, x, z, j]
+                    * blk.boundary_layer_electric_potential_gradient[t, x, z]
                 ),
                 to_units=units.mol / units.m**2 / units.h,
             )
@@ -2186,7 +2212,7 @@ and used when constructing these,
             rule=_membrane_diffusive_flux,
         )
 
-        def _membrane_electric_potential_gradient(blk, t, x, z, j):
+        def _membrane_electric_potential_gradient(blk, t, x, z):
             if x == 0:
                 return Constraint.Skip
             R = Constants.gas_constant  # J / mol / K
@@ -2223,7 +2249,6 @@ and used when constructing these,
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            self.solutes,
             rule=_membrane_electric_potential_gradient,
         )
 
@@ -2241,7 +2266,7 @@ and used when constructing these,
                     -(charge[j] * D_mem[j] * F)
                     / (R * T)
                     * conc_mem[t, x, z, j]
-                    * blk.membrane_electric_potential_gradient[t, x, z, j]
+                    * blk.membrane_electric_potential_gradient[t, x, z]
                 ),
                 to_units=units.mol / units.m**2 / units.h,
             )

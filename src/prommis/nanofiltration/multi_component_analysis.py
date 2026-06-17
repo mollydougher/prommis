@@ -28,6 +28,7 @@ from idaes.core.util.exceptions import InitializationError
 from idaes.core.util.model_diagnostics import DiagnosticsToolbox
 from idaes.models.unit_models import Feed, Product
 
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -55,7 +56,7 @@ def main():
         run_salt_ratio=run_salt_ratio,
     )
 
-    plot_together = True
+    plot_together = False
     if plot_together:
         # combined_plots_equimolar(inset=True, save_figure=True)
         # combined_plots_vary_salt_ratio(save_figure=True)
@@ -63,6 +64,7 @@ def main():
     else:
         single_salt_plots()
         two_salt_plots()
+        plot_flux_contributions(percentages=True)
 
     plt.show()
 
@@ -219,6 +221,8 @@ def solve_and_save_models(
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
+    IS_key = ["050", "075", "100", "150", "200", "400", "600", "800"]
+
     if run_single_salt:
         feed = {
             "Li": [50, 75, 100, 150, 200, 400, 600, 800],
@@ -273,7 +277,7 @@ def solve_and_save_models(
                         solve_model(model)
                         to_json(
                             model,
-                            fname=f"multi_component_case_studies/single_salt/{cation}Cl{chloride_multiplier}_{concentration}mM",
+                            fname=f"multi_component_case_studies/single_salt/IS{IS_key[feed[cation].index(concentration)]}_{cation}Cl{chloride_multiplier}_{concentration}mM",
                         )
                         break
                     except:
@@ -684,8 +688,8 @@ def single_salt_plots():
     # multi_component_case_studies/single_salt/
 
     for case_study_file in model_folder.iterdir():
-        cation = str(case_study_file)[41:43]
-        chloride_multiplier = float(str(case_study_file)[45])
+        cation = str(case_study_file)[47:49]
+        chloride_multiplier = float(str(case_study_file)[51])
         concentration = float(50)  # mM
         model = build_model(
             cation_list=[cation],
@@ -899,11 +903,11 @@ def single_salt_plots():
                 ax_bl_flux = ax3a
                 ax_mem_flux = ax3b
             elif solute == "Co":
-                color = "blue"
+                color = diff_color
                 ax_bl_flux = ax3c
                 ax_mem_flux = ax3d
             elif solute == "Al":
-                color = "green"
+                color = elec_color
                 ax_bl_flux = ax3e
                 ax_mem_flux = ax3f
             elif solute == "Cl":
@@ -917,11 +921,11 @@ def single_salt_plots():
                     ax_bl_flux = ax4a
                     ax_mem_flux = ax4b
                 elif model.fs.membrane.cations.at(1) == "Co":
-                    color = "blue"
+                    color = diff_color
                     ax_bl_flux = ax4c
                     ax_mem_flux = ax4d
                 elif model.fs.membrane.cations.at(1) == "Al":
-                    color = "green"
+                    color = elec_color
                     ax_bl_flux = ax4e
                     ax_mem_flux = ax4f
 
@@ -1492,9 +1496,9 @@ def two_salt_plots():
             if solute == "Li":
                 color = "red"
             elif solute == "Co":
-                color = "blue"
+                color = diff_color
             elif solute == "Al":
-                color = "green"
+                color = elec_color
             elif solute == "Cl":
                 color = "orange"
 
@@ -1918,8 +1922,8 @@ def combined_plots_equimolar(inset=True, save_figure=True):
     # multi_component_case_studies/single_salt/
 
     for case_study_file in model_folder_1.iterdir():
-        cation = str(case_study_file)[41:43]
-        chloride_multiplier = float(str(case_study_file)[45])
+        cation = str(case_study_file)[47:49]
+        chloride_multiplier = float(str(case_study_file)[51])
         concentration = float(50)  # mM
         model = build_model(
             cation_list=[cation],
@@ -3944,6 +3948,874 @@ def plot_only_rejections(save_figure=True):
         fig1.savefig("Li_Co_rejection_vary_salt_ratio.png", dpi=600)
         fig2.savefig("Li_Al_rejection_vary_salt_ratio.png", dpi=600)
         fig3.savefig("Co_Al_rejection_vary_salt_ratio.png", dpi=600)
+
+
+def plot_flux_contributions(percentages=True, total=True):
+    """
+    Plots flux contributions for different systems.
+    """
+    markersize = 10
+    fontsize = 14
+
+    anion_list = ["Cl"]
+    inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
+    include_boundary_layer = True
+    NFE_module_length = 15
+    NFE_boundary_layer_thickness = 5
+    NFE_membrane_thickness = 5
+
+    default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
+    NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
+    diafiltrate = {"Li": 1e-10, "Co": 1e-10, "Al": 1e-10}
+
+    fig1, ((ax1a, ax1b), (ax2a, ax2b), (ax3a, ax3b)) = plt.subplots(
+        3, 2, figsize=(15, 10), dpi=75, constrained_layout=True
+    )
+    fig2, ((ax4a, ax4b), (ax5a, ax5b), (ax6a, ax6b)) = plt.subplots(
+        3, 2, figsize=(15, 10), dpi=75, constrained_layout=True
+    )
+
+    tol_bright_hex = [
+        "#4477AA",
+        "#EE6677",
+        "#228833",
+        "#CCBB44",
+        "#66CCEE",
+        "#AA3377",
+        "#BBBBBB",
+    ]
+    conv_color = tol_bright_hex[0]
+    diff_color = tol_bright_hex[1]
+    elec_color = tol_bright_hex[2]
+    # flux_color = tol_bright_hex[6]
+    flux_color = "black"
+
+    model_folder_1 = Path("multi_component_case_studies/single_salt")
+    # 41 characters (0-40) make up folder name before model name
+    # multi_component_case_studies/single_salt/
+
+    lithium_flux_averages = []
+    cobalt_flux_averages = []
+    aluminum_flux_averages = []
+    cl_lithium_flux_averages = []
+    cl_cobalt_flux_averages = []
+    cl_aluminum_flux_averages = []
+
+    lithium_bl_convection_averages = []
+    lithium_bl_diffusion_averages = []
+    lithium_bl_electromigration_averages = []
+
+    cobalt_bl_convection_averages = []
+    cobalt_bl_diffusion_averages = []
+    cobalt_bl_electromigration_averages = []
+
+    aluminum_bl_convection_averages = []
+    aluminum_bl_diffusion_averages = []
+    aluminum_bl_electromigration_averages = []
+
+    cl_lithium_bl_convection_averages = []
+    cl_lithium_bl_diffusion_averages = []
+    cl_lithium_bl_electromigration_averages = []
+
+    cl_cobalt_bl_convection_averages = []
+    cl_cobalt_bl_diffusion_averages = []
+    cl_cobalt_bl_electromigration_averages = []
+
+    cl_aluminum_bl_convection_averages = []
+    cl_aluminum_bl_diffusion_averages = []
+    cl_aluminum_bl_electromigration_averages = []
+
+    lithium_mem_convection_averages = []
+    lithium_mem_diffusion_averages = []
+    lithium_mem_electromigration_averages = []
+
+    cobalt_mem_convection_averages = []
+    cobalt_mem_diffusion_averages = []
+    cobalt_mem_electromigration_averages = []
+
+    aluminum_mem_convection_averages = []
+    aluminum_mem_diffusion_averages = []
+    aluminum_mem_electromigration_averages = []
+
+    cl_lithium_mem_convection_averages = []
+    cl_lithium_mem_diffusion_averages = []
+    cl_lithium_mem_electromigration_averages = []
+
+    cl_cobalt_mem_convection_averages = []
+    cl_cobalt_mem_diffusion_averages = []
+    cl_cobalt_mem_electromigration_averages = []
+
+    cl_aluminum_mem_convection_averages = []
+    cl_aluminum_mem_diffusion_averages = []
+    cl_aluminum_mem_electromigration_averages = []
+
+    case_study_list = []
+    for case_study_file in model_folder_1.iterdir():
+        case_study_list.append(case_study_file)
+    case_study_list.sort()
+
+    for case_study in case_study_list:
+        cation = str(case_study)[47:49]
+        chloride_multiplier = float(str(case_study)[51])
+        concentration = float(50)  # mM
+        model = build_model(
+            cation_list=[cation],
+            inlet_concentration={
+                "feed": {
+                    cation: concentration,
+                    "Cl": chloride_multiplier * concentration,
+                },
+                "diafiltrate": {
+                    cation: diafiltrate[cation],
+                    "Cl": 1e-10,
+                },
+            },
+            default_args=default_args,
+            H_feed_guess=1,
+            H_permeate_guess=1,
+            NFE_args=NFE_args,
+            initialize=False,
+        )
+        from_json(model, fname=case_study)
+
+        for solute in model.fs.membrane.solutes:
+            flux = []
+
+            convection_bl_by_x = []
+            convection_bl_dict_by_x = {}
+            diffusion_bl_by_x = []
+            diffusion_bl_dict_by_x = {}
+            electromigration_bl_by_x = []
+            electromigration_bl_dict_by_x = {}
+
+            convection_mem_by_x = []
+            convection_mem_dict_by_x = {}
+            diffusion_mem_by_x = []
+            diffusion_mem_dict_by_x = {}
+            electromigration_mem_by_x = []
+            electromigration_mem_dict_by_x = {}
+
+            for t in model.fs.membrane.time:
+                for x in model.fs.membrane.dimensionless_module_length:
+                    if x != 0:
+                        flux.append(
+                            value(model.fs.membrane.molar_ion_flux[t, x, solute])
+                        )
+                        for (
+                            z_bl
+                        ) in model.fs.membrane.dimensionless_boundary_layer_thickness:
+                            if z_bl != 0:
+                                convection_bl_by_x.append(
+                                    value(
+                                        model.fs.membrane.boundary_layer_convective_flux[
+                                            0, x, z_bl, solute
+                                        ]
+                                    )
+                                )
+                                diffusion_bl_by_x.append(
+                                    value(
+                                        model.fs.membrane.boundary_layer_diffusive_flux[
+                                            0, x, z_bl, solute
+                                        ]
+                                    )
+                                )
+                                electromigration_bl_by_x.append(
+                                    value(
+                                        model.fs.membrane.boundary_layer_electromigrative_flux[
+                                            0, x, z_bl, solute
+                                        ]
+                                    )
+                                )
+
+                        convection_bl_dict_by_x[f"{x}"] = convection_bl_by_x
+                        diffusion_bl_dict_by_x[f"{x}"] = diffusion_bl_by_x
+                        electromigration_bl_dict_by_x[f"{x}"] = electromigration_bl_by_x
+
+                        convection_bl_by_x = []
+                        diffusion_bl_by_x = []
+                        electromigration_bl_by_x = []
+
+                        for z_mem in model.fs.membrane.dimensionless_membrane_thickness:
+                            if z_mem != 0:
+                                convection_mem_by_x.append(
+                                    value(
+                                        model.fs.membrane.membrane_convective_flux[
+                                            0, x, z_mem, solute
+                                        ]
+                                    )
+                                )
+                                diffusion_mem_by_x.append(
+                                    value(
+                                        model.fs.membrane.membrane_diffusive_flux[
+                                            0, x, z_mem, solute
+                                        ]
+                                    )
+                                )
+                                electromigration_mem_by_x.append(
+                                    value(
+                                        model.fs.membrane.membrane_electromigrative_flux[
+                                            0, x, z_mem, solute
+                                        ]
+                                    )
+                                )
+
+                        convection_mem_dict_by_x[f"{x}"] = convection_mem_by_x
+                        diffusion_mem_dict_by_x[f"{x}"] = diffusion_mem_by_x
+                        electromigration_mem_dict_by_x[f"{x}"] = (
+                            electromigration_mem_by_x
+                        )
+
+                        convection_mem_by_x = []
+                        diffusion_mem_by_x = []
+                        electromigration_mem_by_x = []
+
+            avg_flux = np.average(flux)
+            spread_flux = calculate_spread(flux)
+
+            bl_convection_averaged_over_z = [
+                sum(convection_bl_dict_by_x[k]) / len(convection_bl_dict_by_x[k])
+                for k in convection_bl_dict_by_x.keys()
+            ]
+            avg_bl_convection = np.average(bl_convection_averaged_over_z)
+            spread_bl_convection = calculate_spread(bl_convection_averaged_over_z)
+            avg_bl_convection_percent = (
+                np.average(bl_convection_averaged_over_z) / np.average(flux) * 100
+            )
+
+            bl_diffusion_averaged_over_z = [
+                sum(diffusion_bl_dict_by_x[k]) / len(diffusion_bl_dict_by_x[k])
+                for k in diffusion_bl_dict_by_x.keys()
+            ]
+            avg_bl_diffusion = np.average(bl_diffusion_averaged_over_z)
+            spread_bl_diffusion = calculate_spread(bl_diffusion_averaged_over_z)
+            avg_bl_diffusion_percent = (
+                np.average(bl_diffusion_averaged_over_z) / np.average(flux) * 100
+            )
+
+            bl_electromigration_averaged_over_z = [
+                sum(electromigration_bl_dict_by_x[k])
+                / len(electromigration_bl_dict_by_x[k])
+                for k in electromigration_bl_dict_by_x.keys()
+            ]
+            avg_bl_electromigration = np.average(bl_electromigration_averaged_over_z)
+            spread_bl_electromigration = calculate_spread(
+                bl_electromigration_averaged_over_z
+            )
+            avg_bl_electromigration_percent = (
+                np.average(bl_electromigration_averaged_over_z) / np.average(flux) * 100
+            )
+
+            mem_convection_averaged_over_z = [
+                sum(convection_mem_dict_by_x[k]) / len(convection_mem_dict_by_x[k])
+                for k in convection_mem_dict_by_x.keys()
+            ]
+            avg_mem_convection = np.average(mem_convection_averaged_over_z)
+            spread_mem_convection = calculate_spread(mem_convection_averaged_over_z)
+            avg_mem_convection_percent = (
+                np.average(mem_convection_averaged_over_z) / np.average(flux) * 100
+            )
+
+            mem_diffusion_averaged_over_z = [
+                sum(diffusion_mem_dict_by_x[k]) / len(diffusion_mem_dict_by_x[k])
+                for k in diffusion_mem_dict_by_x.keys()
+            ]
+            avg_mem_diffusion = np.average(mem_diffusion_averaged_over_z)
+            spread_mem_diffusion = calculate_spread(mem_diffusion_averaged_over_z)
+            avg_mem_diffusion_percent = (
+                np.average(mem_diffusion_averaged_over_z) / np.average(flux) * 100
+            )
+
+            mem_electromigration_averaged_over_z = [
+                sum(electromigration_mem_dict_by_x[k])
+                / len(electromigration_mem_dict_by_x[k])
+                for k in electromigration_mem_dict_by_x.keys()
+            ]
+            avg_mem_electromigration = np.average(mem_electromigration_averaged_over_z)
+            spread_mem_electromigration = calculate_spread(
+                mem_electromigration_averaged_over_z
+            )
+            avg_mem_electromigration_percent = (
+                np.average(mem_electromigration_averaged_over_z)
+                / np.average(flux)
+                * 100
+            )
+
+            if percentages:
+                plot_bl_convection = avg_bl_convection_percent
+                plot_bl_diffusion = avg_bl_diffusion_percent
+                plot_bl_electromigration = avg_bl_electromigration_percent
+                plot_mem_convection = avg_mem_convection_percent
+                plot_mem_diffusion = avg_mem_diffusion_percent
+                plot_mem_electromigration = avg_mem_electromigration_percent
+            else:
+                plot_bl_convection = avg_bl_convection
+                plot_bl_diffusion = avg_bl_diffusion
+                plot_bl_electromigration = avg_bl_electromigration
+                plot_mem_convection = avg_mem_convection
+                plot_mem_diffusion = avg_mem_diffusion
+                plot_mem_electromigration = avg_mem_electromigration
+
+            if solute == "Li":
+                lithium_flux_averages.append(avg_flux)
+                lithium_bl_convection_averages.append(plot_bl_convection)
+                lithium_bl_diffusion_averages.append(plot_bl_diffusion)
+                lithium_bl_electromigration_averages.append(plot_bl_electromigration)
+
+                lithium_mem_convection_averages.append(plot_mem_convection)
+                lithium_mem_diffusion_averages.append(plot_mem_diffusion)
+                lithium_mem_electromigration_averages.append(plot_mem_electromigration)
+            elif solute == "Co":
+                cobalt_flux_averages.append(avg_flux)
+                cobalt_bl_convection_averages.append(plot_bl_convection)
+                cobalt_bl_diffusion_averages.append(plot_bl_diffusion)
+                cobalt_bl_electromigration_averages.append(plot_bl_electromigration)
+
+                cobalt_mem_convection_averages.append(plot_mem_convection)
+                cobalt_mem_diffusion_averages.append(plot_mem_diffusion)
+                cobalt_mem_electromigration_averages.append(plot_mem_electromigration)
+            elif solute == "Al":
+                aluminum_flux_averages.append(avg_flux)
+                aluminum_bl_convection_averages.append(plot_bl_convection)
+                aluminum_bl_diffusion_averages.append(plot_bl_diffusion)
+                aluminum_bl_electromigration_averages.append(plot_bl_electromigration)
+
+                aluminum_mem_convection_averages.append(plot_mem_convection)
+                aluminum_mem_diffusion_averages.append(plot_mem_diffusion)
+                aluminum_mem_electromigration_averages.append(plot_mem_electromigration)
+            elif solute == "Cl":
+                if model.fs.membrane.cations.at(1) == "Li":
+                    cl_lithium_flux_averages.append(avg_flux)
+                    cl_lithium_bl_convection_averages.append(plot_bl_convection)
+                    cl_lithium_bl_diffusion_averages.append(plot_bl_diffusion)
+                    cl_lithium_bl_electromigration_averages.append(
+                        plot_bl_electromigration
+                    )
+
+                    cl_lithium_mem_convection_averages.append(plot_mem_convection)
+                    cl_lithium_mem_diffusion_averages.append(plot_mem_diffusion)
+                    cl_lithium_mem_electromigration_averages.append(
+                        plot_mem_electromigration
+                    )
+                elif model.fs.membrane.cations.at(1) == "Co":
+                    cl_cobalt_flux_averages.append(avg_flux)
+                    cl_cobalt_bl_convection_averages.append(plot_bl_convection)
+                    cl_cobalt_bl_diffusion_averages.append(plot_bl_diffusion)
+                    cl_cobalt_bl_electromigration_averages.append(
+                        plot_bl_electromigration
+                    )
+
+                    cl_cobalt_mem_convection_averages.append(plot_mem_convection)
+                    cl_cobalt_mem_diffusion_averages.append(plot_mem_diffusion)
+                    cl_cobalt_mem_electromigration_averages.append(
+                        plot_mem_electromigration
+                    )
+                elif model.fs.membrane.cations.at(1) == "Al":
+                    cl_aluminum_flux_averages.append(avg_flux)
+                    cl_aluminum_bl_convection_averages.append(plot_bl_convection)
+                    cl_aluminum_bl_diffusion_averages.append(plot_bl_diffusion)
+                    cl_aluminum_bl_electromigration_averages.append(
+                        plot_bl_electromigration
+                    )
+
+                    cl_aluminum_mem_convection_averages.append(plot_mem_convection)
+                    cl_aluminum_mem_diffusion_averages.append(plot_mem_diffusion)
+                    cl_aluminum_mem_electromigration_averages.append(
+                        plot_mem_electromigration
+                    )
+
+    ionic_strengths = ["50", "75", "100", "150", "200", "400", "600", "800"]
+    x = np.arange(len(ionic_strengths))
+    for ax in fig1.axes:
+        ax.set_xticks(x)
+        ax.set_xticklabels(ionic_strengths)
+        ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+        ax.axhline(0, color="black", linewidth=1.5)
+    for ax in fig2.axes:
+        ax.set_xticks(x)
+        ax.set_xticklabels(ionic_strengths)
+        ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+        ax.axhline(0, color="black", linewidth=1.5)
+
+    fig1.suptitle(
+        "Average Cation Flux Contributions (Excluding x,z=0)",
+        fontsize=fontsize + 2,
+        fontweight="bold",
+    )
+    fig2.suptitle(
+        "Average Anion Flux Contributions (Excluding x,z=0)",
+        fontsize=fontsize + 2,
+        fontweight="bold",
+    )
+    ax1a.set_ylabel(
+        "Contribution to\nLithium Flux", fontsize=fontsize, fontweight="bold"
+    )
+    ax2a.set_ylabel(
+        "Contribution to\nCobalt Flux", fontsize=fontsize, fontweight="bold"
+    )
+    ax3a.set_ylabel(
+        "Contribution to\nAluminum Flux", fontsize=fontsize, fontweight="bold"
+    )
+    for ax in [ax4a, ax5a, ax6a]:
+        ax.set_ylabel(
+            "Contribution to\nChloride Flux",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+    for ax in [ax1a, ax4a]:
+        ax.set_title(
+            "Boundary Layer",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+    for ax in [ax1b, ax4b]:
+        ax.set_title(
+            "Membrane",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+    for ax in [ax3a, ax3b, ax6a, ax6b]:
+        ax.set_xlabel(
+            "Inlet Feed Ionic Strength (mol/m$^3$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+
+    conv = mpatches.Patch(color=conv_color, label="Convection")
+    diff = mpatches.Patch(color=diff_color, label="Diffusion")
+    elec = mpatches.Patch(color=elec_color, label="Electromigration")
+    for ax in [ax1a, ax4a]:
+        ax.legend(handles=[conv, diff, elec], loc="upper center")
+
+    bar_width = 0.2
+
+    ax1a.bar(
+        x - bar_width,
+        abs_list(lithium_bl_convection_averages),
+        bar_width,
+        # label="Convection",
+        color=conv_color,
+        hatch=hatch_func(lithium_bl_convection_averages),
+    )
+    ax1a.bar(
+        x,
+        abs_list(lithium_bl_diffusion_averages),
+        bar_width,
+        # label="Diffusion",
+        color=diff_color,
+        hatch=hatch_func(lithium_bl_diffusion_averages),
+    )
+    ax1a.bar(
+        x + bar_width,
+        abs_list(lithium_bl_electromigration_averages),
+        bar_width,
+        # label="Electromigration",
+        color=elec_color,
+        hatch=hatch_func(lithium_bl_electromigration_averages),
+    )
+
+    ax1b.bar(
+        x - bar_width,
+        abs_list(lithium_mem_convection_averages),
+        bar_width,
+        # label="Convection",
+        color=conv_color,
+        hatch=hatch_func(lithium_mem_convection_averages),
+    )
+    ax1b.bar(
+        x,
+        abs_list(lithium_mem_diffusion_averages),
+        bar_width,
+        # label="Diffusion",
+        color=diff_color,
+        hatch=hatch_func(lithium_mem_diffusion_averages),
+    )
+    ax1b.bar(
+        x + bar_width,
+        abs_list(lithium_mem_electromigration_averages),
+        bar_width,
+        # label="Electromigration",
+        color=elec_color,
+        hatch=hatch_func(lithium_mem_electromigration_averages),
+    )
+
+    ax2a.bar(
+        x - bar_width,
+        abs_list(cobalt_bl_convection_averages),
+        bar_width,
+        # label="Convection",
+        color=conv_color,
+        hatch=hatch_func(cobalt_bl_convection_averages),
+    )
+    ax2a.bar(
+        x,
+        abs_list(cobalt_bl_diffusion_averages),
+        bar_width,
+        # label="Diffusion",
+        color=diff_color,
+        hatch=hatch_func(cobalt_bl_diffusion_averages),
+    )
+    ax2a.bar(
+        x + bar_width,
+        abs_list(cobalt_bl_electromigration_averages),
+        bar_width,
+        # label="Electromigration",
+        color=elec_color,
+        hatch=hatch_func(cobalt_bl_electromigration_averages),
+    )
+
+    ax2b.bar(
+        x - bar_width,
+        abs_list(cobalt_mem_convection_averages),
+        bar_width,
+        # label="Convection",
+        color=conv_color,
+        hatch=hatch_func(cobalt_mem_convection_averages),
+    )
+    ax2b.bar(
+        x,
+        abs_list(cobalt_mem_diffusion_averages),
+        bar_width,
+        # label="Diffusion",
+        color=diff_color,
+        hatch=hatch_func(cobalt_mem_diffusion_averages),
+    )
+    ax2b.bar(
+        x + bar_width,
+        abs_list(cobalt_mem_electromigration_averages),
+        bar_width,
+        # label="Electromigration",
+        color=elec_color,
+        hatch=hatch_func(cobalt_mem_electromigration_averages),
+    )
+
+    ax3a.bar(
+        x - bar_width,
+        abs_list(aluminum_bl_convection_averages),
+        bar_width,
+        # label="Convection",
+        color=conv_color,
+        hatch=hatch_func(aluminum_bl_convection_averages),
+    )
+    ax3a.bar(
+        x,
+        abs_list(aluminum_bl_diffusion_averages),
+        bar_width,
+        # label="Diffusion",
+        color=diff_color,
+        hatch=hatch_func(aluminum_bl_diffusion_averages),
+    )
+    ax3a.bar(
+        x + bar_width,
+        abs_list(aluminum_bl_electromigration_averages),
+        bar_width,
+        # label="Electromigration",
+        color=elec_color,
+        hatch=hatch_func(aluminum_bl_electromigration_averages),
+    )
+
+    ax3b.bar(
+        x - bar_width,
+        abs_list(aluminum_mem_convection_averages),
+        bar_width,
+        # label="Convection",
+        color=conv_color,
+        hatch=hatch_func(aluminum_mem_convection_averages),
+    )
+    ax3b.bar(
+        x,
+        abs_list(aluminum_mem_diffusion_averages),
+        bar_width,
+        # label="Diffusion",
+        color=diff_color,
+        hatch=hatch_func(aluminum_mem_diffusion_averages),
+    )
+    ax3b.bar(
+        x + bar_width,
+        abs_list(aluminum_mem_electromigration_averages),
+        bar_width,
+        # label="Electromigration",
+        color=elec_color,
+        hatch=hatch_func(aluminum_mem_electromigration_averages),
+    )
+
+    ax4a.bar(
+        x - bar_width,
+        abs_list(cl_lithium_bl_convection_averages),
+        bar_width,
+        # label="Convection",
+        color=conv_color,
+        hatch=hatch_func(cl_lithium_bl_convection_averages),
+    )
+    ax4a.bar(
+        x,
+        abs_list(cl_lithium_bl_diffusion_averages),
+        bar_width,
+        # label="Diffusion",
+        color=diff_color,
+        hatch=hatch_func(cl_lithium_bl_diffusion_averages),
+    )
+    ax4a.bar(
+        x + bar_width,
+        abs_list(cl_lithium_bl_electromigration_averages),
+        bar_width,
+        # label="Electromigration",
+        color=elec_color,
+        hatch=hatch_func(cl_lithium_bl_electromigration_averages),
+    )
+
+    ax4b.bar(
+        x - bar_width,
+        abs_list(cl_lithium_mem_convection_averages),
+        bar_width,
+        # label="Convection",
+        color=conv_color,
+        hatch=hatch_func(cl_lithium_mem_convection_averages),
+    )
+    ax4b.bar(
+        x,
+        abs_list(cl_lithium_mem_diffusion_averages),
+        bar_width,
+        # label="Diffusion",
+        color=diff_color,
+        hatch=hatch_func(cl_lithium_mem_diffusion_averages),
+    )
+    ax4b.bar(
+        x + bar_width,
+        abs_list(cl_lithium_mem_electromigration_averages),
+        bar_width,
+        # label="Electromigration",
+        color=elec_color,
+        hatch=hatch_func(cl_lithium_mem_electromigration_averages),
+    )
+
+    ax5a.bar(
+        x - bar_width,
+        abs_list(cl_cobalt_bl_convection_averages),
+        bar_width,
+        # label="Convection",
+        color=conv_color,
+        hatch=hatch_func(cl_cobalt_bl_convection_averages),
+    )
+    ax5a.bar(
+        x,
+        abs_list(cl_cobalt_bl_diffusion_averages),
+        bar_width,
+        # label="Diffusion",
+        color=diff_color,
+        hatch=hatch_func(cl_cobalt_bl_diffusion_averages),
+    )
+    ax5a.bar(
+        x + bar_width,
+        abs_list(cl_cobalt_bl_electromigration_averages),
+        bar_width,
+        # label="Electromigration",
+        color=elec_color,
+        hatch=hatch_func(cl_cobalt_bl_electromigration_averages),
+    )
+
+    ax5b.bar(
+        x - bar_width,
+        abs_list(cl_cobalt_mem_convection_averages),
+        bar_width,
+        # label="Convection",
+        color=conv_color,
+        hatch=hatch_func(cl_cobalt_mem_convection_averages),
+    )
+    ax5b.bar(
+        x,
+        abs_list(cl_cobalt_mem_diffusion_averages),
+        bar_width,
+        # label="Diffusion",
+        color=diff_color,
+        hatch=hatch_func(cl_cobalt_mem_diffusion_averages),
+    )
+    ax5b.bar(
+        x + bar_width,
+        abs_list(cl_cobalt_mem_electromigration_averages),
+        bar_width,
+        # label="Electromigration",
+        color=elec_color,
+        hatch=hatch_func(cl_cobalt_mem_electromigration_averages),
+    )
+
+    ax6a.bar(
+        x - bar_width,
+        abs_list(cl_aluminum_bl_convection_averages),
+        bar_width,
+        # label="Convection",
+        color=conv_color,
+        hatch=hatch_func(cl_aluminum_bl_convection_averages),
+    )
+    ax6a.bar(
+        x,
+        abs_list(cl_aluminum_bl_diffusion_averages),
+        bar_width,
+        # label="Diffusion",
+        color=diff_color,
+        hatch=hatch_func(cl_aluminum_bl_diffusion_averages),
+    )
+    ax6a.bar(
+        x + bar_width,
+        abs_list(cl_aluminum_bl_electromigration_averages),
+        bar_width,
+        # label="Electromigration",
+        color=elec_color,
+        hatch=hatch_func(cl_aluminum_bl_electromigration_averages),
+    )
+
+    ax6b.bar(
+        x - bar_width,
+        abs_list(cl_aluminum_mem_convection_averages),
+        bar_width,
+        # label="Convection",
+        color=conv_color,
+        hatch=hatch_func(cl_aluminum_mem_convection_averages),
+    )
+    ax6b.bar(
+        x,
+        abs_list(cl_aluminum_mem_diffusion_averages),
+        bar_width,
+        # label="Diffusion",
+        color=diff_color,
+        hatch=hatch_func(cl_aluminum_mem_diffusion_averages),
+    )
+    ax6b.bar(
+        x + bar_width,
+        abs_list(cl_aluminum_mem_electromigration_averages),
+        bar_width,
+        # label="Electromigration",
+        color=elec_color,
+        hatch=hatch_func(cl_aluminum_mem_electromigration_averages),
+    )
+
+    if total:
+        ax1a_flux = ax1a.twinx()
+        ax1b_flux = ax1b.twinx()
+        ax2a_flux = ax2a.twinx()
+        ax2b_flux = ax2b.twinx()
+        ax3a_flux = ax3a.twinx()
+        ax3b_flux = ax3b.twinx()
+        ax4a_flux = ax4a.twinx()
+        ax4b_flux = ax4b.twinx()
+        ax5a_flux = ax5a.twinx()
+        ax5b_flux = ax5b.twinx()
+        ax6a_flux = ax6a.twinx()
+        ax6b_flux = ax6b.twinx()
+
+        ax1a_flux.plot(
+            ionic_strengths,
+            lithium_flux_averages,
+            color=flux_color,
+            marker="s",
+            markersize=markersize,
+        )
+        ax1b_flux.plot(
+            ionic_strengths,
+            lithium_flux_averages,
+            color=flux_color,
+            marker="s",
+            markersize=markersize,
+        )
+        ax2a_flux.plot(
+            ionic_strengths,
+            cobalt_flux_averages,
+            color=flux_color,
+            marker="s",
+            markersize=markersize,
+        )
+        ax2b_flux.plot(
+            ionic_strengths,
+            cobalt_flux_averages,
+            color=flux_color,
+            marker="s",
+            markersize=markersize,
+        )
+        ax3a_flux.plot(
+            ionic_strengths,
+            aluminum_flux_averages,
+            color=flux_color,
+            marker="s",
+            markersize=markersize,
+        )
+        ax3b_flux.plot(
+            ionic_strengths,
+            aluminum_flux_averages,
+            color=flux_color,
+            marker="s",
+            markersize=markersize,
+        )
+        ax4a_flux.plot(
+            ionic_strengths,
+            cl_lithium_flux_averages,
+            color=flux_color,
+            marker="s",
+            markersize=markersize,
+        )
+        ax4b_flux.plot(
+            ionic_strengths,
+            cl_lithium_flux_averages,
+            color=flux_color,
+            marker="s",
+            markersize=markersize,
+        )
+        ax5a_flux.plot(
+            ionic_strengths,
+            cl_cobalt_flux_averages,
+            color=flux_color,
+            marker="s",
+            markersize=markersize,
+        )
+        ax5b_flux.plot(
+            ionic_strengths,
+            cl_cobalt_flux_averages,
+            color=flux_color,
+            marker="s",
+            markersize=markersize,
+        )
+        ax6a_flux.plot(
+            ionic_strengths,
+            cl_aluminum_flux_averages,
+            color=flux_color,
+            marker="s",
+            markersize=markersize,
+        )
+        ax6b_flux.plot(
+            ionic_strengths,
+            cl_aluminum_flux_averages,
+            color=flux_color,
+            marker="s",
+            markersize=markersize,
+        )
+
+        for ax in [
+            ax1a_flux,
+            ax1b_flux,
+            ax2a_flux,
+            ax2b_flux,
+            ax3a_flux,
+            ax3b_flux,
+            ax4a_flux,
+            ax4b_flux,
+            ax5a_flux,
+            ax5b_flux,
+            ax6a_flux,
+            ax6b_flux,
+        ]:
+            ax.set_ylabel(
+                "Ion Flux mol m$^{-2}$ h$^{-1}$)",
+                color=flux_color,
+                fontsize=fontsize,
+                fontweight="bold",
+            )
+            ax.tick_params(axis="y", labelcolor=flux_color, labelsize=fontsize)
+
+
+def abs_list(values):
+    return [abs(x) for x in values]
+
+
+def hatch_func(values):
+    return ["XX" if val < 0 else "" for val in values]
 
 
 if __name__ == "__main__":
