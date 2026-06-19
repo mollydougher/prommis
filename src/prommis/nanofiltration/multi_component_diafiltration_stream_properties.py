@@ -32,6 +32,7 @@ class MultiComponentDiafiltrationStreamParameterData(PhysicalParameterBlock):
     diafiltration membrane.
 
     Currently includes the following solutes:
+        K (potassium ion, +)
         Li (lithium ion, +)
         Co (cobalt ion, 2+)
         Al (aluminum ion, 3+)
