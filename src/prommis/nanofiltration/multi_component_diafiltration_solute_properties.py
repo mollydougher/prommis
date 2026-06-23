@@ -74,6 +74,7 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         # ion valence
         charge_dict = {
             "K": 1,
+            "Na": 1,
             "Li": 1,
             "Co": 2,
             "Al": 3,
@@ -85,6 +86,7 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         # assumption: no hindered transport (D_bulk = D_membrane)
         boundary_layer_diffusion_coefficient_dict = {
             "K": 7.06,  # mm2 / h
+            "Na": 4.79,  # mm2 / h
             "Li": 3.71,  # mm2 / h
             "Co": 2.64,  # mm2 / h
             "Al": 2.01,  # mm2 / h
@@ -92,6 +94,7 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         }
         membrane_diffusion_coefficient_dict = {
             "K": 7.06 * 0.01,  # mm2 / h
+            "Na": 4.79 * 0.01,  # mm2 / h
             "Li": 3.71 * 0.01,  # mm2 / h
             "Co": 2.64 * 0.01,  # mm2 / h
             "Al": 2.01 * 0.01,  # mm2 / h
@@ -101,6 +104,7 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         # thermal reflection coefficient, related to solute rejection
         sigma_dict = {
             "K": 1,
+            "Na": 1,
             "Li": 1,
             "Co": 1,
             "Al": 1,
@@ -111,7 +115,9 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         # (1 - (radius_ion/radius_pore))**2
         steric_partition_coefficient_dict = {
             "K": 0.1,
+            "Na": 0.08,
             "Li": 0.06,
+            # TODO double check Co value
             "Co": 0.02,
             "Al": 0.002,
             "Cl": 0.1,
@@ -119,7 +125,9 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
 
         if self.config.cation_list == ["K"]:
             salt_system = "K_Cl"
-        if self.config.cation_list == ["Li"]:
+        elif self.config.cation_list == ["Na"]:
+            salt_system = "Na_Cl"
+        elif self.config.cation_list == ["Li"]:
             salt_system = "Li_Cl"
         elif self.config.cation_list == ["Co"]:
             salt_system = "Co_Cl2"
@@ -137,6 +145,10 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         num_solutes_dict = {
             "K_Cl": {
                 "K": 1,
+                "Cl": 1,
+            },
+            "Na_Cl": {
+                "Na": 1,
                 "Cl": 1,
             },
             "Li_Cl": {

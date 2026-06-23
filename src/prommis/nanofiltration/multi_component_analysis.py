@@ -45,15 +45,15 @@ from prommis.nanofiltration.multi_component_diafiltration import (
 
 
 def main():
-    set_IS = False
-    run_data2 = False
+    set_IS = True
+    run_data = False
     run_single_salt = False
     run_two_salt = False
     run_three_salt = False
     run_salt_ratio = False
     solve_and_save_models(
         water_flux=0.02,
-        run_data2=run_data2,
+        run_data=run_data,
         run_single_salt=run_single_salt,
         run_two_salt=run_two_salt,
         run_three_salt=run_three_salt,
@@ -61,7 +61,7 @@ def main():
         set_IS=set_IS,
     )
 
-    data2_comparison_plots(save_figure=True)
+    data_comparison_plots(save_figure=True)
 
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=False, save_figure=True)
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True)
@@ -126,7 +126,7 @@ def build_model(
     if len(cation_list) == 1:
         m.fs.membrane.applied_pressure.fix(5)
     elif cation_list[0] == "K":
-        m.fs.membrane.applied_pressure.fix(4.14)
+        m.fs.membrane.applied_pressure.fix(4)
     # elif value(m.fs.membrane.total_feed_ionic_strength[0]) >= 100:
     #     m.fs.membrane.applied_pressure.fix(10)
     else:
@@ -213,7 +213,7 @@ def unfix_pressure(m, water_flux=0.02):
 
 def solve_and_save_models(
     water_flux=0.02,
-    run_data2=True,
+    run_data=True,
     run_single_salt=True,
     run_two_salt=True,
     run_three_salt=True,
@@ -232,10 +232,10 @@ def solve_and_save_models(
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
-    if run_data2:
+    if run_data:
         # set concentrations
         feed = {
-            "K": [18, 30, 41, 50, 59, 67, 74, 81, 87, 92],
+            "Na": [10, 30, 40, 50, 60, 70, 80, 90, 100, 125],
         }
 
         H_feed_guesses = np.arange(0.5, 2.1, 0.1)
@@ -271,7 +271,7 @@ def solve_and_save_models(
                         solve_model(model)
                         # unfix_pressure(model, water_flux=water_flux)
                         # solve_model(model)
-                        fname = f"multi_component_case_studies/DATA_2_comparison/{cation}Cl_{concentration}mM"
+                        fname = f"multi_component_case_studies/DATA_comparison/{cation}Cl_{concentration}mM"
                         to_json(model, fname=fname)
                         break
                     except (InitializationError, NoFeasibleSolutionError):
@@ -640,6 +640,7 @@ def calculate_spread(list):
 
 
 def get_model_averages(model, solute):
+    actual_sieving = []
     observed_sieving = []
     observed_rejection = []
     actual_rejection = []
@@ -650,6 +651,9 @@ def get_model_averages(model, solute):
     for t in model.fs.membrane.time:
         for x in model.fs.membrane.dimensionless_module_length:
             if x != 0:
+                actual_sieving.append(
+                    value(model.fs.membrane.actual_sieving_coefficient[t, x, solute])
+                )
                 observed_sieving.append(
                     value(model.fs.membrane.observed_sieving_coefficient[t, x, solute])
                 )
@@ -675,6 +679,9 @@ def get_model_averages(model, solute):
                     )
                 )
 
+    avg_actual_sieving = np.average(actual_sieving)
+    spread_actual_sieving = calculate_spread(actual_sieving)
+
     avg_observed_sieving = np.average(observed_sieving)
     spread_observed_sieving = calculate_spread(observed_sieving)
 
@@ -694,6 +701,10 @@ def get_model_averages(model, solute):
     spread_H_perm = calculate_spread(H_perm)
 
     info_dict = {
+        "actual_sieving": {
+            "avg": avg_actual_sieving,
+            "spread": spread_actual_sieving,
+        },
         "observed_sieving": {
             "avg": avg_observed_sieving,
             "spread": spread_observed_sieving,
@@ -896,7 +907,7 @@ def get_model_averages_flux(model, solute):
     return info_dict
 
 
-def data2_comparison_plots(save_figure=True):
+def data_comparison_plots(save_figure=True):
     markersize = 10
     fontsize = 14
 
@@ -910,15 +921,12 @@ def data2_comparison_plots(save_figure=True):
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
-    fig1, ax1 = plt.subplots(1, 1, dpi=100, figsize=(5, 5), constrained_layout=True)
-
-    ax1.set_xlabel(
-        "Potassium Feed Concentration\n(mol/m$\mathbf{^3}$)",
-        fontsize=fontsize,
-        fontweight="bold",
+    fig1, (ax1, ax2) = plt.subplots(
+        1, 2, dpi=100, figsize=(10, 5), constrained_layout=True
     )
 
     ax1.set_ylabel("Observed Sieving Coefficient", fontsize=fontsize, fontweight="bold")
+    ax2.set_ylabel("Acutal Sieving Coefficient", fontsize=fontsize, fontweight="bold")
 
     # color blind friendly
     tol_bright_hex = [
@@ -933,41 +941,49 @@ def data2_comparison_plots(save_figure=True):
     k_predicted_color = tol_bright_hex[0]
     k_measured_color = tol_bright_hex[1]
 
-    ax1.plot(
-        [],
-        [],
-        color=k_predicted_color,
-        marker="o",
-        markersize=markersize,
-        linestyle="None",
-        label="predicted",
-    )
-    ax1.plot(
-        [],
-        [],
-        color=k_measured_color,
-        marker="s",
-        markersize=markersize,
-        linestyle="None",
-        label="measured",
-    )
-    ax1.legend(loc="best", fontsize=fontsize - 2)
-    ax1.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+    for ax in [ax1, ax2]:
+        ax.set_xlabel(
+            "Sodium Feed Concentration\n(mol/m$\mathbf{^3}$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
 
-    model_folder = Path("multi_component_case_studies/DATA_2_comparison")
+        ax.plot(
+            [],
+            [],
+            color=k_predicted_color,
+            marker="o",
+            markersize=markersize,
+            linestyle="None",
+            label="predicted",
+        )
+        ax.plot(
+            [],
+            [],
+            color=k_measured_color,
+            marker="s",
+            markersize=markersize,
+            linestyle="None",
+            label="measured",
+        )
+        ax.legend(loc="upper left", fontsize=fontsize - 2)
+        ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+        ax.set_ylim(0.05, 0.7)
+
+    model_folder = Path("multi_component_case_studies/DATA_comparison")
     # 47 characters (0-46) make up folder name before model name
     # multi_component_case_studies/DATA_2_comparison/
 
     for case_study in model_folder.iterdir():
         concentration = float(50)  # mM
-        cation_list = ["K"]
+        cation_list = ["Na"]
         inlet_concentration = {
             "feed": {
-                "K": concentration,
+                "Na": concentration,
                 "Cl": concentration,
             },
             "diafiltrate": {
-                "K": 1e-10,
+                "Na": 1e-10,
                 "Cl": 1e-10,
             },
         }
@@ -983,18 +999,20 @@ def data2_comparison_plots(save_figure=True):
         )
         from_json(model, fname=case_study)
 
-        average_variable_dict = get_model_averages(model, "K")
+        average_variable_dict = get_model_averages(model, "Na")
 
-        x_value_predicted = value(model.fs.membrane.retentate_conc_mol_comp[0, 0, "K"])
-        y_data_predicted = average_variable_dict["observed_sieving"]["avg"]
-        y_err_predicted = average_variable_dict["observed_sieving"]["spread"]
+        x_value_predicted = value(model.fs.membrane.retentate_conc_mol_comp[0, 0, "Na"])
+        y_obs_data_predicted = average_variable_dict["observed_sieving"]["avg"]
+        y_obs_err_predicted = average_variable_dict["observed_sieving"]["spread"]
+        y_act_data_predicted = average_variable_dict["actual_sieving"]["avg"]
+        y_act_err_predicted = average_variable_dict["actual_sieving"]["spread"]
 
         alpha = 1
         marker = "o"
 
         ax1.plot(
             x_value_predicted,
-            y_data_predicted,
+            y_obs_data_predicted,
             color=k_predicted_color,
             marker=marker,
             alpha=alpha,
@@ -1002,40 +1020,151 @@ def data2_comparison_plots(save_figure=True):
         )
         ax1.errorbar(
             x_value_predicted,
-            y_data_predicted,
-            yerr=y_err_predicted,
+            y_obs_data_predicted,
+            yerr=y_obs_err_predicted,
             ecolor=k_predicted_color,
             capsize=3,
         )
+        ax2.plot(
+            x_value_predicted,
+            y_act_data_predicted,
+            color=k_predicted_color,
+            marker=marker,
+            alpha=alpha,
+            markersize=markersize,
+        )
+        ax2.errorbar(
+            x_value_predicted,
+            y_act_data_predicted,
+            yerr=y_act_err_predicted,
+            ecolor=k_predicted_color,
+            capsize=3,
+        )
+    # mass averaged
+    # NF270_MC5_07_23_24_SNaCl = {
+    #     "conc_feed": [7.1027, 27.0308, 46.4032, 58.3597, 68.4640, 77.5487, 86.1080, 93.7086, 100.8015, 107.3573],
+    #     "sieving_obs": [0.2433, 0.2016, 0.2978, 0.3922, 0.4685, 0.5236, 0.5604, 0.6024, 0.6215, 0.6494],
+    #     "sieving_act": [0.206531413, 0.143726612, 0.2255, 0.3173, 0.38126181, 0.446081266, 0.48170526, 0.527616476, 0.553951932, 0.586041719],
+    # }
 
-    x_value_measured = [
-        18.04610149,
-        29.57465783,
-        40.66003567,
-        50.42679819,
-        59.25578771,
-        66.87718404,
-        74.05039677,
-        81.21405431,
-        86.85843768,
-        92.42000946,
-    ]
-    y_data_measured = [
-        0.601220342,
-        0.47829164,
-        0.576358814,
-        0.623256276,
-        0.68864317,
-        0.727616002,
-        0.768330824,
-        0.761049701,
-        0.763151278,
-        0.820758479,
-    ]
+    # NF270_MC5_07_23_24_NaCl = {
+    #     "conc_feed": [22.2746, 31.2866, 43.5252, 54.7824, 64.9122, 74.3363, 83.1479, 91.4075, 98.5328, 105.2365],
+    #     "sieving_obs": [0.0810, 0.2239, 0.3534, 0.4396, 0.5035, 0.5501, 0.5902, 0.6246, 0.6352, 0.6676],
+    #     "sieving_act": [0.0663, 0.1622, 0.2726, 0.3532, 0.4177, 0.4700, 0.5150, 0.5486, 0.5671, 0.6031],
+    # }
+
+    # TODO need to equate the pressures (slightly different)
+
+    # equal averaged
+    NF270_MC5_07_23_24_SNaCl = {
+        "conc_feed": [
+            8.563551707,
+            30.24764825,
+            44.61376689,
+            57.74096183,
+            68.18847188,
+            77.34504322,
+            85.96931292,
+            93.59620468,
+            100.7226698,
+            107.2828169,
+        ],
+        "sieving_obs": [
+            0.201771377,
+            0.180182039,
+            0.309699551,
+            0.396387165,
+            0.470416862,
+            0.525007875,
+            0.561319005,
+            0.603156037,
+            0.622033031,
+            0.649835848,
+        ],
+        "sieving_act": [
+            0.169892065,
+            0.127458021,
+            0.235493243,
+            0.321132678,
+            0.383056397,
+            0.447447458,
+            0.482621688,
+            0.528369279,
+            0.554462686,
+            0.586522405,
+        ],
+    }
+
+    NF270_MC5_07_23_24_NaCl = {
+        "conc_feed": [
+            9.619876228,
+            30.51142419,
+            43.13433314,
+            54.52863391,
+            64.73123796,
+            74.1947,
+            83.037818,
+            91.33027175,
+            98.46308158,
+            105.1806369,
+        ],
+        "sieving_obs": [
+            0.187486613,
+            0.229553642,
+            0.356578625,
+            0.441607334,
+            0.504883593,
+            0.5511,
+            0.591023265,
+            0.625088429,
+            0.635640701,
+            0.667960229,
+        ],
+        "sieving_act": [
+            0.15680688,
+            0.16665855,
+            0.275382396,
+            0.355112937,
+            0.419088846,
+            0.4710,
+            0.515815503,
+            0.549154657,
+            0.56755578,
+            0.603452391,
+        ],
+    }
 
     ax1.plot(
-        x_value_measured,
-        y_data_measured,
+        NF270_MC5_07_23_24_SNaCl["conc_feed"],
+        NF270_MC5_07_23_24_SNaCl["sieving_obs"],
+        color=k_measured_color,
+        marker="s",
+        linestyle="None",
+        alpha=alpha,
+        markersize=markersize,
+    )
+    ax1.plot(
+        NF270_MC5_07_23_24_NaCl["conc_feed"],
+        NF270_MC5_07_23_24_NaCl["sieving_obs"],
+        color=k_measured_color,
+        marker="s",
+        linestyle="None",
+        alpha=alpha,
+        markersize=markersize,
+    )
+
+    ax2.plot(
+        NF270_MC5_07_23_24_SNaCl["conc_feed"],
+        NF270_MC5_07_23_24_SNaCl["sieving_act"],
+        color=k_measured_color,
+        marker="s",
+        linestyle="None",
+        alpha=alpha,
+        markersize=markersize,
+    )
+    ax2.plot(
+        NF270_MC5_07_23_24_NaCl["conc_feed"],
+        NF270_MC5_07_23_24_NaCl["sieving_act"],
         color=k_measured_color,
         marker="s",
         linestyle="None",
@@ -1044,7 +1173,7 @@ def data2_comparison_plots(save_figure=True):
     )
 
     if save_figure:
-        plt.savefig("sieving_data_2_comparison.png", dpi=600)
+        plt.savefig("sieving_data_comparison.png", dpi=600)
 
 
 def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True):

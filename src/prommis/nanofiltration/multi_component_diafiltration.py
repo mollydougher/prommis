@@ -2062,6 +2062,19 @@ and used when constructing these,
             rule=_observed_sieving_coefficient,
         )
 
+        def _actual_sieving_coefficient(blk, t, x, j):
+            return (
+                blk.permeate_conc_mol_comp[t, x, j]
+                / blk.boundary_layer_conc_mol_comp[t, x, 1, j]
+            )
+
+        self.actual_sieving_coefficient = Expression(
+            self.time,
+            self.dimensionless_module_length,
+            self.solutes,
+            rule=_actual_sieving_coefficient,
+        )
+
         def _observed_membrane_selectivity(blk, t, x, j, k):
             return (
                 blk.observed_sieving_coefficient[t, x, j]
