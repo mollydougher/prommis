@@ -653,6 +653,13 @@ and used when constructing these,
         ),
     )
     CONFIG.declare(
+        "total_membrane_thickness",
+        ConfigValue(
+            default=1e-7,
+            doc="Total membrane thickness in m (in the z-direction)",
+        ),
+    )
+    CONFIG.declare(
         "NFE_module_length",
         ConfigValue(
             default=10,
@@ -718,7 +725,7 @@ and used when constructing these,
                 doc="Thickness of boundary layer (z-direction)",
             )
         self.total_membrane_thickness = Param(
-            initialize=1e-7,
+            initialize=self.config.total_membrane_thickness,
             mutable=True,
             units=units.m,
             doc="Thickness of membrane (z-direction)",

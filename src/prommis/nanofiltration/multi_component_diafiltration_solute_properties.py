@@ -32,9 +32,12 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
 
     Currently includes the following solutes:
         K (potassium ion, +)
+        Na (sodium ion, +)
         Li (lithium ion, +)
+        Ca (calcium ion, 2+)
         Co (cobalt ion, 2+)
         Al (aluminum ion, 3+)
+        La (lanthanum ion, 3+)
         Cl (chloride ion, -)
     """
 
@@ -76,28 +79,33 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             "K": 1,
             "Na": 1,
             "Li": 1,
+            "Ca": 2,
             "Co": 2,
             "Al": 3,
+            "La": 3,
             "Cl": -1,
         }
 
         # infinite dilution solute diffusion coefficient
         # source: https://www.aqion.de/site/diffusion-coefficients
-        # assumption: no hindered transport (D_bulk = D_membrane)
         boundary_layer_diffusion_coefficient_dict = {
             "K": 7.06,  # mm2 / h
             "Na": 4.79,  # mm2 / h
             "Li": 3.71,  # mm2 / h
+            "Ca": 2.85,  # mm2 / h
             "Co": 2.64,  # mm2 / h
             "Al": 2.01,  # mm2 / h
+            "La": 2.23,  # mm2 / h # TODO: verify
             "Cl": 7.31,  # mm2 / h
         }
         membrane_diffusion_coefficient_dict = {
             "K": 7.06 * 0.01,  # mm2 / h
             "Na": 4.79 * 0.01,  # mm2 / h
             "Li": 3.71 * 0.01,  # mm2 / h
+            "Ca": 2.85 * 0.01,  # mm2 / h
             "Co": 2.64 * 0.01,  # mm2 / h
             "Al": 2.01 * 0.01,  # mm2 / h
+            "La": 2.23 * 0.01,  # mm2 / h # TODO: verify
             "Cl": 7.31 * 0.01,  # mm2 / h
         }
 
@@ -106,8 +114,10 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             "K": 1,
             "Na": 1,
             "Li": 1,
+            "Ca": 1,
             "Co": 1,
             "Al": 1,
+            "La": 1,
             "Cl": 1,
         }
 
@@ -117,9 +127,11 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             "K": 0.1,
             "Na": 0.08,
             "Li": 0.06,
+            "Ca": 0.03,
             # TODO double check Co value
             "Co": 0.02,
             "Al": 0.002,
+            "La": 0.009,
             "Cl": 0.1,
         }
 
@@ -129,10 +141,14 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             salt_system = "Na_Cl"
         elif self.config.cation_list == ["Li"]:
             salt_system = "Li_Cl"
+        elif self.config.cation_list == ["Ca"]:
+            salt_system = "Ca_Cl2"
         elif self.config.cation_list == ["Co"]:
             salt_system = "Co_Cl2"
         elif self.config.cation_list == ["Al"]:
             salt_system = "Al_Cl3"
+        elif self.config.cation_list == ["La"]:
+            salt_system = "La_Cl3"
         elif self.config.cation_list == ["Li", "Co"]:
             salt_system = "Li_Co_Cl3"
         elif self.config.cation_list == ["Li", "Al"]:
@@ -155,12 +171,20 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
                 "Li": 1,
                 "Cl": 1,
             },
+            "Ca_Cl2": {
+                "Ca": 1,
+                "Cl": 2,
+            },
             "Co_Cl2": {
                 "Co": 1,
                 "Cl": 2,
             },
             "Al_Cl3": {
                 "Al": 1,
+                "Cl": 3,
+            },
+            "La_Cl3": {
+                "La": 1,
                 "Cl": 3,
             },
             "Li_Co_Cl3": {
