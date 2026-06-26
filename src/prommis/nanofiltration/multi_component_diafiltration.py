@@ -1652,9 +1652,13 @@ and used when constructing these,
                 conc_bl = blk.boundary_layer_conc_mol_comp
                 conc_mem = blk.membrane_conc_mol_comp
                 H_steric = blk.config.property_package.steric_partition_coefficient
+                H_dielectric = (
+                    blk.config.property_package.dielectric_partition_coefficient
+                )
                 return conc_mem[t, x, 0, j] == (
                     conc_bl[t, x, 1, j]
                     * H_steric[j]
+                    * H_dielectric[j]
                     * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
                 )
 
@@ -1673,9 +1677,13 @@ and used when constructing these,
                 conc_mem = blk.membrane_conc_mol_comp
                 conc_r = blk.retentate_conc_mol_comp
                 H_steric = blk.config.property_package.steric_partition_coefficient
+                H_dielectric = (
+                    blk.config.property_package.dielectric_partition_coefficient
+                )
                 return conc_mem[t, x, 0, j] == (
                     conc_r[t, x, j]
                     * H_steric[j]
+                    * H_dielectric[j]
                     * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
                 )
 
@@ -1693,9 +1701,11 @@ and used when constructing these,
             conc_mem = blk.membrane_conc_mol_comp
             conc_p = blk.permeate_conc_mol_comp
             H_steric = blk.config.property_package.steric_partition_coefficient
+            H_dielectric = blk.config.property_package.dielectric_partition_coefficient
             return conc_mem[t, x, 1, j] == (
                 conc_p[t, x, j]
                 * H_steric[j]
+                * H_dielectric[j]
                 * exp(-charge[j] * blk.Donnan_potential_permeate_side[t, x])
             )
 

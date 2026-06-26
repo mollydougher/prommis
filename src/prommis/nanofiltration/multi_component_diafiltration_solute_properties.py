@@ -123,16 +123,50 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
 
         # steric component of partition coefficient at the solution-membrane interfaces
         # (1 - (radius_ion/radius_pore))**2
+        # using hydrated radius
+        # steric_partition_coefficient_dict = {
+        #     "K": 0.1,
+        #     "Na": 0.08,
+        #     "Li": 0.06,
+        #     "Ca": 0.03,
+        #     "Co": 0.02,
+        #     "Al": 0.003,
+        #     "La": 0.009,
+        #     "Cl": 0.1,
+        # }
+        # using stokes radius
         steric_partition_coefficient_dict = {
-            "K": 0.1,
-            "Na": 0.08,
+            "K": 0.6,
+            "Na": 0.4,
+            "Li": 0.3,
+            "Ca": 0.1,
+            "Co": 0.1,
+            "Al": 0.01,
+            "La": 0.04,
+            "Cl": 0.6,
+        }
+
+        # using hydrated radius
+        # dielectric_partition_coefficient_dict = {
+        #     "K": 0.4,
+        #     "Na": 0.4,
+        #     "Li": 0.4,
+        #     "Ca": 0.04,
+        #     "Co": 0.04,
+        #     "Al": 0.002,
+        #     "La": 0.001,
+        #     "Cl": 0.4,
+        # }
+        # using stokes radius
+        dielectric_partition_coefficient_dict = {
+            "K": 0.2,
+            "Na": 0.2,
             "Li": 0.06,
-            "Ca": 0.03,
-            # TODO double check Co value
+            "Ca": 0.01,
             "Co": 0.02,
-            "Al": 0.002,
-            "La": 0.009,
-            "Cl": 0.1,
+            "Al": 0.0009,
+            "La": 0.0004,
+            "Cl": 0.06,
         }
 
         if self.config.cation_list == ["K"]:
@@ -225,6 +259,9 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         initialize_steric_partition_coefficient_dict = _subset(
             steric_partition_coefficient_dict
         )
+        initialize_dielectric_partition_coefficient_dict = _subset(
+            dielectric_partition_coefficient_dict
+        )
         initialize_num_solutes_dict = _subset(num_solutes_dict[salt_system])
 
         # initialize properties
@@ -256,6 +293,12 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             self.component_list,
             units=units.dimensionless,
             initialize=initialize_steric_partition_coefficient_dict,
+        )
+
+        self.dielectric_partition_coefficient = Param(
+            self.component_list,
+            units=units.dimensionless,
+            initialize=initialize_dielectric_partition_coefficient_dict,
         )
 
         self.num_solutes = Param(
