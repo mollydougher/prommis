@@ -60,6 +60,24 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         ),
     )
 
+    CONFIG.declare(
+        "sigma_dict",
+        ConfigValue(
+            # domain=ListOf(str),
+            default={
+                "K": 1,
+                "Na": 1,
+                "Li": 1,
+                "Ca": 1,
+                "Co": 1,
+                "Al": 1,
+                "La": 1,
+                "Cl": 1,
+            },
+            doc="Dict of sigma values",
+        ),
+    )
+
     def build(self):
         super().build()
 
@@ -110,16 +128,7 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         }
 
         # thermal reflection coefficient, related to solute rejection
-        sigma_dict = {
-            "K": 1,
-            "Na": 1,
-            "Li": 1,
-            "Ca": 1,
-            "Co": 1,
-            "Al": 1,
-            "La": 1,
-            "Cl": 1,
-        }
+        sigma_dict = self.config.sigma_dict
 
         # steric component of partition coefficient at the solution-membrane interfaces
         # (1 - (radius_ion/radius_pore))**2
