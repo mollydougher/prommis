@@ -11,7 +11,7 @@ Author: Molly Dougher
 """
 
 from pyomo.common.config import ConfigValue, ListOf
-from pyomo.environ import Param, Set, Var, units
+from pyomo.environ import Param, Set, Var, exp, units
 
 from idaes.core import (
     MaterialFlowBasis,
@@ -23,6 +23,8 @@ from idaes.core import (
 )
 from idaes.core.util.exceptions import ConfigurationError
 from idaes.core.util.initialization import fix_state_vars
+
+import math
 
 
 @declare_process_block_class("MultiComponentDiafiltrationSoluteParameter")
@@ -59,22 +61,11 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             doc="List of anions present in the system",
         ),
     )
-
     CONFIG.declare(
-        "sigma_dict",
+        "pore_radius",
         ConfigValue(
-            # domain=ListOf(str),
-            default={
-                "K": 1,
-                "Na": 1,
-                "Li": 1,
-                "Ca": 1,
-                "Co": 1,
-                "Al": 1,
-                "La": 1,
-                "Cl": 1,
-            },
-            doc="Dict of sigma values",
+            default=5e-10,
+            doc="Average pore size of the radius (m)",
         ),
     )
 
@@ -128,7 +119,52 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         }
 
         # thermal reflection coefficient, related to solute rejection
-        sigma_dict = self.config.sigma_dict
+        sigma_dict = {
+            "K": 1,
+            "Na": 1,
+            "Li": 1,
+            "Ca": 1,
+            "Co": 1,
+            "Al": 1,
+            "La": 1,
+            "Cl": 1,
+        }
+
+        # stokes radius (m)
+        stokes_radius = {
+            "K": 1.25e-10,
+            "Na": 1.84e-10,
+            "Li": 2.38e-10,
+            "Ca": 3.1e-10,
+            "Co": 3.35e-10,
+            "Al": 4.39e-10,
+            "La": 3.96e-10,
+            "Cl": 1.21e-10,
+        }
+
+        def _calculate_steric_partition_coefficients(blk, ion):
+            r_pore = blk.config.pore_radius  # m
+            r_ion = stokes_radius[ion]  # m
+
+            if r_ion > r_pore:
+                return 0
+            else:
+                return (1 - (r_ion / r_pore)) ** 2
+
+        def _calculate_dielectric_partition_coefficients(blk, ion):
+            e = 1.60e-19  # C
+            epsilon_0 = 8.85e-12  # F / m
+            k_B = 1.38e-23  # m2 kg / (s2 K)
+            T = 298  # K
+            epsilon_bulk = 78.4
+            epsilon_pore = 40
+            r_ion = stokes_radius[ion]  # m
+            z_ion = charge_dict[ion]
+
+            return exp(
+                -((z_ion**2 * e**2) / (8 * math.pi * k_B * T * epsilon_0 * r_ion))
+                * ((1 / epsilon_pore) - (1 / epsilon_bulk))
+            )
 
         # steric component of partition coefficient at the solution-membrane interfaces
         # (1 - (radius_ion/radius_pore))**2
@@ -144,16 +180,16 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         #     "Cl": 0.1,
         # }
         # using stokes radius
-        steric_partition_coefficient_dict = {
-            "K": 0.6,
-            "Na": 0.4,
-            "Li": 0.3,
-            "Ca": 0.1,
-            "Co": 0.1,
-            "Al": 0.01,
-            "La": 0.04,
-            "Cl": 0.6,
-        }
+        # steric_partition_coefficient_dict = {
+        #     "K": 0.6,
+        #     "Na": 0.4,
+        #     "Li": 0.3,
+        #     "Ca": 0.1,
+        #     "Co": 0.1,
+        #     "Al": 0.01,
+        #     "La": 0.04,
+        #     "Cl": 0.6,
+        # }
 
         # using hydrated radius
         # dielectric_partition_coefficient_dict = {
@@ -167,16 +203,16 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         #     "Cl": 0.4,
         # }
         # using stokes radius
-        dielectric_partition_coefficient_dict = {
-            "K": 0.2,
-            "Na": 0.2,
-            "Li": 0.06,
-            "Ca": 0.01,
-            "Co": 0.02,
-            "Al": 0.0009,
-            "La": 0.0004,
-            "Cl": 0.06,
-        }
+        # dielectric_partition_coefficient_dict = {
+        #     "K": 0.2,
+        #     "Na": 0.2,
+        #     "Li": 0.06,
+        #     "Ca": 0.01,
+        #     "Co": 0.02,
+        #     "Al": 0.0009,
+        #     "La": 0.0004,
+        #     "Cl": 0.06,
+        # }
 
         if self.config.cation_list == ["K"]:
             salt_system = "K_Cl"
@@ -265,12 +301,14 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             membrane_diffusion_coefficient_dict
         )
         initialize_sigma_dict = _subset(sigma_dict)
-        initialize_steric_partition_coefficient_dict = _subset(
-            steric_partition_coefficient_dict
-        )
-        initialize_dielectric_partition_coefficient_dict = _subset(
-            dielectric_partition_coefficient_dict
-        )
+        initialize_steric_partition_coefficient_dict = {
+            ion: _calculate_steric_partition_coefficients(self, ion)
+            for ion in self.component_list
+        }
+        initialize_dielectric_partition_coefficient_dict = {
+            ion: _calculate_dielectric_partition_coefficients(self, ion)
+            for ion in self.component_list
+        }
         initialize_num_solutes_dict = _subset(num_solutes_dict[salt_system])
 
         # initialize properties

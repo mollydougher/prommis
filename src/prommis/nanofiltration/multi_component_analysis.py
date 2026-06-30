@@ -79,13 +79,13 @@ def main():
 def build_model(
     cation_list,
     inlet_concentration,
-    sigma_dict,
     default_args,
     H_feed_guess,
     H_permeate_guess,
     NFE_args,
     initialize=True,
     data_applied_pressure=4,
+    rpore=5e-10,  # default of 50 nm
     data_membrane_thickness=1e-7,  # default of 100 nm
 ):
     anion_list, inlet_flow_volume, include_boundary_layer = default_args
@@ -101,7 +101,7 @@ def build_model(
     m.fs.properties = MultiComponentDiafiltrationSoluteParameter(
         cation_list=cation_list,
         anion_list=anion_list,
-        sigma_dict=sigma_dict,
+        pore_radius=rpore,
     )
 
     # add feed blocks for feed and diafiltrate
@@ -328,8 +328,8 @@ def solve_and_save_models(
         membrane_thickness_sensitivity = [1e-7, 5e-8, 2.5e-8]  # m
         membrane_thickness_sensitivity_keys = ["100", "050", "025"]  # nm
 
-        sigma_sensitivity = [0, 0.25, 0.5, 0.75, 1]
-        sigma_sensitivity_keys = ["00", "25", "05", "75", "01"]
+        rpore_sensitivity = [4.5e-10, 5e-10, 5.5e-10, 6e-10, 6.5e-10]  # m
+        rpore_sensitivity_keys = ["45", "50", "55", "60", "65"]
 
         H_feed_guesses = np.arange(0.5, 2.1, 0.1)
         H_permeate_guesses = np.arange(0.5, 2.1, 0.1)
@@ -339,7 +339,7 @@ def solve_and_save_models(
         H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
         H_guesses = np.flip(H_guesses, axis=0)
 
-        for sigma in sigma_sensitivity:
+        for rpore in rpore_sensitivity:
             for l in membrane_thickness_sensitivity:
                 for cation in feed.keys():
                     for concentration in feed[cation]:
@@ -357,10 +357,7 @@ def solve_and_save_models(
                                             "Cl": 1e-10,
                                         },
                                     },
-                                    sigma_dict={
-                                        cation: sigma,
-                                        "Cl": 1,
-                                    },
+                                    rpore=rpore,
                                     default_args=default_args,
                                     H_feed_guess=H_feed_guess,
                                     H_permeate_guess=H_permeate_guess,
@@ -377,7 +374,7 @@ def solve_and_save_models(
                                     ],
                                 )
                                 solve_model(model)
-                                fname = f"multi_component_case_studies/DATA_comparison/sigma_{sigma_sensitivity_keys[sigma_sensitivity.index(sigma)]}//{cation}/{cation}Cl_{membrane_thickness_sensitivity_keys[membrane_thickness_sensitivity.index(l)]}nm_{concentration}mM"
+                                fname = f"multi_component_case_studies/DATA_comparison/rpore_{rpore_sensitivity_keys[rpore_sensitivity.index(rpore)]}//{cation}/{cation}Cl_{membrane_thickness_sensitivity_keys[membrane_thickness_sensitivity.index(l)]}nm_{concentration}mM"
                                 to_json(model, fname=fname)
                                 break
                             except (InitializationError, NoFeasibleSolutionError):
@@ -1119,44 +1116,44 @@ def data_comparison_plots(save_figure=True):
         ax.tick_params(
             direction="in", top=True, right=True, labelsize=fontsize - 2, labelleft=True
         )
-        ax.set_title("Sigma=0")
+        ax.set_title("Pore Radius = 0.45 nm")
     for ax in [ax1b, ax2b, ax3b]:
-        ax.set_title("Sigma=0.25")
+        ax.set_title("Pore Radius = 0.50 nm")
     for ax in [ax1c, ax2c, ax3c]:
-        ax.set_title("Sigma=0.5")
+        ax.set_title("Pore Radius = 0.55 nm")
     for ax in [ax1d, ax2d, ax3d]:
-        ax.set_title("Sigma=0.75")
+        ax.set_title("Pore Radius = 0.60 nm")
     for ax in [ax1e, ax2e, ax3e]:
-        ax.set_title("Sigma=1")
+        ax.set_title("Pore Radius = 0.65 nm")
 
-    sigma_sensitivity = [0, 0.25, 0.5, 0.75, 1]
-    sigma_sensitivity_keys = ["00", "25", "05", "75", "01"]
+    rpore_sensitivity = [4.5e-10, 5e-10, 5.5e-10, 6e-10, 6.5e-10]  # m
+    rpore_sensitivity_keys = ["45", "50", "55", "60", "65"]
     axes_dict = {
-        "00": {"Na": ax1a, "Ca": ax2a, "La": ax3a},
-        "25": {"Na": ax1b, "Ca": ax2b, "La": ax3b},
-        "05": {"Na": ax1c, "Ca": ax2c, "La": ax3c},
-        "75": {"Na": ax1d, "Ca": ax2d, "La": ax3d},
-        "01": {"Na": ax1e, "Ca": ax2e, "La": ax3e},
+        "45": {"Na": ax1a, "Ca": ax2a, "La": ax3a},
+        "50": {"Na": ax1b, "Ca": ax2b, "La": ax3b},
+        "55": {"Na": ax1c, "Ca": ax2c, "La": ax3c},
+        "60": {"Na": ax1d, "Ca": ax2d, "La": ax3d},
+        "65": {"Na": ax1e, "Ca": ax2e, "La": ax3e},
     }
 
-    for sigma in sigma_sensitivity:
-        sigma_key = sigma_sensitivity_keys[sigma_sensitivity.index(sigma)]
+    for rpore in rpore_sensitivity:
+        rpore_key = rpore_sensitivity_keys[rpore_sensitivity.index(rpore)]
 
         model_folder_na = Path(
-            f"multi_component_case_studies/DATA_comparison/sigma_{sigma_key}/Na"
+            f"multi_component_case_studies/DATA_comparison/rpore_{rpore_key}/Na"
         )
         # 57 characters (0-56) make up folder name before model name
-        # multi_component_case_studies/DATA_comparison/sigma_XX/Na/
+        # multi_component_case_studies/DATA_comparison/rpore_XX/Na/
         model_folder_ca = Path(
-            f"multi_component_case_studies/DATA_comparison/sigma_{sigma_key}/Ca"
+            f"multi_component_case_studies/DATA_comparison/rpore_{rpore_key}/Ca"
         )
-        # 48 characters (0-47) make up folder name before model name
-        # multi_component_case_studies/DATA_comparison/sigma_XX/Ca/
+        # 57 characters (0-56) make up folder name before model name
+        # multi_component_case_studies/DATA_comparison/rpore_XX/Ca/
         model_folder_la = Path(
-            f"multi_component_case_studies/DATA_comparison/sigma_{sigma_key}/La"
+            f"multi_component_case_studies/DATA_comparison/rpore_{rpore_key}/La"
         )
-        # 48 characters (0-47) make up folder name before model name
-        # multi_component_case_studies/DATA_comparison/sigma_XX/La/
+        # 57 characters (0-56) make up folder name before model name
+        # multi_component_case_studies/DATA_comparison/rpore_XX/La/
 
         case_study_list_na = [file for file in model_folder_na.iterdir()]
         case_study_list_ca = [file for file in model_folder_ca.iterdir()]
@@ -1173,7 +1170,6 @@ def data_comparison_plots(save_figure=True):
 
         for cation, case_study_files in case_studies.items():
             for case_study in case_study_files:
-                print(case_study)
                 l_key = str(case_study)[62:65]
                 concentration = float(50)  # mM
                 cation_list = [cation]
@@ -1197,13 +1193,10 @@ def data_comparison_plots(save_figure=True):
                 model = build_model(
                     cation_list=cation_list,
                     inlet_concentration=inlet_concentration,
-                    sigma_dict={
-                        cation: sigma,
-                        "Cl": 1,
-                    },
                     default_args=default_args,
                     H_feed_guess=1,
                     H_permeate_guess=1,
+                    rpore=rpore,
                     data_membrane_thickness=membrane_thickness_sensitivity[
                         membrane_thickness_sensitivity_keys.index(l_key)
                     ],
@@ -1232,7 +1225,7 @@ def data_comparison_plots(save_figure=True):
                 elif l_key == "100":
                     color = k_predicted_100_color
 
-                ax = axes_dict[sigma_key][cation]
+                ax = axes_dict[rpore_key][cation]
 
                 ax.errorbar(
                     x_value_predicted,
