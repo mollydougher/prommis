@@ -131,7 +131,7 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         }
 
         # stokes radius (m)
-        stokes_radius = {
+        ion_radius_dict = {
             "K": 1.25e-10,
             "Na": 1.84e-10,
             "Li": 2.38e-10,
@@ -144,7 +144,7 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
 
         def _calculate_steric_partition_coefficients(blk, ion):
             r_pore = blk.config.pore_radius  # m
-            r_ion = stokes_radius[ion]  # m
+            r_ion = ion_radius_dict[ion]  # m
 
             if r_ion > r_pore:
                 return 0
@@ -157,62 +157,26 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             k_B = 1.38e-23  # m2 kg / (s2 K)
             T = 298  # K
             epsilon_bulk = 78.4
-            epsilon_pore = 40
-            r_ion = stokes_radius[ion]  # m
+            epsilon_star = 31
+            delta = 2.8e-10  # m
+            r_pore = blk.config.pore_radius  # m
+            r_ion = ion_radius_dict[ion]  # m
             z_ion = charge_dict[ion]
 
             return exp(
                 -((z_ion**2 * e**2) / (8 * math.pi * k_B * T * epsilon_0 * r_ion))
-                * ((1 / epsilon_pore) - (1 / epsilon_bulk))
+                * (
+                    (
+                        1
+                        / (
+                            epsilon_star
+                            + (epsilon_bulk - epsilon_star)
+                            * (1 - (delta / r_pore)) ** 2
+                        )
+                    )
+                    - (1 / epsilon_bulk)
+                )
             )
-
-        # steric component of partition coefficient at the solution-membrane interfaces
-        # (1 - (radius_ion/radius_pore))**2
-        # using hydrated radius
-        # steric_partition_coefficient_dict = {
-        #     "K": 0.1,
-        #     "Na": 0.08,
-        #     "Li": 0.06,
-        #     "Ca": 0.03,
-        #     "Co": 0.02,
-        #     "Al": 0.003,
-        #     "La": 0.009,
-        #     "Cl": 0.1,
-        # }
-        # using stokes radius
-        # steric_partition_coefficient_dict = {
-        #     "K": 0.6,
-        #     "Na": 0.4,
-        #     "Li": 0.3,
-        #     "Ca": 0.1,
-        #     "Co": 0.1,
-        #     "Al": 0.01,
-        #     "La": 0.04,
-        #     "Cl": 0.6,
-        # }
-
-        # using hydrated radius
-        # dielectric_partition_coefficient_dict = {
-        #     "K": 0.4,
-        #     "Na": 0.4,
-        #     "Li": 0.4,
-        #     "Ca": 0.04,
-        #     "Co": 0.04,
-        #     "Al": 0.002,
-        #     "La": 0.001,
-        #     "Cl": 0.4,
-        # }
-        # using stokes radius
-        # dielectric_partition_coefficient_dict = {
-        #     "K": 0.2,
-        #     "Na": 0.2,
-        #     "Li": 0.06,
-        #     "Ca": 0.01,
-        #     "Co": 0.02,
-        #     "Al": 0.0009,
-        #     "La": 0.0004,
-        #     "Cl": 0.06,
-        # }
 
         if self.config.cation_list == ["K"]:
             salt_system = "K_Cl"
