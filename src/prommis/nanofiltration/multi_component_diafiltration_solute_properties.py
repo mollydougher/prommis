@@ -104,7 +104,7 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             "Ca": 2.85,  # mm2 / h
             "Co": 2.64,  # mm2 / h
             "Al": 2.01,  # mm2 / h
-            "La": 2.23,  # mm2 / h # TODO: verify
+            "La": 2.23,  # mm2 / h
             "Cl": 7.31,  # mm2 / h
         }
         membrane_diffusion_coefficient_dict = {
@@ -114,7 +114,7 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             "Ca": 2.85 * 0.01,  # mm2 / h
             "Co": 2.64 * 0.01,  # mm2 / h
             "Al": 2.01 * 0.01,  # mm2 / h
-            "La": 2.23 * 0.01,  # mm2 / h # TODO: verify
+            "La": 2.23 * 0.01,  # mm2 / h
             "Cl": 7.31 * 0.01,  # mm2 / h
         }
 
@@ -131,15 +131,27 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         }
 
         # stokes radius (m)
+        # ion_radius_dict = {
+        #     "K": 1.25e-10,
+        #     "Na": 1.84e-10,
+        #     "Li": 2.38e-10,
+        #     "Ca": 3.1e-10,
+        #     "Co": 3.35e-10,
+        #     "Al": 4.39e-10,
+        #     "La": 3.96e-10,
+        #     "Cl": 1.21e-10,
+        # }
+
+        # hydrated radius (m)
         ion_radius_dict = {
-            "K": 1.25e-10,
-            "Na": 1.84e-10,
-            "Li": 2.38e-10,
-            "Ca": 3.1e-10,
-            "Co": 3.35e-10,
-            "Al": 4.39e-10,
-            "La": 3.96e-10,
-            "Cl": 1.21e-10,
+            "K": 3.31e-10,
+            "Na": 3.58e-10,
+            "Li": 3.82e-10,
+            "Ca": 4.12e-10,
+            "Co": 4.23e-10,
+            "Al": 4.75e-10,
+            "La": 4.52e-10,
+            "Cl": 3.32e-10,
         }
 
         def _calculate_steric_partition_coefficients(blk, ion):
