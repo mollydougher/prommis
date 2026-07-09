@@ -406,11 +406,11 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                     # guess permeate concentration with constant sieving coefficient
                     for k in model.cations:
                         if value(charge[k]) == 3:
-                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.5)
+                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.9)
                         elif value(charge[k]) == 2:
-                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.4)
+                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.7)
                         else:
-                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.8)
+                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.5)
                     calculate_variable_from_constraint(
                         conc_perm[t, x, a0],
                         model.electroneutrality_permeate[t, x],
@@ -419,7 +419,7 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                         # geuss interface concentration with constant CP modulus = 1.01
                         for k in model.cations:
                             conc_bl[t, x, 1, k].set_value(
-                                value(conc_ret[t, x, k]) * 1.01
+                                value(conc_ret[t, x, k]) * 1.1
                             )
                         calculate_variable_from_constraint(
                             conc_bl[t, x, 1, a0],
@@ -1651,14 +1651,18 @@ and used when constructing these,
                 charge = blk.config.property_package.charge
                 conc_bl = blk.boundary_layer_conc_mol_comp
                 conc_mem = blk.membrane_conc_mol_comp
-                H_steric = blk.config.property_package.steric_partition_coefficient
-                H_dielectric = (
-                    blk.config.property_package.dielectric_partition_coefficient
+                H_nonDonnan = (
+                    blk.config.property_package.non_Donnan_partition_coefficient
                 )
+                # H_steric = blk.config.property_package.steric_partition_coefficient
+                # H_dielectric = (
+                #     blk.config.property_package.dielectric_partition_coefficient
+                # )
                 return conc_mem[t, x, 0, j] == (
                     conc_bl[t, x, 1, j]
-                    * H_steric[j]
-                    * H_dielectric[j]
+                    * H_nonDonnan[j]
+                    # * H_steric[j]
+                    # * H_dielectric[j]
                     * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
                 )
 
@@ -1676,14 +1680,18 @@ and used when constructing these,
                 charge = blk.config.property_package.charge
                 conc_mem = blk.membrane_conc_mol_comp
                 conc_r = blk.retentate_conc_mol_comp
-                H_steric = blk.config.property_package.steric_partition_coefficient
-                H_dielectric = (
-                    blk.config.property_package.dielectric_partition_coefficient
+                H_nonDonnan = (
+                    blk.config.property_package.non_Donnan_partition_coefficient
                 )
+                # H_steric = blk.config.property_package.steric_partition_coefficient
+                # H_dielectric = (
+                #     blk.config.property_package.dielectric_partition_coefficient
+                # )
                 return conc_mem[t, x, 0, j] == (
                     conc_r[t, x, j]
-                    * H_steric[j]
-                    * H_dielectric[j]
+                    * H_nonDonnan[j]
+                    # * H_steric[j]
+                    # * H_dielectric[j]
                     * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
                 )
 
@@ -1700,12 +1708,14 @@ and used when constructing these,
             charge = blk.config.property_package.charge
             conc_mem = blk.membrane_conc_mol_comp
             conc_p = blk.permeate_conc_mol_comp
-            H_steric = blk.config.property_package.steric_partition_coefficient
-            H_dielectric = blk.config.property_package.dielectric_partition_coefficient
+            H_nonDonnan = blk.config.property_package.non_Donnan_partition_coefficient
+            # H_steric = blk.config.property_package.steric_partition_coefficient
+            # H_dielectric = blk.config.property_package.dielectric_partition_coefficient
             return conc_mem[t, x, 1, j] == (
                 conc_p[t, x, j]
-                * H_steric[j]
-                * H_dielectric[j]
+                * H_nonDonnan[j]
+                # * H_steric[j]
+                # * H_dielectric[j]
                 * exp(-charge[j] * blk.Donnan_potential_permeate_side[t, x])
             )
 
@@ -1915,11 +1925,11 @@ and used when constructing these,
             self.scaling_factor[
                 self.boundary_layer_cross_diffusion_coefficient_calculation
             ] = 1e-2
-        self.scaling_factor[self.membrane_D_tilde] = 1e1
-        self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = 1e2
-        self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e1
-        self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e4
-        self.scaling_factor[self.membrane_convection_coefficient] = 1e2
+        self.scaling_factor[self.membrane_D_tilde] = 1e2
+        self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = 1e3
+        self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e2
+        self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e5
+        self.scaling_factor[self.membrane_convection_coefficient] = 1e3
 
         if len(self.config.cation_list) >= 2:
             for t in self.time:

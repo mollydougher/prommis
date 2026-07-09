@@ -61,11 +61,18 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             doc="List of anions present in the system",
         ),
     )
+    # CONFIG.declare(
+    #     "pore_radius",
+    #     ConfigValue(
+    #         default=5e-10,
+    #         doc="Average pore size of the radius (m)",
+    #     ),
+    # )
     CONFIG.declare(
-        "pore_radius",
+        "non_Donnan_partition_dict",
         ConfigValue(
-            default=5e-10,
-            doc="Average pore size of the radius (m)",
+            default={"Li": 1, "Co": 1, "Cl": 1},
+            doc="Dictionary of non-Donnan partition coefficients",
         ),
     )
 
@@ -108,14 +115,14 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             "Cl": 7.31,  # mm2 / h
         }
         membrane_diffusion_coefficient_dict = {
-            "K": 7.06 * 0.01,  # mm2 / h
-            "Na": 4.79 * 0.01,  # mm2 / h
-            "Li": 3.71 * 0.01,  # mm2 / h
-            "Ca": 2.85 * 0.01,  # mm2 / h
-            "Co": 2.64 * 0.01,  # mm2 / h
-            "Al": 2.01 * 0.01,  # mm2 / h
-            "La": 2.23 * 0.01,  # mm2 / h
-            "Cl": 7.31 * 0.01,  # mm2 / h
+            "K": 7.06 * 0.001,  # mm2 / h
+            "Na": 4.79 * 0.001,  # mm2 / h
+            "Li": 3.71 * 0.001,  # mm2 / h
+            "Ca": 2.85 * 0.001,  # mm2 / h
+            "Co": 2.64 * 0.001,  # mm2 / h
+            "Al": 2.01 * 0.001,  # mm2 / h
+            "La": 2.23 * 0.001,  # mm2 / h
+            "Cl": 7.31 * 0.001,  # mm2 / h
         }
 
         # thermal reflection coefficient, related to solute rejection
@@ -143,52 +150,52 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
         # }
 
         # hydrated radius (m)
-        ion_radius_dict = {
-            "K": 3.31e-10,
-            "Na": 3.58e-10,
-            "Li": 3.82e-10,
-            "Ca": 4.12e-10,
-            "Co": 4.23e-10,
-            "Al": 4.75e-10,
-            "La": 4.52e-10,
-            "Cl": 3.32e-10,
-        }
+        # ion_radius_dict = {
+        #     "K": 3.31e-10,
+        #     "Na": 3.58e-10,
+        #     "Li": 3.82e-10,
+        #     "Ca": 4.12e-10,
+        #     "Co": 4.23e-10,
+        #     "Al": 4.75e-10,
+        #     "La": 4.52e-10,
+        #     "Cl": 3.32e-10,
+        # }
 
-        def _calculate_steric_partition_coefficients(blk, ion):
-            r_pore = blk.config.pore_radius  # m
-            r_ion = ion_radius_dict[ion]  # m
+        # def _calculate_steric_partition_coefficients(blk, ion):
+        #     r_pore = blk.config.pore_radius  # m
+        #     r_ion = ion_radius_dict[ion]  # m
 
-            if r_ion > r_pore:
-                return 0
-            else:
-                return (1 - (r_ion / r_pore)) ** 2
+        #     if r_ion > r_pore:
+        #         return 0
+        #     else:
+        #         return (1 - (r_ion / r_pore)) ** 2
 
-        def _calculate_dielectric_partition_coefficients(blk, ion):
-            e = 1.60e-19  # C
-            epsilon_0 = 8.85e-12  # F / m
-            k_B = 1.38e-23  # m2 kg / (s2 K)
-            T = 298  # K
-            epsilon_bulk = 78.4
-            epsilon_star = 31
-            delta = 2.8e-10  # m
-            r_pore = blk.config.pore_radius  # m
-            r_ion = ion_radius_dict[ion]  # m
-            z_ion = charge_dict[ion]
+        # def _calculate_dielectric_partition_coefficients(blk, ion):
+        #     e = 1.60e-19  # C
+        #     epsilon_0 = 8.85e-12  # F / m
+        #     k_B = 1.38e-23  # m2 kg / (s2 K)
+        #     T = 298  # K
+        #     epsilon_bulk = 78.4
+        #     epsilon_star = 31
+        #     delta = 2.8e-10  # m
+        #     r_pore = blk.config.pore_radius  # m
+        #     r_ion = ion_radius_dict[ion]  # m
+        #     z_ion = charge_dict[ion]
 
-            return exp(
-                -((z_ion**2 * e**2) / (8 * math.pi * k_B * T * epsilon_0 * r_ion))
-                * (
-                    (
-                        1
-                        / (
-                            epsilon_star
-                            + (epsilon_bulk - epsilon_star)
-                            * (1 - (delta / r_pore)) ** 2
-                        )
-                    )
-                    - (1 / epsilon_bulk)
-                )
-            )
+        #     return exp(
+        #         -((z_ion**2 * e**2) / (8 * math.pi * k_B * T * epsilon_0 * r_ion))
+        #         * (
+        #             (
+        #                 1
+        #                 / (
+        #                     epsilon_star
+        #                     + (epsilon_bulk - epsilon_star)
+        #                     * (1 - (delta / r_pore)) ** 2
+        #                 )
+        #             )
+        #             - (1 / epsilon_bulk)
+        #         )
+        #     )
 
         if self.config.cation_list == ["K"]:
             salt_system = "K_Cl"
@@ -277,14 +284,14 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             membrane_diffusion_coefficient_dict
         )
         initialize_sigma_dict = _subset(sigma_dict)
-        initialize_steric_partition_coefficient_dict = {
-            ion: _calculate_steric_partition_coefficients(self, ion)
-            for ion in self.component_list
-        }
-        initialize_dielectric_partition_coefficient_dict = {
-            ion: _calculate_dielectric_partition_coefficients(self, ion)
-            for ion in self.component_list
-        }
+        # initialize_steric_partition_coefficient_dict = {
+        #     ion: _calculate_steric_partition_coefficients(self, ion)
+        #     for ion in self.component_list
+        # }
+        # initialize_dielectric_partition_coefficient_dict = {
+        #     ion: _calculate_dielectric_partition_coefficients(self, ion)
+        #     for ion in self.component_list
+        # }
         initialize_num_solutes_dict = _subset(num_solutes_dict[salt_system])
 
         # initialize properties
@@ -312,17 +319,23 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             initialize=initialize_sigma_dict,
         )
 
-        self.steric_partition_coefficient = Param(
+        self.non_Donnan_partition_coefficient = Param(
             self.component_list,
             units=units.dimensionless,
-            initialize=initialize_steric_partition_coefficient_dict,
+            initialize=self.config.non_Donnan_partition_dict,
         )
 
-        self.dielectric_partition_coefficient = Param(
-            self.component_list,
-            units=units.dimensionless,
-            initialize=initialize_dielectric_partition_coefficient_dict,
-        )
+        # self.steric_partition_coefficient = Param(
+        #     self.component_list,
+        #     units=units.dimensionless,
+        #     initialize=initialize_steric_partition_coefficient_dict,
+        # )
+
+        # self.dielectric_partition_coefficient = Param(
+        #     self.component_list,
+        #     units=units.dimensionless,
+        #     initialize=initialize_dielectric_partition_coefficient_dict,
+        # )
 
         self.num_solutes = Param(
             self.component_list,
