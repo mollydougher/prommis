@@ -244,7 +244,7 @@ def solve_and_save_models(
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
-    if run_data:
+    if run_data:  # TODO: debug La initialization and run phi_star = 0.05
         # set concentrations
         feed = {
             "Na": [
@@ -327,15 +327,18 @@ def solve_and_save_models(
 
         pressure = {"Na": 3.8, "Ca": 3.3, "La": 3.9}
 
-        Dm_over_l_sensitivity = [80, 40, 20, 5, 2.5]  # um/s
-        Dm_over_l_sensitivity_keys = ["80", "40", "20", "05", "02"]  # um/s
+        Dm_over_l_sensitivity = [80, 40, 20, 10, 5]  # um/s
+        Dm_over_l_sensitivity_keys = ["80", "40", "20", "10", "05"]  # um/s
 
         Dm = {"Na": 1.33, "Ca": 0.79, "La": 0.62, "Cl": 2.03}  # um2/s
 
-        # phi_star_sensitivity = [1, 0.75, 0.5, 0.25, 0.1]
-        # phi_star_sensitivity_keys = ["100", "075", "050", "025", "010"]
-        phi_star_sensitivity = [0.1]
-        phi_star_sensitivity_keys = ["010"]
+        upper_bound_phi_steric = {"Na": 0.29, "Ca": 0.22, "La": 0.18}
+
+        # phi_star_sensitivity = [0.33, 0.25, 0.1, 0.05]
+        # phi_star_sensitivity_keys = ["033", "025", "010", "005"]
+
+        phi_star_sensitivity = [0.33, 0.25, 0.1]
+        phi_star_sensitivity_keys = ["033", "025", "010"]
 
         H_feed_guesses = np.arange(0.5, 2.1, 0.1)
         H_permeate_guesses = np.arange(0.5, 2.1, 0.1)
@@ -373,7 +376,7 @@ def solve_and_save_models(
                                     data_applied_pressure=pressure[cation],
                                     data_membrane_thickness=l_m,
                                     non_Donnan_partition_dict={
-                                        cation: 1,
+                                        cation: upper_bound_phi_steric[cation],
                                         "Cl": phi_star,
                                     },
                                 )
@@ -1046,14 +1049,14 @@ def data_comparison_plots(save_figure=True):
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
-    fig1, (ax1a, ax1b, ax1c, ax1d, ax1e) = plt.subplots(
-        1, 5, dpi=75, figsize=(25, 5), constrained_layout=True, sharey=True
+    fig1, (ax1a, ax1b, ax1c, ax1d) = plt.subplots(
+        1, 4, dpi=75, figsize=(20, 5), constrained_layout=True, sharey=True
     )
-    fig2, (ax2a, ax2b, ax2c, ax2d, ax2e) = plt.subplots(
-        1, 5, dpi=75, figsize=(25, 5), constrained_layout=True, sharey=True
+    fig2, (ax2a, ax2b, ax2c, ax2d) = plt.subplots(
+        1, 4, dpi=75, figsize=(20, 5), constrained_layout=True, sharey=True
     )
-    fig3, (ax3a, ax3b, ax3c, ax3d, ax3e) = plt.subplots(
-        1, 5, dpi=75, figsize=(25, 5), constrained_layout=True, sharey=True
+    fig3, (ax3a, ax3b, ax3c, ax3d) = plt.subplots(
+        1, 4, dpi=75, figsize=(20, 5), constrained_layout=True, sharey=True
     )
 
     # color blind friendly
@@ -1068,11 +1071,11 @@ def data_comparison_plots(save_figure=True):
     ]
 
     S_predicted_80_color = tol_bright_hex[0]
-    S_predicted_40_color = tol_bright_hex[2]
-    S_predicted_20_color = tol_bright_hex[3]
+    S_predicted_40_color = tol_bright_hex[1]
+    S_predicted_20_color = tol_bright_hex[2]
+    S_predicted_10_color = tol_bright_hex[3]
     S_predicted_05_color = tol_bright_hex[4]
-    S_predicted_02_color = tol_bright_hex[5]
-    S_measured_color = tol_bright_hex[1]
+    S_measured_color = "black"
 
     for ax in fig1.axes:
         ax.set_xlabel(
@@ -1126,20 +1129,20 @@ def data_comparison_plots(save_figure=True):
         ax.plot(
             [],
             [],
+            color=S_predicted_10_color,
+            marker="o",
+            markersize=markersize,
+            linestyle="None",
+            label="predicted ($D_m/l$=10um/s)",
+        )
+        ax.plot(
+            [],
+            [],
             color=S_predicted_05_color,
             marker="o",
             markersize=markersize,
             linestyle="None",
             label="predicted ($D_m/l$=5um/s)",
-        )
-        ax.plot(
-            [],
-            [],
-            color=S_predicted_02_color,
-            marker="o",
-            markersize=markersize,
-            linestyle="None",
-            label="predicted ($D_m/l$=2.5um/s)",
         )
         ax.plot(
             [],
@@ -1154,26 +1157,31 @@ def data_comparison_plots(save_figure=True):
         ax.tick_params(
             direction="in", top=True, right=True, labelsize=fontsize - 2, labelleft=True
         )
-    for ax in [ax1e, ax2e, ax3e]:
-        ax.set_title("Non-Donnan Partition Coefficent = 1")
-    for ax in [ax1d, ax2d, ax3d]:
-        ax.set_title("Non-Donnan Partition Coefficent = 0.75")
-    for ax in [ax1c, ax2c, ax3c]:
-        ax.set_title("Non-Donnan Partition Coefficent = 0.5")
-    for ax in [ax1b, ax2b, ax3b]:
-        ax.set_title("Non-Donnan Partition Coefficent = 0.25")
-    for ax in [ax1a, ax2a, ax3a]:
-        ax.set_title("Non-Donnan Partition Coefficent = 0.1")
 
-    phi_star_sensitivity = [1, 0.75, 0.5, 0.25, 0.1]
-    phi_star_sensitivity_keys = ["100", "075", "050", "025", "010"]
+    for ax in [ax1d, ax2d, ax3d]:
+        ax.set_title("Non-Donnan Partition Coefficent = 0.33")
+    for ax in [ax1c, ax2c, ax3c]:
+        ax.set_title("Non-Donnan Partition Coefficent = 0.25")
+    for ax in [ax1b, ax2b, ax3b]:
+        ax.set_title("Non-Donnan Partition Coefficent = 0.1")
+    for ax in [ax1a, ax2a, ax3a]:
+        ax.set_title("Non-Donnan Partition Coefficent = 0.05")
+
+    # phi_star_sensitivity = [0.33, 0.25, 0.1, 0.05]
+    # phi_star_sensitivity_keys = ["033", "025", "010", "005"]
+
+    phi_star_sensitivity = [
+        0.33,
+        0.25,
+        0.1,
+    ]
+    phi_star_sensitivity_keys = ["033", "025", "010"]
 
     axes_dict = {
-        "100": {"Na": ax1e, "Ca": ax2e, "La": ax3e},
-        "075": {"Na": ax1d, "Ca": ax2d, "La": ax3d},
-        "050": {"Na": ax1c, "Ca": ax2c, "La": ax3c},
-        "025": {"Na": ax1b, "Ca": ax2b, "La": ax3b},
-        "010": {"Na": ax1a, "Ca": ax2a, "La": ax3a},
+        "033": {"Na": ax1d, "Ca": ax2d, "La": ax3d},
+        "025": {"Na": ax1c, "Ca": ax2c, "La": ax3c},
+        "010": {"Na": ax1b, "Ca": ax2b, "La": ax3b},
+        "005": {"Na": ax1a, "Ca": ax2a, "La": ax3a},
     }
 
     for phi_star in phi_star_sensitivity:
@@ -1205,13 +1213,18 @@ def data_comparison_plots(save_figure=True):
             "La": case_study_list_la,
         }
 
-        Dm_over_l_sensitivity = [80, 40, 20, 5, 2.5]  # um/s
-        Dm_over_l_sensitivity_keys = ["80", "40", "20", "05", "02"]  # um/s
+        Dm_over_l_sensitivity = [80, 40, 20, 10, 5]  # um/s
+        Dm_over_l_sensitivity_keys = ["80", "40", "20", "10", "05"]  # um/s
 
         Dm = {"Na": 1.33, "Ca": 0.79, "La": 0.62, "Cl": 2.03}  # um2/s
 
+        upper_bound_phi_steric = {"Na": 0.29, "Ca": 0.22, "La": 0.18}
+
         for cation, case_study_files in case_studies.items():
-            non_Donnan_partition_dict = {cation: 1, "Cl": phi_star}
+            non_Donnan_partition_dict = {
+                cation: upper_bound_phi_steric[cation],
+                "Cl": phi_star,
+            }
 
             for case_study in case_study_files:
                 Dm_over_l_key = str(case_study)[61:63]
@@ -1274,10 +1287,10 @@ def data_comparison_plots(save_figure=True):
                     color = S_predicted_40_color
                 elif Dm_over_l_key == "20":
                     color = S_predicted_20_color
+                elif Dm_over_l_key == "10":
+                    color = S_predicted_10_color
                 elif Dm_over_l_key == "05":
                     color = S_predicted_05_color
-                elif Dm_over_l_key == "02":
-                    color = S_predicted_02_color
 
                 ax = axes_dict[phi_star_key][cation]
 
