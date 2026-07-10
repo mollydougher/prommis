@@ -406,11 +406,11 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                     # guess permeate concentration with constant sieving coefficient
                     for k in model.cations:
                         if value(charge[k]) == 3:
-                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.2)
+                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.3)
                         elif value(charge[k]) == 2:
                             conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.5)
                         else:
-                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.3)
+                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.8)
                     calculate_variable_from_constraint(
                         conc_perm[t, x, a0],
                         model.electroneutrality_permeate[t, x],
