@@ -327,8 +327,10 @@ def solve_and_save_models(
 
         pressure = {"Na": 3.8, "Ca": 3.3, "La": 3.9}
 
-        Dm_over_l_sensitivity = [80, 40, 20, 10, 5]  # um/s
-        Dm_over_l_sensitivity_keys = ["80", "40", "20", "10", "05"]  # um/s
+        # Dm_over_l_sensitivity = [80, 40, 20, 10, 5]  # um/s
+        # Dm_over_l_sensitivity_keys = ["80", "40", "20", "10", "05"]  # um/s
+        Dm_over_l_sensitivity = [20, 10, 5]  # um/s
+        Dm_over_l_sensitivity_keys = ["20", "10", "05"]  # um/s
 
         Dm = {"Na": 1.33, "Ca": 0.79, "La": 0.62, "Cl": 2.03}  # um2/s
 
@@ -337,8 +339,10 @@ def solve_and_save_models(
         # phi_star_sensitivity = [0.33, 0.25, 0.1, 0.05]
         # phi_star_sensitivity_keys = ["033", "025", "010", "005"]
 
-        phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05]
-        phi_star_sensitivity_keys = ["040", "030", "020", "010", "005"]
+        cation_phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05]
+        cation_phi_star_sensitivity_keys = ["040", "030", "020", "010", "005"]
+        cloride_phi_star_sensitivity = [0.05]
+        cloride_phi_star_sensitivity_keys = ["005"]
 
         # H_feed_guesses = np.arange(0.5, 2.6, 0.1)
         # H_permeate_guesses = np.arange(0.5, 2.6, 0.1)
@@ -348,13 +352,13 @@ def solve_and_save_models(
         # H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
         # H_guesses = np.flip(H_guesses, axis=0)
 
-        for cloride_phi_star in phi_star_sensitivity:
+        for cloride_phi_star in cloride_phi_star_sensitivity:
             for Dm_over_l in Dm_over_l_sensitivity:
                 for cation in feed.keys():
                     l_um = Dm["Cl"] / Dm_over_l  # um
                     l_m = l_um / 1e6  # m
 
-                    for cation_phi_star in phi_star_sensitivity:
+                    for cation_phi_star in cation_phi_star_sensitivity:
                         for concentration in feed[cation]:
 
                             H_feed_guesses = np.arange(0.2, 3.1, 0.1)
@@ -403,10 +407,14 @@ def solve_and_save_models(
                                         ],
                                     )
                                     solve_model(model)
-                                    fname = f"multi_component_case_studies/DATA_comparison/Cl_phi_{phi_star_sensitivity_keys[phi_star_sensitivity.index(cloride_phi_star)]}/{Dm_over_l_sensitivity_keys[Dm_over_l_sensitivity.index(Dm_over_l)]}umpers/cation_phi_{phi_star_sensitivity_keys[phi_star_sensitivity.index(cation_phi_star)]}/{cation}_{concentration}mM"
+                                    fname = f"multi_component_case_studies/DATA_comparison/Cl_phi_{cloride_phi_star_sensitivity_keys[cloride_phi_star_sensitivity.index(cloride_phi_star)]}/{Dm_over_l_sensitivity_keys[Dm_over_l_sensitivity.index(Dm_over_l)]}umpers/cation_phi_{cation_phi_star_sensitivity_keys[cation_phi_star_sensitivity.index(cation_phi_star)]}/{cation}_{concentration}mM"
                                     to_json(model, fname=fname)
                                     break
-                                except (InitializationError, NoFeasibleSolutionError):
+                                except (
+                                    InitializationError,
+                                    NoFeasibleSolutionError,
+                                    RuntimeError,
+                                ):
                                     continue
 
     IS_key = ["050", "075", "100", "150", "200", "400", "600", "800"]

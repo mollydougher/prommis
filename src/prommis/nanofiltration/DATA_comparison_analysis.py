@@ -28,87 +28,150 @@ from prommis.nanofiltration.multi_component_analysis import (
 
 
 def main():
-    # save_data_comparison_csv(Cl_phi_key = "020")
+    # save_data_comparison_csv(Cl_phi_key = "005")
     generate_data_comparison_heat_maps()
+
+    plt.show()
 
 
 def generate_data_comparison_heat_maps():
     fontsize = 14
 
-    Na_MAE_Cl_phi_020_df = pd.read_csv(
-        "heat_map_data/Cl_phi_020/Na_MAE.csv", index_col=0
-    )
-    Ca_MAE_Cl_phi_020_df = pd.read_csv(
-        "heat_map_data/Cl_phi_020/Ca_MAE.csv", index_col=0
-    )
-    La_MAE_Cl_phi_020_df = pd.read_csv(
-        "heat_map_data/Cl_phi_020/La_MAE.csv", index_col=0
-    )
+    # load data from csv files
+    Na_MAE_Cl_phi_005_df = load_data("005", "Na_MAE")
+    Ca_MAE_Cl_phi_005_df = load_data("005", "Ca_MAE")
+    La_MAE_Cl_phi_005_df = load_data("005", "La_MAE")
+    Na_MSE_Cl_phi_005_df = load_data("005", "Na_MSE")
+    Ca_MSE_Cl_phi_005_df = load_data("005", "Ca_MSE")
+    La_MSE_Cl_phi_005_df = load_data("005", "La_MSE")
 
-    Na_MSE_Cl_phi_020_df = pd.read_csv(
-        "heat_map_data/Cl_phi_020/Na_MSE.csv", index_col=0
-    )
-    Ca_MSE_Cl_phi_020_df = pd.read_csv(
-        "heat_map_data/Cl_phi_020/Ca_MSE.csv", index_col=0
-    )
-    La_MSE_Cl_phi_020_df = pd.read_csv(
-        "heat_map_data/Cl_phi_020/La_MSE.csv", index_col=0
-    )
+    Na_MAE_Cl_phi_010_df = load_data("010", "Na_MAE")
+    Ca_MAE_Cl_phi_010_df = load_data("010", "Ca_MAE")
+    La_MAE_Cl_phi_010_df = load_data("010", "La_MAE")
+    Na_MSE_Cl_phi_010_df = load_data("010", "Na_MSE")
+    Ca_MSE_Cl_phi_010_df = load_data("010", "Ca_MSE")
+    La_MSE_Cl_phi_010_df = load_data("010", "La_MSE")
 
-    Na_MAE_Cl_phi_030_df = pd.read_csv(
-        "heat_map_data/Cl_phi_030/Na_MAE.csv", index_col=0
-    )
-    Ca_MAE_Cl_phi_030_df = pd.read_csv(
-        "heat_map_data/Cl_phi_030/Ca_MAE.csv", index_col=0
-    )
-    La_MAE_Cl_phi_030_df = pd.read_csv(
-        "heat_map_data/Cl_phi_030/La_MAE.csv", index_col=0
-    )
+    Na_MAE_Cl_phi_020_df = load_data("020", "Na_MAE")
+    Ca_MAE_Cl_phi_020_df = load_data("020", "Ca_MAE")
+    La_MAE_Cl_phi_020_df = load_data("020", "La_MAE")
+    Na_MSE_Cl_phi_020_df = load_data("020", "Na_MSE")
+    Ca_MSE_Cl_phi_020_df = load_data("020", "Ca_MSE")
+    La_MSE_Cl_phi_020_df = load_data("020", "La_MSE")
 
-    Na_MSE_Cl_phi_030_df = pd.read_csv(
-        "heat_map_data/Cl_phi_030/Na_MSE.csv", index_col=0
-    )
-    Ca_MSE_Cl_phi_030_df = pd.read_csv(
-        "heat_map_data/Cl_phi_030/Ca_MSE.csv", index_col=0
-    )
-    La_MSE_Cl_phi_030_df = pd.read_csv(
-        "heat_map_data/Cl_phi_030/La_MSE.csv", index_col=0
-    )
+    Na_MAE_Cl_phi_030_df = load_data("030", "Na_MAE")
+    Ca_MAE_Cl_phi_030_df = load_data("030", "Ca_MAE")
+    La_MAE_Cl_phi_030_df = load_data("030", "La_MAE")
+    Na_MSE_Cl_phi_030_df = load_data("030", "Na_MSE")
+    Ca_MSE_Cl_phi_030_df = load_data("030", "Ca_MSE")
+    La_MSE_Cl_phi_030_df = load_data("030", "La_MSE")
 
-    Na_MAE_Cl_phi_040_df = pd.read_csv(
-        "heat_map_data/Cl_phi_040/Na_MAE.csv", index_col=0
-    )
-    Ca_MAE_Cl_phi_040_df = pd.read_csv(
-        "heat_map_data/Cl_phi_040/Ca_MAE.csv", index_col=0
-    )
-    La_MAE_Cl_phi_040_df = pd.read_csv(
-        "heat_map_data/Cl_phi_040/La_MAE.csv", index_col=0
-    )
+    Na_MAE_Cl_phi_040_df = load_data("040", "Na_MAE")
+    Ca_MAE_Cl_phi_040_df = load_data("040", "Ca_MAE")
+    La_MAE_Cl_phi_040_df = load_data("040", "La_MAE")
+    Na_MSE_Cl_phi_040_df = load_data("040", "Na_MSE")
+    Ca_MSE_Cl_phi_040_df = load_data("040", "Ca_MSE")
+    La_MSE_Cl_phi_040_df = load_data("040", "La_MSE")
 
-    Na_MSE_Cl_phi_040_df = pd.read_csv(
-        "heat_map_data/Cl_phi_040/Na_MSE.csv", index_col=0
-    )
-    Ca_MSE_Cl_phi_040_df = pd.read_csv(
-        "heat_map_data/Cl_phi_040/Ca_MSE.csv", index_col=0
-    )
-    La_MSE_Cl_phi_040_df = pd.read_csv(
-        "heat_map_data/Cl_phi_040/La_MSE.csv", index_col=0
-    )
+    df_mae_list = [
+        Na_MAE_Cl_phi_005_df,
+        Ca_MAE_Cl_phi_005_df,
+        La_MAE_Cl_phi_005_df,
+        Na_MAE_Cl_phi_010_df,
+        Ca_MAE_Cl_phi_010_df,
+        La_MAE_Cl_phi_010_df,
+        Na_MAE_Cl_phi_020_df,
+        Ca_MAE_Cl_phi_020_df,
+        La_MAE_Cl_phi_020_df,
+        Na_MAE_Cl_phi_030_df,
+        Ca_MAE_Cl_phi_030_df,
+        La_MAE_Cl_phi_030_df,
+        Na_MAE_Cl_phi_040_df,
+        Ca_MAE_Cl_phi_040_df,
+        La_MAE_Cl_phi_040_df,
+    ]
+    df_mse_list = [
+        Na_MSE_Cl_phi_005_df,
+        Ca_MSE_Cl_phi_005_df,
+        La_MSE_Cl_phi_005_df,
+        Na_MSE_Cl_phi_010_df,
+        Ca_MSE_Cl_phi_010_df,
+        La_MSE_Cl_phi_010_df,
+        Na_MSE_Cl_phi_020_df,
+        Ca_MSE_Cl_phi_020_df,
+        La_MSE_Cl_phi_020_df,
+        Na_MSE_Cl_phi_030_df,
+        Ca_MSE_Cl_phi_030_df,
+        La_MSE_Cl_phi_030_df,
+        Na_MSE_Cl_phi_040_df,
+        Ca_MSE_Cl_phi_040_df,
+        La_MSE_Cl_phi_040_df,
+    ]
 
-    fig1, ((ax1a, ax1b, ax1c), (ax2a, ax2b, ax2c), (ax3a, ax3b, ax3c)) = plt.subplots(
+    vmin_mae = min(df.values.min() for df in df_mae_list)
+    vmax_mae = max(df.values.max() for df in df_mae_list)
+
+    vmin_mse = min(df.values.min() for df in df_mse_list)
+    vmax_mse = max(df.values.max() for df in df_mse_list)
+
+    # add stars at the minumum of each subplot
+    Na_MAE_Cl_phi_005_df_min = find_minimums(Na_MAE_Cl_phi_005_df)
+    Ca_MAE_Cl_phi_005_df_min = find_minimums(Ca_MAE_Cl_phi_005_df)
+    La_MAE_Cl_phi_005_df_min = find_minimums(La_MAE_Cl_phi_005_df)
+    Na_MSE_Cl_phi_005_df_min = find_minimums(Na_MSE_Cl_phi_005_df)
+    Ca_MSE_Cl_phi_005_df_min = find_minimums(Ca_MSE_Cl_phi_005_df)
+    La_MSE_Cl_phi_005_df_min = find_minimums(La_MSE_Cl_phi_005_df)
+
+    Na_MAE_Cl_phi_010_df_min = find_minimums(Na_MAE_Cl_phi_010_df)
+    Ca_MAE_Cl_phi_010_df_min = find_minimums(Ca_MAE_Cl_phi_010_df)
+    La_MAE_Cl_phi_010_df_min = find_minimums(La_MAE_Cl_phi_010_df)
+    Na_MSE_Cl_phi_010_df_min = find_minimums(Na_MSE_Cl_phi_010_df)
+    Ca_MSE_Cl_phi_010_df_min = find_minimums(Ca_MSE_Cl_phi_010_df)
+    La_MSE_Cl_phi_010_df_min = find_minimums(La_MSE_Cl_phi_010_df)
+
+    Na_MAE_Cl_phi_020_df_min = find_minimums(Na_MAE_Cl_phi_020_df)
+    Ca_MAE_Cl_phi_020_df_min = find_minimums(Ca_MAE_Cl_phi_020_df)
+    La_MAE_Cl_phi_020_df_min = find_minimums(La_MAE_Cl_phi_020_df)
+    Na_MSE_Cl_phi_020_df_min = find_minimums(Na_MSE_Cl_phi_020_df)
+    Ca_MSE_Cl_phi_020_df_min = find_minimums(Ca_MSE_Cl_phi_020_df)
+    La_MSE_Cl_phi_020_df_min = find_minimums(La_MSE_Cl_phi_020_df)
+
+    Na_MAE_Cl_phi_030_df_min = find_minimums(Na_MAE_Cl_phi_030_df)
+    Ca_MAE_Cl_phi_030_df_min = find_minimums(Ca_MAE_Cl_phi_030_df)
+    La_MAE_Cl_phi_030_df_min = find_minimums(La_MAE_Cl_phi_030_df)
+    Na_MSE_Cl_phi_030_df_min = find_minimums(Na_MSE_Cl_phi_030_df)
+    Ca_MSE_Cl_phi_030_df_min = find_minimums(Ca_MSE_Cl_phi_030_df)
+    La_MSE_Cl_phi_030_df_min = find_minimums(La_MSE_Cl_phi_030_df)
+
+    Na_MAE_Cl_phi_040_df_min = find_minimums(Na_MAE_Cl_phi_040_df)
+    Ca_MAE_Cl_phi_040_df_min = find_minimums(Ca_MAE_Cl_phi_040_df)
+    La_MAE_Cl_phi_040_df_min = find_minimums(La_MAE_Cl_phi_040_df)
+    Na_MSE_Cl_phi_040_df_min = find_minimums(Na_MSE_Cl_phi_040_df)
+    Ca_MSE_Cl_phi_040_df_min = find_minimums(Ca_MSE_Cl_phi_040_df)
+    La_MSE_Cl_phi_040_df_min = find_minimums(La_MSE_Cl_phi_040_df)
+
+    fig1, (
+        (ax1a, ax1b, ax1c, ax1d, ax1e),
+        (ax2a, ax2b, ax2c, ax2d, ax2e),
+        (ax3a, ax3b, ax3c, ax3d, ax3e),
+    ) = plt.subplots(
         3,
-        3,
+        5,
         dpi=75,
-        figsize=(12.5, 15),
+        figsize=(25, 14.1),
         sharex=True,
         sharey=True,
     )
     fig1.tight_layout(rect=[0.05, 0.05, 0.9, 0.95])
-    fig2, ((ax4a, ax4b, ax4c), (ax5a, ax5b, ax5c), (ax6a, ax6b, ax6c)) = plt.subplots(
+    fig2, (
+        (ax4a, ax4b, ax4c, ax4d, ax4e),
+        (ax5a, ax5b, ax5c, ax5d, ax5e),
+        (ax6a, ax6b, ax6c, ax6d, ax6e),
+    ) = plt.subplots(
         3,
-        3,
+        5,
         dpi=75,
-        figsize=(12.5, 15),
+        figsize=(25, 14.1),
         sharex=True,
         sharey=True,
     )
@@ -122,251 +185,280 @@ def generate_data_comparison_heat_maps():
     fig1.suptitle("Mean Absolute Error", fontsize=fontsize, fontweight="bold")
     fig2.suptitle("Mean Squared Error", fontsize=fontsize, fontweight="bold")
     for ax in [ax1a, ax4a]:
-        ax.set_title("$\mathbf{\phi_{Cl}}$ = 0.2", fontsize=fontsize, fontweight="bold")
+        ax.set_title(
+            "$\mathbf{\phi_{Cl}}$ = 0.05", fontsize=fontsize, fontweight="bold"
+        )
     for ax in [ax1b, ax4b]:
-        ax.set_title("$\mathbf{\phi_{Cl}}$ = 0.3", fontsize=fontsize, fontweight="bold")
+        ax.set_title("$\mathbf{\phi_{Cl}}$ = 0.1", fontsize=fontsize, fontweight="bold")
     for ax in [ax1c, ax4c]:
+        ax.set_title("$\mathbf{\phi_{Cl}}$ = 0.2", fontsize=fontsize, fontweight="bold")
+    for ax in [ax1d, ax4d]:
+        ax.set_title("$\mathbf{\phi_{Cl}}$ = 0.3", fontsize=fontsize, fontweight="bold")
+    for ax in [ax1e, ax4e]:
         ax.set_title("$\mathbf{\phi_{Cl}}$ = 0.4", fontsize=fontsize, fontweight="bold")
 
-    cbar_ax_mae = fig1.add_axes([0.91, 0.2, 0.03, 0.6])
+    cbar_ax_mae = fig1.add_axes([0.91, 0.2, 0.02, 0.6])
     cbar_ax_mae.tick_params(labelsize=fontsize)
 
-    cbar_ax_mse = fig2.add_axes([0.91, 0.2, 0.03, 0.6])
+    cbar_ax_mse = fig2.add_axes([0.91, 0.2, 0.02, 0.6])
     cbar_ax_mse.tick_params(labelsize=fontsize)
 
-    tol_bright_hex = [
-        "#4477AA",
-        "#EE6677",
-        "#228833",
-        "#CCBB44",
-        "#66CCEE",
-        "#AA3377",
-        "#BBBBBB",
-    ]
-    cmap = mcolors.LinearSegmentedColormap.from_list(
-        "monotone_magenta", ["#ffffff", tol_bright_hex[5]], N=256
+    plot_data(
+        Na_MAE_Cl_phi_005_df,
+        Na_MAE_Cl_phi_005_df_min,
+        ax1a,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+    )
+    plot_data(
+        Ca_MAE_Cl_phi_005_df,
+        Ca_MAE_Cl_phi_005_df_min,
+        ax2a,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+    )
+    plot_data(
+        La_MAE_Cl_phi_005_df,
+        La_MAE_Cl_phi_005_df_min,
+        ax3a,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
     )
 
-    vmin_mae = min(
-        Na_MAE_Cl_phi_020_df.values.min(),
-        Ca_MAE_Cl_phi_020_df.values.min(),
-        La_MAE_Cl_phi_020_df.values.min(),
-        Na_MAE_Cl_phi_030_df.values.min(),
-        Ca_MAE_Cl_phi_030_df.values.min(),
-        La_MAE_Cl_phi_030_df.values.min(),
-        Na_MAE_Cl_phi_040_df.values.min(),
-        Ca_MAE_Cl_phi_040_df.values.min(),
-        La_MAE_Cl_phi_040_df.values.min(),
+    plot_data(
+        Na_MAE_Cl_phi_010_df,
+        Na_MAE_Cl_phi_010_df_min,
+        ax1b,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
     )
-    vmax_mae = max(
-        Na_MAE_Cl_phi_020_df.values.max(),
-        Ca_MAE_Cl_phi_020_df.values.max(),
-        La_MAE_Cl_phi_020_df.values.max(),
-        Na_MAE_Cl_phi_030_df.values.max(),
-        Ca_MAE_Cl_phi_030_df.values.max(),
-        La_MAE_Cl_phi_030_df.values.max(),
-        Na_MAE_Cl_phi_040_df.values.max(),
-        Ca_MAE_Cl_phi_040_df.values.max(),
-        La_MAE_Cl_phi_040_df.values.max(),
+    plot_data(
+        Ca_MAE_Cl_phi_010_df,
+        Ca_MAE_Cl_phi_010_df_min,
+        ax2b,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+    )
+    plot_data(
+        La_MAE_Cl_phi_010_df,
+        La_MAE_Cl_phi_010_df_min,
+        ax3b,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
     )
 
-    sns.heatmap(
+    plot_data(
         Na_MAE_Cl_phi_020_df,
-        ax=ax1a,
-        cbar=True,
-        cbar_ax=cbar_ax_mae,
-        vmin=vmin_mae,
-        vmax=vmax_mae,
-        cmap=cmap,
-    ).invert_yaxis()
-    sns.heatmap(
+        Na_MAE_Cl_phi_020_df_min,
+        ax1c,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+    )
+    plot_data(
         Ca_MAE_Cl_phi_020_df,
-        ax=ax2a,
-        cbar=True,
-        cbar_ax=cbar_ax_mae,
-        vmin=vmin_mae,
-        vmax=vmax_mae,
-        cmap=cmap,
-    ).invert_yaxis()
-    sns.heatmap(
+        Ca_MAE_Cl_phi_020_df_min,
+        ax2c,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+    )
+    plot_data(
         La_MAE_Cl_phi_020_df,
-        ax=ax3a,
-        cbar=True,
-        cbar_ax=cbar_ax_mae,
-        vmin=vmin_mae,
-        vmax=vmax_mae,
-        cmap=cmap,
-    ).invert_yaxis()
+        La_MAE_Cl_phi_020_df_min,
+        ax3c,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+    )
 
-    sns.heatmap(
+    plot_data(
         Na_MAE_Cl_phi_030_df,
-        ax=ax1b,
-        cbar=True,
-        cbar_ax=cbar_ax_mae,
-        vmin=vmin_mae,
-        vmax=vmax_mae,
-        cmap=cmap,
-    ).invert_yaxis()
-    sns.heatmap(
+        Na_MAE_Cl_phi_030_df_min,
+        ax1d,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+    )
+    plot_data(
         Ca_MAE_Cl_phi_030_df,
-        ax=ax2b,
-        cbar=True,
-        cbar_ax=cbar_ax_mae,
-        vmin=vmin_mae,
-        vmax=vmax_mae,
-        cmap=cmap,
-    ).invert_yaxis()
-    sns.heatmap(
+        Ca_MAE_Cl_phi_030_df_min,
+        ax2d,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+    )
+    plot_data(
         La_MAE_Cl_phi_030_df,
-        ax=ax3b,
-        cbar=True,
-        cbar_ax=cbar_ax_mae,
-        vmin=vmin_mae,
-        vmax=vmax_mae,
-        cmap=cmap,
-    ).invert_yaxis()
+        La_MAE_Cl_phi_030_df_min,
+        ax3d,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+    )
 
-    sns.heatmap(
+    plot_data(
         Na_MAE_Cl_phi_040_df,
-        ax=ax1c,
-        cbar=True,
-        cbar_ax=cbar_ax_mae,
-        vmin=vmin_mae,
-        vmax=vmax_mae,
-        cmap=cmap,
-    ).invert_yaxis()
-    sns.heatmap(
+        Na_MAE_Cl_phi_040_df_min,
+        ax1e,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+    )
+    plot_data(
         Ca_MAE_Cl_phi_040_df,
-        ax=ax2c,
-        cbar=True,
-        cbar_ax=cbar_ax_mae,
-        vmin=vmin_mae,
-        vmax=vmax_mae,
-        cmap=cmap,
-    ).invert_yaxis()
-    sns.heatmap(
+        Ca_MAE_Cl_phi_040_df_min,
+        ax2e,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+    )
+    plot_data(
         La_MAE_Cl_phi_040_df,
-        ax=ax3c,
-        cbar=True,
-        cbar_ax=cbar_ax_mae,
-        vmin=vmin_mae,
-        vmax=vmax_mae,
-        cmap=cmap,
-    ).invert_yaxis()
-
-    vmin_mse = min(
-        Na_MSE_Cl_phi_020_df.values.min(),
-        Ca_MSE_Cl_phi_020_df.values.min(),
-        La_MSE_Cl_phi_020_df.values.min(),
-        Na_MSE_Cl_phi_030_df.values.min(),
-        Ca_MSE_Cl_phi_030_df.values.min(),
-        La_MSE_Cl_phi_030_df.values.min(),
-        Na_MSE_Cl_phi_040_df.values.min(),
-        Ca_MSE_Cl_phi_040_df.values.min(),
-        La_MSE_Cl_phi_040_df.values.min(),
-    )
-    vmax_mse = max(
-        Na_MSE_Cl_phi_020_df.values.max(),
-        Ca_MSE_Cl_phi_020_df.values.max(),
-        La_MSE_Cl_phi_020_df.values.max(),
-        Na_MSE_Cl_phi_030_df.values.max(),
-        Ca_MSE_Cl_phi_030_df.values.max(),
-        La_MSE_Cl_phi_030_df.values.max(),
-        Na_MSE_Cl_phi_040_df.values.max(),
-        Ca_MSE_Cl_phi_040_df.values.max(),
-        La_MSE_Cl_phi_040_df.values.max(),
+        La_MAE_Cl_phi_040_df_min,
+        ax3e,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
     )
 
-    sns.heatmap(
+    plot_data(
+        Na_MSE_Cl_phi_005_df,
+        Na_MSE_Cl_phi_005_df_min,
+        ax4a,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
+    plot_data(
+        Ca_MSE_Cl_phi_005_df,
+        Ca_MSE_Cl_phi_005_df_min,
+        ax5a,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
+    plot_data(
+        La_MSE_Cl_phi_005_df,
+        La_MSE_Cl_phi_005_df_min,
+        ax6a,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
+
+    plot_data(
+        Na_MSE_Cl_phi_010_df,
+        Na_MSE_Cl_phi_010_df_min,
+        ax4b,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
+    plot_data(
+        Ca_MSE_Cl_phi_010_df,
+        Ca_MSE_Cl_phi_010_df_min,
+        ax5b,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
+    plot_data(
+        La_MSE_Cl_phi_010_df,
+        La_MSE_Cl_phi_010_df_min,
+        ax6b,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
+
+    plot_data(
         Na_MSE_Cl_phi_020_df,
-        ax=ax4a,
-        cbar=True,
-        cbar_ax=cbar_ax_mse,
-        vmin=vmin_mse,
-        vmax=vmax_mse,
-        cmap=cmap,
-    ).invert_yaxis()
-    sns.heatmap(
+        Na_MSE_Cl_phi_020_df_min,
+        ax4c,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
+    plot_data(
         Ca_MSE_Cl_phi_020_df,
-        ax=ax5a,
-        cbar=True,
-        cbar_ax=cbar_ax_mse,
-        vmin=vmin_mse,
-        vmax=vmax_mse,
-        cmap=cmap,
-    ).invert_yaxis()
-    sns.heatmap(
+        Ca_MSE_Cl_phi_020_df_min,
+        ax5c,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
+    plot_data(
         La_MSE_Cl_phi_020_df,
-        ax=ax6a,
-        cbar=True,
-        cbar_ax=cbar_ax_mse,
-        vmin=vmin_mse,
-        vmax=vmax_mse,
-        cmap=cmap,
-    ).invert_yaxis()
+        La_MSE_Cl_phi_020_df_min,
+        ax6c,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
 
-    sns.heatmap(
+    plot_data(
         Na_MSE_Cl_phi_030_df,
-        ax=ax4b,
-        cbar=True,
-        cbar_ax=cbar_ax_mse,
-        vmin=vmin_mse,
-        vmax=vmax_mse,
-        cmap=cmap,
-    ).invert_yaxis()
-    sns.heatmap(
+        Na_MSE_Cl_phi_030_df_min,
+        ax4d,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
+    plot_data(
         Ca_MSE_Cl_phi_030_df,
-        ax=ax5b,
-        cbar=True,
-        cbar_ax=cbar_ax_mse,
-        vmin=vmin_mse,
-        vmax=vmax_mse,
-        cmap=cmap,
-    ).invert_yaxis()
-    sns.heatmap(
+        Ca_MSE_Cl_phi_030_df_min,
+        ax5d,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
+    plot_data(
         La_MSE_Cl_phi_030_df,
-        ax=ax6b,
-        cbar=True,
-        cbar_ax=cbar_ax_mse,
-        vmin=vmin_mse,
-        vmax=vmax_mse,
-        cmap=cmap,
-    ).invert_yaxis()
+        La_MSE_Cl_phi_030_df_min,
+        ax6d,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
 
-    sns.heatmap(
+    plot_data(
         Na_MSE_Cl_phi_040_df,
-        ax=ax4c,
-        cbar=True,
-        cbar_ax=cbar_ax_mse,
-        vmin=vmin_mse,
-        vmax=vmax_mse,
-        cmap=cmap,
-    ).invert_yaxis()
-    sns.heatmap(
+        Na_MSE_Cl_phi_040_df_min,
+        ax4e,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
+    plot_data(
         Ca_MSE_Cl_phi_040_df,
-        ax=ax5c,
-        cbar=True,
-        cbar_ax=cbar_ax_mse,
-        vmin=vmin_mse,
-        vmax=vmax_mse,
-        cmap=cmap,
-    ).invert_yaxis()
-    sns.heatmap(
+        Ca_MSE_Cl_phi_040_df_min,
+        ax5e,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
+    plot_data(
         La_MSE_Cl_phi_040_df,
-        ax=ax6c,
-        cbar=True,
-        cbar_ax=cbar_ax_mse,
-        vmin=vmin_mse,
-        vmax=vmax_mse,
-        cmap=cmap,
-    ).invert_yaxis()
+        La_MSE_Cl_phi_040_df_min,
+        ax6e,
+        cbar_ax_mse,
+        vmin_mse,
+        vmax_mse,
+    )
 
     for ax in fig1.axes:
         ax.tick_params(axis="y", rotation=0)
     for ax in fig2.axes:
         ax.tick_params(axis="y", rotation=0)
 
-    for ax in [ax3a, ax3b, ax3c, ax6a, ax6b, ax6c]:
+    for ax in [ax3a, ax3b, ax3c, ax3d, ax3e, ax6a, ax6b, ax6c, ax6d, ax6e]:
         ax.set_xlabel(
             "$\mathbf{D_m}$/$\mathbf{l_m}$ (um/s)",
             fontsize=fontsize,
@@ -391,10 +483,61 @@ def generate_data_comparison_heat_maps():
             fontweight="bold",
         )
 
-    plt.show()
-
     fig1.savefig("sieving_data_mae.png", dpi=600)
     fig2.savefig("sieving_data_mse.png", dpi=600)
+
+
+def load_data(Cl_phi_key, filename):
+    indices = [0.05, 0.1, 0.2, 0.3, 0.4]
+
+    df = pd.read_csv(f"heat_map_data/Cl_phi_{Cl_phi_key}/{filename}.csv", index_col=0)
+
+    # fixes indexing issues of the minimum annotation if NaNs present
+    df = df.reindex(indices)
+
+    return df
+
+
+def find_minimums(df):
+    indices = [0.05, 0.1, 0.2, 0.3, 0.4]
+    columns = ["5", "10", "20", "40", "80"]
+
+    df_min = pd.DataFrame(columns=columns, index=indices)
+    min_val = df.min().min()
+    df_min.at[df.stack().idxmin()] = f"*\n{min_val:.2e}"
+    df_min.fillna("", inplace=True)
+
+    return df_min
+
+
+def plot_data(df, df_min, ax, cbar_ax, vmin, vmax):
+    fontsize = 12
+
+    tol_bright_hex = [
+        "#4477AA",
+        "#EE6677",
+        "#228833",
+        "#CCBB44",
+        "#66CCEE",
+        "#AA3377",
+        "#BBBBBB",
+    ]
+    cmap = mcolors.LinearSegmentedColormap.from_list(
+        "monotone_magenta", ["#ffffff", tol_bright_hex[5]], N=256
+    )
+
+    sns.heatmap(
+        df,
+        annot=df_min,
+        fmt="",
+        annot_kws={"size": fontsize, "fontweight": "bold"},
+        ax=ax,
+        cbar=True,
+        cbar_ax=cbar_ax,
+        vmin=vmin,
+        vmax=vmax,
+        cmap=cmap,
+    ).invert_yaxis()
 
 
 def save_data_comparison_csv(Cl_phi_key):
