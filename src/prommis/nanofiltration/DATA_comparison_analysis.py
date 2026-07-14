@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import pandas as pd
 import seaborn as sns
+import numpy as np
 
 from prommis.nanofiltration.multi_component_analysis import (
     build_model,
@@ -28,7 +29,11 @@ from prommis.nanofiltration.multi_component_analysis import (
 
 
 def main():
-    save_data_comparison_csv(Cl_phi_key="005")
+    # # save_data_comparison_csv(Cl_phi_key="040")
+    # # save_data_comparison_csv(Cl_phi_key="030")
+    # save_data_comparison_csv(Cl_phi_key="020")
+    # save_data_comparison_csv(Cl_phi_key="010")
+    # save_data_comparison_csv(Cl_phi_key="005")
     generate_data_comparison_heat_maps()
 
     plt.show()
@@ -108,11 +113,17 @@ def generate_data_comparison_heat_maps():
         La_MSE_Cl_phi_040_df,
     ]
 
-    vmin_mae = min(df.values.min() for df in df_mae_list)
-    vmax_mae = max(df.values.max() for df in df_mae_list)
+    vmin_mae = 0
+    vmax_mae = 1
 
-    vmin_mse = min(df.values.min() for df in df_mse_list)
-    vmax_mse = max(df.values.max() for df in df_mse_list)
+    vmin_mse = 0
+    vmax_mse = 1
+
+    # vmin_mae = min(df.values.min() for df in df_mae_list)
+    # vmax_mae = max(df.values.max() for df in df_mae_list)
+
+    # vmin_mse = min(df.values.min() for df in df_mse_list)
+    # vmax_mse = max(df.values.max() for df in df_mse_list)
 
     # add stars at the minumum of each subplot
     Na_MAE_Cl_phi_005_df_min = find_minimums(Na_MAE_Cl_phi_005_df)
@@ -492,7 +503,9 @@ def generate_data_comparison_heat_maps():
 
 
 def load_data(Cl_phi_key, filename):
-    if filename[0:2] == "La":
+    if filename[0:2] == "Na":
+        indices = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+    elif filename[0:2] == "La":
         indices = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4]
     else:
         indices = [0.05, 0.1, 0.2, 0.3, 0.4]
@@ -506,10 +519,16 @@ def load_data(Cl_phi_key, filename):
 
 
 def find_minimums(df):
-    if len(df.index) == 6:
-        indices = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4]
+    Na_indices = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+    Ca_indices = [0.05, 0.1, 0.2, 0.3, 0.4]
+    La_indices = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4]
+
+    if df.index.tolist() == Na_indices:
+        indices = Na_indices
+    elif df.index.tolist() == La_indices:
+        indices = La_indices
     else:
-        indices = [0.05, 0.1, 0.2, 0.3, 0.4]
+        indices = Ca_indices
 
     columns = ["5", "10", "20", "40", "80"]
 
@@ -526,18 +545,56 @@ def find_minimums(df):
 def plot_data(df, df_min, ax, cbar_ax, vmin, vmax, yticklabels=False):
     fontsize = 12
 
-    tol_bright_hex = [
-        "#4477AA",
-        "#EE6677",
-        "#228833",
-        "#CCBB44",
-        "#66CCEE",
-        "#AA3377",
-        "#BBBBBB",
+    tol_iridescent_sequential_hex = [
+        # "#FEFBE9",
+        # "#FCF7D5",
+        # "#F5F3C1",
+        "#EAF0B5",
+        "#DDECBF",
+        "#D0E7CA",
+        "#C2E3D2",
+        "#B5DDD8",
+        "#A8D8DC",
+        "#9BD2E1",
+        "#8DCBE4",
+        "#81C4E7",
+        "#7BBCE7",
+        "#7EB2E4",
+        "#88A5DD",
+        "#9398D2",
+        "#9B8AC4",
+        "#9D7DB2",
+        "#9A709E",
+        "#906388",
+        "#805770",
+        "#684957",
+        "#46353A",
     ]
-    cmap = mcolors.LinearSegmentedColormap.from_list(
-        "monotone_magenta", ["#ffffff", tol_bright_hex[5]], N=256
-    )
+    # tol_discrete_rainbow_hex = [
+    #     "#D9CCE3",
+    #     "#CAACCB",
+    #     "#BA8DB4",
+    #     "#AA6F9E",
+    #     "#994F88",
+    #     "#882E72",
+    #     "#1965B0",
+    #     "#437DBF",
+    #     "#6195CF",
+    #     "#7BAFDE",
+    #     "#4EB265",
+    #     "#90C987",
+    #     "#CAE0AB",
+    #     "#F7F056",
+    #     "#F6C141",
+    #     "#F1932D",
+    #     "#E8601C",
+    #     "#DC050C",
+    #     "#A5170E",
+    #     "#72190E",
+    # ]
+    cmap = mcolors.ListedColormap(tol_iridescent_sequential_hex)
+    bins = np.linspace(0, 1, 21).tolist()
+    norm = mcolors.BoundaryNorm(bins, cmap.N)
 
     sns.heatmap(
         df,
@@ -550,6 +607,7 @@ def plot_data(df, df_min, ax, cbar_ax, vmin, vmax, yticklabels=False):
         vmin=vmin,
         vmax=vmax,
         cmap=cmap,
+        norm=norm,
         yticklabels=yticklabels,
     ).invert_yaxis()
 
@@ -615,11 +673,11 @@ def save_data_comparison_csv(Cl_phi_key):
 
     # sieving_dict = {Dm/l: {cation_phi: {conc: sieving, ...}, ...}, ...}
     Na_sieving_dict = {
-        5: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        10: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        20: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        40: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        80: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
+        5: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}, 0.50: {}},
+        10: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}, 0.50: {}},
+        20: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}, 0.50: {}},
+        40: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}, 0.50: {}},
+        80: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}, 0.50: {}},
     }
     Ca_sieving_dict = {
         5: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
@@ -639,8 +697,8 @@ def save_data_comparison_csv(Cl_phi_key):
     Dm_over_l_sensitivity = [80, 40, 20, 10, 5]  # um/s
     Dm_over_l_sensitivity_keys = ["80", "40", "20", "10", "05"]  # um/s
 
-    cation_phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05, 0.01]
-    cation_phi_star_sensitivity_keys = ["040", "030", "020", "010", "005", "001"]
+    cation_phi_star_sensitivity = [0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.01]
+    cation_phi_star_sensitivity_keys = ["050", "040", "030", "020", "010", "005", "001"]
 
     for case_study in case_study_list:
         concentration = float(50)  # mM
