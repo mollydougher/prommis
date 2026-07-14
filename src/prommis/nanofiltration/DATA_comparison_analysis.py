@@ -28,7 +28,7 @@ from prommis.nanofiltration.multi_component_analysis import (
 
 
 def main():
-    # save_data_comparison_csv(Cl_phi_key = "005")
+    save_data_comparison_csv(Cl_phi_key="005")
     generate_data_comparison_heat_maps()
 
     plt.show()
@@ -158,9 +158,8 @@ def generate_data_comparison_heat_maps():
         3,
         5,
         dpi=75,
-        figsize=(25, 14.1),
+        figsize=(24, 14.1),
         sharex=True,
-        sharey=True,
     )
     fig1.tight_layout(rect=[0.05, 0.05, 0.9, 0.95])
     fig2, (
@@ -171,16 +170,15 @@ def generate_data_comparison_heat_maps():
         3,
         5,
         dpi=75,
-        figsize=(25, 14.1),
+        figsize=(24, 14.1),
         sharex=True,
-        sharey=True,
     )
     fig2.tight_layout(rect=[0.05, 0.05, 0.9, 0.95])
 
     for ax in fig1.axes:
-        ax.tick_params(labelsize=fontsize)
+        ax.tick_params(bottom=False, labelsize=fontsize)
     for ax in fig2.axes:
-        ax.tick_params(labelsize=fontsize)
+        ax.tick_params(bottom=False, labelsize=fontsize)
 
     fig1.suptitle("Mean Absolute Error", fontsize=fontsize, fontweight="bold")
     fig2.suptitle("Mean Squared Error", fontsize=fontsize, fontweight="bold")
@@ -210,6 +208,7 @@ def generate_data_comparison_heat_maps():
         cbar_ax_mae,
         vmin_mae,
         vmax_mae,
+        yticklabels=True,
     )
     plot_data(
         Ca_MAE_Cl_phi_005_df,
@@ -218,6 +217,7 @@ def generate_data_comparison_heat_maps():
         cbar_ax_mae,
         vmin_mae,
         vmax_mae,
+        yticklabels=True,
     )
     plot_data(
         La_MAE_Cl_phi_005_df,
@@ -226,6 +226,7 @@ def generate_data_comparison_heat_maps():
         cbar_ax_mae,
         vmin_mae,
         vmax_mae,
+        yticklabels=True,
     )
 
     plot_data(
@@ -335,6 +336,7 @@ def generate_data_comparison_heat_maps():
         cbar_ax_mse,
         vmin_mse,
         vmax_mse,
+        yticklabels=True,
     )
     plot_data(
         Ca_MSE_Cl_phi_005_df,
@@ -343,6 +345,7 @@ def generate_data_comparison_heat_maps():
         cbar_ax_mse,
         vmin_mse,
         vmax_mse,
+        yticklabels=True,
     )
     plot_data(
         La_MSE_Cl_phi_005_df,
@@ -351,6 +354,7 @@ def generate_data_comparison_heat_maps():
         cbar_ax_mse,
         vmin_mse,
         vmax_mse,
+        yticklabels=True,
     )
 
     plot_data(
@@ -488,7 +492,10 @@ def generate_data_comparison_heat_maps():
 
 
 def load_data(Cl_phi_key, filename):
-    indices = [0.05, 0.1, 0.2, 0.3, 0.4]
+    if filename[0:2] == "La":
+        indices = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4]
+    else:
+        indices = [0.05, 0.1, 0.2, 0.3, 0.4]
 
     df = pd.read_csv(f"heat_map_data/Cl_phi_{Cl_phi_key}/{filename}.csv", index_col=0)
 
@@ -499,18 +506,24 @@ def load_data(Cl_phi_key, filename):
 
 
 def find_minimums(df):
-    indices = [0.05, 0.1, 0.2, 0.3, 0.4]
+    if len(df.index) == 6:
+        indices = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4]
+    else:
+        indices = [0.05, 0.1, 0.2, 0.3, 0.4]
+
     columns = ["5", "10", "20", "40", "80"]
 
     df_min = pd.DataFrame(columns=columns, index=indices)
     min_val = df.min().min()
     df_min.at[df.stack().idxmin()] = f"*\n{min_val:.2e}"
+    # fixes any indexing issues
+    df_min = df_min.reindex(indices)
     df_min.fillna("", inplace=True)
 
     return df_min
 
 
-def plot_data(df, df_min, ax, cbar_ax, vmin, vmax):
+def plot_data(df, df_min, ax, cbar_ax, vmin, vmax, yticklabels=False):
     fontsize = 12
 
     tol_bright_hex = [
@@ -537,6 +550,7 @@ def plot_data(df, df_min, ax, cbar_ax, vmin, vmax):
         vmin=vmin,
         vmax=vmax,
         cmap=cmap,
+        yticklabels=yticklabels,
     ).invert_yaxis()
 
 
@@ -615,18 +629,18 @@ def save_data_comparison_csv(Cl_phi_key):
         80: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
     }
     La_sieving_dict = {
-        5: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        10: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        20: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        40: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        80: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
+        5: {0.01: {}, 0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
+        10: {0.01: {}, 0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
+        20: {0.01: {}, 0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
+        40: {0.01: {}, 0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
+        80: {0.01: {}, 0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
     }
 
     Dm_over_l_sensitivity = [80, 40, 20, 10, 5]  # um/s
     Dm_over_l_sensitivity_keys = ["80", "40", "20", "10", "05"]  # um/s
 
-    phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05]
-    phi_star_sensitivity_keys = ["040", "030", "020", "010", "005"]
+    cation_phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05, 0.01]
+    cation_phi_star_sensitivity_keys = ["040", "030", "020", "010", "005", "001"]
 
     for case_study in case_study_list:
         concentration = float(50)  # mM
@@ -637,8 +651,8 @@ def save_data_comparison_csv(Cl_phi_key):
         ]
 
         cation_phi_key = str(case_study)[76:79]
-        cation_phi = phi_star_sensitivity[
-            phi_star_sensitivity_keys.index(cation_phi_key)
+        cation_phi = cation_phi_star_sensitivity[
+            cation_phi_star_sensitivity_keys.index(cation_phi_key)
         ]
 
         cation = str(case_study)[80:82]

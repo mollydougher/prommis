@@ -244,33 +244,33 @@ def solve_and_save_models(
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
-    if run_data:  # TODO: debug La initialization and run phi_star = 0.05
+    if run_data:
         # set concentrations
         feed = {
-            "Na": [
-                # 9.6199,
-                30.5114,
-                43.1343,
-                54.5286,
-                64.7312,
-                74.1947,
-                83.0378,
-                91.3303,
-                98.4631,
-                105.1806,
-            ],
-            "Ca": [
-                # 3.0588,
-                10.4631,
-                15.2044,
-                19.6055,
-                23.6953,
-                27.5362,
-                31.0213,
-                34.3589,
-                37.4959,
-                40.3890,
-            ],
+            # "Na": [
+            #     # 9.6199,
+            #     30.5114,
+            #     43.1343,
+            #     54.5286,
+            #     64.7312,
+            #     74.1947,
+            #     83.0378,
+            #     91.3303,
+            #     98.4631,
+            #     105.1806,
+            # ],
+            # "Ca": [
+            #     # 3.0588,
+            #     10.4631,
+            #     15.2044,
+            #     19.6055,
+            #     23.6953,
+            #     27.5362,
+            #     31.0213,
+            #     34.3589,
+            #     37.4959,
+            #     40.3890,
+            # ],
             "La": [
                 # 1.4129,
                 4.8072,
@@ -287,30 +287,30 @@ def solve_and_save_models(
 
         # set average flux
         flux = {
-            "Na": [
-                # 0.018,
-                0.033,
-                0.031,
-                0.030,
-                0.028,
-                0.026,
-                0.025,
-                0.026,
-                0.023,
-                0.023,
-            ],
-            "Ca": [
-                # 0.015,
-                0.030,
-                0.026,
-                0.026,
-                0.023,
-                0.022,
-                0.021,
-                0.019,
-                0.019,
-                0.018,
-            ],
+            # "Na": [
+            #     # 0.018,
+            #     0.033,
+            #     0.031,
+            #     0.030,
+            #     0.028,
+            #     0.026,
+            #     0.025,
+            #     0.026,
+            #     0.023,
+            #     0.023,
+            # ],
+            # "Ca": [
+            #     # 0.015,
+            #     0.030,
+            #     0.026,
+            #     0.026,
+            #     0.023,
+            #     0.022,
+            #     0.021,
+            #     0.019,
+            #     0.019,
+            #     0.018,
+            # ],
             "La": [
                 # 0.016,
                 0.030,
@@ -327,10 +327,8 @@ def solve_and_save_models(
 
         pressure = {"Na": 3.8, "Ca": 3.3, "La": 3.9}
 
-        # Dm_over_l_sensitivity = [80, 40, 20, 10, 5]  # um/s
-        # Dm_over_l_sensitivity_keys = ["80", "40", "20", "10", "05"]  # um/s
-        Dm_over_l_sensitivity = [20, 10, 5]  # um/s
-        Dm_over_l_sensitivity_keys = ["20", "10", "05"]  # um/s
+        Dm_over_l_sensitivity = [80, 40, 20, 10, 5]  # um/s
+        Dm_over_l_sensitivity_keys = ["80", "40", "20", "10", "05"]  # um/s
 
         Dm = {"Na": 1.33, "Ca": 0.79, "La": 0.62, "Cl": 2.03}  # um2/s
 
@@ -339,10 +337,10 @@ def solve_and_save_models(
         # phi_star_sensitivity = [0.33, 0.25, 0.1, 0.05]
         # phi_star_sensitivity_keys = ["033", "025", "010", "005"]
 
-        cation_phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05]
-        cation_phi_star_sensitivity_keys = ["040", "030", "020", "010", "005"]
-        cloride_phi_star_sensitivity = [0.05]
-        cloride_phi_star_sensitivity_keys = ["005"]
+        cation_phi_star_sensitivity = [0.01]
+        cation_phi_star_sensitivity_keys = ["001"]
+        cloride_phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05]
+        cloride_phi_star_sensitivity_keys = ["040", "030", "020", "010", "005"]
 
         # H_feed_guesses = np.arange(0.5, 2.6, 0.1)
         # H_permeate_guesses = np.arange(0.5, 2.6, 0.1)
