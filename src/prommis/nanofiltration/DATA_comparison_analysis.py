@@ -35,12 +35,6 @@ def main():
     # save_data_comparison_csv(Cl_phi_key="010")
     # save_data_comparison_csv(Cl_phi_key="005")
 
-    # save_N_points_csv(Cl_phi_key="040")
-    # save_N_points_csv(Cl_phi_key="030")
-    # save_N_points_csv(Cl_phi_key="020")
-    # save_N_points_csv(Cl_phi_key="010")
-    # save_N_points_csv(Cl_phi_key="005")
-
     generate_data_comparison_heat_maps()
     generate_N_data_heat_maps()
 
@@ -86,52 +80,11 @@ def generate_data_comparison_heat_maps():
     Ca_MSE_Cl_phi_040_df = load_data("040", "Ca_MSE")
     La_MSE_Cl_phi_040_df = load_data("040", "La_MSE")
 
-    df_mae_list = [
-        Na_MAE_Cl_phi_005_df,
-        Ca_MAE_Cl_phi_005_df,
-        La_MAE_Cl_phi_005_df,
-        Na_MAE_Cl_phi_010_df,
-        Ca_MAE_Cl_phi_010_df,
-        La_MAE_Cl_phi_010_df,
-        Na_MAE_Cl_phi_020_df,
-        Ca_MAE_Cl_phi_020_df,
-        La_MAE_Cl_phi_020_df,
-        Na_MAE_Cl_phi_030_df,
-        Ca_MAE_Cl_phi_030_df,
-        La_MAE_Cl_phi_030_df,
-        Na_MAE_Cl_phi_040_df,
-        Ca_MAE_Cl_phi_040_df,
-        La_MAE_Cl_phi_040_df,
-    ]
-    df_mse_list = [
-        Na_MSE_Cl_phi_005_df,
-        Ca_MSE_Cl_phi_005_df,
-        La_MSE_Cl_phi_005_df,
-        Na_MSE_Cl_phi_010_df,
-        Ca_MSE_Cl_phi_010_df,
-        La_MSE_Cl_phi_010_df,
-        Na_MSE_Cl_phi_020_df,
-        Ca_MSE_Cl_phi_020_df,
-        La_MSE_Cl_phi_020_df,
-        Na_MSE_Cl_phi_030_df,
-        Ca_MSE_Cl_phi_030_df,
-        La_MSE_Cl_phi_030_df,
-        Na_MSE_Cl_phi_040_df,
-        Ca_MSE_Cl_phi_040_df,
-        La_MSE_Cl_phi_040_df,
-    ]
-
     vmin_mae = 0
     vmax_mae = 1
 
     vmin_mse = 0
     vmax_mse = 1
-
-    # vmin_mae = min(df.values.min() for df in df_mae_list)
-    # vmax_mae = max(df.values.max() for df in df_mae_list)
-
-    # vmin_mse = min(df.values.min() for df in df_mse_list)
-    # vmax_mse = max(df.values.max() for df in df_mse_list)
 
     # add stars at the minumum of each subplot
     Na_MAE_Cl_phi_005_df_min = find_minimums(Na_MAE_Cl_phi_005_df)
@@ -925,12 +878,12 @@ def save_data_comparison_csv(Cl_phi_key):
             cation_list=cation_list,
             inlet_concentration=inlet_concentration,
             default_args=default_args,
-            H_feed_guess=1,
-            H_permeate_guess=1,
+            # H_feed_guess=1,
+            # H_permeate_guess=1,
             non_Donnan_partition_dict=non_Donnan_partition_dict,
             data_membrane_thickness=l_m,
             NFE_args=NFE_args,
-            initialize=False,
+            initialize_and_solve=False,
         )
         from_json(model, fname=case_study)
 
@@ -1091,140 +1044,6 @@ def save_data_comparison_csv(Cl_phi_key):
     Ca_MSE_df.to_csv(f"heat_map_data/Cl_phi_{Cl_phi_key}/Ca_MSE.csv")
     La_MSE_df.to_csv(f"heat_map_data/Cl_phi_{Cl_phi_key}/La_MSE.csv")
 
-
-def save_N_points_csv(Cl_phi_key):
-    anion_list = ["Cl"]
-    inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
-    include_boundary_layer = True
-    NFE_module_length = 15
-    NFE_boundary_layer_thickness = 5
-    NFE_membrane_thickness = 5
-
-    default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
-    NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
-
-    Cl_Dm = 2.03  # um2/s
-
-    sample_folder = Path(
-        f"multi_component_case_studies/DATA_comparison/Cl_phi_{Cl_phi_key}/"
-    )
-    # 80 characters (0-79) make up folder name before model name
-    # multi_component_case_studies/DATA_comparison/Cl_phi_XXX/80umpers/cation_phi_XXX/
-    case_study_list = [file for file in sample_folder.rglob("*") if file.is_file()]
-
-    # sieving_dict = {Dm/l: {cation_phi: {conc: sieving, ...}, ...}, ...}
-    Na_sieving_dict = {
-        5: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}, 0.50: {}},
-        10: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}, 0.50: {}},
-        20: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}, 0.50: {}},
-        40: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}, 0.50: {}},
-        80: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}, 0.50: {}},
-    }
-    Ca_sieving_dict = {
-        5: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        10: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        20: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        40: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        80: {0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-    }
-    La_sieving_dict = {
-        5: {0.005: {}, 0.01: {}, 0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        10: {0.005: {}, 0.01: {}, 0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        20: {0.005: {}, 0.01: {}, 0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        40: {0.005: {}, 0.01: {}, 0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-        80: {0.005: {}, 0.01: {}, 0.05: {}, 0.10: {}, 0.20: {}, 0.30: {}, 0.40: {}},
-    }
-
-    Dm_over_l_sensitivity = [80, 40, 20, 10, 5]  # um/s
-    Dm_over_l_sensitivity_keys = ["80", "40", "20", "10", "05"]  # um/s
-
-    cation_phi_star_sensitivity = [0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.01, 0.005]
-    cation_phi_star_sensitivity_keys = [
-        "050",
-        "040",
-        "030",
-        "020",
-        "010",
-        "005",
-        "001",
-        "000",
-    ]
-
-    chloride_phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05]
-    chloride_phi_star_sensitivity_keys = ["040", "030", "020", "010", "005"]
-
-    for case_study in case_study_list:
-        concentration = float(50)  # mM
-
-        Dm_over_l_key = str(case_study)[56:58]
-        Dm_over_l = Dm_over_l_sensitivity[
-            Dm_over_l_sensitivity_keys.index(Dm_over_l_key)
-        ]
-
-        cation_phi_key = str(case_study)[76:79]
-        cation_phi = cation_phi_star_sensitivity[
-            cation_phi_star_sensitivity_keys.index(cation_phi_key)
-        ]
-
-        cation = str(case_study)[80:82]
-        cation_list = [cation]
-
-        if cation == "Na":
-            chloride_multiplier = 1
-            sieving_dict = Na_sieving_dict
-        elif cation == "Ca":
-            chloride_multiplier = 2
-            sieving_dict = Ca_sieving_dict
-        elif cation == "La":
-            chloride_multiplier = 3
-            sieving_dict = La_sieving_dict
-
-        inlet_concentration = {
-            "feed": {
-                cation: concentration,
-                "Cl": chloride_multiplier * concentration,
-            },
-            "diafiltrate": {
-                cation: 1e-10,
-                "Cl": chloride_multiplier * 1e-10,
-            },
-        }
-
-        non_Donnan_partition_dict = {
-            cation: cation_phi,
-            "Cl": chloride_phi_star_sensitivity[
-                chloride_phi_star_sensitivity_keys.index(Cl_phi_key)
-            ],
-        }
-
-        l_um = Cl_Dm / Dm_over_l  # um
-        l_m = l_um / 1e6  # m
-
-        model = build_model(
-            cation_list=cation_list,
-            inlet_concentration=inlet_concentration,
-            default_args=default_args,
-            H_feed_guess=1,
-            H_permeate_guess=1,
-            non_Donnan_partition_dict=non_Donnan_partition_dict,
-            data_membrane_thickness=l_m,
-            NFE_args=NFE_args,
-            initialize=False,
-        )
-        from_json(model, fname=case_study)
-
-        average_variable_dict = get_model_averages(model, cation)
-
-        feed_conc_predicted = value(
-            model.fs.membrane.retentate_conc_mol_comp[0, 0, cation]
-        )
-        obs_sieving_predicted = average_variable_dict["observed_sieving"]["avg"]
-
-        sieving_dict[Dm_over_l][cation_phi].update(
-            {round(feed_conc_predicted, 4): obs_sieving_predicted}
-        )
-
-    # residual = actual - predicted
     Na_N_dict = {
         Dm_over_l: {
             cation_phi: len(Na_sieving_dict[Dm_over_l][cation_phi])
@@ -1251,9 +1070,9 @@ def save_N_points_csv(Cl_phi_key):
     Ca_N_df = pd.DataFrame(Ca_N_dict)
     La_N_df = pd.DataFrame(La_N_dict)
 
-    print(f"Na (MAE)\n{Na_N_df}")
-    print(f"Ca (MAE)\n{Ca_N_df}")
-    print(f"La (MAE)\n{La_N_df}")
+    print(f"Na (N)\n{Na_N_df}")
+    print(f"Ca (N)\n{Ca_N_df}")
+    print(f"La (N)\n{La_N_df}")
 
     Na_N_df.to_csv(f"N_data/Cl_phi_{Cl_phi_key}/Na_N.csv")
     Ca_N_df.to_csv(f"N_data/Cl_phi_{Cl_phi_key}/Ca_N.csv")

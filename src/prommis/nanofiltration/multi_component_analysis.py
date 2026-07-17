@@ -73,21 +73,22 @@ def main():
     # plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=True)
     # plot_flux_contributions(x_axis="ionic_strength", percent=True, save_figure=True)
 
-    plt.show()
+    # plt.show()
 
 
 def build_model(
     cation_list,
     inlet_concentration,
     default_args,
-    H_feed_guess,
-    H_permeate_guess,
     NFE_args,
-    initialize=True,
-    data_applied_pressure=4,
-    # rpore=5e-10,  # default of 50 nm
+    initialize_and_solve=True,
+    water_flux=0.02,
     data_membrane_thickness=1e-7,  # default of 100 nm
     non_Donnan_partition_dict={},
+    save=False,
+    chloride_phi_star_key=None,
+    Dm_over_l_key=None,
+    cation_phi_star_key=None,
 ):
     anion_list, inlet_flow_volume, include_boundary_layer = default_args
     NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness = NFE_args
@@ -102,7 +103,6 @@ def build_model(
     m.fs.properties = MultiComponentDiafiltrationSoluteParameter(
         cation_list=cation_list,
         anion_list=anion_list,
-        # pore_radius=rpore,
         non_Donnan_partition_dict=non_Donnan_partition_dict,
     )
 
@@ -126,18 +126,11 @@ def build_model(
     m.fs.retentate_block = Product(property_package=m.fs.stream_properties)
     m.fs.permeate_block = Product(property_package=m.fs.stream_properties)
 
-    # m.fs.membrane.total_feed_ionic_strength.display()
     # fix the degrees of freedom to their default values
     m.fs.membrane.total_module_length.fix()
     m.fs.membrane.total_membrane_length.fix()
     if len(cation_list) == 1:
         m.fs.membrane.applied_pressure.fix(5)
-    elif cation_list[0] == "Na":
-        m.fs.membrane.applied_pressure.fix(data_applied_pressure)
-    elif cation_list[0] == "Ca":
-        m.fs.membrane.applied_pressure.fix(data_applied_pressure)
-    elif cation_list[0] == "La":
-        m.fs.membrane.applied_pressure.fix(data_applied_pressure)
     else:
         m.fs.membrane.applied_pressure.fix(10)
     m.fs.membrane.feed_flow_volume.fix(inlet_flow_volume["feed"])
@@ -148,13 +141,6 @@ def build_model(
             m.fs.membrane.diafiltrate_conc_mol_comp[t, j].fix(
                 inlet_concentration["diafiltrate"][j]
             )
-
-    # initialize membrane model
-    if initialize:
-        initialized_membrane_model = m.fs.membrane.default_initializer(
-            H_feed_guess=H_feed_guess, H_permeate_guess=H_permeate_guess
-        )
-        initialized_membrane_model.initialize(m.fs.membrane)
 
     # add and connect flowsheet streams
     m.fs.feed_stream = Arc(
@@ -179,6 +165,41 @@ def build_model(
     # check structural warnings
     dt = DiagnosticsToolbox(m)
     dt.assert_no_structural_warnings()
+
+    # initialize membrane model
+    if initialize_and_solve:
+        H_feed_guesses = np.arange(0.2, 3.1, 0.1)
+        if cation_list[0] == "La":
+            # guess larger H_permeate
+            H_permeate_guesses = np.arange(2, 16.5, 0.5)
+        else:
+            H_permeate_guesses = np.arange(0.2, 3.1, 0.1)
+
+        H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
+        H_guesses = np.flip(H_guesses, axis=0)
+
+        for H_feed_guess, H_permeate_guess in H_guesses:
+            try:
+                initialized_membrane_model = m.fs.membrane.default_initializer(
+                    H_feed_guess=H_feed_guess, H_permeate_guess=H_permeate_guess
+                )
+                initialized_membrane_model.initialize(m.fs.membrane)
+
+                solve_model(m)
+                unfix_pressure(m, water_flux=water_flux)
+                solve_model(m)
+
+                if save:
+                    fname = f"multi_component_case_studies/DATA_comparison/Cl_phi_{chloride_phi_star_key}/{Dm_over_l_key}umpers/cation_phi_{cation_phi_star_key}/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
+                    to_json(m, fname=fname)
+
+                break
+            except (
+                InitializationError,
+                NoFeasibleSolutionError,
+                RuntimeError,
+            ):
+                continue
 
     return m
 
@@ -325,95 +346,75 @@ def solve_and_save_models(
             ],
         }
 
-        pressure = {"Na": 3.8, "Ca": 3.3, "La": 3.9}
-
         Dm_over_l_sensitivity = [80, 40, 20, 10, 5]  # um/s
         Dm_over_l_sensitivity_keys = ["80", "40", "20", "10", "05"]  # um/s
 
-        Dm = {"Na": 1.33, "Ca": 0.79, "La": 0.62, "Cl": 2.03}  # um2/s
+        Dm_Cl = 2.03  # um2/s
 
-        # upper_bound_phi_steric = {"Na": 0.29, "Ca": 0.22, "La": 0.18}
+        # cation_phi_star_sensitivity = [0.5, 0.4, 0.3, 0.2, 0.1, 0.05]
+        # cation_phi_star_sensitivity_keys = ["050", "040", "030", "020", "010", "005"]
 
-        # phi_star_sensitivity = [0.33, 0.25, 0.1, 0.05]
-        # phi_star_sensitivity_keys = ["033", "025", "010", "005"]
+        # cation_phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05]
+        # cation_phi_star_sensitivity_keys = ["040", "030", "020", "010", "005"]
 
-        cation_phi_star_sensitivity = [0.005]
-        cation_phi_star_sensitivity_keys = ["000"]
-        cloride_phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05]
-        cloride_phi_star_sensitivity_keys = ["040", "030", "020", "010", "005"]
+        cation_phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05, 0.01]
+        cation_phi_star_sensitivity_keys = ["040", "030", "020", "010", "005", "001"]
 
-        # H_feed_guesses = np.arange(0.5, 2.6, 0.1)
-        # H_permeate_guesses = np.arange(0.5, 2.6, 0.1)
-        # # add in non equal guesses needed for some systems
-        # # H_feed_guesses = np.append(H_feed_guesses, 1)
-        # # H_permeate_guesses = np.append(H_permeate_guesses, 2)
-        # H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
-        # H_guesses = np.flip(H_guesses, axis=0)
+        chloride_phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05]
+        chloride_phi_star_sensitivity_keys = ["040", "030", "020", "010", "005"]
 
-        for cloride_phi_star in cloride_phi_star_sensitivity:
+        for chloride_phi_star in chloride_phi_star_sensitivity:
             for Dm_over_l in Dm_over_l_sensitivity:
                 for cation in feed.keys():
-                    l_um = Dm["Cl"] / Dm_over_l  # um
+                    l_um = Dm_Cl / Dm_over_l  # um
                     l_m = l_um / 1e6  # m
+
+                    if cation == "Na":
+                        chloride_multiplier = 1
+                    elif cation == "Ca":
+                        chloride_multiplier = 2
+                    elif cation == "La":
+                        chloride_multiplier = 3
 
                     for cation_phi_star in cation_phi_star_sensitivity:
                         for concentration in feed[cation]:
 
-                            H_feed_guesses = np.arange(0.2, 3.1, 0.1)
-                            if cation == "La":
-                                # guess larger H_permeate
-                                H_permeate_guesses = np.arange(2, 16.5, 0.5)
-                            else:
-                                H_permeate_guesses = np.arange(0.2, 3.1, 0.1)
-
-                            H_guesses = np.column_stack(
-                                (H_feed_guesses, H_permeate_guesses)
+                            model = build_model(
+                                cation_list=[cation],
+                                inlet_concentration={
+                                    "feed": {
+                                        cation: concentration,
+                                        "Cl": chloride_multiplier * concentration,
+                                    },
+                                    "diafiltrate": {
+                                        cation: 1e-10,
+                                        "Cl": chloride_multiplier * 1e-10,
+                                    },
+                                },
+                                default_args=default_args,
+                                NFE_args=NFE_args,
+                                initialize_and_solve=True,
+                                water_flux=flux[cation][
+                                    feed[cation].index(concentration)
+                                ],
+                                data_membrane_thickness=l_m,
+                                non_Donnan_partition_dict={
+                                    cation: cation_phi_star,
+                                    "Cl": chloride_phi_star,
+                                },
+                                save=True,
+                                chloride_phi_star_key=chloride_phi_star_sensitivity_keys[
+                                    chloride_phi_star_sensitivity.index(
+                                        chloride_phi_star
+                                    )
+                                ],
+                                Dm_over_l_key=Dm_over_l_sensitivity_keys[
+                                    Dm_over_l_sensitivity.index(Dm_over_l)
+                                ],
+                                cation_phi_star_key=cation_phi_star_sensitivity_keys[
+                                    cation_phi_star_sensitivity.index(cation_phi_star)
+                                ],
                             )
-                            H_guesses = np.flip(H_guesses, axis=0)
-
-                            for H_feed_guess, H_permeate_guess in H_guesses:
-                                try:
-                                    model = build_model(
-                                        cation_list=[cation],
-                                        inlet_concentration={
-                                            "feed": {
-                                                cation: concentration,
-                                                "Cl": concentration,
-                                            },
-                                            "diafiltrate": {
-                                                cation: 1e-10,
-                                                "Cl": 1e-10,
-                                            },
-                                        },
-                                        default_args=default_args,
-                                        H_feed_guess=H_feed_guess,
-                                        H_permeate_guess=H_permeate_guess,
-                                        NFE_args=NFE_args,
-                                        initialize=True,
-                                        data_applied_pressure=pressure[cation],
-                                        data_membrane_thickness=l_m,
-                                        non_Donnan_partition_dict={
-                                            cation: cation_phi_star,
-                                            "Cl": cloride_phi_star,
-                                        },
-                                    )
-                                    solve_model(model)
-                                    unfix_pressure(
-                                        model,
-                                        water_flux=flux[cation][
-                                            feed[cation].index(concentration)
-                                        ],
-                                    )
-                                    solve_model(model)
-                                    fname = f"multi_component_case_studies/DATA_comparison/Cl_phi_{cloride_phi_star_sensitivity_keys[cloride_phi_star_sensitivity.index(cloride_phi_star)]}/{Dm_over_l_sensitivity_keys[Dm_over_l_sensitivity.index(Dm_over_l)]}umpers/cation_phi_{cation_phi_star_sensitivity_keys[cation_phi_star_sensitivity.index(cation_phi_star)]}/{cation}_{concentration}mM"
-                                    to_json(model, fname=fname)
-                                    break
-                                except (
-                                    InitializationError,
-                                    NoFeasibleSolutionError,
-                                    RuntimeError,
-                                ):
-                                    continue
 
     IS_key = ["050", "075", "100", "150", "200", "400", "600", "800"]
     CONC_key = ["025", "050", "075", "100", "150", "200", "250", "300"]
