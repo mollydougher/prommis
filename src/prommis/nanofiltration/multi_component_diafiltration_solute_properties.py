@@ -31,9 +31,13 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
     Property Package for the multi-component diafiltration membrane.
 
     Currently includes the following solutes:
+        K (potassium ion, +)
+        Na (sodium ion, +)
         Li (lithium ion, +)
+        Ca (calcium ion, 2+)
         Co (cobalt ion, 2+)
         Al (aluminum ion, 3+)
+        La (lanthanum ion, 3+)
         Cl (chloride ion, -)
     """
 
@@ -72,67 +76,79 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
 
         # ion valence
         charge_dict = {
+            "K": 1,
+            "Na": 1,
             "Li": 1,
+            "Ca": 2,
             "Co": 2,
             "Al": 3,
+            "La": 3,
             "Cl": -1,
         }
 
         # infinite dilution solute diffusion coefficient
         # source: https://www.aqion.de/site/diffusion-coefficients
-        # assumption: no hindered transport (D_bulk = D_membrane)
         boundary_layer_diffusion_coefficient_dict = {
+            "K": 7.06,  # mm2 / h
+            "Na": 4.79,  # mm2 / h
             "Li": 3.71,  # mm2 / h
+            "Ca": 2.85,  # mm2 / h
             "Co": 2.64,  # mm2 / h
             "Al": 2.01,  # mm2 / h
+            "La": 2.23,  # mm2 / h # TODO: verify
             "Cl": 7.31,  # mm2 / h
         }
         membrane_diffusion_coefficient_dict = {
-            "Li": 3.71,  # mm2 / h
-            "Co": 2.64,  # mm2 / h
-            "Al": 2.01,  # mm2 / h
-            "Cl": 7.31,  # mm2 / h
+            "K": 7.06 * 0.01,  # mm2 / h
+            "Na": 4.79 * 0.01,  # mm2 / h
+            "Li": 3.71 * 0.01,  # mm2 / h
+            "Ca": 2.85 * 0.01,  # mm2 / h
+            "Co": 2.64 * 0.01,  # mm2 / h
+            "Al": 2.01 * 0.01,  # mm2 / h
+            "La": 2.23 * 0.01,  # mm2 / h # TODO: verify
+            "Cl": 7.31 * 0.01,  # mm2 / h
         }
 
         # thermal reflection coefficient, related to solute rejection
         sigma_dict = {
+            "K": 1,
+            "Na": 1,
             "Li": 1,
+            "Ca": 1,
             "Co": 1,
             "Al": 1,
+            "La": 1,
             "Cl": 1,
         }
 
-        # partition coefficient at the solution-membrane interfaces
-        # Reference: https://doi.org/10.1126/sciadv.adu8302
-        # Assumptions:
-        # membrane fixed charge is negative (Donnan effects are incorporated)
-        # monovalent ions of similar size (i.e., Na and Li) behave similarly
-        # H,Li is estimated from the data in Fig 1D (Na) of above reference at 200 mM
-        # H,Co (divalent) is estimated as one order of magnitude smaller than H,Li (monovalent)
-        # H,Al (trivalent) is estimated as two orders of magnitude smaller than H,Li (monovalent)
-        # H,Cl is estimated from the data in Fig 1C of above reference at 200 mM
-        # while H on the retentate and permeate sides can differ, we assume them to be equal for now
-        partition_coefficient_dict = {
-            "retentate": {
-                "Li": 0.4,
-                "Co": 0.04,
-                "Al": 0.004,
-                "Cl": 0.01,
-            },
-            "permeate": {
-                "Li": 0.4,
-                "Co": 0.04,
-                "Al": 0.004,
-                "Cl": 0.01,
-            },
+        # steric component of partition coefficient at the solution-membrane interfaces
+        # (1 - (radius_ion/radius_pore))**2
+        steric_partition_coefficient_dict = {
+            "K": 0.1,
+            "Na": 0.08,
+            "Li": 0.06,
+            "Ca": 0.03,
+            # TODO double check Co value
+            "Co": 0.02,
+            "Al": 0.002,
+            "La": 0.009,
+            "Cl": 0.1,
         }
 
-        if self.config.cation_list == ["Li"]:
+        if self.config.cation_list == ["K"]:
+            salt_system = "K_Cl"
+        elif self.config.cation_list == ["Na"]:
+            salt_system = "Na_Cl"
+        elif self.config.cation_list == ["Li"]:
             salt_system = "Li_Cl"
+        elif self.config.cation_list == ["Ca"]:
+            salt_system = "Ca_Cl2"
         elif self.config.cation_list == ["Co"]:
             salt_system = "Co_Cl2"
         elif self.config.cation_list == ["Al"]:
             salt_system = "Al_Cl3"
+        elif self.config.cation_list == ["La"]:
+            salt_system = "La_Cl3"
         elif self.config.cation_list == ["Li", "Co"]:
             salt_system = "Li_Co_Cl3"
         elif self.config.cation_list == ["Li", "Al"]:
@@ -143,9 +159,21 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             salt_system = "Li_Co_Al_Cl6"
 
         num_solutes_dict = {
+            "K_Cl": {
+                "K": 1,
+                "Cl": 1,
+            },
+            "Na_Cl": {
+                "Na": 1,
+                "Cl": 1,
+            },
             "Li_Cl": {
                 "Li": 1,
                 "Cl": 1,
+            },
+            "Ca_Cl2": {
+                "Ca": 1,
+                "Cl": 2,
             },
             "Co_Cl2": {
                 "Co": 1,
@@ -153,6 +181,10 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             },
             "Al_Cl3": {
                 "Al": 1,
+                "Cl": 3,
+            },
+            "La_Cl3": {
+                "La": 1,
                 "Cl": 3,
             },
             "Li_Co_Cl3": {
@@ -190,11 +222,8 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             membrane_diffusion_coefficient_dict
         )
         initialize_sigma_dict = _subset(sigma_dict)
-        initialize_partition_coefficient_retentate_dict = _subset(
-            partition_coefficient_dict["retentate"]
-        )
-        initialize_partition_coefficient_permeate_dict = _subset(
-            partition_coefficient_dict["permeate"]
+        initialize_steric_partition_coefficient_dict = _subset(
+            steric_partition_coefficient_dict
         )
         initialize_num_solutes_dict = _subset(num_solutes_dict[salt_system])
 
@@ -223,16 +252,10 @@ class MultiComponentDiafiltrationSoluteParameterData(PhysicalParameterBlock):
             initialize=initialize_sigma_dict,
         )
 
-        self.partition_coefficient_retentate = Param(
+        self.steric_partition_coefficient = Param(
             self.component_list,
             units=units.dimensionless,
-            initialize=initialize_partition_coefficient_retentate_dict,
-        )
-
-        self.partition_coefficient_permeate = Param(
-            self.component_list,
-            units=units.dimensionless,
-            initialize=initialize_partition_coefficient_permeate_dict,
+            initialize=initialize_steric_partition_coefficient_dict,
         )
 
         self.num_solutes = Param(
