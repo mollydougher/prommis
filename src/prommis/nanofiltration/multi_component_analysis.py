@@ -61,11 +61,11 @@ def main():
         set_IS=set_IS,
     )
 
-    data_comparison_plots(save_figure=True)
+    # data_comparison_plots(save_figure=True)
 
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=False, save_figure=True)
     rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True)
-    # h_plots_equimolar(x_axis="ionic_strength",  inset=True, save_figure=True)
+    h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True)
 
     # combined_plots_vary_salt_ratio(save_figure=True)
     # plot_only_rejections(save_figure=True)
@@ -240,18 +240,18 @@ def solve_and_save_models(
     if run_data:
         # set concentrations
         feed = {
-            # "Na": [
-            #     9.6199,
-            #     30.5114,
-            #     43.1343,
-            #     54.5286,
-            #     64.7312,
-            #     74.1947,
-            #     83.0378,
-            #     91.3303,
-            #     98.4631,
-            #     105.1806,
-            # ],
+            "Na": [
+                9.6199,
+                30.5114,
+                43.1343,
+                54.5286,
+                64.7312,
+                74.1947,
+                83.0378,
+                91.3303,
+                98.4631,
+                105.1806,
+            ],
             "Ca": [
                 3.0588,
                 10.4631,
@@ -1010,7 +1010,7 @@ def data_comparison_plots(save_figure=True):
     )
     for ax in [ax1, ax2, ax3]:
         ax.set_ylabel(
-            "Observed Sieving Coefficient", fontsize=fontsize, fontweight="bold"
+            "Observed Sodium Sieving Coefficient", fontsize=fontsize, fontweight="bold"
         )
         ax.plot(
             [],
@@ -1418,7 +1418,9 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
 
     if sieving:
         ax1a.set_ylabel(
-            "Observed Cation\nSieving Coefficient", fontsize=fontsize, fontweight="bold"
+            "Observed Counter-Ion\nSieving Coefficient",
+            fontsize=fontsize,
+            fontweight="bold",
         )
         # ax2a.set_ylabel(
         #     "Observed Anionn\nSieving Coefficient", fontsize=fontsize, fontweight="bold"
@@ -1455,8 +1457,8 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
             "ax": ax1a,
             "salt_colors": {
                 "single salt": li_color,
-                "two salt: +1 & +2": li_co_color,
-                "two salt: +1 & +3": li_al_color,
+                "two salt (1:1 & 1:2)": li_co_color,
+                "two salt (1:1 & 1:3)": li_al_color,
                 # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
             },
         },
@@ -1465,8 +1467,8 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
             "ax": ax1b,
             "salt_colors": {
                 "single salt": co_color,
-                "two salt: +1 & +2": li_co_color,
-                "two salt: +2 & +3": co_al_color,
+                "two salt (1:1 & 1:2)": li_co_color,
+                "two salt (1:2 & 1:3)": co_al_color,
                 # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
             },
         },
@@ -1475,8 +1477,8 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
             "ax": ax1c,
             "salt_colors": {
                 "single salt": al_color,
-                "two salt: +1 & +3": li_al_color,
-                "two salt: +2 & +3": co_al_color,
+                "two salt (1:1 & 1:3)": li_al_color,
+                "two salt (1:2 & 1:3)": co_al_color,
                 # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
             },
         },
@@ -1508,21 +1510,21 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
         loc="best",
         fontsize=fontsize - 2,
         # bbox_to_anchor=(0.85, -0.3),
-        title="+1 Cation in:",
+        title="monovalent counter-ion in:",
         title_fontsize=fontsize - 2,
     )
     ax1b.legend(
         loc="best",
         fontsize=fontsize - 2,
         # bbox_to_anchor=(0.85, -0.3),
-        title="+2 Cation in:",
+        title="divalent counter-ion in:",
         title_fontsize=fontsize - 2,
     )
     ax1c.legend(
         loc="best",
         fontsize=fontsize - 2,
         # bbox_to_anchor=(0.85, -0.3),
-        title="+3 Cation in:",
+        title="trivalent counter-ion in:",
         title_fontsize=fontsize - 2,
     )
 
@@ -1823,7 +1825,7 @@ def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
     # ax3d.set_title("Chloride", fontsize=fontsize, fontweight="bold")
 
     ax3a.set_ylabel(
-        "$\mathbf{c_{membrane}/c_{interface}}$", fontsize=fontsize, fontweight="bold"
+        "Overall Partition Coefficient", fontsize=fontsize, fontweight="bold"
     )
     # ax4a.set_ylabel(
     #     "$\mathbf{c_{membrane}/c_{permeate}}$", fontsize=fontsize, fontweight="bold"
@@ -1853,8 +1855,8 @@ def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
             "ax": ax3a,
             "salt_colors": {
                 "single salt": li_color,
-                "two salt: +1 & +2": li_co_color,
-                "two salt: +1 & +3": li_al_color,
+                "two salt (1:1 & 1:2)": li_co_color,
+                "two salt (1:1 & 1:3)": li_al_color,
                 # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
             },
         },
@@ -1863,8 +1865,8 @@ def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
             "ax": ax3b,
             "salt_colors": {
                 "single salt": co_color,
-                "two salt: +1 & +2": li_co_color,
-                "two salt: +2 & +3": co_al_color,
+                "two salt (1:1 & 1:2)": li_co_color,
+                "two salt (1:2 & 1:3)": co_al_color,
                 # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
             },
         },
@@ -1873,8 +1875,8 @@ def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
             "ax": ax3c,
             "salt_colors": {
                 "single salt": al_color,
-                "two salt: +1 & +3": li_al_color,
-                "two salt: +2 & +3": co_al_color,
+                "two salt (1:1 & 1:3)": li_al_color,
+                "two salt (1:2 & 1:3)": co_al_color,
                 # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
             },
         },
@@ -1896,21 +1898,21 @@ def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
         loc="best",
         fontsize=fontsize - 2,
         # bbox_to_anchor=(0.85, -0.3),
-        title="+1 Cation in:",
+        title="monovalent counter-ion in:",
         title_fontsize=fontsize - 2,
     )
     ax3b.legend(
         loc="best",
         fontsize=fontsize - 2,
         # bbox_to_anchor=(0.85, -0.3),
-        title="+2 Cation in:",
+        title="divalent counter-ion in:",
         title_fontsize=fontsize - 2,
     )
     ax3c.legend(
         loc="best",
         fontsize=fontsize - 2,
         # bbox_to_anchor=(0.85, -0.3),
-        title="+3 Cation in:",
+        title="trivalent counter-ion in:",
         title_fontsize=fontsize - 2,
     )
 
@@ -3476,10 +3478,10 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
         al_label = "Contribution to ALuminum Flux (%)"
         cl_label = "Contribution to Chloride Flux (%)"
     else:
-        li_label = "+1 Cation Flux (mol m$\mathbf{^{-2}}$ h$\mathbf{^{-1}}$)"
+        li_label = "Counter-Ion Flux (mol m$\mathbf{^{-2}}$ h$\mathbf{^{-1}}$)"
         co_label = "Cobalt Flux (mol m$\mathbf{^{-2}}$ h$\mathbf{^{-1}}$)"
         al_label = "Aluminum Flux (mol m$\mathbf{^{-2}}$ h$\mathbf{^{-1}}$)"
-        cl_label = "Chloride Flux (mol m$\mathbf{^{-2}}$ h$\mathbf{^{-1}}$)"
+        cl_label = "Co-ion Flux (mol m$\mathbf{^{-2}}$ h$\mathbf{^{-1}}$)"
 
     ax1a.set_ylabel(
         li_label,
