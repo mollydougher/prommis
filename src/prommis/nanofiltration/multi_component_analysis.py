@@ -61,7 +61,7 @@ def main():
         set_IS=set_IS,
     )
 
-    # data_comparison_plots(save_figure=True)
+    data_comparison_plots(save_figure=True)
 
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=False, save_figure=True)
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True)
@@ -73,7 +73,7 @@ def main():
     # plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=True)
     # plot_flux_contributions(x_axis="ionic_strength", percent=True, save_figure=True)
 
-    # plt.show()
+    plt.show()
 
 
 def build_model(
@@ -168,11 +168,16 @@ def build_model(
 
     # initialize membrane model
     if initialize_and_solve:
-        H_feed_guesses = np.arange(0.2, 3.1, 0.1)
         if cation_list[0] == "La":
             # guess larger H_permeate
-            H_permeate_guesses = np.arange(2, 16.5, 0.5)
+            if inlet_concentration["feed"]["La"] <= 8:
+                H_feed_guesses = np.arange(3.2, 5.8, 0.2)
+                H_permeate_guesses = np.arange(10, 16.5, 0.5)
+            else:
+                H_feed_guesses = np.arange(0.2, 3.1, 0.1)
+                H_permeate_guesses = np.arange(2, 16.5, 0.5)
         else:
+            H_feed_guesses = np.arange(0.2, 3.1, 0.1)
             H_permeate_guesses = np.arange(0.2, 3.1, 0.1)
 
         H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
@@ -189,8 +194,13 @@ def build_model(
                 unfix_pressure(m, water_flux=water_flux)
                 solve_model(m)
 
+                full_sensitivity = False
+
                 if save:
-                    fname = f"multi_component_case_studies/DATA_comparison/Cl_phi_{chloride_phi_star_key}/{Dm_over_l_key}umpers/cation_phi_{cation_phi_star_key}/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
+                    if full_sensitivity:
+                        fname = f"multi_component_case_studies/DATA_comparison/Cl_phi_{chloride_phi_star_key}/{Dm_over_l_key}umpers/cation_phi_{cation_phi_star_key}/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
+                    else:
+                        fname = f"multi_component_case_studies/DATA_comparison/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
                     to_json(m, fname=fname)
 
                 break
@@ -268,30 +278,30 @@ def solve_and_save_models(
     if run_data:
         # set concentrations
         feed = {
-            # "Na": [
-            #     # 9.6199,
-            #     30.5114,
-            #     43.1343,
-            #     54.5286,
-            #     64.7312,
-            #     74.1947,
-            #     83.0378,
-            #     91.3303,
-            #     98.4631,
-            #     105.1806,
-            # ],
-            # "Ca": [
-            #     # 3.0588,
-            #     10.4631,
-            #     15.2044,
-            #     19.6055,
-            #     23.6953,
-            #     27.5362,
-            #     31.0213,
-            #     34.3589,
-            #     37.4959,
-            #     40.3890,
-            # ],
+            "Na": [
+                # 9.6199,
+                30.5114,
+                43.1343,
+                54.5286,
+                64.7312,
+                74.1947,
+                83.0378,
+                91.3303,
+                98.4631,
+                105.1806,
+            ],
+            "Ca": [
+                # 3.0588,
+                10.4631,
+                15.2044,
+                19.6055,
+                23.6953,
+                27.5362,
+                31.0213,
+                34.3589,
+                37.4959,
+                40.3890,
+            ],
             "La": [
                 # 1.4129,
                 4.8072,
@@ -308,30 +318,30 @@ def solve_and_save_models(
 
         # set average flux
         flux = {
-            # "Na": [
-            #     # 0.018,
-            #     0.033,
-            #     0.031,
-            #     0.030,
-            #     0.028,
-            #     0.026,
-            #     0.025,
-            #     0.026,
-            #     0.023,
-            #     0.023,
-            # ],
-            # "Ca": [
-            #     # 0.015,
-            #     0.030,
-            #     0.026,
-            #     0.026,
-            #     0.023,
-            #     0.022,
-            #     0.021,
-            #     0.019,
-            #     0.019,
-            #     0.018,
-            # ],
+            "Na": [
+                # 0.018,
+                0.033,
+                0.031,
+                0.030,
+                0.028,
+                0.026,
+                0.025,
+                0.026,
+                0.023,
+                0.023,
+            ],
+            "Ca": [
+                # 0.015,
+                0.030,
+                0.026,
+                0.026,
+                0.023,
+                0.022,
+                0.021,
+                0.019,
+                0.019,
+                0.018,
+            ],
             "La": [
                 # 0.016,
                 0.030,
@@ -346,78 +356,194 @@ def solve_and_save_models(
             ],
         }
 
-        Dm_over_l_sensitivity = [80, 70, 60, 50, 40]  # um/s
-        Dm_over_l_sensitivity_keys = ["80", "70", "60", "50", "40"]  # um/s
-
         Dm_Cl = 2.03  # um2/s
 
-        # Na
-        # cation_phi_star_sensitivity = [0.7, 0.65, 0.6, 0.55, 0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2]
-        # cation_phi_star_sensitivity_keys = ["0700", "0650", "0600", "0550", "0500", "0450", "0400", "0350", "0300", "0250", "0200"]
+        full_sensitivity = False
 
-        # Ca
-        # cation_phi_star_sensitivity = [0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0.15]
-        # cation_phi_star_sensitivity_keys = ["0500", "0450", "0400", "0350", "0300", "0250", "0200", "0150"]
+        if full_sensitivity:
+            Dm_over_l_sensitivity = [80, 70, 60, 50, 40]  # um/s
+            Dm_over_l_sensitivity_keys = ["80", "70", "60", "50", "40"]  # um/s
 
-        # La
-        cation_phi_star_sensitivity = [0.25, 0.2, 0.15, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0005]
-        cation_phi_star_sensitivity_keys = ["0250", "0200", "0150", "0100", "0050", "0010", "0005", "0001", "0000"]
+            # Na
+            monovalent_phi_star_sensitivity = [
+                0.7,
+                0.65,
+                0.6,
+                0.55,
+                0.5,
+                0.45,
+                0.4,
+                0.35,
+                0.3,
+                0.25,
+                0.2,
+            ]
+            monovalent_phi_star_sensitivity_keys = [
+                "0700",
+                "0650",
+                "0600",
+                "0550",
+                "0500",
+                "0450",
+                "0400",
+                "0350",
+                "0300",
+                "0250",
+                "0200",
+            ]
+            # Ca
+            divalent_phi_star_sensitivity = [0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0.15]
+            divalent_phi_star_sensitivity_keys = [
+                "0500",
+                "0450",
+                "0400",
+                "0350",
+                "0300",
+                "0250",
+                "0200",
+                "0150",
+            ]
+            # La
+            trivalent_phi_star_sensitivity = [
+                0.25,
+                0.2,
+                0.15,
+                0.1,
+                0.05,
+                0.01,
+                0.005,
+                0.001,
+                0.0005,
+            ]
+            trivalent_phi_star_sensitivity_keys = [
+                "0250",
+                "0200",
+                "0150",
+                "0100",
+                "0050",
+                "0010",
+                "0005",
+                "0001",
+                "0000",
+            ]
 
-        chloride_phi_star_sensitivity = [0.1, 0.05]
-        chloride_phi_star_sensitivity_keys = ["010", "005"]
+            chloride_phi_star_sensitivity = [0.1, 0.05]
+            chloride_phi_star_sensitivity_keys = ["010", "005"]
 
-        for chloride_phi_star in chloride_phi_star_sensitivity:
-            for Dm_over_l in Dm_over_l_sensitivity:
-                for cation in feed.keys():
-                    l_um = Dm_Cl / Dm_over_l  # um
-                    l_m = l_um / 1e6  # m
+            for chloride_phi_star in chloride_phi_star_sensitivity:
+                for Dm_over_l in Dm_over_l_sensitivity:
+                    for cation in feed.keys():
+                        l_um = Dm_Cl / Dm_over_l  # um
+                        l_m = l_um / 1e6  # m
 
-                    if cation == "Na":
-                        chloride_multiplier = 1
-                    elif cation == "Ca":
-                        chloride_multiplier = 2
-                    elif cation == "La":
-                        chloride_multiplier = 3
-
-                    for cation_phi_star in cation_phi_star_sensitivity:
-                        for concentration in feed[cation]:
-
-                            model = build_model(
-                                cation_list=[cation],
-                                inlet_concentration={
-                                    "feed": {
-                                        cation: concentration,
-                                        "Cl": chloride_multiplier * concentration,
-                                    },
-                                    "diafiltrate": {
-                                        cation: 1e-10,
-                                        "Cl": chloride_multiplier * 1e-10,
-                                    },
-                                },
-                                default_args=default_args,
-                                NFE_args=NFE_args,
-                                initialize_and_solve=True,
-                                water_flux=flux[cation][
-                                    feed[cation].index(concentration)
-                                ],
-                                data_membrane_thickness=l_m,
-                                non_Donnan_partition_dict={
-                                    cation: cation_phi_star,
-                                    "Cl": chloride_phi_star,
-                                },
-                                save=True,
-                                chloride_phi_star_key=chloride_phi_star_sensitivity_keys[
-                                    chloride_phi_star_sensitivity.index(
-                                        chloride_phi_star
-                                    )
-                                ],
-                                Dm_over_l_key=Dm_over_l_sensitivity_keys[
-                                    Dm_over_l_sensitivity.index(Dm_over_l)
-                                ],
-                                cation_phi_star_key=cation_phi_star_sensitivity_keys[
-                                    cation_phi_star_sensitivity.index(cation_phi_star)
-                                ],
+                        if cation == "Na":
+                            chloride_multiplier = 1
+                            cation_phi_star_sensitivity = (
+                                monovalent_phi_star_sensitivity
                             )
+                            cation_phi_star_sensitivity_keys = (
+                                monovalent_phi_star_sensitivity_keys
+                            )
+                        elif cation == "Ca":
+                            chloride_multiplier = 2
+                            cation_phi_star_sensitivity = divalent_phi_star_sensitivity
+                            cation_phi_star_sensitivity_keys = (
+                                divalent_phi_star_sensitivity_keys
+                            )
+                        elif cation == "La":
+                            chloride_multiplier = 3
+                            cation_phi_star_sensitivity = trivalent_phi_star_sensitivity
+                            cation_phi_star_sensitivity_keys = (
+                                trivalent_phi_star_sensitivity_keys
+                            )
+
+                        for cation_phi_star in cation_phi_star_sensitivity:
+                            for concentration in feed[cation]:
+
+                                model = build_model(
+                                    cation_list=[cation],
+                                    inlet_concentration={
+                                        "feed": {
+                                            cation: concentration,
+                                            "Cl": chloride_multiplier * concentration,
+                                        },
+                                        "diafiltrate": {
+                                            cation: 1e-10,
+                                            "Cl": chloride_multiplier * 1e-10,
+                                        },
+                                    },
+                                    default_args=default_args,
+                                    NFE_args=NFE_args,
+                                    initialize_and_solve=True,
+                                    water_flux=flux[cation][
+                                        feed[cation].index(concentration)
+                                    ],
+                                    data_membrane_thickness=l_m,
+                                    non_Donnan_partition_dict={
+                                        cation: cation_phi_star,
+                                        "Cl": chloride_phi_star,
+                                    },
+                                    save=True,
+                                    chloride_phi_star_key=chloride_phi_star_sensitivity_keys[
+                                        chloride_phi_star_sensitivity.index(
+                                            chloride_phi_star
+                                        )
+                                    ],
+                                    Dm_over_l_key=Dm_over_l_sensitivity_keys[
+                                        Dm_over_l_sensitivity.index(Dm_over_l)
+                                    ],
+                                    cation_phi_star_key=cation_phi_star_sensitivity_keys[
+                                        cation_phi_star_sensitivity.index(
+                                            cation_phi_star
+                                        )
+                                    ],
+                                )
+
+        else:
+            Dm_over_l_value = 40  # um/s
+            monovalent_phi_star_value = 0.7
+            divalent_phi_star_value = 0.3
+            trivalent_phi_star_value = 0.0005
+            chloride_phi_star_value = 0.1
+
+            for cation in feed.keys():
+                l_um = Dm_Cl / Dm_over_l_value  # um
+                l_m = l_um / 1e6  # m
+
+                if cation == "Na":
+                    chloride_multiplier = 1
+                    cation_phi_star_value = monovalent_phi_star_value
+                elif cation == "Ca":
+                    chloride_multiplier = 2
+                    cation_phi_star_value = divalent_phi_star_value
+                elif cation == "La":
+                    chloride_multiplier = 3
+                    cation_phi_star_value = trivalent_phi_star_value
+
+                for concentration in feed[cation]:
+                    model = build_model(
+                        cation_list=[cation],
+                        inlet_concentration={
+                            "feed": {
+                                cation: concentration,
+                                "Cl": chloride_multiplier * concentration,
+                            },
+                            "diafiltrate": {
+                                cation: 1e-10,
+                                "Cl": chloride_multiplier * 1e-10,
+                            },
+                        },
+                        default_args=default_args,
+                        NFE_args=NFE_args,
+                        initialize_and_solve=True,
+                        water_flux=flux[cation][feed[cation].index(concentration)],
+                        data_membrane_thickness=l_m,
+                        non_Donnan_partition_dict={
+                            cation: cation_phi_star_value,
+                            "Cl": chloride_phi_star_value,
+                        },
+                        save=True,
+                    )
 
     IS_key = ["050", "075", "100", "150", "200", "400", "600", "800"]
     CONC_key = ["025", "050", "075", "100", "150", "200", "250", "300"]
@@ -1074,14 +1200,8 @@ def data_comparison_plots(save_figure=True):
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
-    fig1, (ax1a, ax1b, ax1c, ax1d) = plt.subplots(
-        1, 4, dpi=75, figsize=(20, 5), constrained_layout=True, sharey=True
-    )
-    fig2, (ax2a, ax2b, ax2c, ax2d) = plt.subplots(
-        1, 4, dpi=75, figsize=(20, 5), constrained_layout=True, sharey=True
-    )
-    fig3, (ax3a, ax3b, ax3c, ax3d) = plt.subplots(
-        1, 4, dpi=75, figsize=(20, 5), constrained_layout=True, sharey=True
+    fig1, (ax1a, ax1b, ax1c) = plt.subplots(
+        1, 3, dpi=75, figsize=(15, 5), constrained_layout=True, sharey=True
     )
 
     # color blind friendly
@@ -1095,80 +1215,77 @@ def data_comparison_plots(save_figure=True):
         "#BBBBBB",
     ]
 
-    S_predicted_80_color = tol_bright_hex[0]
-    S_predicted_40_color = tol_bright_hex[1]
-    S_predicted_20_color = tol_bright_hex[2]
-    S_predicted_10_color = tol_bright_hex[3]
-    S_predicted_05_color = tol_bright_hex[4]
+    S_predicted_Na_color = tol_bright_hex[0]
+    S_predicted_Ca_color = tol_bright_hex[1]
+    S_predicted_La_color = tol_bright_hex[2]
+    # S_predicted_10_color = tol_bright_hex[3]
+    # S_predicted_05_color = tol_bright_hex[4]
     S_measured_color = "black"
 
-    for ax in fig1.axes:
-        ax.set_xlabel(
-            "Sodium Feed Concentration (mM)",
+    for ax in [ax1a]:
+        ax.set_title(
+            "Sodium",
             fontsize=fontsize,
             fontweight="bold",
         )
-    for ax in fig2.axes:
         ax.set_xlabel(
-            "Calcium Feed Concentration (mM)",
+            "Feed Concentration (mM)",
             fontsize=fontsize,
             fontweight="bold",
         )
-    for ax in fig3.axes:
-        ax.set_xlabel(
-            "Lanthanum Feed Concentration (mM)",
-            fontsize=fontsize,
-            fontweight="bold",
-        )
-    for ax in [ax1a, ax2a, ax3a]:
         ax.set_ylabel(
             "Observed Sieving Coefficient", fontsize=fontsize, fontweight="bold"
         )
         ax.plot(
             [],
             [],
-            color=S_predicted_80_color,
+            color=S_predicted_Na_color,
             marker="o",
             markersize=markersize,
             linestyle="None",
-            label="predicted ($D_m/l$=80um/s)",
+            label="predicted",
+        )
+    for ax in [ax1b]:
+        ax.set_title(
+            "Calcium",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+        ax.set_xlabel(
+            "Feed Concentration (mM)",
+            fontsize=fontsize,
+            fontweight="bold",
         )
         ax.plot(
             [],
             [],
-            color=S_predicted_40_color,
+            color=S_predicted_Ca_color,
             marker="o",
             markersize=markersize,
             linestyle="None",
-            label="predicted ($D_m/l$=40um/s)",
+            label="predicted",
+        )
+    for ax in [ax1c]:
+        ax.set_title(
+            "Lanthanum",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+        ax.set_xlabel(
+            "Feed Concentration (mM)",
+            fontsize=fontsize,
+            fontweight="bold",
         )
         ax.plot(
             [],
             [],
-            color=S_predicted_20_color,
+            color=S_predicted_La_color,
             marker="o",
             markersize=markersize,
             linestyle="None",
-            label="predicted ($D_m/l$=20um/s)",
+            label="predicted",
         )
-        ax.plot(
-            [],
-            [],
-            color=S_predicted_10_color,
-            marker="o",
-            markersize=markersize,
-            linestyle="None",
-            label="predicted ($D_m/l$=10um/s)",
-        )
-        ax.plot(
-            [],
-            [],
-            color=S_predicted_05_color,
-            marker="o",
-            markersize=markersize,
-            linestyle="None",
-            label="predicted ($D_m/l$=5um/s)",
-        )
+    for ax in fig1.axes:
         ax.plot(
             [],
             [],
@@ -1183,157 +1300,92 @@ def data_comparison_plots(save_figure=True):
             direction="in", top=True, right=True, labelsize=fontsize - 2, labelleft=True
         )
 
-    for ax in [ax1d, ax2d, ax3d]:
-        ax.set_title("Non-Donnan Partition Coefficent = 0.33")
-    for ax in [ax1c, ax2c, ax3c]:
-        ax.set_title("Non-Donnan Partition Coefficent = 0.25")
-    for ax in [ax1b, ax2b, ax3b]:
-        ax.set_title("Non-Donnan Partition Coefficent = 0.1")
-    for ax in [ax1a, ax2a, ax3a]:
-        ax.set_title("Non-Donnan Partition Coefficent = 0.05")
+    model_folder = Path(f"multi_component_case_studies/DATA_comparison/")
+    # 45 characters (0-44) make up folder name before model name
+    # multi_component_case_studies/DATA_comparison/
 
-    # phi_star_sensitivity = [0.33, 0.25, 0.1, 0.05]
-    # phi_star_sensitivity_keys = ["033", "025", "010", "005"]
+    case_study_list = [file for file in model_folder.iterdir()]
 
-    phi_star_sensitivity = [
-        0.33,
-        0.25,
-        0.1,
-    ]
-    phi_star_sensitivity_keys = ["033", "025", "010"]
+    Dm_over_l = 60  # um/s
+    Dm_Cl = 2.03  # um2/s
+    chloride_phi_star = 0.1
 
-    axes_dict = {
-        "033": {"Na": ax1d, "Ca": ax2d, "La": ax3d},
-        "025": {"Na": ax1c, "Ca": ax2c, "La": ax3c},
-        "010": {"Na": ax1b, "Ca": ax2b, "La": ax3b},
-        "005": {"Na": ax1a, "Ca": ax2a, "La": ax3a},
-    }
-
-    for phi_star in phi_star_sensitivity:
-        phi_star_key = phi_star_sensitivity_keys[phi_star_sensitivity.index(phi_star)]
-
-        model_folder_na = Path(
-            f"multi_component_case_studies/DATA_comparison/phi_{phi_star_key}/Na"
-        )
-        # 56 characters (0-55) make up folder name before model name
-        # multi_component_case_studies/DATA_comparison/phi_XXX/Na/
-        model_folder_ca = Path(
-            f"multi_component_case_studies/DATA_comparison/phi_{phi_star_key}/Ca"
-        )
-        # 56 characters (0-55) make up folder name before model name
-        # multi_component_case_studies/DATA_comparison/phi_XXX/Ca/
-        model_folder_la = Path(
-            f"multi_component_case_studies/DATA_comparison/phi_{phi_star_key}/La"
-        )
-        # 56 characters (0-55) make up folder name before model name
-        # multi_component_case_studies/DATA_comparison/phi_XXX/La/
-
-        case_study_list_na = [file for file in model_folder_na.iterdir()]
-        case_study_list_ca = [file for file in model_folder_ca.iterdir()]
-        case_study_list_la = [file for file in model_folder_la.iterdir()]
-
-        case_studies = {
-            "Na": case_study_list_na,
-            "Ca": case_study_list_ca,
-            "La": case_study_list_la,
+    for case_study_file in case_study_list:
+        cation = str(case_study_file)[45:47]
+        concentration = float(50)  # mM
+        cation_list = [cation]
+        if cation == "Na":
+            chloride_multiplier = 1
+            cation_phi_star = 0.4
+            color = S_predicted_Na_color
+            ax = ax1a
+        if cation == "Ca":
+            chloride_multiplier = 2
+            cation_phi_star = 0.3
+            color = S_predicted_Ca_color
+            ax = ax1b
+        if cation == "La":
+            chloride_multiplier = 3
+            cation_phi_star = 0.005
+            color = S_predicted_La_color
+            ax = ax1c
+        inlet_concentration = {
+            "feed": {
+                cation: concentration,
+                "Cl": chloride_multiplier * concentration,
+            },
+            "diafiltrate": {
+                cation: 1e-10,
+                "Cl": chloride_multiplier * 1e-10,
+            },
         }
 
-        Dm_over_l_sensitivity = [80, 40, 20, 10, 5]  # um/s
-        Dm_over_l_sensitivity_keys = ["80", "40", "20", "10", "05"]  # um/s
+        l_um = Dm_Cl / Dm_over_l  # um
+        l_m = l_um / 1e6  # m
 
-        Dm = {"Na": 1.33, "Ca": 0.79, "La": 0.62, "Cl": 2.03}  # um2/s
+        non_Donnan_partition_dict = {
+            cation: cation_phi_star,
+            "Cl": chloride_phi_star,
+        }
 
-        upper_bound_phi_steric = {"Na": 0.29, "Ca": 0.22, "La": 0.18}
+        model = build_model(
+            cation_list=cation_list,
+            inlet_concentration=inlet_concentration,
+            default_args=default_args,
+            NFE_args=NFE_args,
+            initialize_and_solve=False,
+            data_membrane_thickness=l_m,
+            non_Donnan_partition_dict=non_Donnan_partition_dict,
+            save=False,
+        )
+        from_json(model, fname=case_study_file)
 
-        for cation, case_study_files in case_studies.items():
-            non_Donnan_partition_dict = {
-                cation: upper_bound_phi_steric[cation],
-                "Cl": phi_star,
-            }
+        average_variable_dict = get_model_averages(model, cation)
 
-            for case_study in case_study_files:
-                Dm_over_l_key = str(case_study)[61:63]
-                concentration = float(50)  # mM
-                cation_list = [cation]
-                if cation == "Na":
-                    chloride_multiplier = 1
-                if cation == "Ca":
-                    chloride_multiplier = 2
-                if cation == "La":
-                    chloride_multiplier = 3
-                inlet_concentration = {
-                    "feed": {
-                        cation: concentration,
-                        "Cl": chloride_multiplier * concentration,
-                    },
-                    "diafiltrate": {
-                        cation: 1e-10,
-                        "Cl": chloride_multiplier * 1e-10,
-                    },
-                }
+        x_value_predicted = value(
+            model.fs.membrane.retentate_conc_mol_comp[0, 0, cation]
+        )
+        y_obs_data_predicted = average_variable_dict["observed_sieving"]["avg"]
+        y_obs_err_predicted = average_variable_dict["observed_sieving"]["spread"]
 
-                l_um = (
-                    Dm["Cl"]
-                    / Dm_over_l_sensitivity[
-                        Dm_over_l_sensitivity_keys.index(Dm_over_l_key)
-                    ]
-                )  # um
-                l_m = l_um / 1e6  # m
+        alpha = 1
+        marker = "o"
 
-                model = build_model(
-                    cation_list=cation_list,
-                    inlet_concentration=inlet_concentration,
-                    default_args=default_args,
-                    H_feed_guess=1,
-                    H_permeate_guess=1,
-                    non_Donnan_partition_dict=non_Donnan_partition_dict,
-                    data_membrane_thickness=l_m,
-                    NFE_args=NFE_args,
-                    initialize=False,
-                )
-                from_json(model, fname=case_study)
-
-                average_variable_dict = get_model_averages(model, cation)
-
-                x_value_predicted = value(
-                    model.fs.membrane.retentate_conc_mol_comp[0, 0, cation]
-                )
-                y_obs_data_predicted = average_variable_dict["observed_sieving"]["avg"]
-                y_obs_err_predicted = average_variable_dict["observed_sieving"][
-                    "spread"
-                ]
-
-                alpha = 1
-                marker = "o"
-
-                if Dm_over_l_key == "80":
-                    color = S_predicted_80_color
-                elif Dm_over_l_key == "40":
-                    color = S_predicted_40_color
-                elif Dm_over_l_key == "20":
-                    color = S_predicted_20_color
-                elif Dm_over_l_key == "10":
-                    color = S_predicted_10_color
-                elif Dm_over_l_key == "05":
-                    color = S_predicted_05_color
-
-                ax = axes_dict[phi_star_key][cation]
-
-                ax.errorbar(
-                    x_value_predicted,
-                    y_obs_data_predicted,
-                    yerr=y_obs_err_predicted,
-                    ecolor="black",
-                    capsize=3,
-                )
-                ax.plot(
-                    x_value_predicted,
-                    y_obs_data_predicted,
-                    color=color,
-                    marker=marker,
-                    alpha=alpha,
-                    markersize=markersize,
-                )
+        ax.errorbar(
+            x_value_predicted,
+            y_obs_data_predicted,
+            yerr=y_obs_err_predicted,
+            ecolor="black",
+            capsize=3,
+        )
+        ax.plot(
+            x_value_predicted,
+            y_obs_data_predicted,
+            color=color,
+            marker=marker,
+            alpha=alpha,
+            markersize=markersize,
+        )
 
     NF270_MC5_07_23_24_NaCl = {
         "conc_feed": [
@@ -1374,24 +1426,23 @@ def data_comparison_plots(save_figure=True):
         ],
     }
 
-    for ax in fig1.axes:
-        ax.plot(
-            NF270_MC5_07_23_24_NaCl["conc_feed"],
-            NF270_MC5_07_23_24_NaCl["sieving_obs"],
-            color=S_measured_color,
-            marker="s",
-            linestyle="None",
-            alpha=alpha,
-            markersize=markersize,
-        )
-        ax.errorbar(
-            NF270_MC5_07_23_24_NaCl["conc_feed"],
-            NF270_MC5_07_23_24_NaCl["sieving_obs"],
-            yerr=NF270_MC5_07_23_24_NaCl["sieving_obs_error"],
-            ecolor="black",
-            capsize=3,
-            linestyle="None",
-        )
+    ax1a.plot(
+        NF270_MC5_07_23_24_NaCl["conc_feed"],
+        NF270_MC5_07_23_24_NaCl["sieving_obs"],
+        color=S_measured_color,
+        marker="s",
+        linestyle="None",
+        alpha=alpha,
+        markersize=markersize,
+    )
+    ax1a.errorbar(
+        NF270_MC5_07_23_24_NaCl["conc_feed"],
+        NF270_MC5_07_23_24_NaCl["sieving_obs"],
+        yerr=NF270_MC5_07_23_24_NaCl["sieving_obs_error"],
+        ecolor="black",
+        capsize=3,
+        linestyle="None",
+    )
 
     NF270_MC3_07_11_24_SCaCl2 = {
         "conc_feed": [
@@ -1432,24 +1483,23 @@ def data_comparison_plots(save_figure=True):
         ],
     }
 
-    for ax in fig2.axes:
-        ax.plot(
-            NF270_MC3_07_11_24_SCaCl2["conc_feed"],
-            NF270_MC3_07_11_24_SCaCl2["sieving_obs"],
-            color=S_measured_color,
-            marker="s",
-            linestyle="None",
-            alpha=alpha,
-            markersize=markersize,
-        )
-        ax.errorbar(
-            NF270_MC3_07_11_24_SCaCl2["conc_feed"],
-            NF270_MC3_07_11_24_SCaCl2["sieving_obs"],
-            yerr=NF270_MC3_07_11_24_SCaCl2["sieving_obs_error"],
-            ecolor="black",
-            capsize=3,
-            linestyle="None",
-        )
+    ax1b.plot(
+        NF270_MC3_07_11_24_SCaCl2["conc_feed"],
+        NF270_MC3_07_11_24_SCaCl2["sieving_obs"],
+        color=S_measured_color,
+        marker="s",
+        linestyle="None",
+        alpha=alpha,
+        markersize=markersize,
+    )
+    ax1b.errorbar(
+        NF270_MC3_07_11_24_SCaCl2["conc_feed"],
+        NF270_MC3_07_11_24_SCaCl2["sieving_obs"],
+        yerr=NF270_MC3_07_11_24_SCaCl2["sieving_obs_error"],
+        ecolor="black",
+        capsize=3,
+        linestyle="None",
+    )
 
     NF270_MC2_05_21_24_LaCl3 = {
         "conc_feed": [
@@ -1489,29 +1539,26 @@ def data_comparison_plots(save_figure=True):
             0.00142,
         ],
     }
-    for ax in fig3.axes:
-        ax.plot(
-            NF270_MC2_05_21_24_LaCl3["conc_feed"],
-            NF270_MC2_05_21_24_LaCl3["sieving_obs"],
-            color=S_measured_color,
-            marker="s",
-            linestyle="None",
-            alpha=alpha,
-            markersize=markersize,
-        )
-        ax.errorbar(
-            NF270_MC2_05_21_24_LaCl3["conc_feed"],
-            NF270_MC2_05_21_24_LaCl3["sieving_obs"],
-            yerr=NF270_MC2_05_21_24_LaCl3["sieving_obs_error"],
-            ecolor="black",
-            capsize=3,
-            linestyle="None",
-        )
+    ax1c.plot(
+        NF270_MC2_05_21_24_LaCl3["conc_feed"],
+        NF270_MC2_05_21_24_LaCl3["sieving_obs"],
+        color=S_measured_color,
+        marker="s",
+        linestyle="None",
+        alpha=alpha,
+        markersize=markersize,
+    )
+    ax1c.errorbar(
+        NF270_MC2_05_21_24_LaCl3["conc_feed"],
+        NF270_MC2_05_21_24_LaCl3["sieving_obs"],
+        yerr=NF270_MC2_05_21_24_LaCl3["sieving_obs_error"],
+        ecolor="black",
+        capsize=3,
+        linestyle="None",
+    )
 
     if save_figure:
-        fig1.savefig("sieving_data_comparison_NaCl.png", dpi=600)
-        fig2.savefig("sieving_data_comparison_CaCl2.png", dpi=600)
-        fig3.savefig("sieving_data_comparison_LaCl3.png", dpi=600)
+        fig1.savefig("sieving_data_comparison_single_salts.png", dpi=600)
 
 
 def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True):

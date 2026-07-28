@@ -406,7 +406,7 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                     # guess permeate concentration with constant sieving coefficient
                     for k in model.cations:
                         if value(charge[k]) == 3:
-                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.3)
+                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.2)
                         elif value(charge[k]) == 2:
                             conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.5)
                         else:
