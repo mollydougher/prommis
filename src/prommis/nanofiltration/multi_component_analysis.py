@@ -346,22 +346,25 @@ def solve_and_save_models(
             ],
         }
 
-        Dm_over_l_sensitivity = [80, 40, 20, 10, 5]  # um/s
-        Dm_over_l_sensitivity_keys = ["80", "40", "20", "10", "05"]  # um/s
+        Dm_over_l_sensitivity = [80, 70, 60, 50, 40]  # um/s
+        Dm_over_l_sensitivity_keys = ["80", "70", "60", "50", "40"]  # um/s
 
         Dm_Cl = 2.03  # um2/s
 
-        # cation_phi_star_sensitivity = [0.5, 0.4, 0.3, 0.2, 0.1, 0.05]
-        # cation_phi_star_sensitivity_keys = ["050", "040", "030", "020", "010", "005"]
+        # Na
+        # cation_phi_star_sensitivity = [0.7, 0.65, 0.6, 0.55, 0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2]
+        # cation_phi_star_sensitivity_keys = ["0700", "0650", "0600", "0550", "0500", "0450", "0400", "0350", "0300", "0250", "0200"]
 
-        # cation_phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05]
-        # cation_phi_star_sensitivity_keys = ["040", "030", "020", "010", "005"]
+        # Ca
+        # cation_phi_star_sensitivity = [0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0.15]
+        # cation_phi_star_sensitivity_keys = ["0500", "0450", "0400", "0350", "0300", "0250", "0200", "0150"]
 
-        cation_phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05, 0.01]
-        cation_phi_star_sensitivity_keys = ["040", "030", "020", "010", "005", "001"]
+        # La
+        cation_phi_star_sensitivity = [0.25, 0.2, 0.15, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0005]
+        cation_phi_star_sensitivity_keys = ["0250", "0200", "0150", "0100", "0050", "0010", "0005", "0001", "0000"]
 
-        chloride_phi_star_sensitivity = [0.4, 0.3, 0.2, 0.1, 0.05]
-        chloride_phi_star_sensitivity_keys = ["040", "030", "020", "010", "005"]
+        chloride_phi_star_sensitivity = [0.1, 0.05]
+        chloride_phi_star_sensitivity_keys = ["010", "005"]
 
         for chloride_phi_star in chloride_phi_star_sensitivity:
             for Dm_over_l in Dm_over_l_sensitivity:
