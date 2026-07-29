@@ -61,7 +61,7 @@ def main():
         set_IS=set_IS,
     )
 
-    data_comparison_plots(save_figure=True)
+    # data_comparison_plots(save_figure=True)
 
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=False, save_figure=True)
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True)
@@ -73,7 +73,7 @@ def main():
     # plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=True)
     # plot_flux_contributions(x_axis="ionic_strength", percent=True, save_figure=True)
 
-    plt.show()
+    # plt.show()
 
 
 def build_model(
@@ -194,7 +194,7 @@ def build_model(
                 unfix_pressure(m, water_flux=water_flux)
                 solve_model(m)
 
-                full_sensitivity = False
+                full_sensitivity = True
 
                 if save:
                     if full_sensitivity:
@@ -358,11 +358,15 @@ def solve_and_save_models(
 
         Dm_Cl = 2.03  # um2/s
 
-        full_sensitivity = False
+        full_sensitivity = True
 
         if full_sensitivity:
             Dm_over_l_sensitivity = [80, 70, 60, 50, 40]  # um/s
             Dm_over_l_sensitivity_keys = ["80", "70", "60", "50", "40"]  # um/s
+            # Dm_over_l_sensitivity = [80, 70]  # um/s
+            # Dm_over_l_sensitivity_keys = ["80", "70"]  # um/s
+            # Dm_over_l_sensitivity = [60, 50, 40]  # um/s
+            # Dm_over_l_sensitivity_keys = ["60", "50", "40"]  # um/s
 
             # Na
             monovalent_phi_star_sensitivity = [
