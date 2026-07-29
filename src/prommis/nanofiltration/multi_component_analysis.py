@@ -46,7 +46,7 @@ from prommis.nanofiltration.multi_component_diafiltration import (
 
 def main():
     set_IS = True
-    run_data = True
+    run_data = False
     run_single_salt = False
     run_two_salt = False
     run_three_salt = False
@@ -65,6 +65,9 @@ def main():
 
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=False, save_figure=True)
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True)
+    rejection_plots_equimolar(
+        x_axis="cation_concentration", sieving=True, save_figure=True
+    )
     # h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True)
 
     # combined_plots_vary_salt_ratio(save_figure=True)
@@ -73,7 +76,7 @@ def main():
     # plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=True)
     # plot_flux_contributions(x_axis="ionic_strength", percent=True, save_figure=True)
 
-    # plt.show()
+    plt.show()
 
 
 def build_model(
@@ -89,6 +92,8 @@ def build_model(
     chloride_phi_star_key=None,
     Dm_over_l_key=None,
     cation_phi_star_key=None,
+    key=None,
+    chloride_multiplier=None,
 ):
     anion_list, inlet_flow_volume, include_boundary_layer = default_args
     NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness = NFE_args
@@ -168,9 +173,9 @@ def build_model(
 
     # initialize membrane model
     if initialize_and_solve:
-        if cation_list[0] == "La":
+        if ("La" in cation_list) or ("Al" in cation_list):
             # guess larger H_permeate
-            if inlet_concentration["feed"]["La"] <= 8:
+            if inlet_concentration["feed"][cation_list[0]] <= 8:
                 H_feed_guesses = np.arange(3.2, 5.8, 0.2)
                 H_permeate_guesses = np.arange(10, 16.5, 0.5)
             else:
@@ -194,13 +199,22 @@ def build_model(
                 unfix_pressure(m, water_flux=water_flux)
                 solve_model(m)
 
-                full_sensitivity = True
+                full_sensitivity = False
+                data = False
+                single_salt = False
+                two_salt = False
+
+                key_name = "IS"
 
                 if save:
                     if full_sensitivity:
                         fname = f"multi_component_case_studies/DATA_comparison/Cl_phi_{chloride_phi_star_key}/{Dm_over_l_key}umpers/cation_phi_{cation_phi_star_key}/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
-                    else:
+                    elif data:
                         fname = f"multi_component_case_studies/DATA_comparison/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
+                    elif single_salt:
+                        fname = f"multi_component_case_studies/single_salt/{key_name}/{key_name}{key}_{cation_list[0]}Cl{chloride_multiplier}_{inlet_concentration['feed'][cation_list[0]]}mM"
+                    elif two_salt:
+                        fname = f"multi_component_case_studies/two_salt/{key_name}/{key_name}{key}_{cation_list[0]}{cation_list[1]}Cl{chloride_multiplier}_{inlet_concentration['feed'][cation_list[0]]}mM_{inlet_concentration['feed'][cation_list[1]]}mM"
                     to_json(m, fname=fname)
 
                 break
@@ -550,7 +564,20 @@ def solve_and_save_models(
                     )
 
     IS_key = ["050", "075", "100", "150", "200", "400", "600", "800"]
-    CONC_key = ["025", "050", "075", "100", "150", "200", "250", "300"]
+    # CONC_key = ["025", "050", "075", "100", "150", "200", "250", "300"]
+    CONC_key = [
+        "010",
+        "020",
+        "030",
+        "040",
+        "050",
+        "075",
+        "100",
+        "125",
+        "150",
+        "175",
+        "200",
+    ]
 
     if run_single_salt:
         if set_IS:
@@ -559,68 +586,65 @@ def solve_and_save_models(
                 "Co": [16.667, 25, 33.334, 50, 66.667, 133.334, 200, 266.667],
                 "Al": [8.334, 12.5, 16.667, 25, 33.334, 66.667, 100, 133.334],
             }
+            key_list = IS_key
         else:
             feed = {
-                "Li": [25, 50, 75, 100, 150, 200, 250, 300],
-                "Co": [25, 50, 75, 100, 150, 200, 250, 300],
-                "Al": [25, 50, 75, 100, 150, 200, 250, 300],
+                # "Li": [25, 50, 75, 100, 150, 200, 250, 300],
+                # "Co": [25, 50, 75, 100, 150, 200, 250, 300],
+                # "Al": [25, 50, 75, 100, 150, 200, 250, 300],
+                "Li": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
+                "Co": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
+                "Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
             }
+            key_list = CONC_key
 
-        H_feed_guesses = np.arange(0.5, 2.1, 0.1)
-        H_permeate_guesses = np.arange(0.5, 2.1, 0.1)
-        # add in non equal guesses needed for some systems
-        H_feed_guesses = np.append(H_feed_guesses, 1)
-        H_permeate_guesses = np.append(H_permeate_guesses, 2)
-        H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
+        Dm_Cl = 2.03  # um2/s
+        Dm_over_l_value = 40  # um/s
+        l_um = Dm_Cl / Dm_over_l_value  # um
+        l_m = l_um / 1e6  # m
+        monovalent_phi_star_value = 0.7
+        divalent_phi_star_value = 0.3
+        trivalent_phi_star_value = 0.0005
+        chloride_phi_star_value = 0.1
 
         for cation in feed.keys():
             if cation == "Li":
                 chloride_multiplier = 1
+                cation_phi_star_value = monovalent_phi_star_value
             elif cation == "Co":
                 chloride_multiplier = 2
+                cation_phi_star_value = divalent_phi_star_value
             elif cation == "Al":
                 chloride_multiplier = 3
+                cation_phi_star_value = trivalent_phi_star_value
 
             for concentration in feed[cation]:
-                # start with the low H's at higher concentrations
-                if concentration >= 200:
-                    H_guesses = H_guesses
-                # start with the high H's at lower concentrations
-                else:
-                    H_guesses = np.flip(H_guesses, axis=0)
-                for H_feed_guess, H_permeate_guess in H_guesses:
-                    try:
-                        model = build_model(
-                            cation_list=[cation],
-                            inlet_concentration={
-                                "feed": {
-                                    cation: concentration,
-                                    "Cl": chloride_multiplier * concentration,
-                                },
-                                "diafiltrate": {
-                                    cation: diafiltrate[cation],
-                                    "Cl": 1e-10,
-                                },
-                            },
-                            default_args=default_args,
-                            H_feed_guess=H_feed_guess,
-                            H_permeate_guess=H_permeate_guess,
-                            NFE_args=NFE_args,
-                            initialize=True,
-                            rpore=6e-10,
-                            data_membrane_thickness=5e-8,
-                        )
-                        solve_model(model)
-                        unfix_pressure(model, water_flux=water_flux)
-                        solve_model(model)
-                        if set_IS:
-                            fname = f"multi_component_case_studies/single_salt/IS/IS{IS_key[feed[cation].index(concentration)]}_{cation}Cl{chloride_multiplier}_{concentration}mM"
-                        else:
-                            fname = f"multi_component_case_studies/single_salt/CONC/CONC{CONC_key[feed[cation].index(concentration)]}_{cation}Cl{chloride_multiplier}_{concentration}mM"
-                        to_json(model, fname=fname)
-                        break
-                    except (InitializationError, NoFeasibleSolutionError):
-                        continue
+                model = build_model(
+                    cation_list=[cation],
+                    inlet_concentration={
+                        "feed": {
+                            cation: concentration,
+                            "Cl": chloride_multiplier * concentration,
+                        },
+                        "diafiltrate": {
+                            cation: diafiltrate[cation],
+                            "Cl": chloride_multiplier * 1e-10,
+                        },
+                    },
+                    default_args=default_args,
+                    NFE_args=NFE_args,
+                    initialize_and_solve=True,
+                    water_flux=0.02,
+                    data_membrane_thickness=l_m,
+                    non_Donnan_partition_dict={
+                        cation: cation_phi_star_value,
+                        "Cl": chloride_phi_star_value,
+                    },
+                    save=True,
+                    key=key_list[feed[cation].index(concentration)],
+                    chloride_multiplier=chloride_multiplier,
+                )
+
     if run_two_salt:
 
         if set_IS:
@@ -640,85 +664,77 @@ def solve_and_save_models(
                 # "Co_Al": [5.556],# TODO: debug this system
                 "Co_Al": [5.556, 8.334, 11.112, 16.667, 22.223, 44.445, 66.667, 88.889],
             }
+            key_list = IS_key
         else:
             feed = {
                 # "Li_Co": [25],
-                "Li_Co": [25, 50, 75, 100, 150, 200, 250, 300],
-                "Li_Al": [25, 50, 75, 100, 150, 200, 250, 300],
-                "Co_Al": [25, 50, 75, 100, 150, 200, 250, 300],
+                # "Li_Co": [25, 50, 75, 100, 150, 200, 250, 300],
+                # "Li_Al": [25, 50, 75, 100, 150, 200, 250, 300],
+                # "Co_Al": [25, 50, 75, 100, 150, 200, 250, 300],
+                "Li_Co": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
+                "Li_Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
+                "Co_Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
             }
+            key_list = CONC_key
 
-        H_feed_guesses = np.arange(0.5, 2.6, 0.1)
-        H_permeate_guesses = np.arange(0.5, 2.6, 0.1)
-        # add in non equal guesses
-        H_feed_guesses = np.append(
-            H_feed_guesses,
-            1,
-        )
-        H_feed_guesses = np.append(
-            H_feed_guesses,
-            1,
-        )
-        H_permeate_guesses = np.append(H_permeate_guesses, 2)
-        H_permeate_guesses = np.append(H_permeate_guesses, 10)
-        H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
+        Dm_Cl = 2.03  # um2/s
+        Dm_over_l_value = 40  # um/s
+        l_um = Dm_Cl / Dm_over_l_value  # um
+        l_m = l_um / 1e6  # m
+        monovalent_phi_star_value = 0.7
+        divalent_phi_star_value = 0.3
+        trivalent_phi_star_value = 0.0005
+        chloride_phi_star_value = 0.1
 
         for salt in feed.keys():
             if salt == "Li_Co":
                 cation_1 = "Li"
                 cation_2 = "Co"
                 chloride_multiplier = 3
+                cation_1_phi_star_value = monovalent_phi_star_value
+                cation_2_phi_star_value = divalent_phi_star_value
             elif salt == "Li_Al":
                 cation_1 = "Li"
                 cation_2 = "Al"
                 chloride_multiplier = 4
+                cation_1_phi_star_value = monovalent_phi_star_value
+                cation_2_phi_star_value = trivalent_phi_star_value
             elif salt == "Co_Al":
                 cation_1 = "Co"
                 cation_2 = "Al"
                 chloride_multiplier = 5
+                cation_1_phi_star_value = divalent_phi_star_value
+                cation_2_phi_star_value = trivalent_phi_star_value
 
             for concentration in feed[salt]:
-                # start with the low H's at higher concentrations
-                if concentration >= 400:
-                    H_guesses = H_guesses
-                # start with the high H's at lower concentrations
-                else:
-                    H_guesses = np.flip(H_guesses, axis=0)
-                for H_feed_guess, H_permeate_guess in H_guesses:
-                    try:
-                        model = build_model(
-                            cation_list=[cation_1, cation_2],
-                            inlet_concentration={
-                                "feed": {
-                                    cation_1: concentration,
-                                    cation_2: concentration,
-                                    "Cl": chloride_multiplier * concentration,
-                                },
-                                "diafiltrate": {
-                                    cation_1: diafiltrate[cation_1],
-                                    cation_2: diafiltrate[cation_2],
-                                    "Cl": 1e-10,
-                                },
-                            },
-                            default_args=default_args,
-                            H_feed_guess=H_feed_guess,
-                            H_permeate_guess=H_permeate_guess,
-                            NFE_args=NFE_args,
-                            initialize=True,
-                            rpore=6e-10,
-                            data_membrane_thickness=5e-8,
-                        )
-                        solve_model(model)
-                        unfix_pressure(model, water_flux=water_flux)
-                        solve_model(model)
-                        if set_IS:
-                            fname = f"multi_component_case_studies/two_salt/IS/IS{IS_key[feed[salt].index(concentration)]}_{cation_1}{cation_2}Cl{chloride_multiplier}_{concentration}mM_{concentration}mM"
-                        else:
-                            fname = f"multi_component_case_studies/two_salt/CONC/CONC{CONC_key[feed[salt].index(concentration)]}_{cation_1}{cation_2}Cl{chloride_multiplier}_{concentration}mM_{concentration}mM"
-                        to_json(model, fname=fname)
-                        break
-                    except (InitializationError, NoFeasibleSolutionError, RuntimeError):
-                        continue
+                model = build_model(
+                    cation_list=[cation_1, cation_2],
+                    inlet_concentration={
+                        "feed": {
+                            cation_1: concentration,
+                            cation_2: concentration,
+                            "Cl": chloride_multiplier * concentration,
+                        },
+                        "diafiltrate": {
+                            cation_1: diafiltrate[cation_1],
+                            cation_2: diafiltrate[cation_2],
+                            "Cl": chloride_multiplier * 1e-10,
+                        },
+                    },
+                    default_args=default_args,
+                    NFE_args=NFE_args,
+                    initialize_and_solve=True,
+                    water_flux=0.02,
+                    data_membrane_thickness=l_m,
+                    non_Donnan_partition_dict={
+                        cation_1: cation_1_phi_star_value,
+                        cation_2: cation_2_phi_star_value,
+                        "Cl": chloride_phi_star_value,
+                    },
+                    save=True,
+                    key=key_list[feed[salt].index(concentration)],
+                    chloride_multiplier=chloride_multiplier,
+                )
 
     if run_three_salt:
         if set_IS:
@@ -1593,6 +1609,22 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
                 fontsize=fontsize,
                 fontweight="bold",
             )
+    else:
+        ax1a.set_xlabel(
+            "+1 Cation Concentration\nin Feed (mM)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+        ax1b.set_xlabel(
+            "+2 Cation Concentration\nin Feed (mM)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+        ax1c.set_xlabel(
+            "+3 Cation Concentration\nin Feed (mM)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
     # elif x_axis == "cation_concentration":
     #     ax2a.set_xlabel(
     #         "Lithium Feed Concentration\n(mol/m$\mathbf{^3}$)",
@@ -1736,7 +1768,7 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
         model_folder_2 = Path("multi_component_case_studies/two_salt/IS")
         # 41 characters (0-40) make up folder name before model name
         # multi_component_case_studies/two_salt/IS/
-        model_folder_3 = Path("multi_component_case_studies/three_salt/IS")
+        # model_folder_3 = Path("multi_component_case_studies/three_salt/IS")
         # 43 characters (0-42) make up folder name before model name
         # multi_component_case_studies/three_salt/IS/
     else:
@@ -1746,17 +1778,17 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
         model_folder_2 = Path("multi_component_case_studies/two_salt/CONC")
         # 43 characters (0-42) make up folder name before model name
         # multi_component_case_studies/two_salt/CONC/
-        model_folder_3 = Path("multi_component_case_studies/three_salt/CONC")
+        # model_folder_3 = Path("multi_component_case_studies/three_salt/CONC")
         # 45 characters (0-44) make up folder name before model name
         # multi_component_case_studies/three_salt/CONC/
 
     case_study_list_1 = [file for file in model_folder_1.iterdir()]
     case_study_list_2 = [file for file in model_folder_2.iterdir()]
-    case_study_list_3 = [file for file in model_folder_3.iterdir()]
+    # case_study_list_3 = [file for file in model_folder_3.iterdir()]
     case_studies = {
         "single": case_study_list_1,
         "two": case_study_list_2,
-        "three": case_study_list_3,
+        # "three": case_study_list_3,
     }
 
     for type, case_study_files in case_studies.items():
@@ -1787,9 +1819,9 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
                     cation_2 = str(case_study)[49:51]
                     chloride_multiplier = float(str(case_study)[53])
                 else:
-                    cation_1 = str(case_study)[49:51]
-                    cation_2 = str(case_study)[51:53]
-                    chloride_multiplier = float(str(case_study)[55])
+                    cation_1 = str(case_study)[51:53]
+                    cation_2 = str(case_study)[53:55]
+                    chloride_multiplier = float(str(case_study)[57])
                 concentration = float(50)  # mM
                 cation_list = [cation_1, cation_2]
                 inlet_concentration = {
@@ -1836,10 +1868,8 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
                 cation_list=cation_list,
                 inlet_concentration=inlet_concentration,
                 default_args=default_args,
-                H_feed_guess=1,
-                H_permeate_guess=1,
                 NFE_args=NFE_args,
-                initialize=False,
+                initialize_and_solve=False,
             )
             from_json(model, fname=case_study)
 
