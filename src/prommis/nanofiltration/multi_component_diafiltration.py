@@ -320,20 +320,20 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
 
     CONFIG = BlockTriangularizationInitializer.CONFIG()
 
-    CONFIG.declare(
-        "H_feed_guess",
-        ConfigValue(
-            default=1.2,
-            doc="Guessed initial value of H",
-        ),
-    )
-    CONFIG.declare(
-        "H_permeate_guess",
-        ConfigValue(
-            default=1.2,
-            doc="Guessed initial value of H",
-        ),
-    )
+    # CONFIG.declare(
+    #     "H_feed_guess",
+    #     ConfigValue(
+    #         default=1.2,
+    #         doc="Guessed initial value of H",
+    #     ),
+    # )
+    # CONFIG.declare(
+    #     "H_permeate_guess",
+    #     ConfigValue(
+    #         default=1.2,
+    #         doc="Guessed initial value of H",
+    #     ),
+    # )
 
     def initialization_routine(self, model):
         """
@@ -373,12 +373,47 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
         )
         D_mem = model.membrane_cross_diffusion_coefficient
         D_mem_calc = model.membrane_cross_diffusion_coefficient_calculation
+        is_f_tot = model.total_feed_ionic_strength
         q_f_tot = model.total_feed_flow_volume
         q_ret = model.retentate_flow_volume
         q_perm = model.permeate_flow_volume
         zero_val = value(model.numerical_zero_tolerance)
 
         for t in model.time:
+            for k in model.cations:
+                if value(charge[k]) == 3:
+                    phi = 0.0005
+                    a_feed = 3
+                    b_feed = -0.004
+                    c_feed = 5.3
+                    a_perm = 4.1
+                    b_perm = -0.0039
+                    c_perm = 7.2
+                elif value(charge[k]) == 2:
+                    phi = 0.3
+                    a_feed = 2.4
+                    b_feed = -0.0071
+                    c_feed = -0.37
+                    a_perm = 3.4
+                    b_perm = -0.0068
+                    c_perm = -0.067
+                elif value(charge[k]) == 1:
+                    phi = 0.7
+                    a_feed = 2.2
+                    b_feed = -0.014
+                    c_feed = -0.81
+                    a_perm = 3.7
+                    b_perm = -0.016
+                    c_perm = -0.71
+
+            print(phi)
+
+            ln_Donnan_feed = a_feed * exp(b_feed * value(is_f_tot[t])) + c_feed
+            ln_Donnan_perm = a_perm * exp(b_perm * value(is_f_tot[t])) + c_perm
+
+            print(ln_Donnan_feed)
+            print(ln_Donnan_perm)
+
             # set initial conditions
             q_ret[t, 0].set_value(value(q_f_tot[t]))
             d_q_r_dx[t, 0].set_value(zero_val)
@@ -521,17 +556,27 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                             z_bl_prev = z_bl
                     z_m_prev = 0
                     # interface concentrations
+                    # H_i = c_{i,m} / c_{i,s} = phi_i * exp(-z_i * del_psi_Donnan)
+                    # a, b, and c are fitted from successful "brute force" solves
+                    # -z_i * del_psi_Donnan = a * exp(b * is_f_tot) + c
+                    # supply guesses for phi informed by sensitivity analysis
                     for k in model.cations:
+                        # conc_mem[t, x, 0, k].set_value(
+                        #     value(self.config.H_feed_guess) * value(conc_ret[t, x, k])
+                        # )
                         conc_mem[t, x, 0, k].set_value(
-                            value(self.config.H_feed_guess) * value(conc_ret[t, x, k])
+                            value(phi) * exp(ln_Donnan_feed) * value(conc_ret[t, x, k])
                         )
                         calculate_variable_from_constraint(
                             conc_mem[t, x, 0, a0],
                             model.electroneutrality_membrane[t, x, 0],
                         )
+                        # conc_mem[t, x, 1, k].set_value(
+                        #     value(self.config.H_permeate_guess)
+                        #     * value(conc_perm[t, x, k])
+                        # )
                         conc_mem[t, x, 1, k].set_value(
-                            value(self.config.H_permeate_guess)
-                            * value(conc_perm[t, x, k])
+                            value(phi) * exp(ln_Donnan_perm) * value(conc_perm[t, x, k])
                         )
                     for z_m in model.dimensionless_membrane_thickness:
                         if z_m != 0:
