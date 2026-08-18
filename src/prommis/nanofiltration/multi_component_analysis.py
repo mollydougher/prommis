@@ -46,7 +46,7 @@ from prommis.nanofiltration.multi_component_diafiltration import (
 
 
 def main():
-    set_IS = False
+    set_IS = True
     run_data = False
     run_single_salt = True
     run_two_salt = False
@@ -77,8 +77,8 @@ def main():
     # plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=True)
     # plot_flux_contributions(x_axis="ionic_strength", percent=True, save_figure=True)
 
-    # plot_Donnan_potentials()
-    # plt.show()
+    plot_Donnan_potentials(total_h=True, sieving=True)
+    plt.show()
 
 
 def build_model(
@@ -175,57 +175,57 @@ def build_model(
 
     # initialize membrane model
     if initialize_and_solve:
-        # if ("La" in cation_list) or ("Al" in cation_list):
-        #     # guess larger H_permeate
-        #     if inlet_concentration["feed"][cation_list[0]] <= 8:
-        #         H_feed_guesses = np.arange(3.2, 5.8, 0.2)
-        #         H_permeate_guesses = np.arange(10, 16.5, 0.5)
-        #     else:
-        #         H_feed_guesses = np.arange(0.2, 3.1, 0.1)
-        #         H_permeate_guesses = np.arange(2, 16.5, 0.5)
-        # else:
-        #     H_feed_guesses = np.arange(0.2, 3.1, 0.1)
-        #     H_permeate_guesses = np.arange(0.2, 3.1, 0.1)
+        if ("La" in cation_list) or ("Al" in cation_list):
+            # guess larger H_permeate
+            if inlet_concentration["feed"][cation_list[0]] <= 8:
+                H_feed_guesses = np.arange(3.2, 6, 0.2)
+                H_permeate_guesses = np.arange(10, 17, 0.5)
+            else:
+                H_feed_guesses = np.arange(0.2, 3.5, 0.1)
+                H_permeate_guesses = np.arange(2, 18.5, 0.5)
+        else:
+            H_feed_guesses = np.arange(0.2, 3.5, 0.1)
+            H_permeate_guesses = np.arange(0.2, 3.5, 0.1)
 
-        # H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
-        # H_guesses = np.flip(H_guesses, axis=0)
+        H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
+        H_guesses = np.flip(H_guesses, axis=0)
 
-        # for H_feed_guess, H_permeate_guess in H_guesses:
-        # try:
-        initialized_membrane_model = m.fs.membrane.default_initializer(
-            # H_feed_guess=H_feed_guess, H_permeate_guess=H_permeate_guess
-        )
-        initialized_membrane_model.initialize(m.fs.membrane)
+        for H_feed_guess, H_permeate_guess in H_guesses:
+            try:
+                initialized_membrane_model = m.fs.membrane.default_initializer(
+                    H_feed_guess=H_feed_guess, H_permeate_guess=H_permeate_guess
+                )
+                initialized_membrane_model.initialize(m.fs.membrane)
 
-        solve_model(m)
-        unfix_pressure(m, water_flux=water_flux)
-        solve_model(m)
+                solve_model(m)
+                unfix_pressure(m, water_flux=water_flux)
+                solve_model(m)
 
-        full_sensitivity = False
-        data = False
-        single_salt = True
-        two_salt = False
+                full_sensitivity = False
+                data = False
+                single_salt = True
+                two_salt = False
 
-        key_name = "CONC"
+                key_name = "IS"
 
-        if save:
-            if full_sensitivity:
-                fname = f"multi_component_case_studies/DATA_comparison/Cl_phi_{chloride_phi_star_key}/{Dm_over_l_key}umpers/cation_phi_{cation_phi_star_key}/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
-            elif data:
-                fname = f"multi_component_case_studies/DATA_comparison/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
-            elif single_salt:
-                fname = f"multi_component_case_studies/single_salt/{key_name}/{key_name}{key}_{cation_list[0]}Cl{chloride_multiplier}_{inlet_concentration['feed'][cation_list[0]]}mM"
-            elif two_salt:
-                fname = f"multi_component_case_studies/two_salt/{key_name}/{key_name}{key}_{cation_list[0]}{cation_list[1]}Cl{chloride_multiplier}_{inlet_concentration['feed'][cation_list[0]]}mM_{inlet_concentration['feed'][cation_list[1]]}mM"
-            to_json(m, fname=fname)
+                if save:
+                    if full_sensitivity:
+                        fname = f"multi_component_case_studies/DATA_comparison/Cl_phi_{chloride_phi_star_key}/{Dm_over_l_key}umpers/cation_phi_{cation_phi_star_key}/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
+                    elif data:
+                        fname = f"multi_component_case_studies/DATA_comparison/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
+                    elif single_salt:
+                        fname = f"multi_component_case_studies/single_salt/{key_name}/{key_name}{key}_{cation_list[0]}Cl{chloride_multiplier}_{inlet_concentration['feed'][cation_list[0]]}mM"
+                    elif two_salt:
+                        fname = f"multi_component_case_studies/two_salt/{key_name}/{key_name}{key}_{cation_list[0]}{cation_list[1]}Cl{chloride_multiplier}_{inlet_concentration['feed'][cation_list[0]]}mM_{inlet_concentration['feed'][cation_list[1]]}mM"
+                    to_json(m, fname=fname)
 
-    #     break
-    # except (
-    #     InitializationError,
-    #     NoFeasibleSolutionError,
-    #     RuntimeError,
-    # ):
-    #     continue
+                break
+            except (
+                InitializationError,
+                NoFeasibleSolutionError,
+                RuntimeError,
+            ):
+                continue
 
     return m
 
@@ -3848,7 +3848,9 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
             fig2.savefig(f"total_flux_breakdown_single_salt_anion.png", dpi=600)
 
 
-def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
+def plot_Donnan_potentials(
+    x_axis="ionic_strength", save_figure=True, total_h=False, sieving=False
+):
     markersize = 10
     fontsize = 14
 
@@ -3866,6 +3868,13 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
         2, 2, dpi=90, figsize=(10, 10), constrained_layout=True
     )
 
+    if total_h:
+        fig2, (ax3a, ax3b) = plt.subplots(
+            1, 2, dpi=90, figsize=(10, 5), constrained_layout=True
+        )
+    if sieving:
+        fig3, ax4 = plt.subplots(1, 1, dpi=90, figsize=(5, 5), constrained_layout=True)
+
     if x_axis == "ionic_strength":
         x_label = "Inlet Feed Ionic Strength (mM)"
     elif x_axis == "cation_concentration":
@@ -3877,6 +3886,20 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
             fontsize=fontsize,
             fontweight="bold",
         )
+    if total_h:
+        for ax in [ax3a, ax3b]:
+            ax.set_xlabel(
+                x_label,
+                fontsize=fontsize,
+                fontweight="bold",
+            )
+    if sieving:
+        for ax in [ax4]:
+            ax.set_xlabel(
+                x_label,
+                fontsize=fontsize,
+                fontweight="bold",
+            )
 
     ax1a.set_ylabel(
         "Dimensionless Donnan Potential",
@@ -3899,6 +3922,29 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
         fontsize=fontsize,
         fontweight="bold",
     )
+
+    if total_h:
+        ax3a.set_ylabel(
+            "Overall Partitioning Coefficient",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+        ax3a.set_title(
+            "Feed Side",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+        ax3b.set_title(
+            "Permeate Side",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+    if sieving:
+        ax4.set_ylabel(
+            "Observed Sieving Coefficient (Average)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
 
     # color blind friendly
     tol_bright_hex = [
@@ -3938,6 +3984,26 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
             linestyle="None",
             label=solute,
         )
+        if total_h:
+            ax3a.plot(
+                [],
+                [],
+                color=cation_dict["color"],
+                marker=cation_dict["marker"],
+                markersize=markersize,
+                linestyle="None",
+                label=solute,
+            )
+        if sieving:
+            ax4.plot(
+                [],
+                [],
+                color=cation_dict["color"],
+                marker=cation_dict["marker"],
+                markersize=markersize,
+                linestyle="None",
+                label=solute,
+            )
 
     ax1a.legend(
         loc="best",
@@ -3946,37 +4012,36 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
     for ax in fig1.axes:
         ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
 
+    if total_h:
+        ax3a.legend(
+            loc="best",
+            fontsize=fontsize - 2,
+        )
+        for ax in fig2.axes:
+            ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+    if sieving:
+        ax4.legend(
+            loc="best",
+            fontsize=fontsize - 2,
+        )
+        for ax in fig3.axes:
+            ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+
     if x_axis == "ionic_strength":
         model_folder_1 = Path("multi_component_case_studies/single_salt/IS")
         # 44 characters (0-43) make up folder name before model name
         # multi_component_case_studies/single_salt/IS/
-        # model_folder_2 = Path("multi_component_case_studies/two_salt/IS")
-        # 41 characters (0-40) make up folder name before model name
-        # multi_component_case_studies/two_salt/IS/
-        # model_folder_3 = Path("multi_component_case_studies/three_salt/IS")
-        # 43 characters (0-42) make up folder name before model name
-        # multi_component_case_studies/three_salt/IS/
     else:
         model_folder_1 = Path("multi_component_case_studies/single_salt/CONC")
         # 46 characters (0-45) make up folder name before model name
         # multi_component_case_studies/single_salt/CONC/
-        # model_folder_2 = Path("multi_component_case_studies/two_salt/CONC")
-        # 43 characters (0-42) make up folder name before model name
-        # multi_component_case_studies/two_salt/CONC/
-        # model_folder_3 = Path("multi_component_case_studies/three_salt/CONC")
-        # 45 characters (0-44) make up folder name before model name
-        # multi_component_case_studies/three_salt/CONC/
 
     case_study_list_1 = [file for file in model_folder_1.iterdir()]
-    # case_study_list_2 = [file for file in model_folder_2.iterdir()]
-    # case_study_list_3 = [file for file in model_folder_3.iterdir()]
 
     case_study_list_1.sort()
 
     case_studies = {
         "single": case_study_list_1,
-        # "two": case_study_list_2,
-        # "three": case_study_list_3,
     }
 
     y_ax1a_li = []
@@ -4006,6 +4071,19 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
     y_ax2b_al = []
     y_err_ax2b_al = []
 
+    if total_h:
+        y_ax3a_li = []
+        y_ax3b_li = []
+        y_ax3a_co = []
+        y_ax3b_co = []
+        y_ax3a_al = []
+        y_ax3b_al = []
+
+    if sieving:
+        y_ax4_li = []
+        y_ax4_co = []
+        y_ax4_al = []
+
     for type, case_study_files in case_studies.items():
         for case_study in case_study_files:
             if type == "single":
@@ -4027,57 +4105,6 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
                         "Cl": 1e-10,
                     },
                 }
-
-            # elif type == "two":
-            #     if x_axis == "ionic_strength":
-            #         cation_1 = str(case_study)[47:49]
-            #         cation_2 = str(case_study)[49:51]
-            #         chloride_multiplier = float(str(case_study)[53])
-            #     else:
-            #         cation_1 = str(case_study)[51:53]
-            #         cation_2 = str(case_study)[53:55]
-            #         chloride_multiplier = float(str(case_study)[57])
-            #     concentration = float(50)  # mM
-            #     cation_list = [cation_1, cation_2]
-            #     inlet_concentration = {
-            #         "feed": {
-            #             cation_1: concentration,
-            #             cation_2: concentration,
-            #             "Cl": chloride_multiplier * concentration,
-            #         },
-            #         "diafiltrate": {
-            #             cation_1: 1e-10,
-            #             cation_2: 1e-10,
-            #             "Cl": 1e-10,
-            #         },
-            #     }
-            # elif type == "three":
-            #     if x_axis == "ionic_strength":
-            #         cation_1 = str(case_study)[49:51]
-            #         cation_2 = str(case_study)[51:53]
-            #         cation_3 = str(case_study)[53:55]
-            #         chloride_multiplier = float(str(case_study)[57])
-            #     else:
-            #         cation_1 = str(case_study)[51:53]
-            #         cation_2 = str(case_study)[53:55]
-            #         cation_3 = str(case_study)[55:57]
-            #         chloride_multiplier = float(str(case_study)[59])
-            #     concentration = float(50)  # mM
-            #     cation_list = [cation_1, cation_2, cation_3]
-            #     inlet_concentration = {
-            #         "feed": {
-            #             cation_1: concentration,
-            #             cation_2: concentration,
-            #             cation_3: concentration,
-            #             "Cl": chloride_multiplier * concentration,
-            #         },
-            #         "diafiltrate": {
-            #             cation_1: 1e-10,
-            #             cation_2: 1e-10,
-            #             cation_3: 1e-10,
-            #             "Cl": 1e-10,
-            #         },
-            #     }
 
             model = build_model(
                 cation_list=cation_list,
@@ -4112,6 +4139,13 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
                     y_ax2b = y_ax2b_li
                     y_err_ax2b = y_err_ax2b_li
 
+                    if total_h:
+                        y_ax3a = y_ax3a_li
+                        y_ax3b = y_ax3b_li
+
+                    if sieving:
+                        y_ax4 = y_ax4_li
+
                 elif solute == "Co":
                     # marker = "v"
                     # color = co_color
@@ -4124,6 +4158,13 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
                     y_ax2b = y_ax2b_co
                     y_err_ax2b = y_err_ax2b_co
 
+                    if total_h:
+                        y_ax3a = y_ax3a_co
+                        y_ax3b = y_ax3b_co
+
+                    if sieving:
+                        y_ax4 = y_ax4_co
+
                 elif solute == "Al":
                     # marker = "^"
                     # color = al_color
@@ -4135,6 +4176,13 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
                     y_err_ax2a = y_err_ax2a_al
                     y_ax2b = y_ax2b_al
                     y_err_ax2b = y_err_ax2b_al
+
+                    if total_h:
+                        y_ax3a = y_ax3a_al
+                        y_ax3b = y_ax3b_al
+
+                    if total_h:
+                        y_ax4 = y_ax4_al
 
                 y_ax1a.append(average_variable_dict["Donnan_potential_feed"]["avg"])
                 y_err_ax1a.append(
@@ -4164,6 +4212,13 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
                     * average_variable_dict["Donnan_potential_perm"]["spread"]
                 )
 
+                if total_h:
+                    y_ax3a.append(average_variable_dict["H_feed"]["avg"])
+                    y_ax3b.append(average_variable_dict["H_perm"]["avg"])
+
+                if sieving:
+                    y_ax4.append(average_variable_dict["observed_sieving"]["avg"])
+
     data_dict_li = {
         ax1a: [y_ax1a_li, y_err_ax1a_li],
         ax1b: [y_ax1b_li, y_err_ax1b_li],
@@ -4183,9 +4238,23 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
         ax2b: [y_ax2b_al, y_err_ax2b_al],
     }
 
+    if total_h:
+        h_dict_li = {
+            ax3a: y_ax3a_li,
+            ax3b: y_ax3b_li,
+        }
+        h_dict_co = {
+            ax3a: y_ax3a_co,
+            ax3b: y_ax3b_co,
+        }
+        h_dict_al = {
+            ax3a: y_ax3a_al,
+            ax3b: y_ax3b_al,
+        }
+
     x_li = [25, 50, 75, 100, 150, 200, 400, 600, 800]
-    x_co = [50, 75, 100, 150, 200, 400, 600, 800]
-    x_al = [75, 100, 150, 200, 400, 600, 800]
+    x_co = [25, 50, 75, 100, 150, 200, 400, 600, 800]
+    x_al = [25, 50, 75, 100, 150, 200, 400, 600, 800]
 
     for ax, y in data_dict_li.items():
         ax.plot(
@@ -4240,6 +4309,67 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
         #     ecolor=al_color,
         #     capsize=3,
         # )
+
+    if total_h:
+        for ax, y in h_dict_li.items():
+            ax.plot(
+                x_li,
+                y,
+                color=li_color,
+                marker="o",
+                linestyle="None",
+                alpha=alpha,
+                markersize=markersize,
+            )
+        for ax, y in h_dict_co.items():
+            ax.plot(
+                x_co,
+                y,
+                color=co_color,
+                marker="v",
+                linestyle="None",
+                alpha=alpha,
+                markersize=markersize,
+            )
+        for ax, y in h_dict_al.items():
+            ax.plot(
+                x_al,
+                y,
+                color=al_color,
+                marker="^",
+                linestyle="None",
+                alpha=alpha,
+                markersize=markersize,
+            )
+
+    if sieving:
+        ax4.plot(
+            x_li,
+            y_ax4_li,
+            color=li_color,
+            marker="o",
+            linestyle="None",
+            alpha=alpha,
+            markersize=markersize,
+        )
+        ax4.plot(
+            x_co,
+            y_ax4_co,
+            color=co_color,
+            marker="v",
+            linestyle="None",
+            alpha=alpha,
+            markersize=markersize,
+        )
+        ax4.plot(
+            x_al,
+            y_ax4_al,
+            color=al_color,
+            marker="^",
+            linestyle="None",
+            alpha=alpha,
+            markersize=markersize,
+        )
 
     # add trendlines
     def exp_fit(x, a, b, c):
@@ -4308,8 +4438,172 @@ def plot_Donnan_potentials(x_axis="ionic_strength", save_figure=True):
         f"Permeate side, +3: $z_i \Delta \Phi^D$ = {a_ax2b_al:.2g} * e^({b_ax2b_al:.2g} * x) + {c_ax2b_al:.2g}"
     )
 
+    if total_h:
+        coeffs_ax3a_li, covs_ax3a_li = curve_fit(
+            exp_fit, np.array(x_li), np.array(y_ax3a_li), p0=[3, -0.1, 0.3]
+        )
+        a_ax3a_li, b_ax3a_li, c_ax3a_li = coeffs_ax3a_li
+        eqn_ax3a_li = exp_fit(np.array(x_li), a_ax3a_li, b_ax3a_li, c_ax3a_li)
+        ax3a.plot(np.array(x_li), eqn_ax3a_li, color=li_color, linestyle="--")
+
+        coeffs_ax3a_co, covs_ax3a_co = curve_fit(
+            exp_fit, np.array(x_co), np.array(y_ax3a_co), p0=[3, -0.1, 0.3]
+        )
+        a_ax3a_co, b_ax3a_co, c_ax3a_co = coeffs_ax3a_co
+        eqn_ax3a_co = exp_fit(np.array(x_co), a_ax3a_co, b_ax3a_co, c_ax3a_co)
+        ax3a.plot(np.array(x_co), eqn_ax3a_co, color=co_color, linestyle="--")
+
+        coeffs_ax3a_al, covs_ax3a_al = curve_fit(
+            exp_fit, np.array(x_al), np.array(y_ax3a_al), p0=[3, -0.1, 0.3]
+        )
+        a_ax3a_al, b_ax3a_al, c_ax3a_al = coeffs_ax3a_al
+        eqn_ax3a_al = exp_fit(np.array(x_al), a_ax3a_al, b_ax3a_al, c_ax3a_al)
+        ax3a.plot(np.array(x_al), eqn_ax3a_al, color=al_color, linestyle="--")
+
+        coeffs_ax3b_li, covs_ax3b_li = curve_fit(
+            exp_fit, np.array(x_li), np.array(y_ax3b_li), p0=[3, -0.1, 0.3]
+        )
+        a_ax3b_li, b_ax3b_li, c_ax3b_li = coeffs_ax3b_li
+        eqn_ax3b_li = exp_fit(np.array(x_li), a_ax3b_li, b_ax3b_li, c_ax3b_li)
+        ax3b.plot(np.array(x_li), eqn_ax3b_li, color=li_color, linestyle="--")
+
+        coeffs_ax3b_co, covs_ax3b_co = curve_fit(
+            exp_fit, np.array(x_co), np.array(y_ax3b_co), p0=[3, -0.1, 0.3]
+        )
+        a_ax3b_co, b_ax3b_co, c_ax3b_co = coeffs_ax3b_co
+        eqn_ax3b_co = exp_fit(np.array(x_co), a_ax3b_co, b_ax3b_co, c_ax3b_co)
+        ax3b.plot(np.array(x_co), eqn_ax3b_co, color=co_color, linestyle="--")
+
+        coeffs_ax3b_al, covs_ax3b_al = curve_fit(
+            exp_fit, np.array(x_al), np.array(y_ax3b_al), p0=[3, -0.1, 0.3]
+        )
+        a_ax3b_al, b_ax3b_al, c_ax3b_al = coeffs_ax3b_al
+        eqn_ax3b_al = exp_fit(np.array(x_al), a_ax3b_al, b_ax3b_al, c_ax3b_al)
+        ax3b.plot(np.array(x_al), eqn_ax3b_al, color=al_color, linestyle="--")
+
+        print(
+            f"Feed side, +1: $H_i$ = {a_ax3a_li:.2g} * e^({b_ax3a_li:.2g} * x) + {c_ax3a_li:.2g}"
+        )
+        print(
+            f"Feed side, +2: $H_i$ = {a_ax3a_co:.2g} * e^({b_ax3a_co:.2g} * x) + {c_ax3a_co:.2g}"
+        )
+        print(
+            f"Feed side, +3: $H_i$ = {a_ax3a_al:.2g} * e^({b_ax3a_al:.2g} * x) + {c_ax3a_al:.2g}"
+        )
+
+        print(
+            f"Permeate side, +1: $H_i$ = {a_ax3b_li:.2g} * e^({b_ax3b_li:.2g} * x) + {c_ax3b_li:.2g}"
+        )
+        print(
+            f"Permeate side, +2: $H_i$ = {a_ax3b_co:.2g} * e^({b_ax3b_co:.2g} * x) + {c_ax3b_co:.2g}"
+        )
+        print(
+            f"Permeate side, +3: $H_i$ = {a_ax3b_al:.2g} * e^({b_ax3b_al:.2g} * x) + {c_ax3b_al:.2g}"
+        )
+
+        ax3a.annotate(
+            f"$y = {a_ax3a_li:.2g} \exp({b_ax3a_li:.2g} x) + {c_ax3a_li:.2g}$",
+            xy=(200, 2),
+            fontsize=fontsize - 2,
+            color=li_color,
+            alpha=alpha,
+        )
+        ax3a.annotate(
+            f"$y = {a_ax3a_co:.2g} \exp({b_ax3a_co:.2g} x) + {c_ax3a_co:.2g}$",
+            xy=(200, 1.5),
+            fontsize=fontsize - 2,
+            color=co_color,
+            alpha=alpha,
+        )
+        ax3a.annotate(
+            f"$y = {a_ax3a_al:.2g} \exp({b_ax3a_al:.2g} x) + {c_ax3a_al:.2g}$",
+            xy=(200, 1),
+            fontsize=fontsize - 2,
+            color=al_color,
+            alpha=alpha,
+        )
+        ax3b.annotate(
+            f"$y = {a_ax3b_li:.2g} \exp({b_ax3b_li:.2g} x) + {c_ax3b_li:.2g}$",
+            xy=(200, 48),
+            fontsize=fontsize - 2,
+            color=li_color,
+            alpha=alpha,
+        )
+        ax3b.annotate(
+            f"$y = {a_ax3b_co:.2g} \exp({b_ax3b_co:.2g} x) + {c_ax3b_co:.2g}$",
+            xy=(200, 33),
+            fontsize=fontsize - 2,
+            color=co_color,
+            alpha=alpha,
+        )
+        ax3b.annotate(
+            f"$y = {a_ax3b_al:.2g} \exp({b_ax3b_al:.2g} x) + {c_ax3b_al:.2g}$",
+            xy=(200, 21),
+            fontsize=fontsize - 2,
+            color=al_color,
+            alpha=alpha,
+        )
+
+    if sieving:
+        coeffs_ax4_li, covs_ax4_li = curve_fit(
+            exp_fit, np.array(x_li), np.array(y_ax4_li), p0=[-3, -0.1, 0.3]
+        )
+        a_ax4_li, b_ax4_li, c_ax4_li = coeffs_ax4_li
+        eqn_ax4_li = exp_fit(np.array(x_li), a_ax4_li, b_ax4_li, c_ax4_li)
+        ax4.plot(np.array(x_li), eqn_ax4_li, color=li_color, linestyle="--")
+
+        coeffs_ax4_co, covs_ax4_co = curve_fit(
+            exp_fit, np.array(x_co), np.array(y_ax4_co), p0=[-3, -0.1, 0.3]
+        )
+        a_ax4_co, b_ax4_co, c_ax4_co = coeffs_ax4_co
+        eqn_ax4_co = exp_fit(np.array(x_co), a_ax4_co, b_ax4_co, c_ax4_co)
+        ax4.plot(np.array(x_co), eqn_ax4_co, color=co_color, linestyle="--")
+
+        coeffs_ax4_al, covs_ax4_al = curve_fit(
+            exp_fit, np.array(x_al), np.array(y_ax4_al), p0=[-3, -0.1, 0.3]
+        )
+        a_ax4_al, b_ax4_al, c_ax4_al = coeffs_ax4_al
+        eqn_ax4_al = exp_fit(np.array(x_al), a_ax4_al, b_ax4_al, c_ax4_al)
+        ax4.plot(np.array(x_al), eqn_ax4_al, color=al_color, linestyle="--")
+
+        print(
+            f"Observed, +1: $S_i$ = {a_ax4_li:.2g} * e^({b_ax4_li:.2g} * x) + {c_ax4_li:.2g}"
+        )
+        print(
+            f"Observed, +2: $S_i$ = {a_ax4_co:.2g} * e^({b_ax4_co:.2g} * x) + {c_ax4_co:.2g}"
+        )
+        print(
+            f"Observed,+3: $S_i$ = {a_ax4_al:.2g} * e^({b_ax4_al:.2g} * x) + {c_ax4_al:.2g}"
+        )
+
+        ax4.annotate(
+            f"$y = {a_ax4_li:.2g} \exp({b_ax4_li:.2g} x) + {c_ax4_li:.2g}$",
+            xy=(200, 0.63),
+            fontsize=fontsize - 2,
+            color=li_color,
+            alpha=alpha,
+        )
+        ax4.annotate(
+            f"$y = {a_ax4_co:.2g} \exp({b_ax4_co:.2g} x) + {c_ax4_co:.2g}$",
+            xy=(200, 0.45),
+            fontsize=fontsize - 2,
+            color=co_color,
+            alpha=alpha,
+        )
+        ax4.annotate(
+            f"$y = {a_ax4_al:.2g} \exp({b_ax4_al:.2g} x) + {c_ax4_al:.2g}$",
+            xy=(200, 0.15),
+            fontsize=fontsize - 2,
+            color=al_color,
+            alpha=alpha,
+        )
+
     if save_figure:
-        plt.savefig(f"Donnan_poentials_versus_{x_axis}.png", dpi=600)
+        fig1.savefig(f"Donnan_poentials_versus_{x_axis}.png", dpi=600)
+        if total_h:
+            fig2.savefig(f"overall_H_versus_{x_axis}_regressed.png")
+        if sieving:
+            fig3.savefig(f"observed_sieving_versus_{x_axis}_regressed.png")
 
 
 if __name__ == "__main__":
