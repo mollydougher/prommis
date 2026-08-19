@@ -48,7 +48,7 @@ from prommis.nanofiltration.multi_component_diafiltration import (
 def main():
     set_IS = True
     run_data = False
-    run_single_salt = True
+    run_single_salt = False
     run_two_salt = False
     run_three_salt = False
     run_salt_ratio = False
@@ -65,11 +65,11 @@ def main():
     # data_comparison_plots(save_figure=True)
 
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=False, save_figure=True)
-    # rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True)
+    rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True)
     # rejection_plots_equimolar(
     #     x_axis="cation_concentration", sieving=True, save_figure=True
     # )
-    # h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True)
+    h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True)
 
     # combined_plots_vary_salt_ratio(save_figure=True)
     # plot_only_rejections(save_figure=True)
@@ -77,7 +77,7 @@ def main():
     # plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=True)
     # plot_flux_contributions(x_axis="ionic_strength", percent=True, save_figure=True)
 
-    plot_Donnan_potentials(total_h=True, sieving=True)
+    # plot_Donnan_potentials(total_h=True, sieving=True)
     plt.show()
 
 
@@ -136,10 +136,10 @@ def build_model(
     # fix the degrees of freedom to their default values
     m.fs.membrane.total_module_length.fix()
     m.fs.membrane.total_membrane_length.fix()
-    if len(cation_list) == 1:
-        m.fs.membrane.applied_pressure.fix(5)
-    else:
-        m.fs.membrane.applied_pressure.fix(10)
+    # if len(cation_list) == 1:
+    #     m.fs.membrane.applied_pressure.fix(5)
+    # else:
+    #     m.fs.membrane.applied_pressure.fix(10)
     m.fs.membrane.feed_flow_volume.fix(inlet_flow_volume["feed"])
     m.fs.membrane.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
     for t in m.fs.membrane.time:
@@ -148,6 +148,18 @@ def build_model(
             m.fs.membrane.diafiltrate_conc_mol_comp[t, j].fix(
                 inlet_concentration["diafiltrate"][j]
             )
+    # TODO: initial pressure values may need to be tweaked
+    if len(cation_list) == 1:
+        m.fs.membrane.applied_pressure.fix(5)
+    elif len(cation_list) > 1:
+        if value(m.fs.membrane.total_feed_ionic_strength[0]) < 99:
+            m.fs.membrane.applied_pressure.fix(5)
+        elif (value(m.fs.membrane.total_feed_ionic_strength[0]) >= 99) and (
+            value(m.fs.membrane.total_feed_ionic_strength[0]) < 199
+        ):
+            m.fs.membrane.applied_pressure.fix(15)
+        elif value(m.fs.membrane.total_feed_ionic_strength[0]) >= 199:
+            m.fs.membrane.applied_pressure.fix(20)
 
     # add and connect flowsheet streams
     m.fs.feed_stream = Arc(
@@ -175,57 +187,57 @@ def build_model(
 
     # initialize membrane model
     if initialize_and_solve:
-        if ("La" in cation_list) or ("Al" in cation_list):
-            # guess larger H_permeate
-            if inlet_concentration["feed"][cation_list[0]] <= 8:
-                H_feed_guesses = np.arange(3.2, 6, 0.2)
-                H_permeate_guesses = np.arange(10, 17, 0.5)
-            else:
-                H_feed_guesses = np.arange(0.2, 3.5, 0.1)
-                H_permeate_guesses = np.arange(2, 18.5, 0.5)
-        else:
-            H_feed_guesses = np.arange(0.2, 3.5, 0.1)
-            H_permeate_guesses = np.arange(0.2, 3.5, 0.1)
+        # if ("La" in cation_list) or ("Al" in cation_list):
+        #     # guess larger H_permeate
+        #     if inlet_concentration["feed"][cation_list[0]] <= 8:
+        #         H_feed_guesses = np.arange(3.2, 6, 0.2)
+        #         H_permeate_guesses = np.arange(10, 17, 0.5)
+        #     else:
+        #         H_feed_guesses = np.arange(0.2, 3.5, 0.1)
+        #         H_permeate_guesses = np.arange(2, 18.5, 0.5)
+        # else:
+        #     H_feed_guesses = np.arange(0.2, 3.5, 0.1)
+        #     H_permeate_guesses = np.arange(0.2, 3.5, 0.1)
 
-        H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
-        H_guesses = np.flip(H_guesses, axis=0)
+        # H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
+        # H_guesses = np.flip(H_guesses, axis=0)
 
-        for H_feed_guess, H_permeate_guess in H_guesses:
-            try:
-                initialized_membrane_model = m.fs.membrane.default_initializer(
-                    H_feed_guess=H_feed_guess, H_permeate_guess=H_permeate_guess
-                )
-                initialized_membrane_model.initialize(m.fs.membrane)
+        # for H_feed_guess, H_permeate_guess in H_guesses:
+        #     try:
+        initialized_membrane_model = m.fs.membrane.default_initializer(
+            # H_feed_guess=H_feed_guess, H_permeate_guess=H_permeate_guess
+        )
+        initialized_membrane_model.initialize(m.fs.membrane)
 
-                solve_model(m)
-                unfix_pressure(m, water_flux=water_flux)
-                solve_model(m)
+        solve_model(m)
+        unfix_pressure(m, water_flux=water_flux)
+        solve_model(m)
 
-                full_sensitivity = False
-                data = False
-                single_salt = True
-                two_salt = False
+        full_sensitivity = False
+        data = False
+        single_salt = False
+        two_salt = True
 
-                key_name = "IS"
+        key_name = "IS"
 
-                if save:
-                    if full_sensitivity:
-                        fname = f"multi_component_case_studies/DATA_comparison/Cl_phi_{chloride_phi_star_key}/{Dm_over_l_key}umpers/cation_phi_{cation_phi_star_key}/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
-                    elif data:
-                        fname = f"multi_component_case_studies/DATA_comparison/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
-                    elif single_salt:
-                        fname = f"multi_component_case_studies/single_salt/{key_name}/{key_name}{key}_{cation_list[0]}Cl{chloride_multiplier}_{inlet_concentration['feed'][cation_list[0]]}mM"
-                    elif two_salt:
-                        fname = f"multi_component_case_studies/two_salt/{key_name}/{key_name}{key}_{cation_list[0]}{cation_list[1]}Cl{chloride_multiplier}_{inlet_concentration['feed'][cation_list[0]]}mM_{inlet_concentration['feed'][cation_list[1]]}mM"
-                    to_json(m, fname=fname)
+        if save:
+            if full_sensitivity:
+                fname = f"multi_component_case_studies/DATA_comparison/Cl_phi_{chloride_phi_star_key}/{Dm_over_l_key}umpers/cation_phi_{cation_phi_star_key}/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
+            elif data:
+                fname = f"multi_component_case_studies/DATA_comparison/{cation_list[0]}_{inlet_concentration['feed'][cation_list[0]]}mM"
+            elif single_salt:
+                fname = f"multi_component_case_studies/single_salt/{key_name}/{key_name}{key}_{cation_list[0]}Cl{chloride_multiplier}_{inlet_concentration['feed'][cation_list[0]]}mM"
+            elif two_salt:
+                fname = f"multi_component_case_studies/two_salt/{key_name}/{key_name}{key}_{cation_list[0]}{cation_list[1]}Cl{chloride_multiplier}_{inlet_concentration['feed'][cation_list[0]]}mM_{inlet_concentration['feed'][cation_list[1]]}mM"
+            to_json(m, fname=fname)
 
-                break
-            except (
-                InitializationError,
-                NoFeasibleSolutionError,
-                RuntimeError,
-            ):
-                continue
+            #     break
+            # except (
+            #     InitializationError,
+            #     NoFeasibleSolutionError,
+            #     RuntimeError,
+            # ):
+            #     continue
 
     return m
 
@@ -652,20 +664,30 @@ def solve_and_save_models(
 
         if set_IS:
             feed = {
-                "Li_Co": [12.5, 18.75, 25, 37.5, 50, 100, 150, 200],
-                # "Li_Al": [7.143], # TODO: debug this system
-                "Li_Al": [
-                    7.143,
-                    10.7145,
-                    14.286,
-                    21.429,
-                    28.572,
-                    57.143,
-                    85.715,
-                    114.286,
-                ],
-                # "Co_Al": [5.556],# TODO: debug this system
-                "Co_Al": [5.556, 8.334, 11.112, 16.667, 22.223, 44.445, 66.667, 88.889],
+                "Li_Co": [6.25, 12.5, 18.75, 25, 37.5, 50, 100, 150, 200],
+                # TODO: debug Li/Al and Co/Al systems
+                # "Li_Al": [
+                #     3.571,
+                #     7.143,
+                #     10.7145,
+                #     14.286,
+                #     21.429,
+                #     28.572,
+                #     57.143,
+                #     85.715,
+                #     114.286,
+                # ],
+                # "Co_Al": [
+                #     2.778,
+                #     5.556,
+                #     8.334,
+                #     11.112,
+                #     16.667,
+                #     22.223,
+                #     44.445,
+                #     66.667,
+                #     88.889,
+                # ],
             }
             key_list = IS_key
         else:
