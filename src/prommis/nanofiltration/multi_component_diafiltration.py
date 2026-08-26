@@ -409,22 +409,48 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                     # a, b, and c are fitted from successful "brute force" solves
                     for k in model.cations:
                         if value(charge[k]) == 3:
+                            # parameters from IS regression
                             a = -0.093
                             b = -0.0042
                             c = 0.14
+                            # parameters from CONC regression
+                            a = -0.09
+                            b = -0.021
+                            c = 0.14
                         elif value(charge[k]) == 2:
+                            # parameters from IS regression
                             a = -0.33
                             b = -0.016
                             c = 0.51
+                            # parameters from CONC regression
+                            a = -0.33
+                            b = -0.045
+                            c = 0.51
                         elif value(charge[k]) == 1:
+                            # parameters from IS regression
+                            a = -0.71
+                            b = -0.031
+                            c = 0.69
+                            # parameters from CONC regression
                             a = -0.71
                             b = -0.031
                             c = 0.69
 
-                        S_guess = a * exp(b * value(is_f_tot[t])) + c
+                        # S_guess = a * exp(b * value(is_f_tot[t])) + c
+                        S_guess = a * exp(b * value(conc_f_tot[t, k])) + c
+
                         conc_perm[t, x, k].set_value(
                             value(conc_ret[t, x, k]) * round(S_guess, 1)
                         )
+
+                    # guess permeate concentration with constant sieving coefficient
+                    # for k in model.cations:
+                    #     if value(charge[k]) == 3:
+                    #         conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.2)
+                    #     elif value(charge[k]) == 2:
+                    #         conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.5)
+                    #     else:
+                    #         conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.8)
 
                     calculate_variable_from_constraint(
                         conc_perm[t, x, a0],
@@ -540,35 +566,62 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                     # a, b, and c are fitted from successful "brute force" solves
                     for k in model.cations:
                         if value(charge[k]) == 3:
+                            # parameters from IS regression
                             a_feed = 4.9
                             b_feed = -0.025
                             c_feed = 0.23
                             a_perm = 140
                             b_perm = -0.034
                             c_perm = 2.9
+                            # parameters from CONC regression
+                            a_feed = 2.1
+                            b_feed = -0.071
+                            c_feed = 0.15
+                            a_perm = 47
+                            b_perm = -0.091
+                            c_perm = 10.5
                         elif value(charge[k]) == 2:
+                            # parameters from IS regression
                             a_feed = 3.8
                             b_feed = -0.026
                             c_feed = 0.29
                             a_perm = 20
                             b_perm = -0.036
                             c_perm = 0.55
+                            # parameters from CONC regression
+                            a_feed = 3.1
+                            b_feed = -0.065
+                            c_feed = 0.28
+                            a_perm = 15
+                            b_perm = -0.089
+                            c_perm = 0.48
                         elif value(charge[k]) == 1:
+                            # parameters from IS regression
                             a_feed = 2.5
                             b_feed = -0.028
                             c_feed = 0.34
                             a_perm = 13
                             b_perm = -0.046
                             c_perm = 0.43
+                            # parameters from CONC regression
+                            a_feed = 6.1
+                            b_feed = -0.065
+                            c_feed = 0.5
+                            a_perm = 82
+                            b_perm = -0.13
+                            c_perm = 0.89
 
-                        H_feed = a_feed * exp(b_feed * value(is_f_tot[t])) + c_feed
-                        H_perm = a_perm * exp(b_perm * value(is_f_tot[t])) + c_perm
+                        # H_feed = a_feed * exp(b_feed * value(is_f_tot[t])) + c_feed
+                        # H_perm = a_perm * exp(b_perm * value(is_f_tot[t])) + c_perm
+
+                        H_feed = a_feed * exp(b_feed * value(conc_f_tot[t, k])) + c_feed
+                        H_perm = a_perm * exp(b_perm * value(conc_f_tot[t, k])) + c_perm
 
                         # conc_mem[t, x, 0, k].set_value(
                         #     value(self.config.H_feed_guess) * value(conc_ret[t, x, k])
                         # )
                         conc_mem[t, x, 0, k].set_value(
-                            H_feed * value(conc_ret[t, x, k])
+                            round(H_feed, 3) * value(conc_ret[t, x, k])
                         )
                         calculate_variable_from_constraint(
                             conc_mem[t, x, 0, a0],
@@ -579,7 +632,7 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                         #     * value(conc_perm[t, x, k])
                         # )
                         conc_mem[t, x, 1, k].set_value(
-                            H_perm * value(conc_perm[t, x, k])
+                            round(H_perm, 3) * value(conc_perm[t, x, k])
                         )
                     for z_m in model.dimensionless_membrane_thickness:
                         if z_m != 0:

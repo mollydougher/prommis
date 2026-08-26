@@ -66,24 +66,25 @@ def main():
 
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=False, save_figure=True)
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True)
-    rejection_plots_equimolar(
-        x_axis="cation_concentration", sieving=True, save_figure=True
-    )
+    # rejection_plots_equimolar(
+    #     x_axis="cation_concentration", sieving=True, save_figure=True
+    # )
     # flux_plots_equimolar(x_axis="ionic_strength", save_figure=True)
-    flux_plots_equimolar(x_axis="cation_concentration", save_figure=True)
+    # flux_plots_equimolar(x_axis="cation_concentration", save_figure=True)
     # h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True)
-    h_plots_equimolar(x_axis="cation_concentration", inset=False, save_figure=True)
+    # h_plots_equimolar(x_axis="cation_concentration", inset=False, save_figure=True)
 
     # combined_plots_vary_salt_ratio(save_figure=True)
     # plot_only_rejections(save_figure=True)
 
-    plot_flux_contributions(
-        x_axis="cation_concentration", percent=False, save_figure=True
-    )
+    # plot_flux_contributions(
+    #     x_axis="cation_concentration", percent=False, save_figure=True
+    # )
     # plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=True)
     # plot_flux_contributions(x_axis="ionic_strength", percent=True, save_figure=True)
 
     # plot_Donnan_potentials(total_h=True, sieving=True)
+    plot_Donnan_potentials(x_axis="cation_concentration", total_h=True, sieving=True)
     plt.show()
 
 
@@ -158,9 +159,9 @@ def build_model(
     if len(cation_list) == 1:
         m.fs.membrane.applied_pressure.fix(5)
     elif len(cation_list) > 1:
-        if value(m.fs.membrane.total_feed_ionic_strength[0]) < 99:
-            m.fs.membrane.applied_pressure.fix(5)
-        elif (value(m.fs.membrane.total_feed_ionic_strength[0]) >= 99) and (
+        if value(m.fs.membrane.total_feed_ionic_strength[0]) < 149:
+            m.fs.membrane.applied_pressure.fix(10)
+        elif (value(m.fs.membrane.total_feed_ionic_strength[0]) >= 149) and (
             value(m.fs.membrane.total_feed_ionic_strength[0]) < 199
         ):
             m.fs.membrane.applied_pressure.fix(15)
@@ -202,8 +203,8 @@ def build_model(
         #         H_feed_guesses = np.arange(0.2, 3.5, 0.1)
         #         H_permeate_guesses = np.arange(2, 18.5, 0.5)
         # else:
-        #     H_feed_guesses = np.arange(0.2, 3.5, 0.1)
-        #     H_permeate_guesses = np.arange(0.2, 3.5, 0.1)
+        #     H_feed_guesses = np.arange(0.2, 4.8, 0.1)
+        #     H_permeate_guesses = np.arange(0.2, 4.8, 0.1)
 
         # H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
         # H_guesses = np.flip(H_guesses, axis=0)
@@ -585,18 +586,30 @@ def solve_and_save_models(
 
     IS_key = ["025", "050", "075", "100", "150", "200", "400", "600", "800"]
     # CONC_key = ["025", "050", "075", "100", "150", "200", "250", "300"]
+    # CONC_key = [
+    #     "010",
+    #     "020",
+    #     "030",
+    #     "040",
+    #     "050",
+    #     "075",
+    #     "100",
+    #     "125",
+    #     "150",
+    #     "175",
+    #     "200",
+    # ]
     CONC_key = [
+        "005",
         "010",
+        "015",
         "020",
+        "025",
         "030",
+        "035",
         "040",
+        "045",
         "050",
-        "075",
-        "100",
-        "125",
-        "150",
-        "175",
-        "200",
     ]
 
     if run_single_salt:
@@ -705,9 +718,12 @@ def solve_and_save_models(
                 # "Li_Co": [25, 50, 75, 100, 150, 200, 250, 300],
                 # "Li_Al": [25, 50, 75, 100, 150, 200, 250, 300],
                 # "Co_Al": [25, 50, 75, 100, 150, 200, 250, 300],
-                "Li_Co": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
-                "Li_Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
-                "Co_Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
+                # "Li_Co": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
+                # "Li_Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
+                # "Co_Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
+                "Li_Co": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+                "Li_Al": [5, 10, 15, 20, 25, 30],
+                "Co_Al": [5, 10, 15, 20, 25, 30],
             }
             key_list = CONC_key
 
@@ -4817,9 +4833,14 @@ def plot_Donnan_potentials(
             ax3b: y_ax3b_al,
         }
 
-    x_li = [25, 50, 75, 100, 150, 200, 400, 600, 800]
-    x_co = [25, 50, 75, 100, 150, 200, 400, 600, 800]
-    x_al = [25, 50, 75, 100, 150, 200, 400, 600, 800]
+    if x_axis == "ionic_strength":
+        x_li = [25, 50, 75, 100, 150, 200, 400, 600, 800]
+        x_co = [25, 50, 75, 100, 150, 200, 400, 600, 800]
+        x_al = [25, 50, 75, 100, 150, 200, 400, 600, 800]
+    elif x_axis == "cation_concentration":
+        x_li = [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200]
+        x_co = [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200]
+        x_al = [10, 20, 30, 40, 50, 75, 100, 125]
 
     for ax, y in data_dict_li.items():
         ax.plot(
@@ -5066,44 +5087,59 @@ def plot_Donnan_potentials(
             f"Permeate side, +3: $H_i$ = {a_ax3b_al:.2g} * e^({b_ax3b_al:.2g} * x) + {c_ax3b_al:.2g}"
         )
 
+        if x_axis == "ionic_strength":
+            xy_3a_li = (200, 2)
+            xy_3a_co = (200, 1.5)
+            xy_3a_al = (200, 1)
+            xy_3b_li = (200, 48)
+            xy_3b_co = (200, 33)
+            xy_3b_al = (200, 21)
+        elif x_axis == "cation_concentration":
+            xy_3a_li = (75, 2.5)
+            xy_3a_co = (75, 2)
+            xy_3a_al = (75, 1.5)
+            xy_3b_li = (75, 16)
+            xy_3b_co = (75, 13)
+            xy_3b_al = (75, 10)
+
         ax3a.annotate(
             f"$y = {a_ax3a_li:.2g} \exp({b_ax3a_li:.2g} x) + {c_ax3a_li:.2g}$",
-            xy=(200, 2),
+            xy=xy_3a_li,
             fontsize=fontsize - 2,
             color=li_color,
             alpha=alpha,
         )
         ax3a.annotate(
             f"$y = {a_ax3a_co:.2g} \exp({b_ax3a_co:.2g} x) + {c_ax3a_co:.2g}$",
-            xy=(200, 1.5),
+            xy=xy_3a_co,
             fontsize=fontsize - 2,
             color=co_color,
             alpha=alpha,
         )
         ax3a.annotate(
             f"$y = {a_ax3a_al:.2g} \exp({b_ax3a_al:.2g} x) + {c_ax3a_al:.2g}$",
-            xy=(200, 1),
+            xy=xy_3a_al,
             fontsize=fontsize - 2,
             color=al_color,
             alpha=alpha,
         )
         ax3b.annotate(
             f"$y = {a_ax3b_li:.2g} \exp({b_ax3b_li:.2g} x) + {c_ax3b_li:.2g}$",
-            xy=(200, 48),
+            xy=xy_3b_li,
             fontsize=fontsize - 2,
             color=li_color,
             alpha=alpha,
         )
         ax3b.annotate(
             f"$y = {a_ax3b_co:.2g} \exp({b_ax3b_co:.2g} x) + {c_ax3b_co:.2g}$",
-            xy=(200, 33),
+            xy=xy_3b_co,
             fontsize=fontsize - 2,
             color=co_color,
             alpha=alpha,
         )
         ax3b.annotate(
             f"$y = {a_ax3b_al:.2g} \exp({b_ax3b_al:.2g} x) + {c_ax3b_al:.2g}$",
-            xy=(200, 21),
+            xy=xy_3b_al,
             fontsize=fontsize - 2,
             color=al_color,
             alpha=alpha,
@@ -5141,23 +5177,32 @@ def plot_Donnan_potentials(
             f"Observed,+3: $S_i$ = {a_ax4_al:.2g} * e^({b_ax4_al:.2g} * x) + {c_ax4_al:.2g}"
         )
 
+        if x_axis == "ionic_strength":
+            xy_4_li = (200, 0.63)
+            xy_4_co = (200, 0.45)
+            xy_4_al = (200, 0.15)
+        elif x_axis == "cation_concentration":
+            xy_4_li = (75, 0.58)
+            xy_4_co = (75, 0.45)
+            xy_4_al = (75, 0.16)
+
         ax4.annotate(
             f"$y = {a_ax4_li:.2g} \exp({b_ax4_li:.2g} x) + {c_ax4_li:.2g}$",
-            xy=(200, 0.63),
+            xy=xy_4_li,
             fontsize=fontsize - 2,
             color=li_color,
             alpha=alpha,
         )
         ax4.annotate(
             f"$y = {a_ax4_co:.2g} \exp({b_ax4_co:.2g} x) + {c_ax4_co:.2g}$",
-            xy=(200, 0.45),
+            xy=xy_4_co,
             fontsize=fontsize - 2,
             color=co_color,
             alpha=alpha,
         )
         ax4.annotate(
             f"$y = {a_ax4_al:.2g} \exp({b_ax4_al:.2g} x) + {c_ax4_al:.2g}$",
-            xy=(200, 0.15),
+            xy=xy_4_al,
             fontsize=fontsize - 2,
             color=al_color,
             alpha=alpha,
