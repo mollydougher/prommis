@@ -46,7 +46,7 @@ from prommis.nanofiltration.multi_component_diafiltration import (
 
 
 def main():
-    set_IS = True
+    set_IS = False
     run_data = False
     run_single_salt = False
     run_two_salt = False
@@ -65,15 +65,21 @@ def main():
     # data_comparison_plots(save_figure=True)
 
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=False, save_figure=True)
-    rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True)
-    # rejection_plots_equimolar(
-    #     x_axis="cation_concentration", sieving=True, save_figure=True
-    # )
-    h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True)
+    # rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True)
+    rejection_plots_equimolar(
+        x_axis="cation_concentration", sieving=True, save_figure=True
+    )
+    # flux_plots_equimolar(x_axis="ionic_strength", save_figure=True)
+    flux_plots_equimolar(x_axis="cation_concentration", save_figure=True)
+    # h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True)
+    h_plots_equimolar(x_axis="cation_concentration", inset=False, save_figure=True)
 
     # combined_plots_vary_salt_ratio(save_figure=True)
     # plot_only_rejections(save_figure=True)
 
+    plot_flux_contributions(
+        x_axis="cation_concentration", percent=False, save_figure=True
+    )
     # plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=True)
     # plot_flux_contributions(x_axis="ionic_strength", percent=True, save_figure=True)
 
@@ -218,7 +224,7 @@ def build_model(
         single_salt = False
         two_salt = True
 
-        key_name = "IS"
+        key_name = "CONC"
 
         if save:
             if full_sensitivity:
@@ -634,60 +640,63 @@ def solve_and_save_models(
                 cation_phi_star_value = trivalent_phi_star_value
 
             for concentration in feed[cation]:
-                model = build_model(
-                    cation_list=[cation],
-                    inlet_concentration={
-                        "feed": {
-                            cation: concentration,
-                            "Cl": chloride_multiplier * concentration,
+                try:
+                    model = build_model(
+                        cation_list=[cation],
+                        inlet_concentration={
+                            "feed": {
+                                cation: concentration,
+                                "Cl": chloride_multiplier * concentration,
+                            },
+                            "diafiltrate": {
+                                cation: diafiltrate[cation],
+                                "Cl": chloride_multiplier * 1e-10,
+                            },
                         },
-                        "diafiltrate": {
-                            cation: diafiltrate[cation],
-                            "Cl": chloride_multiplier * 1e-10,
+                        default_args=default_args,
+                        NFE_args=NFE_args,
+                        initialize_and_solve=True,
+                        water_flux=0.02,
+                        data_membrane_thickness=l_m,
+                        non_Donnan_partition_dict={
+                            cation: cation_phi_star_value,
+                            "Cl": chloride_phi_star_value,
                         },
-                    },
-                    default_args=default_args,
-                    NFE_args=NFE_args,
-                    initialize_and_solve=True,
-                    water_flux=0.02,
-                    data_membrane_thickness=l_m,
-                    non_Donnan_partition_dict={
-                        cation: cation_phi_star_value,
-                        "Cl": chloride_phi_star_value,
-                    },
-                    save=True,
-                    key=key_list[feed[cation].index(concentration)],
-                    chloride_multiplier=chloride_multiplier,
-                )
+                        save=True,
+                        key=key_list[feed[cation].index(concentration)],
+                        chloride_multiplier=chloride_multiplier,
+                    )
+                except (InitializationError, NoFeasibleSolutionError, RuntimeError):
+                    continue
 
     if run_two_salt:
 
         if set_IS:
             feed = {
-                "Li_Co": [6.25, 12.5, 18.75, 25, 37.5, 50, 100, 150, 200],
+                # "Li_Co": [6.25, 12.5, 18.75, 25, 37.5, 50, 100, 150, 200],
                 # TODO: debug Li/Al and Co/Al systems
-                # "Li_Al": [
-                #     3.571,
-                #     7.143,
-                #     10.7145,
-                #     14.286,
-                #     21.429,
-                #     28.572,
-                #     57.143,
-                #     85.715,
-                #     114.286,
-                # ],
-                # "Co_Al": [
-                #     2.778,
-                #     5.556,
-                #     8.334,
-                #     11.112,
-                #     16.667,
-                #     22.223,
-                #     44.445,
-                #     66.667,
-                #     88.889,
-                # ],
+                "Li_Al": [
+                    3.571,
+                    7.143,
+                    10.7145,
+                    14.286,
+                    21.429,
+                    28.572,
+                    57.143,
+                    85.715,
+                    114.286,
+                ],
+                "Co_Al": [
+                    2.778,
+                    5.556,
+                    8.334,
+                    11.112,
+                    16.667,
+                    22.223,
+                    44.445,
+                    66.667,
+                    88.889,
+                ],
             }
             key_list = IS_key
         else:
@@ -732,34 +741,37 @@ def solve_and_save_models(
                 cation_2_phi_star_value = trivalent_phi_star_value
 
             for concentration in feed[salt]:
-                model = build_model(
-                    cation_list=[cation_1, cation_2],
-                    inlet_concentration={
-                        "feed": {
-                            cation_1: concentration,
-                            cation_2: concentration,
-                            "Cl": chloride_multiplier * concentration,
+                try:
+                    model = build_model(
+                        cation_list=[cation_1, cation_2],
+                        inlet_concentration={
+                            "feed": {
+                                cation_1: concentration,
+                                cation_2: concentration,
+                                "Cl": chloride_multiplier * concentration,
+                            },
+                            "diafiltrate": {
+                                cation_1: diafiltrate[cation_1],
+                                cation_2: diafiltrate[cation_2],
+                                "Cl": chloride_multiplier * 1e-10,
+                            },
                         },
-                        "diafiltrate": {
-                            cation_1: diafiltrate[cation_1],
-                            cation_2: diafiltrate[cation_2],
-                            "Cl": chloride_multiplier * 1e-10,
+                        default_args=default_args,
+                        NFE_args=NFE_args,
+                        initialize_and_solve=True,
+                        water_flux=0.02,
+                        data_membrane_thickness=l_m,
+                        non_Donnan_partition_dict={
+                            cation_1: cation_1_phi_star_value,
+                            cation_2: cation_2_phi_star_value,
+                            "Cl": chloride_phi_star_value,
                         },
-                    },
-                    default_args=default_args,
-                    NFE_args=NFE_args,
-                    initialize_and_solve=True,
-                    water_flux=0.02,
-                    data_membrane_thickness=l_m,
-                    non_Donnan_partition_dict={
-                        cation_1: cation_1_phi_star_value,
-                        cation_2: cation_2_phi_star_value,
-                        "Cl": chloride_phi_star_value,
-                    },
-                    save=True,
-                    key=key_list[feed[salt].index(concentration)],
-                    chloride_multiplier=chloride_multiplier,
-                )
+                        save=True,
+                        key=key_list[feed[salt].index(concentration)],
+                        chloride_multiplier=chloride_multiplier,
+                    )
+                except (InitializationError, NoFeasibleSolutionError, RuntimeError):
+                    continue
 
     if run_three_salt:
         if set_IS:
@@ -1267,8 +1279,11 @@ def data_comparison_plots(save_figure=True):
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
-    fig1, (ax1a, ax1b, ax1c) = plt.subplots(
-        1, 3, dpi=75, figsize=(15, 5), constrained_layout=True, sharey=True
+    fig1, ax1 = plt.subplots(
+        1,
+        dpi=100,
+        figsize=(5, 5),
+        constrained_layout=True,
     )
 
     # color blind friendly
@@ -1282,96 +1297,72 @@ def data_comparison_plots(save_figure=True):
         "#BBBBBB",
     ]
 
-    S_predicted_Na_color = tol_bright_hex[0]
-    S_predicted_Ca_color = tol_bright_hex[1]
-    S_predicted_La_color = tol_bright_hex[2]
-    # S_predicted_10_color = tol_bright_hex[3]
-    # S_predicted_05_color = tol_bright_hex[4]
-    S_measured_color = "black"
+    Na_color = tol_bright_hex[0]
+    Ca_color = tol_bright_hex[1]
+    La_color = tol_bright_hex[2]
 
-    for ax in [ax1a]:
-        ax.set_title(
-            "Sodium",
-            fontsize=fontsize,
-            fontweight="bold",
-        )
-        ax.set_xlabel(
-            "Feed Concentration (mM)",
-            fontsize=fontsize,
-            fontweight="bold",
-        )
-        ax.set_ylabel(
-            "Observed Sieving Coefficient", fontsize=fontsize, fontweight="bold"
-        )
-        ax.plot(
-            [],
-            [],
-            color=S_predicted_Na_color,
-            marker="o",
-            markersize=markersize,
-            linestyle="None",
-            label="predicted",
-        )
-    for ax in [ax1b]:
-        ax.set_title(
-            "Calcium",
-            fontsize=fontsize,
-            fontweight="bold",
-        )
-        ax.set_xlabel(
-            "Feed Concentration (mM)",
-            fontsize=fontsize,
-            fontweight="bold",
-        )
-        ax.plot(
-            [],
-            [],
-            color=S_predicted_Ca_color,
-            marker="o",
-            markersize=markersize,
-            linestyle="None",
-            label="predicted",
-        )
-    for ax in [ax1c]:
-        ax.set_title(
-            "Lanthanum",
-            fontsize=fontsize,
-            fontweight="bold",
-        )
-        ax.set_xlabel(
-            "Feed Concentration (mM)",
-            fontsize=fontsize,
-            fontweight="bold",
-        )
-        ax.plot(
-            [],
-            [],
-            color=S_predicted_La_color,
-            marker="o",
-            markersize=markersize,
-            linestyle="None",
-            label="predicted",
-        )
-    for ax in fig1.axes:
-        ax.plot(
-            [],
-            [],
-            color=S_measured_color,
-            marker="s",
-            markersize=markersize,
-            linestyle="None",
-            label="measured",
-        )
-        ax.legend(loc="upper left", fontsize=fontsize - 2)
-        ax.tick_params(
-            direction="in", top=True, right=True, labelsize=fontsize - 2, labelleft=True
-        )
+    ax1.set_xlabel(
+        "Feed Concentration (mM)",
+        fontsize=fontsize,
+        fontweight="bold",
+    )
+    ax1.set_ylabel("Observed Sieving Coefficient", fontsize=fontsize, fontweight="bold")
+    ax1.plot(
+        [],
+        [],
+        color=Na_color,
+        marker="o",
+        markersize=markersize,
+        linestyle="None",
+        label="Na",
+    )
+    ax1.plot(
+        [],
+        [],
+        color=Ca_color,
+        marker="o",
+        markersize=markersize,
+        linestyle="None",
+        label="Ca",
+    )
+    ax1.plot(
+        [],
+        [],
+        color=La_color,
+        marker="o",
+        markersize=markersize,
+        linestyle="None",
+        label="La",
+    )
+    ax1.plot(
+        [],
+        [],
+        markerfacecolor="none",
+        markeredgecolor="black",
+        marker="o",
+        markersize=markersize,
+        linestyle="None",
+        label="measured",
+    )
+    ax1.plot(
+        [],
+        [],
+        color="black",
+        marker="o",
+        markersize=markersize,
+        linestyle="None",
+        label="predicted",
+    )
+    ax1.legend(loc="upper left", fontsize=fontsize - 2, ncol=2)
+    ax1.tick_params(
+        direction="in", top=True, right=True, labelsize=fontsize - 2, labelleft=True
+    )
 
     model_folder = Path(f"multi_component_case_studies/DATA_comparison/")
     # 45 characters (0-44) make up folder name before model name
     # multi_component_case_studies/DATA_comparison/
 
-    case_study_list = [file for file in model_folder.iterdir()]
+    case_study_list = [file for file in model_folder.iterdir() if file.is_file()]
 
     Dm_over_l = 60  # um/s
     Dm_Cl = 2.03  # um2/s
@@ -1383,19 +1374,16 @@ def data_comparison_plots(save_figure=True):
         cation_list = [cation]
         if cation == "Na":
             chloride_multiplier = 1
-            cation_phi_star = 0.4
-            color = S_predicted_Na_color
-            ax = ax1a
+            cation_phi_star = 0.7
+            color = Na_color
         if cation == "Ca":
             chloride_multiplier = 2
             cation_phi_star = 0.3
-            color = S_predicted_Ca_color
-            ax = ax1b
+            color = Ca_color
         if cation == "La":
             chloride_multiplier = 3
-            cation_phi_star = 0.005
-            color = S_predicted_La_color
-            ax = ax1c
+            cation_phi_star = 0.0005
+            color = La_color
         inlet_concentration = {
             "feed": {
                 cation: concentration,
@@ -1438,14 +1426,14 @@ def data_comparison_plots(save_figure=True):
         alpha = 1
         marker = "o"
 
-        ax.errorbar(
+        ax1.errorbar(
             x_value_predicted,
             y_obs_data_predicted,
             yerr=y_obs_err_predicted,
-            ecolor="black",
+            ecolor=color,
             capsize=3,
         )
-        ax.plot(
+        ax1.plot(
             x_value_predicted,
             y_obs_data_predicted,
             color=color,
@@ -1493,20 +1481,21 @@ def data_comparison_plots(save_figure=True):
         ],
     }
 
-    ax1a.plot(
+    ax1.plot(
         NF270_MC5_07_23_24_NaCl["conc_feed"],
         NF270_MC5_07_23_24_NaCl["sieving_obs"],
-        color=S_measured_color,
-        marker="s",
+        markerfacecolor="none",
+        markeredgecolor=Na_color,
+        marker="o",
         linestyle="None",
         alpha=alpha,
         markersize=markersize,
     )
-    ax1a.errorbar(
+    ax1.errorbar(
         NF270_MC5_07_23_24_NaCl["conc_feed"],
         NF270_MC5_07_23_24_NaCl["sieving_obs"],
         yerr=NF270_MC5_07_23_24_NaCl["sieving_obs_error"],
-        ecolor="black",
+        ecolor=Na_color,
         capsize=3,
         linestyle="None",
     )
@@ -1550,20 +1539,21 @@ def data_comparison_plots(save_figure=True):
         ],
     }
 
-    ax1b.plot(
+    ax1.plot(
         NF270_MC3_07_11_24_SCaCl2["conc_feed"],
         NF270_MC3_07_11_24_SCaCl2["sieving_obs"],
-        color=S_measured_color,
-        marker="s",
+        markerfacecolor="none",
+        markeredgecolor=Ca_color,
+        marker="o",
         linestyle="None",
         alpha=alpha,
         markersize=markersize,
     )
-    ax1b.errorbar(
+    ax1.errorbar(
         NF270_MC3_07_11_24_SCaCl2["conc_feed"],
         NF270_MC3_07_11_24_SCaCl2["sieving_obs"],
         yerr=NF270_MC3_07_11_24_SCaCl2["sieving_obs_error"],
-        ecolor="black",
+        ecolor=Ca_color,
         capsize=3,
         linestyle="None",
     )
@@ -1606,20 +1596,21 @@ def data_comparison_plots(save_figure=True):
             0.00142,
         ],
     }
-    ax1c.plot(
+    ax1.plot(
         NF270_MC2_05_21_24_LaCl3["conc_feed"],
         NF270_MC2_05_21_24_LaCl3["sieving_obs"],
-        color=S_measured_color,
-        marker="s",
+        markerfacecolor="none",
+        markeredgecolor=La_color,
+        marker="o",
         linestyle="None",
         alpha=alpha,
         markersize=markersize,
     )
-    ax1c.errorbar(
+    ax1.errorbar(
         NF270_MC2_05_21_24_LaCl3["conc_feed"],
         NF270_MC2_05_21_24_LaCl3["sieving_obs"],
         yerr=NF270_MC2_05_21_24_LaCl3["sieving_obs_error"],
-        ecolor="black",
+        ecolor=La_color,
         capsize=3,
         linestyle="None",
     )
@@ -1643,63 +1634,66 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
     fig1, (
-        ax1a,
-        ax1b,
-        ax1c,  # cation rejection
-        # (ax2a, ax2b, ax2c),  # anion rejection
-    ) = plt.subplots(1, 3, dpi=90, figsize=(13, 4), constrained_layout=True)
+        (ax1a, ax1b, ax1c),  # cation rejection
+        (ax2a, ax2b, ax2c),  # anion rejection
+    ) = plt.subplots(2, 3, dpi=90, figsize=(13, 8), constrained_layout=True)
 
     if x_axis == "ionic_strength":
-        for ax in [ax1a, ax1b, ax1c]:
+        # for ax in [ax1a, ax1b, ax1c]:
+        for ax in [ax2a, ax2b, ax2c]:
             ax.set_xlabel(
                 "Inlet Feed Ionic Strength (mM)",
                 fontsize=fontsize,
                 fontweight="bold",
             )
-    else:
-        ax1a.set_xlabel(
-            "+1 Cation Concentration\nin Feed (mM)",
-            fontsize=fontsize,
-            fontweight="bold",
-        )
-        ax1b.set_xlabel(
-            "+2 Cation Concentration\nin Feed (mM)",
-            fontsize=fontsize,
-            fontweight="bold",
-        )
-        ax1c.set_xlabel(
-            "+3 Cation Concentration\nin Feed (mM)",
-            fontsize=fontsize,
-            fontweight="bold",
-        )
-    # elif x_axis == "cation_concentration":
-    #     ax2a.set_xlabel(
-    #         "Lithium Feed Concentration\n(mol/m$\mathbf{^3}$)",
+    # else:
+    #     ax1a.set_xlabel(
+    #         "+1 Cation Concentration\nin Feed (mM)",
     #         fontsize=fontsize,
     #         fontweight="bold",
     #     )
-    #     ax2b.set_xlabel(
-    #         "Cobalt Feed Concentration\n(mol/m$\mathbf{^3}$)",
+    #     ax1b.set_xlabel(
+    #         "+2 Cation Concentration\nin Feed (mM)",
     #         fontsize=fontsize,
     #         fontweight="bold",
     #     )
-    #     ax2c.set_xlabel(
-    #         "Aluminum Feed Concentration\n(mol/m$\mathbf{^3}$)",
+    #     ax1c.set_xlabel(
+    #         "+3 Cation Concentration\nin Feed (mM)",
     #         fontsize=fontsize,
     #         fontweight="bold",
     #     )
+    elif x_axis == "cation_concentration":
+        ax2a.set_xlabel(
+            "Lithium Feed Concentration\n(mol m$\mathbf{^{-3}}$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+        ax2b.set_xlabel(
+            "Cobalt Feed Concentration\n(mol m$\mathbf{^{-3}}$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+        ax2c.set_xlabel(
+            "Aluminum Feed Concentration\n(mol m$\mathbf{^{-3}}$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
 
-    # ax1a.set_title("+1 Cation", fontsize=fontsize, fontweight="bold")
-    # ax1b.set_title("+2 Cation", fontsize=fontsize, fontweight="bold")
-    # ax1c.set_title("+3 Cation", fontsize=fontsize, fontweight="bold")
+    # ax1a.set_title("+1 Cation + Chloride", fontsize=fontsize, fontweight="bold")
+    # ax1b.set_title("+2 Cation + Chloride", fontsize=fontsize, fontweight="bold")
+    # ax1c.set_title("+3 Cation + Chloride", fontsize=fontsize, fontweight="bold")
 
     if sieving:
         ax1a.set_ylabel(
-            "Observed Cation\nSieving Coefficient", fontsize=fontsize, fontweight="bold"
+            "Observed Sieving Coefficient\nof Cation",
+            fontsize=fontsize,
+            fontweight="bold",
         )
-        # ax2a.set_ylabel(
-        #     "Observed Anionn\nSieving Coefficient", fontsize=fontsize, fontweight="bold"
-        # )
+        ax2a.set_ylabel(
+            "Observed Sieving Coefficient\nof Chloride",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
     else:
         ax1a.set_ylabel(
             "Actual Cation Rejection (%)", fontsize=fontsize, fontweight="bold"
@@ -1726,34 +1720,37 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
     co_al_color = tol_bright_hex[5]
     li_co_al_color = tol_bright_hex[6]
 
-    legend_dict = {
+    cation_legend_dict = {
         "lithium": {
             "marker": "o",
             "ax": ax1a,
+            "cl_ax": ax2a,
             "salt_colors": {
-                "single salt": li_color,
-                "two salt: +1 & +2": li_co_color,
-                "two salt: +1 & +3": li_al_color,
+                "LiCl": li_color,
+                "LiCl + CoCl$_2$": li_co_color,
+                "LiCl + AlCl$_3$": li_al_color,
                 # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
             },
         },
         "cobalt": {
             "marker": "v",
             "ax": ax1b,
+            "cl_ax": ax2b,
             "salt_colors": {
-                "single salt": co_color,
-                "two salt: +1 & +2": li_co_color,
-                "two salt: +2 & +3": co_al_color,
+                "CoCl$_2$": co_color,
+                "LiCl + CoCl$_2$": li_co_color,
+                "CoCl$_2$ + AlCl$_3$": co_al_color,
                 # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
             },
         },
         "aluminum": {
             "marker": "^",
             "ax": ax1c,
+            "cl_ax": ax2c,
             "salt_colors": {
-                "single salt": al_color,
-                "two salt: +1 & +3": li_al_color,
-                "two salt: +2 & +3": co_al_color,
+                "AlCl$_3$": al_color,
+                "LiCl + AlCl$_3$": li_al_color,
+                "CoCl$_2$ + AlCl$_3$": co_al_color,
                 # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
             },
         },
@@ -1768,7 +1765,7 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
     # ax2a.plot([], [], marker="None", linestyle="None", label="Solution (color)")
     # ax2b.plot([], [], marker="None", linestyle="None", label="Solution (color)")
     # ax2c.plot([], [], marker="None", linestyle="None", label="Solution (color)")
-    for cation_dict in legend_dict.values():
+    for cation_dict in cation_legend_dict.values():
         for salt, color in cation_dict["salt_colors"].items():
             cation_dict["ax"].plot(
                 [],
@@ -1779,29 +1776,46 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
                 linestyle="None",
                 label=salt,
             )
+            cation_dict["cl_ax"].plot(
+                [],
+                [],
+                color=color,
+                marker="*",
+                markersize=markersize,
+                linestyle="None",
+                label=salt,
+            )
 
     # for ax in fig1.axes:
     ax1a.legend(
         loc="best",
-        fontsize=fontsize - 2,
+        fontsize=fontsize - 3,
         # bbox_to_anchor=(0.85, -0.3),
-        title="+1 Cation in:",
-        title_fontsize=fontsize - 2,
+        title="Lithium in:",
+        title_fontsize=fontsize - 3,
     )
     ax1b.legend(
         loc="best",
-        fontsize=fontsize - 2,
+        fontsize=fontsize - 3,
         # bbox_to_anchor=(0.85, -0.3),
-        title="+2 Cation in:",
-        title_fontsize=fontsize - 2,
+        title="Cobalt in:",
+        title_fontsize=fontsize - 3,
     )
     ax1c.legend(
         loc="best",
-        fontsize=fontsize - 2,
+        fontsize=fontsize - 3,
         # bbox_to_anchor=(0.85, -0.3),
-        title="+3 Cation in:",
-        title_fontsize=fontsize - 2,
+        title="Aluminum in:",
+        title_fontsize=fontsize - 3,
     )
+    for ax in [ax2a, ax2b, ax2c]:
+        ax.legend(
+            loc="best",
+            fontsize=fontsize - 3,
+            # bbox_to_anchor=(0.85, -0.3),
+            title="Chloride in:",
+            title_fontsize=fontsize - 3,
+        )
 
     for ax in fig1.axes:
         ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
@@ -1920,7 +1934,7 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
             )
             from_json(model, fname=case_study)
 
-            for solute in model.fs.membrane.cations:
+            for solute in model.fs.membrane.solutes:
                 average_variable_dict = get_model_averages(model, solute)
 
                 if x_axis == "ionic_strength":
@@ -1965,34 +1979,34 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
                         elif cation_1 == "Co":
                             color = co_al_color
 
-                # elif solute == "Cl":
-                #     marker = "*"
+                elif solute == "Cl":
+                    marker = "*"
 
-                #     if type == "single":
-                #         if model.fs.membrane.cations.at(1) == "Li":
-                #             color = li_color
-                #             ax_rej = ax2a
-                #         elif model.fs.membrane.cations.at(1) == "Co":
-                #             color = co_color
-                #             ax_rej = ax2b
-                #         elif model.fs.membrane.cations.at(1) == "Al":
-                #             color = al_color
-                #             ax_rej = ax2c
-                #     elif type == "two":
-                #         if cation_1 == "Li" and cation_2 == "Co":
-                #             color = li_co_color
-                #             ax_rej = [ax2a, ax2b]
-                #         elif cation_1 == "Li" and cation_2 == "Al":
-                #             color = li_al_color
-                #             ax_rej = [ax2a, ax2c]
-                #         elif cation_1 == "Co" and cation_2 == "Al":
-                #             color = co_al_color
-                #             ax_rej = [ax2b, ax2c]
-                #     elif type == "three":
-                #         ax_rej = [ax2a, ax2b, ax2c]
+                    if type == "single":
+                        if model.fs.membrane.cations.at(1) == "Li":
+                            color = li_color
+                            ax_rej = ax2a
+                        elif model.fs.membrane.cations.at(1) == "Co":
+                            color = co_color
+                            ax_rej = ax2b
+                        elif model.fs.membrane.cations.at(1) == "Al":
+                            color = al_color
+                            ax_rej = ax2c
+                    elif type == "two":
+                        if cation_1 == "Li" and cation_2 == "Co":
+                            color = li_co_color
+                            ax_rej = [ax2a, ax2b]
+                        elif cation_1 == "Li" and cation_2 == "Al":
+                            color = li_al_color
+                            ax_rej = [ax2a, ax2c]
+                        elif cation_1 == "Co" and cation_2 == "Al":
+                            color = co_al_color
+                            ax_rej = [ax2b, ax2c]
+                    elif type == "three":
+                        ax_rej = [ax2a, ax2b, ax2c]
 
-                if type == "three":
-                    color = li_co_al_color
+                # if type == "three":
+                #     color = li_co_al_color
 
                 if sieving:
                     y_data = average_variable_dict["observed_sieving"]["avg"]
@@ -2042,7 +2056,7 @@ def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure
         plt.savefig(f"{y_axis}_versus_{x_axis}.png", dpi=600)
 
 
-def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
+def flux_plots_equimolar(x_axis="ionic_strength", save_figure=True):
     markersize = 10
     fontsize = 14
 
@@ -2057,52 +2071,65 @@ def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
     fig1, (
-        ax3a,
-        ax3b,
-        ax3c,  # H_feed
-        # (ax4a, ax4b, ax4c, ax4d),  # H_permeate
-    ) = plt.subplots(1, 3, dpi=90, figsize=(15, 5), constrained_layout=True)
+        (ax1a, ax1b, ax1c),  # cation
+        (ax2a, ax2b, ax2c),  # anion
+    ) = plt.subplots(2, 3, dpi=90, figsize=(13, 8), constrained_layout=True)
 
     if x_axis == "ionic_strength":
-        for ax in fig1.axes:
+        # for ax in [ax1a, ax1b, ax1c]:
+        for ax in [ax2a, ax2b, ax2c]:
             ax.set_xlabel(
                 "Inlet Feed Ionic Strength (mM)",
                 fontsize=fontsize,
                 fontweight="bold",
             )
-    # elif x_axis == "cation_concentration":
-    #     ax4a.set_xlabel(
-    #         "Lithium Feed Concentration\n(mol/m$\mathbf{^3}$)",
+    # else:
+    #     ax1a.set_xlabel(
+    #         "+1 Cation Concentration\nin Feed (mM)",
     #         fontsize=fontsize,
     #         fontweight="bold",
     #     )
-    #     ax4b.set_xlabel(
-    #         "Cobalt Feed Concentration\n(mol/m$\mathbf{^3}$)",
+    #     ax1b.set_xlabel(
+    #         "+2 Cation Concentration\nin Feed (mM)",
     #         fontsize=fontsize,
     #         fontweight="bold",
     #     )
-    #     ax4c.set_xlabel(
-    #         "Aluminum Feed Concentration\n(mol/m$\mathbf{^3}$)",
+    #     ax1c.set_xlabel(
+    #         "+3 Cation Concentration\nin Feed (mM)",
     #         fontsize=fontsize,
     #         fontweight="bold",
     #     )
-    #     ax4d.set_xlabel(
-    #         "Cation Feed Concentration\n(mol/m$\mathbf{^3}$)",
-    #         fontsize=fontsize,
-    #         fontweight="bold",
-    #     )
+    elif x_axis == "cation_concentration":
+        ax2a.set_xlabel(
+            "Lithium Feed Concentration\n(mol m$\mathbf{^{-3}}$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+        ax2b.set_xlabel(
+            "Cobalt Feed Concentration\n(mol m$\mathbf{^{-3}}$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+        ax2c.set_xlabel(
+            "Aluminum Feed Concentration\n(mol m$\mathbf{^{-3}}$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
 
-    # ax3a.set_title("+1 Cation", fontsize=fontsize, fontweight="bold")
-    # ax3b.set_title("+2 Cation", fontsize=fontsize, fontweight="bold")
-    # ax3c.set_title("+3 Cation", fontsize=fontsize, fontweight="bold")
-    # ax3d.set_title("Chloride", fontsize=fontsize, fontweight="bold")
+    # ax1a.set_title("+1 Cation + Chloride", fontsize=fontsize, fontweight="bold")
+    # ax1b.set_title("+2 Cation + Chloride", fontsize=fontsize, fontweight="bold")
+    # ax1c.set_title("+3 Cation + Chloride", fontsize=fontsize, fontweight="bold")
 
-    ax3a.set_ylabel(
-        "$\mathbf{c_{membrane}/c_{interface}}$", fontsize=fontsize, fontweight="bold"
+    ax1a.set_ylabel(
+        "Cation Flux (mol m$\mathbf{^{-3}}$ h$\mathbf{^{-1}}$)",
+        fontsize=fontsize,
+        fontweight="bold",
     )
-    # ax4a.set_ylabel(
-    #     "$\mathbf{c_{membrane}/c_{permeate}}$", fontsize=fontsize, fontweight="bold"
-    # )
+    ax2a.set_ylabel(
+        "Chloride Flux (mol m$\mathbf{^{-3}}$ h$\mathbf{^{-1}}$)",
+        fontsize=fontsize,
+        fontweight="bold",
+    )
 
     # color blind friendly
     tol_bright_hex = [
@@ -2122,40 +2149,52 @@ def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
     co_al_color = tol_bright_hex[5]
     li_co_al_color = tol_bright_hex[6]
 
-    legend_dict = {
+    cation_legend_dict = {
         "lithium": {
             "marker": "o",
-            "ax": ax3a,
+            "ax": ax1a,
+            "cl_ax": ax2a,
             "salt_colors": {
-                "single salt": li_color,
-                "two salt: +1 & +2": li_co_color,
-                "two salt: +1 & +3": li_al_color,
+                "LiCl": li_color,
+                "LiCl + CoCl$_2$": li_co_color,
+                "LiCl + AlCl$_3$": li_al_color,
                 # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
             },
         },
         "cobalt": {
             "marker": "v",
-            "ax": ax3b,
+            "ax": ax1b,
+            "cl_ax": ax2b,
             "salt_colors": {
-                "single salt": co_color,
-                "two salt: +1 & +2": li_co_color,
-                "two salt: +2 & +3": co_al_color,
+                "CoCl$_2$": co_color,
+                "LiCl + CoCl$_2$": li_co_color,
+                "CoCl$_2$ + AlCl$_3$": co_al_color,
                 # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
             },
         },
         "aluminum": {
             "marker": "^",
-            "ax": ax3c,
+            "ax": ax1c,
+            "cl_ax": ax2c,
             "salt_colors": {
-                "single salt": al_color,
-                "two salt: +1 & +3": li_al_color,
-                "two salt: +2 & +3": co_al_color,
+                "AlCl$_3$": al_color,
+                "LiCl + AlCl$_3$": li_al_color,
+                "CoCl$_2$ + AlCl$_3$": co_al_color,
                 # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
             },
         },
     }
 
-    for cation_dict in legend_dict.values():
+    # ax2a.plot([], [], "ko", markersize=markersize, label="Li")
+    # ax2a.plot([], [], "k*", markersize=markersize, label="Cl")
+    # ax2b.plot([], [], "kv", markersize=markersize, label="Co")
+    # ax2b.plot([], [], "k*", markersize=markersize, label="Cl")
+    # ax2c.plot([], [], "k^", markersize=markersize, label="Al")
+    # ax2c.plot([], [], "k*", markersize=markersize, label="Cl")
+    # ax2a.plot([], [], marker="None", linestyle="None", label="Solution (color)")
+    # ax2b.plot([], [], marker="None", linestyle="None", label="Solution (color)")
+    # ax2c.plot([], [], marker="None", linestyle="None", label="Solution (color)")
+    for cation_dict in cation_legend_dict.values():
         for salt, color in cation_dict["salt_colors"].items():
             cation_dict["ax"].plot(
                 [],
@@ -2166,28 +2205,491 @@ def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
                 linestyle="None",
                 label=salt,
             )
+            cation_dict["cl_ax"].plot(
+                [],
+                [],
+                color=color,
+                marker="*",
+                markersize=markersize,
+                linestyle="None",
+                label=salt,
+            )
 
-    ax3a.legend(
+    # for ax in fig1.axes:
+    ax1a.legend(
         loc="best",
-        fontsize=fontsize - 2,
+        fontsize=fontsize - 3,
         # bbox_to_anchor=(0.85, -0.3),
-        title="+1 Cation in:",
-        title_fontsize=fontsize - 2,
+        title="Lithium in:",
+        title_fontsize=fontsize - 3,
     )
-    ax3b.legend(
+    ax1b.legend(
         loc="best",
-        fontsize=fontsize - 2,
+        fontsize=fontsize - 3,
         # bbox_to_anchor=(0.85, -0.3),
-        title="+2 Cation in:",
-        title_fontsize=fontsize - 2,
+        title="Cobalt in:",
+        title_fontsize=fontsize - 3,
     )
-    ax3c.legend(
+    ax1c.legend(
         loc="best",
-        fontsize=fontsize - 2,
+        fontsize=fontsize - 3,
         # bbox_to_anchor=(0.85, -0.3),
-        title="+3 Cation in:",
-        title_fontsize=fontsize - 2,
+        title="Aluminum in:",
+        title_fontsize=fontsize - 3,
     )
+    for ax in [ax2a, ax2b, ax2c]:
+        ax.legend(
+            loc="best",
+            fontsize=fontsize - 3,
+            # bbox_to_anchor=(0.85, -0.3),
+            title="Chloride in:",
+            title_fontsize=fontsize - 3,
+        )
+
+    for ax in fig1.axes:
+        ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
+        if x_axis == "ionic_strength":
+            ax.set_xlim(0, 900)
+
+    if x_axis == "ionic_strength":
+        model_folder_1 = Path("multi_component_case_studies/single_salt/IS")
+        # 44 characters (0-43) make up folder name before model name
+        # multi_component_case_studies/single_salt/IS/
+        model_folder_2 = Path("multi_component_case_studies/two_salt/IS")
+        # 41 characters (0-40) make up folder name before model name
+        # multi_component_case_studies/two_salt/IS/
+        # model_folder_3 = Path("multi_component_case_studies/three_salt/IS")
+        # 43 characters (0-42) make up folder name before model name
+        # multi_component_case_studies/three_salt/IS/
+    else:
+        model_folder_1 = Path("multi_component_case_studies/single_salt/CONC")
+        # 46 characters (0-45) make up folder name before model name
+        # multi_component_case_studies/single_salt/CONC/
+        model_folder_2 = Path("multi_component_case_studies/two_salt/CONC")
+        # 43 characters (0-42) make up folder name before model name
+        # multi_component_case_studies/two_salt/CONC/
+        # model_folder_3 = Path("multi_component_case_studies/three_salt/CONC")
+        # 45 characters (0-44) make up folder name before model name
+        # multi_component_case_studies/three_salt/CONC/
+
+    case_study_list_1 = [file for file in model_folder_1.iterdir()]
+    case_study_list_2 = [file for file in model_folder_2.iterdir()]
+    # case_study_list_3 = [file for file in model_folder_3.iterdir()]
+    case_studies = {
+        "single": case_study_list_1,
+        "two": case_study_list_2,
+        # "three": case_study_list_3,
+    }
+
+    for type, case_study_files in case_studies.items():
+        for case_study in case_study_files:
+            if type == "single":
+                if x_axis == "ionic_strength":
+                    cation = str(case_study)[50:52]
+                    chloride_multiplier = float(str(case_study)[54])
+                else:
+                    cation = str(case_study)[54:56]
+                    chloride_multiplier = float(str(case_study)[58])
+                concentration = float(50)  # mM
+                cation_list = [cation]
+                inlet_concentration = {
+                    "feed": {
+                        cation: concentration,
+                        "Cl": chloride_multiplier * concentration,
+                    },
+                    "diafiltrate": {
+                        cation: 1e-10,
+                        "Cl": 1e-10,
+                    },
+                }
+
+            elif type == "two":
+                if x_axis == "ionic_strength":
+                    cation_1 = str(case_study)[47:49]
+                    cation_2 = str(case_study)[49:51]
+                    chloride_multiplier = float(str(case_study)[53])
+                else:
+                    cation_1 = str(case_study)[51:53]
+                    cation_2 = str(case_study)[53:55]
+                    chloride_multiplier = float(str(case_study)[57])
+                concentration = float(50)  # mM
+                cation_list = [cation_1, cation_2]
+                inlet_concentration = {
+                    "feed": {
+                        cation_1: concentration,
+                        cation_2: concentration,
+                        "Cl": chloride_multiplier * concentration,
+                    },
+                    "diafiltrate": {
+                        cation_1: 1e-10,
+                        cation_2: 1e-10,
+                        "Cl": 1e-10,
+                    },
+                }
+            elif type == "three":
+                if x_axis == "ionic_strength":
+                    cation_1 = str(case_study)[49:51]
+                    cation_2 = str(case_study)[51:53]
+                    cation_3 = str(case_study)[53:55]
+                    chloride_multiplier = float(str(case_study)[57])
+                else:
+                    cation_1 = str(case_study)[51:53]
+                    cation_2 = str(case_study)[53:55]
+                    cation_3 = str(case_study)[55:57]
+                    chloride_multiplier = float(str(case_study)[59])
+                concentration = float(50)  # mM
+                cation_list = [cation_1, cation_2, cation_3]
+                inlet_concentration = {
+                    "feed": {
+                        cation_1: concentration,
+                        cation_2: concentration,
+                        cation_3: concentration,
+                        "Cl": chloride_multiplier * concentration,
+                    },
+                    "diafiltrate": {
+                        cation_1: 1e-10,
+                        cation_2: 1e-10,
+                        cation_3: 1e-10,
+                        "Cl": 1e-10,
+                    },
+                }
+
+            model = build_model(
+                cation_list=cation_list,
+                inlet_concentration=inlet_concentration,
+                default_args=default_args,
+                NFE_args=NFE_args,
+                initialize_and_solve=False,
+            )
+            from_json(model, fname=case_study)
+
+            for solute in model.fs.membrane.solutes:
+                average_variable_dict = get_model_averages(model, solute)
+
+                # if x_axis == "ionic_strength":
+                #     x_value = value(model.fs.membrane.total_feed_ionic_strength[0])
+                # elif x_axis == "cation_concentration":
+                #     x_value = value(
+                #         model.fs.membrane.retentate_conc_mol_comp[0, 0, solute]
+                #     )
+
+                alpha = 1
+
+                if solute == "Li":
+                    marker = "o"
+                    ax_flux = ax1a
+                    if type == "single":
+                        color = li_color
+                    elif type == "two":
+                        if cation_2 == "Co":
+                            color = li_co_color
+                        elif cation_2 == "Al":
+                            color = li_al_color
+                    if x_axis == "ionic_strength":
+                        x_value = value(model.fs.membrane.total_feed_ionic_strength[0])
+                    elif x_axis == "cation_concentration":
+                        x_value = value(
+                            model.fs.membrane.retentate_conc_mol_comp[0, 0, solute]
+                        )
+
+                elif solute == "Co":
+                    marker = "v"
+                    ax_flux = ax1b
+                    if type == "single":
+                        color = co_color
+                    elif type == "two":
+                        if cation_1 == "Li":
+                            color = li_co_color
+                        elif cation_2 == "Al":
+                            color = co_al_color
+                    if x_axis == "ionic_strength":
+                        x_value = value(model.fs.membrane.total_feed_ionic_strength[0])
+                    elif x_axis == "cation_concentration":
+                        x_value = value(
+                            model.fs.membrane.retentate_conc_mol_comp[0, 0, solute]
+                        )
+
+                elif solute == "Al":
+                    marker = "^"
+                    ax_flux = ax1c
+                    if type == "single":
+                        color = al_color
+                    elif type == "two":
+                        if cation_1 == "Li":
+                            color = li_al_color
+                        elif cation_1 == "Co":
+                            color = co_al_color
+                    if x_axis == "ionic_strength":
+                        x_value = value(model.fs.membrane.total_feed_ionic_strength[0])
+                    elif x_axis == "cation_concentration":
+                        x_value = value(
+                            model.fs.membrane.retentate_conc_mol_comp[0, 0, solute]
+                        )
+
+                elif solute == "Cl":
+                    marker = "*"
+
+                    if type == "single":
+                        if model.fs.membrane.cations.at(1) == "Li":
+                            color = li_color
+                            ax_flux = ax2a
+                        elif model.fs.membrane.cations.at(1) == "Co":
+                            color = co_color
+                            ax_flux = ax2b
+                        elif model.fs.membrane.cations.at(1) == "Al":
+                            color = al_color
+                            ax_flux = ax2c
+                        if x_axis == "ionic_strength":
+                            x_value = value(
+                                model.fs.membrane.total_feed_ionic_strength[0]
+                            )
+                        elif x_axis == "cation_concentration":
+                            x_value = value(
+                                model.fs.membrane.retentate_conc_mol_comp[
+                                    0, 0, model.fs.membrane.cations.at(1)
+                                ]
+                            )
+                    elif type == "two":
+                        if cation_1 == "Li" and cation_2 == "Co":
+                            color = li_co_color
+                            ax_flux = [ax2a, ax2b]
+                        elif cation_1 == "Li" and cation_2 == "Al":
+                            color = li_al_color
+                            ax_flux = [ax2a, ax2c]
+                        elif cation_1 == "Co" and cation_2 == "Al":
+                            color = co_al_color
+                            ax_flux = [ax2b, ax2c]
+                        if x_axis == "ionic_strength":
+                            x_value = value(
+                                model.fs.membrane.total_feed_ionic_strength[0]
+                            )
+                        elif x_axis == "cation_concentration":
+                            x_value = [
+                                value(
+                                    model.fs.membrane.retentate_conc_mol_comp[
+                                        0, 0, cation_1
+                                    ]
+                                ),
+                                value(
+                                    model.fs.membrane.retentate_conc_mol_comp[
+                                        0, 0, cation_2
+                                    ]
+                                ),
+                            ]
+
+                # if type == "three":
+                #     color = li_co_al_color
+
+                y_data = average_variable_dict["flux"]["avg"]
+                y_err = average_variable_dict["flux"]["spread"]
+
+                if isinstance(ax_flux, list):
+                    for ax in ax_flux:
+                        ax.plot(
+                            x_value[ax_flux.index(ax)],
+                            y_data,
+                            color=color,
+                            marker=marker,
+                            alpha=alpha,
+                            markersize=markersize,
+                        )
+                        ax.errorbar(
+                            x_value[ax_flux.index(ax)],
+                            y_data,
+                            yerr=y_err,
+                            ecolor=color,
+                            capsize=3,
+                        )
+                else:
+                    ax_flux.plot(
+                        x_value,
+                        y_data,
+                        color=color,
+                        marker=marker,
+                        alpha=alpha,
+                        markersize=markersize,
+                    )
+                    ax_flux.errorbar(
+                        x_value,
+                        y_data,
+                        yerr=y_err,
+                        ecolor=color,
+                        capsize=3,
+                    )
+
+    if save_figure:
+        plt.savefig(f"flux_versus_{x_axis}.png", dpi=600)
+
+
+def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
+    markersize = 10
+    fontsize = 14
+
+    anion_list = ["Cl"]
+    inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
+    include_boundary_layer = True
+    NFE_module_length = 15
+    NFE_boundary_layer_thickness = 5
+    NFE_membrane_thickness = 5
+
+    default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
+    NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
+
+    fig1, (
+        (ax3a, ax3b, ax3c),  # , ax3d),  # H_feed
+        (ax4a, ax4b, ax4c),  # , ax4d),  # H_permeate
+    ) = plt.subplots(2, 3, dpi=90, figsize=(12, 8), constrained_layout=True)
+
+    if x_axis == "ionic_strength":
+        for ax in fig1.axes:
+            ax.set_xlabel(
+                "Inlet Feed Ionic Strength (mM)",
+                fontsize=fontsize,
+                fontweight="bold",
+            )
+    elif x_axis == "cation_concentration":
+        ax4a.set_xlabel(
+            "Lithium Feed Concentration\n(mol/m$\mathbf{^3}$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+        ax4b.set_xlabel(
+            "Cobalt Feed Concentration\n(mol/m$\mathbf{^3}$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+        ax4c.set_xlabel(
+            "Aluminum Feed Concentration\n(mol/m$\mathbf{^3}$)",
+            fontsize=fontsize,
+            fontweight="bold",
+        )
+        # ax4d.set_xlabel(
+        #     "Chloride Feed Concentration\n(mol/m$\mathbf{^3}$)",
+        #     fontsize=fontsize,
+        #     fontweight="bold",
+        # )
+
+    # ax3a.set_title("+1 Cation", fontsize=fontsize, fontweight="bold")
+    # ax3b.set_title("+2 Cation", fontsize=fontsize, fontweight="bold")
+    # ax3c.set_title("+3 Cation", fontsize=fontsize, fontweight="bold")
+    # ax3d.set_title("Chloride", fontsize=fontsize, fontweight="bold")
+
+    ax3a.set_ylabel(
+        # "$\mathbf{c_{membrane}/c_{interface}}$", fontsize=fontsize, fontweight="bold"
+        "Feed-Side Overall\nPartitioning Coefficient",
+        fontsize=fontsize,
+        fontweight="bold",
+    )
+    ax4a.set_ylabel(
+        # "$\mathbf{c_{membrane}/c_{permeate}}$", fontsize=fontsize, fontweight="bold"
+        "Permeate-Side Overall\nPartitioning Coefficient",
+        fontsize=fontsize,
+        fontweight="bold",
+    )
+
+    # color blind friendly
+    tol_bright_hex = [
+        "#4477AA",
+        "#EE6677",
+        "#228833",
+        "#CCBB44",
+        "#66CCEE",
+        "#AA3377",
+        "#BBBBBB",
+    ]
+    li_color = tol_bright_hex[0]
+    co_color = tol_bright_hex[1]
+    al_color = tol_bright_hex[2]
+    li_co_color = tol_bright_hex[3]
+    li_al_color = tol_bright_hex[4]
+    co_al_color = tol_bright_hex[5]
+    # li_co_al_color = tol_bright_hex[6]
+
+    cation_legend_dict = {
+        "lithium": {
+            "marker": "o",
+            "ax": ax4a,
+            # "cl_ax": ax4d,
+            "salt_colors": {
+                "LiCl": li_color,
+                "LiCl + CoCl$_2$": li_co_color,
+                "LiCl + AlCl$_3$": li_al_color,
+                # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
+            },
+        },
+        "cobalt": {
+            "marker": "v",
+            "ax": ax4b,
+            # "cl_ax": ax4d,
+            "salt_colors": {
+                "CoCl$_2$": co_color,
+                "LiCl + CoCl$_2$": li_co_color,
+                "CoCl$_2$ + AlCl$_3$": co_al_color,
+                # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
+            },
+        },
+        "aluminum": {
+            "marker": "^",
+            "ax": ax4c,
+            # "cl_ax": ax4d,
+            "salt_colors": {
+                "AlCl$_3$": al_color,
+                "LiCl + AlCl$_3$": li_al_color,
+                "CoCl$_2$ + AlCl$_3$": co_al_color,
+                # "LiCl + CoCl$_2$ + AlCl$_3$": li_co_al_color,
+            },
+        },
+    }
+
+    for cation_dict in cation_legend_dict.values():
+        for salt, color in cation_dict["salt_colors"].items():
+            cation_dict["ax"].plot(
+                [],
+                [],
+                color=color,
+                marker=cation_dict["marker"],
+                markersize=markersize,
+                linestyle="None",
+                label=salt,
+            )
+            # cation_dict["cl_ax"].plot(
+            #     [],
+            #     [],
+            #     color=color,
+            #     marker="*",
+            #     markersize=markersize,
+            #     linestyle="None",
+            #     label=salt,
+            # )
+
+    ax4a.legend(
+        loc="best",
+        fontsize=fontsize - 3,
+        # bbox_to_anchor=(0.85, -0.3),
+        title="Lithium in:",
+        title_fontsize=fontsize - 3,
+    )
+    ax4b.legend(
+        loc="best",
+        fontsize=fontsize - 3,
+        # bbox_to_anchor=(0.85, -0.3),
+        title="Cobalt in:",
+        title_fontsize=fontsize - 3,
+    )
+    ax4c.legend(
+        loc="best",
+        fontsize=fontsize - 3,
+        # bbox_to_anchor=(0.85, -0.3),
+        title="Aluminum in:",
+        title_fontsize=fontsize - 3,
+    )
+    # ax4d.legend(
+    #     loc="best",
+    #     fontsize=fontsize - 3,
+    #     # bbox_to_anchor=(0.85, -0.3),
+    #     title="Chloride in:",
+    #     title_fontsize=fontsize - 3,
+    # )
 
     for ax in fig1.axes:
         ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
@@ -2290,9 +2792,9 @@ def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
                     cation_2 = str(case_study)[49:51]
                     chloride_multiplier = float(str(case_study)[53])
                 else:
-                    cation_1 = str(case_study)[49:51]
-                    cation_2 = str(case_study)[51:53]
-                    chloride_multiplier = float(str(case_study)[55])
+                    cation_1 = str(case_study)[51:53]
+                    cation_2 = str(case_study)[53:55]
+                    chloride_multiplier = float(str(case_study)[57])
                 concentration = float(50)  # mM
                 cation_list = [cation_1, cation_2]
                 inlet_concentration = {
@@ -2359,7 +2861,7 @@ def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
                 if solute == "Li":
                     marker = "o"
                     ax_hfeed = ax3a
-                    # ax_hperm = ax4a
+                    ax_hperm = ax4a
                     # if inset:
                     #     inax_hfeed = inax3a
                     #     inax_hperm = inax4a
@@ -2370,11 +2872,17 @@ def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
                             color = li_co_color
                         elif cation_2 == "Al":
                             color = li_al_color
+                    if x_axis == "ionic_strength":
+                        x_value = value(model.fs.membrane.total_feed_ionic_strength[0])
+                    elif x_axis == "cation_concentration":
+                        x_value = value(
+                            model.fs.membrane.retentate_conc_mol_comp[0, 0, solute]
+                        )
 
                 elif solute == "Co":
                     marker = "v"
                     ax_hfeed = ax3b
-                    # ax_hperm = ax4b
+                    ax_hperm = ax4b
                     # if inset:
                     #     inax_hfeed = inax3b
                     #     inax_hperm = inax4b
@@ -2385,11 +2893,17 @@ def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
                             color = li_co_color
                         elif cation_2 == "Al":
                             color = co_al_color
+                    if x_axis == "ionic_strength":
+                        x_value = value(model.fs.membrane.total_feed_ionic_strength[0])
+                    elif x_axis == "cation_concentration":
+                        x_value = value(
+                            model.fs.membrane.retentate_conc_mol_comp[0, 0, solute]
+                        )
 
                 elif solute == "Al":
                     marker = "^"
                     ax_hfeed = ax3c
-                    # ax_hperm = ax4c
+                    ax_hperm = ax4c
                     # if inset:
                     #     inax_hfeed = inax3c
                     #     inax_hperm = inax4c
@@ -2400,69 +2914,94 @@ def h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True):
                             color = li_al_color
                         elif cation_1 == "Co":
                             color = co_al_color
+                    if x_axis == "ionic_strength":
+                        x_value = value(model.fs.membrane.total_feed_ionic_strength[0])
+                    elif x_axis == "cation_concentration":
+                        x_value = value(
+                            model.fs.membrane.retentate_conc_mol_comp[0, 0, solute]
+                        )
 
-                elif solute == "Cl":
-                    marker = "*"
-                    # ax_hfeed = ax3d
-                    # ax_hperm = ax4d
-                    # if inset:
-                    # inax_hfeed = inax3d
-                    # inax_hperm = inax4d
-                    if type == "single":
-                        if model.fs.membrane.cations.at(1) == "Li":
-                            color = li_color
-                        elif model.fs.membrane.cations.at(1) == "Co":
-                            color = co_color
-                        elif model.fs.membrane.cations.at(1) == "Al":
-                            color = al_color
-                    elif type == "two":
-                        if cation_1 == "Li" and cation_2 == "Co":
-                            color = li_co_color
-                        elif cation_1 == "Li" and cation_2 == "Al":
-                            color = li_al_color
-                        elif cation_1 == "Co" and cation_2 == "Al":
-                            color = co_al_color
+                # elif solute == "Cl":
+                #     marker = "*"
+                #     ax_hfeed = ax3d
+                #     ax_hperm = ax4d
 
-                if type == "three":
-                    color = li_co_al_color
+                #     if type == "single":
+                #         if model.fs.membrane.cations.at(1) == "Li":
+                #             color = li_color
+                #         elif model.fs.membrane.cations.at(1) == "Co":
+                #             color = co_color
+                #         elif model.fs.membrane.cations.at(1) == "Al":
+                #             color = al_color
+                #         if x_axis == "ionic_strength":
+                #             x_value = value(model.fs.membrane.total_feed_ionic_strength[0])
+                #         elif x_axis == "cation_concentration":
+                #             x_value = value(
+                #                 model.fs.membrane.retentate_conc_mol_comp[0, 0, model.fs.membrane.cations.at(1)]
+                #             )
+                #     elif type == "two":
+                #         if cation_1 == "Li" and cation_2 == "Co":
+                #             color = li_co_color
+                #         elif cation_1 == "Li" and cation_2 == "Al":
+                #             color = li_al_color
+                #         elif cation_1 == "Co" and cation_2 == "Al":
+                #             color = co_al_color
+                #         if x_axis == "ionic_strength":
+                #             x_value = value(model.fs.membrane.total_feed_ionic_strength[0])
+                #         elif x_axis == "cation_concentration":
+                #             x_value = [value(
+                #                 model.fs.membrane.retentate_conc_mol_comp[0, 0, cation_1]
+                #             ), value(
+                #                 model.fs.membrane.retentate_conc_mol_comp[0, 0, cation_2]
+                #             )]
 
-                dict = {
-                    "H_feed": [ax_hfeed]  # , inax_hfeed],
-                    # "H_perm": [ax_hperm, inax_hperm],
-                }
-                for h, ax_list in dict.items():
-                    ax_list[0].plot(
-                        x_value,
-                        average_variable_dict[h]["avg"],
-                        color=color,
-                        marker=marker,
-                        alpha=alpha,
-                        markersize=markersize,
-                    )
-                    ax_list[0].errorbar(
-                        x_value,
-                        average_variable_dict[h]["avg"],
-                        yerr=average_variable_dict[h]["spread"],
-                        ecolor=color,
-                        capsize=4,
-                    )
+                ax_hfeed.plot(
+                    x_value,
+                    average_variable_dict["H_feed"]["avg"],
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                ax_hfeed.errorbar(
+                    x_value,
+                    average_variable_dict["H_feed"]["avg"],
+                    yerr=average_variable_dict["H_feed"]["spread"],
+                    ecolor=color,
+                    capsize=4,
+                )
+                ax_hperm.plot(
+                    x_value,
+                    average_variable_dict["H_perm"]["avg"],
+                    color=color,
+                    marker=marker,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                ax_hperm.errorbar(
+                    x_value,
+                    average_variable_dict["H_perm"]["avg"],
+                    yerr=average_variable_dict["H_perm"]["spread"],
+                    ecolor=color,
+                    capsize=4,
+                )
 
-                    # if inset:
-                    #     ax_list[1].plot(
-                    #         x_value,
-                    #         average_variable_dict[h]["avg"],
-                    #         color=color,
-                    #         marker=marker,
-                    #         alpha=alpha,
-                    #         markersize=markersize,
-                    #     )
-                    #     ax_list[1].errorbar(
-                    #         x_value,
-                    #         average_variable_dict[h]["avg"],
-                    #         yerr=average_variable_dict[h]["spread"],
-                    #         ecolor=color,
-                    #         capsize=4,
-                    #     )
+                # if inset:
+                #     ax_list[1].plot(
+                #         x_value,
+                #         average_variable_dict[h]["avg"],
+                #         color=color,
+                #         marker=marker,
+                #         alpha=alpha,
+                #         markersize=markersize,
+                #     )
+                #     ax_list[1].errorbar(
+                #         x_value,
+                #         average_variable_dict[h]["avg"],
+                #         yerr=average_variable_dict[h]["spread"],
+                #         ecolor=color,
+                #         capsize=4,
+                #     )
 
     if save_figure:
         plt.savefig(f"partition_versus_{x_axis}.png", dpi=600)
@@ -3353,13 +3892,18 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
 
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
-    diafiltrate = {"Li": 1e-10, "Co": 1e-10, "Al": 1e-10}
 
-    fig1, ((ax1a, ax1b), (ax2a, ax2b), (ax3a, ax3b)) = plt.subplots(
-        3, 2, figsize=(12, 12), dpi=100, constrained_layout=True
+    # fig1, ((ax1a, ax1b), (ax2a, ax2b), (ax3a, ax3b)) = plt.subplots(
+    #     3, 2, figsize=(12, 12), dpi=100, constrained_layout=True
+    # )
+    # fig2, ((ax4a, ax4b), (ax5a, ax5b), (ax6a, ax6b)) = plt.subplots(
+    #     3, 2, figsize=(12, 12), dpi=100, constrained_layout=True
+    # )
+    fig1, (ax1a, ax1b) = plt.subplots(
+        1, 2, figsize=(12, 5), dpi=75, constrained_layout=True
     )
-    fig2, ((ax4a, ax4b), (ax5a, ax5b), (ax6a, ax6b)) = plt.subplots(
-        3, 2, figsize=(12, 12), dpi=100, constrained_layout=True
+    fig2, (ax4a, ax4b) = plt.subplots(
+        1, 2, figsize=(12, 5), dpi=75, constrained_layout=True
     )
 
     tol_bright_hex = [
@@ -3512,10 +4056,8 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
                 cation_list=cation_list,
                 inlet_concentration=inlet_concentration,
                 default_args=default_args,
-                H_feed_guess=1,
-                H_permeate_guess=1,
                 NFE_args=NFE_args,
-                initialize=False,
+                initialize_and_solve=False,
             )
             from_json(model, fname=case_study)
 
@@ -3612,13 +4154,13 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
                 mem_dict_per["Electromigration"].append(percent_mem_electromigration)
 
     ionic_strengths = ["50", "75", "100", "150", "200", "400", "600", "800"]
-    concentrations = ["25", "50", "75", "100", "150", "200", "250", "300"]
+    concentrations = ["30", "40", "50", "75", "100", "125", "150", "175", "200"]
     if x_axis == "ionic_strength":
         x_values = ionic_strengths
         x_label = "Inlet Feed Ionic Strength (mM)"
     else:
         x_values = concentrations
-        x_label = "Cation Feed Concentration (mol/m$\mathbf{^3}$)"
+        x_label = "Cation Feed Concentration (mol m$\mathbf{^{-3}}$)"
 
     color_list = [conv_color, diff_color, elec_color]
     x = np.arange(len(x_values))
@@ -3682,18 +4224,18 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
 
     lithium_bl_df.plot(ax=ax1a, kind="bar", stacked=True, color=color_list, rot=0)
     cl_lithium_bl_df.plot(ax=ax4a, kind="bar", stacked=True, color=color_list, rot=0)
-    cobalt_bl_df.plot(
-        ax=ax2a, kind="bar", stacked=True, color=color_list, rot=0, legend=False
-    )
-    cl_cobalt_bl_df.plot(
-        ax=ax5a, kind="bar", stacked=True, color=color_list, rot=0, legend=False
-    )
-    aluminum_bl_df.plot(
-        ax=ax3a, kind="bar", stacked=True, color=color_list, rot=0, legend=False
-    )
-    cl_aluminum_bl_df.plot(
-        ax=ax6a, kind="bar", stacked=True, color=color_list, rot=0, legend=False
-    )
+    # cobalt_bl_df.plot(
+    #     ax=ax2a, kind="bar", stacked=True, color=color_list, rot=0, legend=False
+    # )
+    # cl_cobalt_bl_df.plot(
+    #     ax=ax5a, kind="bar", stacked=True, color=color_list, rot=0, legend=False
+    # )
+    # aluminum_bl_df.plot(
+    #     ax=ax3a, kind="bar", stacked=True, color=color_list, rot=0, legend=False
+    # )
+    # cl_aluminum_bl_df.plot(
+    #     ax=ax6a, kind="bar", stacked=True, color=color_list, rot=0, legend=False
+    # )
 
     lithium_mem_df.plot(
         ax=ax1b, kind="bar", stacked=True, color=color_list, rot=0, legend=False
@@ -3701,18 +4243,18 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
     cl_lithium_mem_df.plot(
         ax=ax4b, kind="bar", stacked=True, color=color_list, rot=0, legend=False
     )
-    cobalt_mem_df.plot(
-        ax=ax2b, kind="bar", stacked=True, color=color_list, rot=0, legend=False
-    )
-    cl_cobalt_mem_df.plot(
-        ax=ax5b, kind="bar", stacked=True, color=color_list, rot=0, legend=False
-    )
-    aluminum_mem_df.plot(
-        ax=ax3b, kind="bar", stacked=True, color=color_list, rot=0, legend=False
-    )
-    cl_aluminum_mem_df.plot(
-        ax=ax6b, kind="bar", stacked=True, color=color_list, rot=0, legend=False
-    )
+    # cobalt_mem_df.plot(
+    #     ax=ax2b, kind="bar", stacked=True, color=color_list, rot=0, legend=False
+    # )
+    # cl_cobalt_mem_df.plot(
+    #     ax=ax5b, kind="bar", stacked=True, color=color_list, rot=0, legend=False
+    # )
+    # aluminum_mem_df.plot(
+    #     ax=ax3b, kind="bar", stacked=True, color=color_list, rot=0, legend=False
+    # )
+    # cl_aluminum_mem_df.plot(
+    #     ax=ax6b, kind="bar", stacked=True, color=color_list, rot=0, legend=False
+    # )
 
     bar_width = 0.5
     x_positions = ax1a.get_xticks()
@@ -3734,20 +4276,20 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
     totals_cl_cobalt_bl = cl_cobalt_bl_df.sum(axis=1)
     totals_cl_cobalt_mem = cl_cobalt_mem_df.sum(axis=1)
 
-    ax2a.hlines(totals_cobalt_bl, x_min, x_max, colors="black", linewidth=3)
-    ax2b.hlines(totals_cobalt_mem, x_min, x_max, colors="black", linewidth=3)
-    ax5a.hlines(totals_cl_cobalt_bl, x_min, x_max, colors="black", linewidth=3)
-    ax5b.hlines(totals_cl_cobalt_mem, x_min, x_max, colors="black", linewidth=3)
+    # ax2a.hlines(totals_cobalt_bl, x_min, x_max, colors="black", linewidth=3)
+    # ax2b.hlines(totals_cobalt_mem, x_min, x_max, colors="black", linewidth=3)
+    # ax5a.hlines(totals_cl_cobalt_bl, x_min, x_max, colors="black", linewidth=3)
+    # ax5b.hlines(totals_cl_cobalt_mem, x_min, x_max, colors="black", linewidth=3)
 
     totals_aluminum_bl = aluminum_bl_df.sum(axis=1)
     totals_aluminum_mem = aluminum_mem_df.sum(axis=1)
     totals_cl_aluminum_bl = cl_aluminum_bl_df.sum(axis=1)
     totals_cl_aluminum_mem = cl_aluminum_mem_df.sum(axis=1)
 
-    ax3a.hlines(totals_aluminum_bl, x_min, x_max, colors="black", linewidth=3)
-    ax3b.hlines(totals_aluminum_mem, x_min, x_max, colors="black", linewidth=3)
-    ax6a.hlines(totals_cl_aluminum_bl, x_min, x_max, colors="black", linewidth=3)
-    ax6b.hlines(totals_cl_aluminum_mem, x_min, x_max, colors="black", linewidth=3)
+    # ax3a.hlines(totals_aluminum_bl, x_min, x_max, colors="black", linewidth=3)
+    # ax3b.hlines(totals_aluminum_mem, x_min, x_max, colors="black", linewidth=3)
+    # ax6a.hlines(totals_cl_aluminum_bl, x_min, x_max, colors="black", linewidth=3)
+    # ax6b.hlines(totals_cl_aluminum_mem, x_min, x_max, colors="black", linewidth=3)
 
     for ax in fig1.axes:
         ax.set_xticks(x)
@@ -3760,28 +4302,28 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
         ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
         ax.axhline(0, color="black", linewidth=1.5)
 
-    for ax in [ax1a, ax1b]:
-        ax.set_ylim(-6, 17)
-    for ax in [ax4a, ax4b]:
-        ax.set_ylim(-8, 19)
+    # for ax in [ax1a, ax1b]:
+    #     ax.set_ylim(-6, 17)
+    # for ax in [ax4a, ax4b]:
+    #     ax.set_ylim(-8, 19)
 
-    fig1.suptitle(
-        "Average Cation Flux Breakdown (Excluding x,z=0)",
-        fontsize=fontsize + 2,
-        fontweight="bold",
-    )
-    fig2.suptitle(
-        "Average Anion Flux Breakdown (Excluding x,z=0)",
-        fontsize=fontsize + 2,
-        fontweight="bold",
-    )
+    # fig1.suptitle(
+    #     "Average Cation Flux Breakdown (Excluding x,z=0)",
+    #     fontsize=fontsize + 2,
+    #     fontweight="bold",
+    # )
+    # fig2.suptitle(
+    #     "Average Anion Flux Breakdown (Excluding x,z=0)",
+    #     fontsize=fontsize + 2,
+    #     fontweight="bold",
+    # )
     if percent:
         li_label = "Contribution to Lithium Flux (%)"
         co_label = "Contribution to Cobalt Flux (%)"
         al_label = "Contribution to ALuminum Flux (%)"
         cl_label = "Contribution to Chloride Flux (%)"
     else:
-        li_label = "+1 Cation Flux (mol m$\mathbf{^{-2}}$ h$\mathbf{^{-1}}$)"
+        li_label = "Lithium Cation Flux (mol m$\mathbf{^{-2}}$ h$\mathbf{^{-1}}$)"
         co_label = "Cobalt Flux (mol m$\mathbf{^{-2}}$ h$\mathbf{^{-1}}$)"
         al_label = "Aluminum Flux (mol m$\mathbf{^{-2}}$ h$\mathbf{^{-1}}$)"
         cl_label = "Chloride Flux (mol m$\mathbf{^{-2}}$ h$\mathbf{^{-1}}$)"
@@ -3791,17 +4333,17 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
         fontsize=fontsize,
         fontweight="bold",
     )
-    ax2a.set_ylabel(
-        co_label,
-        fontsize=fontsize,
-        fontweight="bold",
-    )
-    ax3a.set_ylabel(
-        al_label,
-        fontsize=fontsize,
-        fontweight="bold",
-    )
-    for ax in [ax4a, ax5a, ax6a]:
+    # ax2a.set_ylabel(
+    #     co_label,
+    #     fontsize=fontsize,
+    #     fontweight="bold",
+    # )
+    # ax3a.set_ylabel(
+    #     al_label,
+    #     fontsize=fontsize,
+    #     fontweight="bold",
+    # )
+    for ax in [ax4a]:  # , ax5a, ax6a]:
         ax.set_ylabel(
             cl_label,
             fontsize=fontsize,
@@ -3819,45 +4361,46 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
             fontsize=fontsize,
             fontweight="bold",
         )
-    for ax in [ax3a, ax3b, ax6a, ax6b]:
+    # for ax in [ax3a, ax3b, ax6a, ax6b]:
+    for ax in [ax1a, ax1b, ax4a, ax4b]:
         ax.set_xlabel(
             x_label,
             fontsize=fontsize,
             fontweight="bold",
         )
-    for ax in [ax1a, ax1b, ax4a, ax4b]:
-        ax.text(
-            0.5,
-            0.95,
-            "LiCl",
-            ha="center",
-            va="center",
-            transform=ax.transAxes,
-            fontsize=fontsize,
-            fontweight="bold",
-        )
-    for ax in [ax2a, ax2b, ax5a, ax5b]:
-        ax.text(
-            0.5,
-            0.95,
-            "CoCl$_2$",
-            ha="center",
-            va="center",
-            transform=ax.transAxes,
-            fontsize=fontsize,
-            fontweight="bold",
-        )
-    for ax in [ax3a, ax3b, ax6a, ax6b]:
-        ax.text(
-            0.5,
-            0.95,
-            "AlCl$_3$",
-            ha="center",
-            va="center",
-            transform=ax.transAxes,
-            fontsize=fontsize,
-            fontweight="bold",
-        )
+    # for ax in [ax1a, ax1b, ax4a, ax4b]:
+    #     ax.text(
+    #         0.5,
+    #         0.95,
+    #         "LiCl",
+    #         ha="center",
+    #         va="center",
+    #         transform=ax.transAxes,
+    #         fontsize=fontsize,
+    #         fontweight="bold",
+    #     )
+    # for ax in [ax2a, ax2b, ax5a, ax5b]:
+    #     ax.text(
+    #         0.5,
+    #         0.95,
+    #         "CoCl$_2$",
+    #         ha="center",
+    #         va="center",
+    #         transform=ax.transAxes,
+    #         fontsize=fontsize,
+    #         fontweight="bold",
+    #     )
+    # for ax in [ax3a, ax3b, ax6a, ax6b]:
+    #     ax.text(
+    #         0.5,
+    #         0.95,
+    #         "AlCl$_3$",
+    #         ha="center",
+    #         va="center",
+    #         transform=ax.transAxes,
+    #         fontsize=fontsize,
+    #         fontweight="bold",
+    # )
     # ax1a.plot([],[], "k-", linewidth=3, label="Total Flux")
     # ax1a.legend(fontsize=fontsize-2)
 
