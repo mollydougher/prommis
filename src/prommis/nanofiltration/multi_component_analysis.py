@@ -70,21 +70,21 @@ def main():
     #     x_axis="cation_concentration", sieving=True, save_figure=True
     # )
     # flux_plots_equimolar(x_axis="ionic_strength", save_figure=True)
-    # flux_plots_equimolar(x_axis="cation_concentration", save_figure=True)
+    flux_plots_equimolar(x_axis="cation_concentration", save_figure=True)
     # h_plots_equimolar(x_axis="ionic_strength", inset=True, save_figure=True)
-    # h_plots_equimolar(x_axis="cation_concentration", inset=False, save_figure=True)
+    h_plots_equimolar(x_axis="cation_concentration", inset=False, save_figure=True)
 
     # combined_plots_vary_salt_ratio(save_figure=True)
     # plot_only_rejections(save_figure=True)
 
-    # plot_flux_contributions(
-    #     x_axis="cation_concentration", percent=False, save_figure=True
-    # )
+    plot_flux_contributions(
+        x_axis="cation_concentration", percent=False, save_figure=True
+    )
     # plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=True)
     # plot_flux_contributions(x_axis="ionic_strength", percent=True, save_figure=True)
 
     # plot_Donnan_potentials(total_h=True, sieving=True)
-    plot_Donnan_potentials(x_axis="cation_concentration", total_h=True, sieving=True)
+    # plot_Donnan_potentials(x_axis="cation_concentration", total_h=True, sieving=True)
     plt.show()
 
 
@@ -94,6 +94,8 @@ def build_model(
     default_args,
     NFE_args,
     initialize_and_solve=True,
+    fudge_factor_H_feed=1,
+    fudge_factor_H_perm=1,
     water_flux=0.02,
     data_membrane_thickness=1e-7,  # default of 100 nm
     non_Donnan_partition_dict={},
@@ -157,11 +159,25 @@ def build_model(
             )
     # TODO: initial pressure values may need to be tweaked
     if len(cation_list) == 1:
-        m.fs.membrane.applied_pressure.fix(5)
+        if value(m.fs.membrane.config.property_package.charge[cation_list[0]]) > 3:
+            m.fs.membrane.applied_pressure.fix(5)
+        else:
+            if value(m.fs.membrane.total_feed_ionic_strength[0]) < 249:
+                m.fs.membrane.applied_pressure.fix(5)
+            elif (value(m.fs.membrane.total_feed_ionic_strength[0]) >= 249) and (
+                value(m.fs.membrane.total_feed_ionic_strength[0]) < 599
+            ):
+                m.fs.membrane.applied_pressure.fix(10)
+            elif value(m.fs.membrane.total_feed_ionic_strength[0]) >= 599:
+                m.fs.membrane.applied_pressure.fix(20)
     elif len(cation_list) > 1:
-        if value(m.fs.membrane.total_feed_ionic_strength[0]) < 149:
+        if value(m.fs.membrane.total_feed_ionic_strength[0]) < 51:
+            m.fs.membrane.applied_pressure.fix(5)
+        elif (value(m.fs.membrane.total_feed_ionic_strength[0]) >= 51) and (
+            value(m.fs.membrane.total_feed_ionic_strength[0]) < 199
+        ):
             m.fs.membrane.applied_pressure.fix(10)
-        elif (value(m.fs.membrane.total_feed_ionic_strength[0]) >= 149) and (
+        elif (value(m.fs.membrane.total_feed_ionic_strength[0]) >= 99) and (
             value(m.fs.membrane.total_feed_ionic_strength[0]) < 199
         ):
             m.fs.membrane.applied_pressure.fix(15)
@@ -212,9 +228,12 @@ def build_model(
         # for H_feed_guess, H_permeate_guess in H_guesses:
         #     try:
         initialized_membrane_model = m.fs.membrane.default_initializer(
+            fudge_factor_H_feed=fudge_factor_H_feed,
+            fudge_factor_H_perm=fudge_factor_H_perm,
             # H_feed_guess=H_feed_guess, H_permeate_guess=H_permeate_guess
         )
-        initialized_membrane_model.initialize(m.fs.membrane)
+        # initialized_membrane_model.initialize(m.fs.membrane)
+        initialized_membrane_model.initialization_routine(m.fs.membrane)
 
         solve_model(m)
         unfix_pressure(m, water_flux=water_flux)
@@ -222,8 +241,8 @@ def build_model(
 
         full_sensitivity = False
         data = False
-        single_salt = False
-        two_salt = True
+        single_salt = True
+        two_salt = False
 
         key_name = "CONC"
 
@@ -266,8 +285,8 @@ def solve_model(m):
     scaling.propagate_solution(scaled_model, m)
 
     # check numerical warnings
-    dt = DiagnosticsToolbox(m)
-    dt.assert_no_numerical_warnings()
+    # dt = DiagnosticsToolbox(m)
+    # dt.assert_no_numerical_warnings()
 
     return results
 
@@ -586,31 +605,31 @@ def solve_and_save_models(
 
     IS_key = ["025", "050", "075", "100", "150", "200", "400", "600", "800"]
     # CONC_key = ["025", "050", "075", "100", "150", "200", "250", "300"]
-    # CONC_key = [
-    #     "010",
-    #     "020",
-    #     "030",
-    #     "040",
-    #     "050",
-    #     "075",
-    #     "100",
-    #     "125",
-    #     "150",
-    #     "175",
-    #     "200",
-    # ]
     CONC_key = [
-        "005",
         "010",
-        "015",
         "020",
-        "025",
         "030",
-        "035",
         "040",
-        "045",
         "050",
+        "075",
+        "100",
+        "125",
+        "150",
+        "175",
+        "200",
     ]
+    # CONC_key = [
+    #     "005",
+    #     "010",
+    #     "015",
+    #     "020",
+    #     "025",
+    #     "030",
+    #     "035",
+    #     "040",
+    #     "045",
+    #     "050",
+    # ]
 
     if run_single_salt:
         if set_IS:
@@ -627,8 +646,7 @@ def solve_and_save_models(
                 # "Al": [25, 50, 75, 100, 150, 200, 250, 300],
                 "Li": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
                 "Co": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
-                "Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
-                # TODO debug 10mM and all Al systems with new initialization
+                "Al": [10, 20, 30, 40, 50, 75, 100, 125],
             }
             key_list = CONC_key
 
@@ -669,6 +687,8 @@ def solve_and_save_models(
                         default_args=default_args,
                         NFE_args=NFE_args,
                         initialize_and_solve=True,
+                        fudge_factor_H_feed=1,
+                        fudge_factor_H_perm=1,
                         water_flux=0.02,
                         data_membrane_thickness=l_m,
                         non_Donnan_partition_dict={
@@ -680,6 +700,40 @@ def solve_and_save_models(
                         chloride_multiplier=chloride_multiplier,
                     )
                 except (InitializationError, NoFeasibleSolutionError, RuntimeError):
+                    if (
+                        value(model.fs.membrane.config.property_package.charge[cation])
+                        > 3
+                    ):
+                        fudge_factor_H_perm = 1
+                    else:
+                        fudge_factor_H_perm = 0.8
+                    model = build_model(
+                        cation_list=[cation],
+                        inlet_concentration={
+                            "feed": {
+                                cation: concentration,
+                                "Cl": chloride_multiplier * concentration,
+                            },
+                            "diafiltrate": {
+                                cation: diafiltrate[cation],
+                                "Cl": chloride_multiplier * 1e-10,
+                            },
+                        },
+                        default_args=default_args,
+                        NFE_args=NFE_args,
+                        initialize_and_solve=True,
+                        fudge_factor_H_feed=1.2,
+                        fudge_factor_H_perm=fudge_factor_H_perm,
+                        water_flux=0.02,
+                        data_membrane_thickness=l_m,
+                        non_Donnan_partition_dict={
+                            cation: cation_phi_star_value,
+                            "Cl": chloride_phi_star_value,
+                        },
+                        save=True,
+                        key=key_list[feed[cation].index(concentration)],
+                        chloride_multiplier=chloride_multiplier,
+                    )
                     continue
 
     if run_two_salt:
@@ -718,12 +772,12 @@ def solve_and_save_models(
                 # "Li_Co": [25, 50, 75, 100, 150, 200, 250, 300],
                 # "Li_Al": [25, 50, 75, 100, 150, 200, 250, 300],
                 # "Co_Al": [25, 50, 75, 100, 150, 200, 250, 300],
-                # "Li_Co": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
-                # "Li_Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
-                # "Co_Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
-                "Li_Co": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
-                "Li_Al": [5, 10, 15, 20, 25, 30],
-                "Co_Al": [5, 10, 15, 20, 25, 30],
+                "Li_Co": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
+                "Li_Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
+                "Co_Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
+                # "Li_Co": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+                # "Li_Al": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+                # "Co_Al": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
             }
             key_list = CONC_key
 
@@ -775,6 +829,8 @@ def solve_and_save_models(
                         default_args=default_args,
                         NFE_args=NFE_args,
                         initialize_and_solve=True,
+                        fudge_factor_H_feed=1,
+                        fudge_factor_H_perm=1,
                         water_flux=0.02,
                         data_membrane_thickness=l_m,
                         non_Donnan_partition_dict={
@@ -787,7 +843,39 @@ def solve_and_save_models(
                         chloride_multiplier=chloride_multiplier,
                     )
                 except (InitializationError, NoFeasibleSolutionError, RuntimeError):
-                    continue
+                    try:
+                        model = build_model(
+                            cation_list=[cation_1, cation_2],
+                            inlet_concentration={
+                                "feed": {
+                                    cation_1: concentration,
+                                    cation_2: concentration,
+                                    "Cl": chloride_multiplier * concentration,
+                                },
+                                "diafiltrate": {
+                                    cation_1: diafiltrate[cation_1],
+                                    cation_2: diafiltrate[cation_2],
+                                    "Cl": chloride_multiplier * 1e-10,
+                                },
+                            },
+                            default_args=default_args,
+                            NFE_args=NFE_args,
+                            initialize_and_solve=True,
+                            fudge_factor_H_feed=1.2,
+                            fudge_factor_H_perm=1,
+                            water_flux=0.02,
+                            data_membrane_thickness=l_m,
+                            non_Donnan_partition_dict={
+                                cation_1: cation_1_phi_star_value,
+                                cation_2: cation_2_phi_star_value,
+                                "Cl": chloride_phi_star_value,
+                            },
+                            save=True,
+                            key=key_list[feed[salt].index(concentration)],
+                            chloride_multiplier=chloride_multiplier,
+                        )
+                    except (InitializationError, NoFeasibleSolutionError, RuntimeError):
+                        continue
 
     if run_three_salt:
         if set_IS:
@@ -4170,7 +4258,20 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
                 mem_dict_per["Electromigration"].append(percent_mem_electromigration)
 
     ionic_strengths = ["50", "75", "100", "150", "200", "400", "600", "800"]
-    concentrations = ["30", "40", "50", "75", "100", "125", "150", "175", "200"]
+    # concentrations = ["30", "40", "50", "75", "100", "125", "150", "175", "200"]
+    concentrations = [
+        "10",
+        "20",
+        "30",
+        "40",
+        "50",
+        "75",
+        "100",
+        "125",
+        "150",
+        "175",
+        "200",
+    ]
     if x_axis == "ionic_strength":
         x_values = ionic_strengths
         x_label = "Inlet Feed Ionic Strength (mM)"
@@ -4198,45 +4299,45 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
     if percent:
         lithium_bl_data = lithium_bl_per
         cl_lithium_bl_data = cl_lithium_bl_per
-        cobalt_bl_data = cobalt_bl_per
-        cl_cobalt_bl_data = cl_cobalt_bl_per
-        aluminum_bl_data = aluminum_bl_per
-        cl_aluminum_bl_data = cl_aluminum_bl_per
+        # cobalt_bl_data = cobalt_bl_per
+        # cl_cobalt_bl_data = cl_cobalt_bl_per
+        # aluminum_bl_data = aluminum_bl_per
+        # cl_aluminum_bl_data = cl_aluminum_bl_per
 
         lithium_mem_data = lithium_mem_per
         cl_lithium_mem_data = cl_lithium_mem_per
-        cobalt_mem_data = cobalt_mem_per
-        cl_cobalt_mem_data = cl_cobalt_mem_per
-        aluminum_mem_data = aluminum_mem_per
-        cl_aluminum_mem_data = cl_aluminum_mem_per
+        # cobalt_mem_data = cobalt_mem_per
+        # cl_cobalt_mem_data = cl_cobalt_mem_per
+        # aluminum_mem_data = aluminum_mem_per
+        # cl_aluminum_mem_data = cl_aluminum_mem_per
     else:
         lithium_bl_data = lithium_bl_avg
         cl_lithium_bl_data = cl_lithium_bl_avg
-        cobalt_bl_data = cobalt_bl_avg
-        cl_cobalt_bl_data = cl_cobalt_bl_avg
-        aluminum_bl_data = aluminum_bl_avg
-        cl_aluminum_bl_data = cl_aluminum_bl_avg
+        # cobalt_bl_data = cobalt_bl_avg
+        # cl_cobalt_bl_data = cl_cobalt_bl_avg
+        # aluminum_bl_data = aluminum_bl_avg
+        # cl_aluminum_bl_data = cl_aluminum_bl_avg
 
         lithium_mem_data = lithium_mem_avg
         cl_lithium_mem_data = cl_lithium_mem_avg
-        cobalt_mem_data = cobalt_mem_avg
-        cl_cobalt_mem_data = cl_cobalt_mem_avg
-        aluminum_mem_data = aluminum_mem_avg
-        cl_aluminum_mem_data = cl_aluminum_mem_avg
+        # cobalt_mem_data = cobalt_mem_avg
+        # cl_cobalt_mem_data = cl_cobalt_mem_avg
+        # aluminum_mem_data = aluminum_mem_avg
+        # cl_aluminum_mem_data = cl_aluminum_mem_avg
 
     lithium_bl_df = pd.DataFrame(lithium_bl_data, index=x_values)
     cl_lithium_bl_df = pd.DataFrame(cl_lithium_bl_data, index=x_values)
-    cobalt_bl_df = pd.DataFrame(cobalt_bl_data, index=x_values)
-    cl_cobalt_bl_df = pd.DataFrame(cl_cobalt_bl_data, index=x_values)
-    aluminum_bl_df = pd.DataFrame(aluminum_bl_data, index=x_values)
-    cl_aluminum_bl_df = pd.DataFrame(cl_aluminum_bl_data, index=x_values)
+    # cobalt_bl_df = pd.DataFrame(cobalt_bl_data, index=x_values)
+    # cl_cobalt_bl_df = pd.DataFrame(cl_cobalt_bl_data, index=x_values)
+    # aluminum_bl_df = pd.DataFrame(aluminum_bl_data, index=x_values)
+    # cl_aluminum_bl_df = pd.DataFrame(cl_aluminum_bl_data, index=x_values)
 
     lithium_mem_df = pd.DataFrame(lithium_mem_data, index=x_values)
     cl_lithium_mem_df = pd.DataFrame(cl_lithium_mem_data, index=x_values)
-    cobalt_mem_df = pd.DataFrame(cobalt_mem_data, index=x_values)
-    cl_cobalt_mem_df = pd.DataFrame(cl_cobalt_mem_data, index=x_values)
-    aluminum_mem_df = pd.DataFrame(aluminum_mem_data, index=x_values)
-    cl_aluminum_mem_df = pd.DataFrame(cl_aluminum_mem_data, index=x_values)
+    # cobalt_mem_df = pd.DataFrame(cobalt_mem_data, index=x_values)
+    # cl_cobalt_mem_df = pd.DataFrame(cl_cobalt_mem_data, index=x_values)
+    # aluminum_mem_df = pd.DataFrame(aluminum_mem_data, index=x_values)
+    # cl_aluminum_mem_df = pd.DataFrame(cl_aluminum_mem_data, index=x_values)
 
     lithium_bl_df.plot(ax=ax1a, kind="bar", stacked=True, color=color_list, rot=0)
     cl_lithium_bl_df.plot(ax=ax4a, kind="bar", stacked=True, color=color_list, rot=0)
@@ -4287,20 +4388,20 @@ def plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=
     ax4a.hlines(totals_cl_lithium_bl, x_min, x_max, colors="black", linewidth=3)
     ax4b.hlines(totals_cl_lithium_mem, x_min, x_max, colors="black", linewidth=3)
 
-    totals_cobalt_bl = cobalt_bl_df.sum(axis=1)
-    totals_cobalt_mem = cobalt_mem_df.sum(axis=1)
-    totals_cl_cobalt_bl = cl_cobalt_bl_df.sum(axis=1)
-    totals_cl_cobalt_mem = cl_cobalt_mem_df.sum(axis=1)
+    # totals_cobalt_bl = cobalt_bl_df.sum(axis=1)
+    # totals_cobalt_mem = cobalt_mem_df.sum(axis=1)
+    # totals_cl_cobalt_bl = cl_cobalt_bl_df.sum(axis=1)
+    # totals_cl_cobalt_mem = cl_cobalt_mem_df.sum(axis=1)
 
     # ax2a.hlines(totals_cobalt_bl, x_min, x_max, colors="black", linewidth=3)
     # ax2b.hlines(totals_cobalt_mem, x_min, x_max, colors="black", linewidth=3)
     # ax5a.hlines(totals_cl_cobalt_bl, x_min, x_max, colors="black", linewidth=3)
     # ax5b.hlines(totals_cl_cobalt_mem, x_min, x_max, colors="black", linewidth=3)
 
-    totals_aluminum_bl = aluminum_bl_df.sum(axis=1)
-    totals_aluminum_mem = aluminum_mem_df.sum(axis=1)
-    totals_cl_aluminum_bl = cl_aluminum_bl_df.sum(axis=1)
-    totals_cl_aluminum_mem = cl_aluminum_mem_df.sum(axis=1)
+    # totals_aluminum_bl = aluminum_bl_df.sum(axis=1)
+    # totals_aluminum_mem = aluminum_mem_df.sum(axis=1)
+    # totals_cl_aluminum_bl = cl_aluminum_bl_df.sum(axis=1)
+    # totals_cl_aluminum_mem = cl_aluminum_mem_df.sum(axis=1)
 
     # ax3a.hlines(totals_aluminum_bl, x_min, x_max, colors="black", linewidth=3)
     # ax3b.hlines(totals_aluminum_mem, x_min, x_max, colors="black", linewidth=3)

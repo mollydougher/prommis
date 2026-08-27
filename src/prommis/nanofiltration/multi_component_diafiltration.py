@@ -334,6 +334,20 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
     #         doc="Guessed initial value of H",
     #     ),
     # )
+    CONFIG.declare(
+        "fudge_factor_H_feed",
+        ConfigValue(
+            default=1,
+            doc="Fudge factor on H_feed guess",
+        ),
+    )
+    CONFIG.declare(
+        "fudge_factor_H_perm",
+        ConfigValue(
+            default=1,
+            doc="Fudge factor on H_perm guess",
+        ),
+    )
 
     def initialization_routine(self, model):
         """
@@ -342,7 +356,10 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
 
         Method then calls the block triangularization initializer method.
         """
+        self.propogate_inital_model_values(model)
+        # super().initialization_routine(model)
 
+    def propogate_inital_model_values(self, model):
         alpha_mem_bilinear = model.membrane_convection_coefficient_bilinear
         alpha_mem_bilinear_calc = (
             model.membrane_convection_coefficient_bilinear_calculation
@@ -438,6 +455,7 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
 
                         # S_guess = a * exp(b * value(is_f_tot[t])) + c
                         S_guess = a * exp(b * value(conc_f_tot[t, k])) + c
+                        # print(S_guess)
 
                         conc_perm[t, x, k].set_value(
                             value(conc_ret[t, x, k]) * round(S_guess, 1)
@@ -574,12 +592,12 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                             b_perm = -0.034
                             c_perm = 2.9
                             # parameters from CONC regression
-                            a_feed = 2.1
-                            b_feed = -0.071
-                            c_feed = 0.15
-                            a_perm = 47
-                            b_perm = -0.091
-                            c_perm = 10.5
+                            a_feed = 2
+                            b_feed = -0.07
+                            c_feed = 0.2
+                            a_perm = 50
+                            b_perm = -0.09
+                            c_perm = 10
                         elif value(charge[k]) == 2:
                             # parameters from IS regression
                             a_feed = 3.8
@@ -589,12 +607,12 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                             b_perm = -0.036
                             c_perm = 0.55
                             # parameters from CONC regression
-                            a_feed = 3.1
-                            b_feed = -0.065
-                            c_feed = 0.28
-                            a_perm = 15
-                            b_perm = -0.089
-                            c_perm = 0.48
+                            a_feed = 3
+                            b_feed = -0.07
+                            c_feed = 0.3
+                            a_perm = 20
+                            b_perm = -0.09
+                            c_perm = 0.5
                         elif value(charge[k]) == 1:
                             # parameters from IS regression
                             a_feed = 2.5
@@ -604,24 +622,34 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                             b_perm = -0.046
                             c_perm = 0.43
                             # parameters from CONC regression
-                            a_feed = 6.1
-                            b_feed = -0.065
+                            a_feed = 6
+                            b_feed = -0.07
                             c_feed = 0.5
-                            a_perm = 82
-                            b_perm = -0.13
-                            c_perm = 0.89
+                            a_perm = 80
+                            b_perm = -0.1
+                            c_perm = 0.9
 
                         # H_feed = a_feed * exp(b_feed * value(is_f_tot[t])) + c_feed
                         # H_perm = a_perm * exp(b_perm * value(is_f_tot[t])) + c_perm
 
                         H_feed = a_feed * exp(b_feed * value(conc_f_tot[t, k])) + c_feed
+                        # print(H_feed)
+                        H_feed = value(self.config.fudge_factor_H_feed) * H_feed
+                        # print(H_feed)
+
                         H_perm = a_perm * exp(b_perm * value(conc_f_tot[t, k])) + c_perm
+                        # print(H_perm)
+                        H_perm = value(self.config.fudge_factor_H_perm) * H_perm
+                        # print(H_perm)
+
+                        # print(H_feed)
+                        # print(round(H_feed, 1))
 
                         # conc_mem[t, x, 0, k].set_value(
                         #     value(self.config.H_feed_guess) * value(conc_ret[t, x, k])
                         # )
                         conc_mem[t, x, 0, k].set_value(
-                            round(H_feed, 3) * value(conc_ret[t, x, k])
+                            round(H_feed, 1) * value(conc_ret[t, x, k])
                         )
                         calculate_variable_from_constraint(
                             conc_mem[t, x, 0, a0],
@@ -632,8 +660,22 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                         #     * value(conc_perm[t, x, k])
                         # )
                         conc_mem[t, x, 1, k].set_value(
-                            round(H_perm, 3) * value(conc_perm[t, x, k])
+                            round(H_perm, 1) * value(conc_perm[t, x, k])
                         )
+                        # calculate_variable_from_constraint(
+                        #     conc_mem[t, x, 1, a0],
+                        #     model.electroneutrality_membrane[t, x, 1],
+                        # )
+
+                        # calculate_variable_from_constraint(
+                        #     model.Donnan_potential_feed_side[t, x],
+                        #     model.cation_equilibrium_boundary_layer_membrane_interface[t, x, k],
+                        # )
+                        # calculate_variable_from_constraint(
+                        #     model.Donnan_potential_permeate_side[t, x],
+                        #     model.cation_equilibrium_membrane_permeate_interface[t, x, k],
+                        # )
+
                     for z_m in model.dimensionless_membrane_thickness:
                         if z_m != 0:
                             for k in model.cations:
@@ -689,8 +731,6 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                                 )
                         z_m_prev = z_m
                 x_prev = x
-
-        super().initialization_routine(model)
 
 
 @declare_process_block_class("MultiComponentDiafiltration")
@@ -1746,6 +1786,16 @@ and used when constructing these,
                 rule=_retentate_boundary_layer_interface,
             )
 
+            self.dummy_bilinear_feed = Var(
+                self.time,
+                self.dimensionless_module_length,
+                self.solutes,
+                initialize=40,
+                units=units.mol / units.m**3,  # mM
+                bounds=[1e-11, None],
+                # doc="Mole concentration of solutes in the boundary layer, x- and z-dependent",
+            )
+
             def _cation_equilibrium_boundary_layer_membrane_interface(blk, t, x, j):
                 if x == 0:
                     return Constraint.Skip
@@ -1759,19 +1809,40 @@ and used when constructing these,
                 # H_dielectric = (
                 #     blk.config.property_package.dielectric_partition_coefficient
                 # )
-                return conc_mem[t, x, 0, j] == (
-                    conc_bl[t, x, 1, j]
-                    * H_nonDonnan[j]
-                    # * H_steric[j]
-                    # * H_dielectric[j]
-                    * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
-                )
+                return conc_mem[t, x, 0, j] == (blk.dummy_bilinear_feed[t, x, j])
+                #     conc_bl[t, x, 1, j]
+                #     * H_nonDonnan[j]
+                #     # * H_steric[j]
+                #     # * H_dielectric[j]
+                #     * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
+                # )
 
             self.cation_equilibrium_boundary_layer_membrane_interface = Constraint(
                 self.time,
                 self.dimensionless_module_length,
                 self.solutes,
                 rule=_cation_equilibrium_boundary_layer_membrane_interface,
+            )
+
+            def _dummy_bilinear_feed_constraint(blk, t, x, j):
+                if x == 0:
+                    return Constraint.Skip
+                charge = blk.config.property_package.charge
+                conc_bl = blk.boundary_layer_conc_mol_comp
+                H_nonDonnan = (
+                    blk.config.property_package.non_Donnan_partition_coefficient
+                )
+                return blk.dummy_bilinear_feed[t, x, j] == (
+                    conc_bl[t, x, 1, j]
+                    * H_nonDonnan[j]
+                    * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
+                )
+
+            self.dummy_bilinear_feed_constraint = Constraint(
+                self.time,
+                self.dimensionless_module_length,
+                self.solutes,
+                rule=_dummy_bilinear_feed_constraint,
             )
         else:
 
@@ -1803,6 +1874,16 @@ and used when constructing these,
                 rule=_cation_equilibrium_retentate_membrane_interface,
             )
 
+        self.dummy_bilinear_perm = Var(
+            self.time,
+            self.dimensionless_module_length,
+            self.solutes,
+            initialize=40,
+            units=units.mol / units.m**3,  # mM
+            bounds=[1e-11, None],
+            # doc="Mole concentration of solutes in the boundary layer, x- and z-dependent",
+        )
+
         def _cation_equilibrium_membrane_permeate_interface(blk, t, x, j):
             if x == 0:
                 return Constraint.Skip
@@ -1812,19 +1893,38 @@ and used when constructing these,
             H_nonDonnan = blk.config.property_package.non_Donnan_partition_coefficient
             # H_steric = blk.config.property_package.steric_partition_coefficient
             # H_dielectric = blk.config.property_package.dielectric_partition_coefficient
-            return conc_mem[t, x, 1, j] == (
-                conc_p[t, x, j]
-                * H_nonDonnan[j]
-                # * H_steric[j]
-                # * H_dielectric[j]
-                * exp(-charge[j] * blk.Donnan_potential_permeate_side[t, x])
-            )
+            return conc_mem[t, x, 1, j] == (blk.dummy_bilinear_perm[t, x, j])
+            #     conc_p[t, x, j]
+            #     * H_nonDonnan[j]
+            #     # * H_steric[j]
+            #     # * H_dielectric[j]
+            #     * exp(-charge[j] * blk.Donnan_potential_permeate_side[t, x])
+            # )
 
         self.cation_equilibrium_membrane_permeate_interface = Constraint(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
             rule=_cation_equilibrium_membrane_permeate_interface,
+        )
+
+        def _dummy_bilinear_perm_constraint(blk, t, x, j):
+            if x == 0:
+                return Constraint.Skip
+            charge = blk.config.property_package.charge
+            conc_p = blk.permeate_conc_mol_comp
+            H_nonDonnan = blk.config.property_package.non_Donnan_partition_coefficient
+            return blk.dummy_bilinear_perm[t, x, j] == (
+                conc_p[t, x, j]
+                * H_nonDonnan[j]
+                * exp(-charge[j] * blk.Donnan_potential_permeate_side[t, x])
+            )
+
+        self.dummy_bilinear_perm_constraint = Constraint(
+            self.time,
+            self.dimensionless_module_length,
+            self.solutes,
+            rule=_dummy_bilinear_perm_constraint,
         )
 
         # boundary conditions
@@ -2011,32 +2111,112 @@ and used when constructing these,
         Assigns scaling factors to certain variables and constraints to
         improve solver performance.
         """
+        cations = self.config.cation_list
+        anions = self.config.anion_list
+        charge = self.config.property_package.charge
+
         self.scaling_factor = Suffix(direction=Suffix.EXPORT)
 
         self.scaling_factor[self.volume_flux_water] = 1e2
-        if self.config.include_boundary_layer:
-            self.scaling_factor[self.boundary_layer_D_tilde] = 1e-3
-            self.scaling_factor[
-                self.boundary_layer_cross_diffusion_coefficient_bilinear
-            ] = 1e1
-            self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = 1e2
-            self.scaling_factor[
-                self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
-            ] = 1e-2
-            self.scaling_factor[
-                self.boundary_layer_cross_diffusion_coefficient_calculation
-            ] = 1e-2
-        self.scaling_factor[self.membrane_D_tilde] = 1e2
-        self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = 1e3
-        self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e2
-        self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e5
-        self.scaling_factor[self.membrane_convection_coefficient] = 1e3
+
+        if len(self.config.cation_list) == 1:
+            if value(charge[cations[0]] > 3):
+                if self.config.include_boundary_layer:
+                    self.scaling_factor[self.boundary_layer_D_tilde] = 1e-2
+                    self.scaling_factor[
+                        self.boundary_layer_cross_diffusion_coefficient_bilinear
+                    ] = 1e-3
+                    # self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = 1e2
+                    self.scaling_factor[
+                        self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
+                    ] = 1e-2
+                    self.scaling_factor[
+                        self.boundary_layer_cross_diffusion_coefficient_calculation
+                    ] = 1e-2
+                self.scaling_factor[self.membrane_D_tilde] = 1e1
+                self.scaling_factor[
+                    self.membrane_cross_diffusion_coefficient_bilinear
+                ] = 1e3
+                self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e2
+                for t in self.time:
+                    for x in self.dimensionless_module_length:
+                        if x != 0:
+                            for z in self.dimensionless_membrane_thickness:
+                                if z != 0:
+                                    for k in cations:
+                                        self.scaling_factor[
+                                            self.membrane_convection_coefficient_bilinear[
+                                                t, x, z, k
+                                            ]
+                                        ] = 1e3
+                                        self.scaling_factor[
+                                            self.membrane_convection_coefficient
+                                        ] = 1e3
+                                    for a in anions:
+                                        self.scaling_factor[
+                                            self.membrane_convection_coefficient_bilinear[
+                                                t, x, z, a
+                                            ]
+                                        ] = 1e1
+                # self.scaling_factor[
+                #     self.membrane_cross_diffusion_coefficient_bilinear_calculation
+                # ] = 1e10
+            else:
+                if self.config.include_boundary_layer:
+                    self.scaling_factor[self.boundary_layer_D_tilde] = 1e-3
+                    self.scaling_factor[
+                        self.boundary_layer_cross_diffusion_coefficient_bilinear
+                    ] = 1e1  # check this value
+                    self.scaling_factor[
+                        self.boundary_layer_cross_diffusion_coefficient
+                    ] = 1e2
+                    self.scaling_factor[
+                        self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
+                    ] = 1e-2
+                    self.scaling_factor[
+                        self.boundary_layer_cross_diffusion_coefficient_calculation
+                    ] = 1e-2
+                self.scaling_factor[self.membrane_D_tilde] = 1e2
+                self.scaling_factor[
+                    self.membrane_cross_diffusion_coefficient_bilinear
+                ] = 1e3
+                self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e2
+                self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e5
+                self.scaling_factor[self.membrane_convection_coefficient] = 1e3
 
         if len(self.config.cation_list) >= 2:
             for t in self.time:
                 for x in self.dimensionless_module_length:
                     if x != 0:
                         self.scaling_factor[self.lumped_water_flux[t, x]] = 1e3
+
+            if self.config.include_boundary_layer:
+                self.scaling_factor[self.boundary_layer_D_tilde] = 1e-3
+                self.scaling_factor[
+                    self.boundary_layer_cross_diffusion_coefficient_bilinear
+                ] = 1e1  # check this value
+                self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = (
+                    1e2
+                )
+                self.scaling_factor[
+                    self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
+                ] = 1e-2
+                self.scaling_factor[
+                    self.boundary_layer_cross_diffusion_coefficient_calculation
+                ] = 1e-2
+            self.scaling_factor[self.membrane_D_tilde] = 1e2
+            self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = (
+                1e3
+            )
+            self.scaling_factor[
+                self.membrane_cross_diffusion_coefficient_bilinear_calculation
+            ] = 1e3
+            self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e2
+            self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e5
+            self.scaling_factor[
+                self.membrane_cross_diffusion_coefficient_calculation
+            ] = 1e5
+            self.scaling_factor[self.membrane_convection_coefficient] = 1e3
 
     def add_ports(self):
         self.feed_inlet = Port(doc="Feed Inlet Port")
