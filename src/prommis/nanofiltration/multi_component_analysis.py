@@ -77,9 +77,9 @@ def main():
     # combined_plots_vary_salt_ratio(save_figure=True)
     # plot_only_rejections(save_figure=True)
 
-    plot_flux_contributions(
-        x_axis="cation_concentration", percent=False, save_figure=True
-    )
+    # plot_flux_contributions(
+    #     x_axis="cation_concentration", percent=False, save_figure=True
+    # )
     # plot_flux_contributions(x_axis="ionic_strength", percent=False, save_figure=True)
     # plot_flux_contributions(x_axis="ionic_strength", percent=True, save_figure=True)
 
@@ -178,10 +178,10 @@ def build_model(
         ):
             m.fs.membrane.applied_pressure.fix(10)
         elif (value(m.fs.membrane.total_feed_ionic_strength[0]) >= 99) and (
-            value(m.fs.membrane.total_feed_ionic_strength[0]) < 199
+            value(m.fs.membrane.total_feed_ionic_strength[0]) < 299
         ):
             m.fs.membrane.applied_pressure.fix(15)
-        elif value(m.fs.membrane.total_feed_ionic_strength[0]) >= 199:
+        elif value(m.fs.membrane.total_feed_ionic_strength[0]) >= 299:
             m.fs.membrane.applied_pressure.fix(20)
 
     # add and connect flowsheet streams
@@ -241,8 +241,8 @@ def build_model(
 
         full_sensitivity = False
         data = False
-        single_salt = True
-        two_salt = False
+        single_salt = False
+        two_salt = True
 
         key_name = "CONC"
 
@@ -772,9 +772,10 @@ def solve_and_save_models(
                 # "Li_Co": [25, 50, 75, 100, 150, 200, 250, 300],
                 # "Li_Al": [25, 50, 75, 100, 150, 200, 250, 300],
                 # "Co_Al": [25, 50, 75, 100, 150, 200, 250, 300],
+                # high conc. at 1:1 ratios hit pressure limits for 20 lmh bar flux constraint
                 "Li_Co": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
-                "Li_Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
-                "Co_Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
+                "Li_Al": [10, 20, 30, 40, 50, 75, 100],
+                "Co_Al": [10, 20, 30, 40, 50, 75],
                 # "Li_Co": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
                 # "Li_Al": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
                 # "Co_Al": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
@@ -823,7 +824,7 @@ def solve_and_save_models(
                             "diafiltrate": {
                                 cation_1: diafiltrate[cation_1],
                                 cation_2: diafiltrate[cation_2],
-                                "Cl": chloride_multiplier * 1e-10,
+                                "Cl": 1e-10,
                             },
                         },
                         default_args=default_args,
@@ -855,7 +856,7 @@ def solve_and_save_models(
                                 "diafiltrate": {
                                     cation_1: diafiltrate[cation_1],
                                     cation_2: diafiltrate[cation_2],
-                                    "Cl": chloride_multiplier * 1e-10,
+                                    "Cl": 1e-10,
                                 },
                             },
                             default_args=default_args,

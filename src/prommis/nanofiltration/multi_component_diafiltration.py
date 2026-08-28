@@ -2191,20 +2191,20 @@ and used when constructing these,
                         self.scaling_factor[self.lumped_water_flux[t, x]] = 1e3
 
             if self.config.include_boundary_layer:
-                self.scaling_factor[self.boundary_layer_D_tilde] = 1e-3
+                self.scaling_factor[self.boundary_layer_D_tilde] = 1e-2
                 self.scaling_factor[
                     self.boundary_layer_cross_diffusion_coefficient_bilinear
-                ] = 1e1  # check this value
-                self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = (
-                    1e2
-                )
+                ] = 1e-3
+                # self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = (
+                #     1e2
+                # )
                 self.scaling_factor[
                     self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
                 ] = 1e-2
                 self.scaling_factor[
                     self.boundary_layer_cross_diffusion_coefficient_calculation
                 ] = 1e-2
-            self.scaling_factor[self.membrane_D_tilde] = 1e2
+            self.scaling_factor[self.membrane_D_tilde] = 1e1
             self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = (
                 1e3
             )
