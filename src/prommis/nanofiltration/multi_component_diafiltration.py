@@ -340,7 +340,6 @@ class MultiComponentDiafiltrationInitializer(InitializerBase):
         sieving coefficients) to populate the model with a
         reasonable initial point.
         """
-
         # define helpful aliases
         alpha_mem_bi = model.membrane_convection_coefficient_bilinear
         alpha_mem_bi_calc = model.membrane_convection_coefficient_bilinear_calculation
@@ -556,13 +555,13 @@ class MultiComponentDiafiltrationInitializer(InitializerBase):
                         conc_mem[t, x, 0, k].set_value(
                             round(H_feed, 1) * value(conc_ret[t, x, k])
                         )
-                        calculate_variable_from_constraint(
-                            conc_mem[t, x, 0, a0],
-                            model.electroneutrality_membrane[t, x, 0],
-                        )
                         conc_mem[t, x, 1, k].set_value(
                             round(H_perm, 1) * value(conc_perm[t, x, k])
                         )
+                    calculate_variable_from_constraint(
+                        conc_mem[t, x, 0, a0],
+                        model.electroneutrality_membrane[t, x, 0],
+                    )
 
                     for z_m in model.dimensionless_membrane_thickness:
                         if z_m != 0:
@@ -822,42 +821,26 @@ and used when constructing these,
         )
         self.feed_flow_volume = Var(
             self.time,
-            initialize=12.5,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the feed",
         )
-
-        def initialize_feed_conc_mol_comp(m, t, j):
-            vals = {k: 200 for k in self.config.cation_list}
-            vals.update({self.config.anion_list[0]: 600})
-            return vals[j]
-
         self.feed_conc_mol_comp = Var(
             self.time,
             self.solutes,
-            initialize=initialize_feed_conc_mol_comp,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of solutes in the feed",
         )
         self.diafiltrate_flow_volume = Var(
             self.time,
-            initialize=3.75,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the diafiltrate",
         )
-
-        def initialize_diafiltrate_conc_mol_comp(m, t, j):
-            vals = {k: 10 for k in self.config.cation_list}
-            vals.update({self.config.anion_list[0]: 30})
-            return vals[j]
-
         self.diafiltrate_conc_mol_comp = Var(
             self.time,
             self.solutes,
-            initialize=initialize_diafiltrate_conc_mol_comp,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of solutes in the diafiltrate",
@@ -867,22 +850,14 @@ and used when constructing these,
         self.volume_flux_water = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=0.06,
             units=units.m**3 / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric water flux of water across the membrane",
         )
-
-        def initialize_molar_ion_flux(m, t, w, j):
-            vals = {k: 10 for k in self.config.cation_list}
-            vals.update({self.config.anion_list[0]: 30})
-            return vals[j]
-
         self.molar_ion_flux = Var(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            initialize=initialize_molar_ion_flux,
             units=units.mol / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Mole flux of solutes across the membrane (z-direction, x-dependent)",
@@ -890,23 +865,14 @@ and used when constructing these,
         self.retentate_flow_volume = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=6.75,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the retentate, x-dependent",
         )
-
-        def initialize_retentate_conc_mol_comp(m, t, w, j):
-            vals = {
-                i: 0.95 * initialize_feed_conc_mol_comp(m, t, i) for i in self.solutes
-            }
-            return vals[j]
-
         self.retentate_conc_mol_comp = Var(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            initialize=initialize_retentate_conc_mol_comp,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of solutes in the retentate, x-dependent",
@@ -914,23 +880,14 @@ and used when constructing these,
         self.permeate_flow_volume = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=10,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the permeate, x-dependent",
         )
-
-        def initialize_permeate_conc_mol_comp(m, t, w, j):
-            vals = {
-                i: 0.8 * initialize_feed_conc_mol_comp(m, t, i) for i in self.solutes
-            }
-            return vals[j]
-
         self.permeate_conc_mol_comp = Var(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            initialize=initialize_permeate_conc_mol_comp,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of solutes in the permeate, x-dependent",
@@ -938,7 +895,6 @@ and used when constructing these,
         self.osmotic_pressure = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=4,
             units=units.bar,
             bounds=[1e-11, None],
             doc="Osmostic pressure difference across the membrane",
@@ -946,14 +902,12 @@ and used when constructing these,
         self.Donnan_potential_feed_side = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=-1,
             units=units.dimensionless,
             doc="Dimensionless Donnan potential (feed-side)",
         )
         self.Donnan_potential_permeate_side = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=-1,
             units=units.dimensionless,
             doc="Dimensionless Donnan potential (permeate-side)",
         )
@@ -961,7 +915,6 @@ and used when constructing these,
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            initialize=40,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Bi-linear partitioning term for the feed-side interface",
@@ -970,7 +923,6 @@ and used when constructing these,
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            initialize=40,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Bi-linear partitioning term for the permeate-side interface",
@@ -978,160 +930,90 @@ and used when constructing these,
 
         # add variables dependent on dimensionless_module_length and dimensionless_membrane_thickness
         if self.config.include_boundary_layer:
-
-            def initialize_boundary_layer_conc_mol_comp(m, t, w, l, j):
-                vals = {
-                    i: 0.5 * initialize_feed_conc_mol_comp(m, t, i)
-                    for i in self.solutes
-                }
-                return vals[j]
-
             self.boundary_layer_conc_mol_comp = Var(
                 self.time,
                 self.dimensionless_module_length,
                 self.dimensionless_boundary_layer_thickness,
                 self.solutes,
-                initialize=initialize_boundary_layer_conc_mol_comp,
                 units=units.mol / units.m**3,  # mM
                 bounds=[1e-11, None],
                 doc="Mole concentration of solutes in the boundary layer, x- and z-dependent",
             )
-
             self.boundary_layer_D_tilde = Var(
                 self.time,
                 self.dimensionless_module_length,
                 self.dimensionless_boundary_layer_thickness,
-                initialize=1000,
                 units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D * c
                 doc="Denominator of diffusion and convection coefficients in boundary layer",
             )
-
-            def initialize_boundary_layer_cross_diffusion_coefficient_bilinear(
-                m, t, w, l, j, k
-            ):
-                vals = {
-                    k: {j: -3000 for j in self.config.cation_list}
-                    for k in self.config.cation_list
-                }
-                return vals[j][k]
-
             self.boundary_layer_cross_diffusion_coefficient_bilinear = Var(
                 self.time,
                 self.dimensionless_module_length,
                 self.dimensionless_boundary_layer_thickness,
                 self.cations,
                 self.cations,
-                initialize=initialize_boundary_layer_cross_diffusion_coefficient_bilinear,
                 units=(units.mm**2 / units.h)
                 * (units.mm**2 / units.h * units.mol / units.m**3),  # D * D,tilde
                 doc="Bi-linear cross diffusion coefficient for cations in boundary layer",
             )
-
-            def initialize_boundary_layer_cross_diffusion_coefficient(m, t, w, l, j, k):
-                vals = {
-                    k: {j: -5 for j in self.config.cation_list}
-                    for k in self.config.cation_list
-                }
-                return vals[j][k]
-
             self.boundary_layer_cross_diffusion_coefficient = Var(
                 self.time,
                 self.dimensionless_module_length,
                 self.dimensionless_boundary_layer_thickness,
                 self.cations,
                 self.cations,
-                initialize=initialize_boundary_layer_cross_diffusion_coefficient,
                 units=units.mm**2 / units.h,
                 doc="Cross diffusion coefficient for cations in boundary layer",
             )
-
-        def initialize_membrane_conc_mol_comp(m, t, w, l, j):
-            vals = {
-                i: 0.1 * initialize_feed_conc_mol_comp(m, t, i) for i in self.solutes
-            }
-            return vals[j]
 
         self.membrane_conc_mol_comp = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.solutes,
-            initialize=initialize_membrane_conc_mol_comp,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of solutes in the membrane, x- and z-dependent",
         )
-
         self.membrane_D_tilde = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=6,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D * c
             doc="Denominator of diffusion and convection coefficients in membrane",
         )
-
-        def initialize_membrane_cross_diffusion_coefficient_bilinear(m, t, w, l, j, k):
-            vals = {
-                k: {j: -0.3 for j in self.config.cation_list}
-                for k in self.config.cation_list
-            }
-            return vals[j][k]
-
         self.membrane_cross_diffusion_coefficient_bilinear = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.cations,
             self.cations,
-            initialize=initialize_membrane_cross_diffusion_coefficient_bilinear,
             units=(units.mm**2 / units.h)
             * (units.mm**2 / units.h * units.mol / units.m**3),  # D * D,tilde
             doc="Bi-linear cross diffusion coefficient for cations in membrane",
         )
-
-        def initialize_membrane_convection_coefficient_bilinear(m, t, w, l, j):
-            vals = {k: 1 for k in self.config.cation_list}
-            return vals[j]
-
         self.membrane_convection_coefficient_bilinear = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.cations,
-            initialize=initialize_membrane_convection_coefficient_bilinear,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D,tilde
             doc="Convection coefficient for cations in membrane",
         )
-
-        def initialize_membrane_cross_diffusion_coefficient(m, t, w, l, j, k):
-            vals = {
-                k: {j: -0.05 for j in self.config.cation_list}
-                for k in self.config.cation_list
-            }
-            return vals[j][k]
-
         self.membrane_cross_diffusion_coefficient = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.cations,
             self.cations,
-            initialize=initialize_membrane_cross_diffusion_coefficient,
             units=units.mm**2 / units.h,
             doc="Cross diffusion coefficient for cations in membrane",
         )
-
-        def initialize_membrane_convection_coefficient(m, t, w, l, j):
-            vals = {k: 0.2 for k in self.config.cation_list}
-            return vals[j]
-
         self.membrane_convection_coefficient = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.cations,
-            initialize=initialize_membrane_convection_coefficient,
             units=units.dimensionless,
             doc="Convection coefficient for cations in membrane",
         )

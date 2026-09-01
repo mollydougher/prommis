@@ -44,6 +44,7 @@ def main():
     Builds and solves flowsheet with multi-component diafiltration unit model
     for a two-salt (LiCl + CoCl2) solution. Generates plots for visualization.
     """
+    # membrane model inputs
     cation_list = ["Li", "Co"]
     anion_list = ["Cl"]
     inlet_flow_volume = {"feed": 12.5, "diafiltrate": 3.75}
@@ -80,7 +81,7 @@ def main():
 
     # initialize membrane model
     initialized_membrane_model = m.fs.membrane.default_initializer(
-        multiplier_H_feed=1.2,  # increase helps solver performance
+        multiplier_H_feed=1.2,  # increase can help solver performance
         multiplier_H_perm=1,
     )
     initialized_membrane_model.initialize(m.fs.membrane)
@@ -96,6 +97,7 @@ def main():
     solve_model(m)
     set_water_flux_target(m, flux_target=0.02)  # 20 LMH / bar
     solve_model(m)
+
     # check numerical warnings
     dt.assert_no_numerical_warnings()
 
@@ -103,7 +105,6 @@ def main():
     overall_results_plot = plot_results_by_length(m)
     boundary_layer_results_plot = plot_results_by_thickness(m, phase="Boundary Layer")
     membrane_results_plot = plot_results_by_thickness(m, phase="Membrane")
-
     plt.show()
 
     return (
