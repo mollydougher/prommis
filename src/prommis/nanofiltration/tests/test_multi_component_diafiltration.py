@@ -51,15 +51,12 @@ def diafiltration_model():
     """
 
     def _diafiltration_model(
-        cation_list=["Li"],
-        anion_list=["Cl"],
-        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
-        inlet_concentration={
-            "feed": {"Li": 245, "Cl": 245},
-            "diafiltrate": {"Li": 14, "Cl": 14},
-        },
-        non_Donnan_partition_dict={"Li": 0.7, "Cl": 0.1},
-        boundary_layer=True,
+        cation_list,
+        anion_list,
+        inlet_flow_volume,
+        inlet_concentration,
+        non_Donnan_partition_dict,
+        boundary_layer,
     ):
         m = ConcreteModel()
         m.fs = FlowsheetBlock(dynamic=False)
@@ -139,33 +136,59 @@ def test_config(diafiltration_model):
         assert m.fs.unit.config.NFE_boundary_layer_thickness == 5
         assert m.fs.unit.config.NFE_membrane_thickness == 5
 
-    model = diafiltration_model(boundary_layer=True)
+    model = diafiltration_model(
+        cation_list=["Li"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
+        inlet_concentration={
+            "feed": {"Li": 245, "Cl": 245},
+            "diafiltrate": {"Li": 14, "Cl": 14},
+        },
+        non_Donnan_partition_dict={"Li": 0.7, "Cl": 0.1},
+        boundary_layer=True,
+    )
     _test_config(model)
     assert model.fs.unit.config.include_boundary_layer == True
+    assert len(model.fs.unit.config.cation_list) == 1
 
-    model_no_boundary_layer = diafiltration_model(boundary_layer=False)
+    model_no_boundary_layer = diafiltration_model(
+        cation_list=["Li"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
+        inlet_concentration={
+            "feed": {"Li": 245, "Cl": 245},
+            "diafiltrate": {"Li": 14, "Cl": 14},
+        },
+        non_Donnan_partition_dict={"Li": 0.7, "Cl": 0.1},
+        boundary_layer=False,
+    )
     _test_config(model_no_boundary_layer)
     assert model_no_boundary_layer.fs.unit.config.include_boundary_layer == False
 
-    model_single_salt = diafiltration_model(cation_list=["Li"])
-    assert len(model_single_salt.fs.unit.config.cation_list) == 1
-
     model_two_salt = diafiltration_model(
         cation_list=["Li", "Co"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
         inlet_concentration={
             "feed": {"Li": 245, "Co": 288, "Cl": 821},
             "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
         },
+        non_Donnan_partition_dict={"Li": 0.7, "Co": 0.3, "Cl": 0.1},
+        boundary_layer=True,
     )
     _test_config(model_two_salt)
     assert len(model_two_salt.fs.unit.config.cation_list) == 2
 
     model_three_salt = diafiltration_model(
         cation_list=["Li", "Co", "Al"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
         inlet_concentration={
             "feed": {"Li": 245, "Co": 288, "Al": 20, "Cl": 881},
             "diafiltrate": {"Li": 14, "Co": 3, "Al": 3, "Cl": 29},
         },
+        non_Donnan_partition_dict={"Li": 0.7, "Co": 0.3, "Al": 0.0005, "Cl": 0.1},
+        boundary_layer=True,
     )
     _test_config(model_three_salt)
     assert len(model_three_salt.fs.unit.config.cation_list) == 3
@@ -582,13 +605,33 @@ def test_build(diafiltration_model):
         assert isinstance(membrane.retentate_membrane_interface, Constraint)
         assert len(membrane.retentate_membrane_interface) == 20
 
-    model_single_salt = diafiltration_model()
+    model_single_salt = diafiltration_model(
+        cation_list=["Li"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
+        inlet_concentration={
+            "feed": {"Li": 245, "Cl": 245},
+            "diafiltrate": {"Li": 14, "Cl": 14},
+        },
+        non_Donnan_partition_dict={"Li": 0.7, "Cl": 0.1},
+        boundary_layer=True,
+    )
     _test_build(model_single_salt.fs.unit)
     _test_build_boundary_layer(model_single_salt.fs.unit)
     _test_build_single_salt(model_single_salt.fs.unit)
     _test_build_single_salt_boundary_layer(model_single_salt.fs.unit)
 
-    model_single_salt_no_boundary_layer = diafiltration_model(boundary_layer=False)
+    model_single_salt_no_boundary_layer = diafiltration_model(
+        cation_list=["Li"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
+        inlet_concentration={
+            "feed": {"Li": 245, "Cl": 245},
+            "diafiltrate": {"Li": 14, "Cl": 14},
+        },
+        non_Donnan_partition_dict={"Li": 0.7, "Cl": 0.1},
+        boundary_layer=False,
+    )
     _test_build(model_single_salt_no_boundary_layer.fs.unit)
     _test_build_single_salt(model_single_salt_no_boundary_layer.fs.unit)
     _test_build_single_salt_no_boundary_layer(
@@ -597,10 +640,14 @@ def test_build(diafiltration_model):
 
     model_two_salt = diafiltration_model(
         cation_list=["Li", "Co"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
         inlet_concentration={
             "feed": {"Li": 245, "Co": 288, "Cl": 821},
             "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
         },
+        non_Donnan_partition_dict={"Li": 0.7, "Co": 0.3, "Cl": 0.1},
+        boundary_layer=True,
     )
     _test_build(model_two_salt.fs.unit)
     _test_build_boundary_layer(model_two_salt.fs.unit)
@@ -609,10 +656,13 @@ def test_build(diafiltration_model):
 
     model_two_salt_no_boundary_layer = diafiltration_model(
         cation_list=["Li", "Co"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
         inlet_concentration={
             "feed": {"Li": 245, "Co": 288, "Cl": 821},
             "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
         },
+        non_Donnan_partition_dict={"Li": 0.7, "Co": 0.3, "Cl": 0.1},
         boundary_layer=False,
     )
     _test_build(model_two_salt_no_boundary_layer.fs.unit)
@@ -621,10 +671,14 @@ def test_build(diafiltration_model):
 
     model_three_salt = diafiltration_model(
         cation_list=["Li", "Co", "Al"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
         inlet_concentration={
             "feed": {"Li": 245, "Co": 288, "Al": 20, "Cl": 881},
             "diafiltrate": {"Li": 14, "Co": 3, "Al": 3, "Cl": 29},
         },
+        non_Donnan_partition_dict={"Li": 0.7, "Co": 0.3, "Al": 0.0005, "Cl": 0.1},
+        boundary_layer=True,
     )
     _test_build(model_three_salt.fs.unit)
     _test_build_boundary_layer(model_three_salt.fs.unit)
@@ -633,10 +687,13 @@ def test_build(diafiltration_model):
 
     model_three_salt = diafiltration_model(
         cation_list=["Li", "Co", "Al"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
         inlet_concentration={
             "feed": {"Li": 245, "Co": 288, "Al": 20, "Cl": 881},
             "diafiltrate": {"Li": 14, "Co": 3, "Al": 3, "Cl": 29},
         },
+        non_Donnan_partition_dict={"Li": 0.7, "Co": 0.3, "Al": 0.0005, "Cl": 0.1},
         boundary_layer=False,
     )
     _test_build(model_three_salt.fs.unit)
@@ -686,7 +743,17 @@ def test_solve(diafiltration_model):
         dt = DiagnosticsToolbox(membrane)
         dt.assert_no_numerical_warnings()
 
-    model_LiCl = diafiltration_model()
+    model_LiCl = diafiltration_model(
+        cation_list=["Li"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
+        inlet_concentration={
+            "feed": {"Li": 245, "Cl": 245},
+            "diafiltrate": {"Li": 14, "Cl": 14},
+        },
+        non_Donnan_partition_dict={"Li": 0.7, "Cl": 0.1},
+        boundary_layer=True,
+    )
     _test_diagnostics(model_LiCl.fs.unit)
     _test_solve(model_LiCl)
     _test_numerical_issues(model_LiCl.fs.unit)
@@ -705,7 +772,17 @@ def test_solve(diafiltration_model):
     }
     assert_solution_equivalent(model_LiCl.fs.unit, LiCl_test_dict)
 
-    model_LiCl_no_boundary_layer = diafiltration_model(boundary_layer=False)
+    model_LiCl_no_boundary_layer = diafiltration_model(
+        cation_list=["Li"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
+        inlet_concentration={
+            "feed": {"Li": 245, "Cl": 245},
+            "diafiltrate": {"Li": 14, "Cl": 14},
+        },
+        non_Donnan_partition_dict={"Li": 0.7, "Cl": 0.1},
+        boundary_layer=False,
+    )
     _test_diagnostics(model_LiCl_no_boundary_layer.fs.unit)
     _test_solve(model_LiCl_no_boundary_layer)
     _test_numerical_issues(model_LiCl_no_boundary_layer.fs.unit)
