@@ -22,7 +22,7 @@ from pyomo.environ import (
 from pyomo.network import Arc
 
 from idaes.core import FlowsheetBlock
-from idaes.core.util.model_diagnostics import DiagnosticsToolbox
+from idaes.core.util.diagnostics_tools.diagnostics_toolbox import DiagnosticsToolbox
 from idaes.models.unit_models import Feed, Product
 
 import matplotlib.pyplot as plt
@@ -197,11 +197,9 @@ def fix_variables(m, inlet_flow_volume, inlet_concentration):
 
     feed_ionic_strength = value(m.fs.membrane.feed_ionic_strength[0])
 
-    if feed_ionic_strength < 51:
+    if feed_ionic_strength < 199:
         m.fs.membrane.applied_pressure.fix(5)
-    elif (feed_ionic_strength >= 51) and (feed_ionic_strength < 199):
-        m.fs.membrane.applied_pressure.fix(10)
-    elif (feed_ionic_strength >= 99) and (feed_ionic_strength < 299):
+    elif (feed_ionic_strength >= 199) and (feed_ionic_strength < 299):
         m.fs.membrane.applied_pressure.fix(15)
     elif feed_ionic_strength >= 299:
         m.fs.membrane.applied_pressure.fix(20)

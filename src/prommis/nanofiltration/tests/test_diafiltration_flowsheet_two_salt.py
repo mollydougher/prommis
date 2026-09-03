@@ -8,7 +8,7 @@
 Tests the two-salt diafiltration flowsheet
 """
 
-from idaes.core.util.model_diagnostics import DiagnosticsToolbox
+from idaes.core.util.diagnostics_tools.diagnostics_toolbox import DiagnosticsToolbox
 from idaes.core.util.testing import assert_solution_equivalent
 from idaes.models.unit_models import Feed, Product
 

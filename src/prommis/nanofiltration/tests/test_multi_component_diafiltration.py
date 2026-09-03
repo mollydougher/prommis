@@ -26,7 +26,7 @@ from pyomo.dae import ContinuousSet, DerivativeVar
 from pyomo.network import Port
 
 from idaes.core import FlowsheetBlock
-from idaes.core.util.model_diagnostics import DiagnosticsToolbox
+from idaes.core.util.diagnostics_tools.diagnostics_toolbox import DiagnosticsToolbox
 from idaes.core.util.model_statistics import degrees_of_freedom
 from idaes.core.util.testing import assert_solution_equivalent
 
@@ -105,11 +105,9 @@ def diafiltration_model():
 
         feed_ionic_strength = value(m.fs.unit.feed_ionic_strength[0])
 
-        if feed_ionic_strength < 51:
+        if feed_ionic_strength < 199:
             m.fs.unit.applied_pressure.fix(5)
-        elif (feed_ionic_strength >= 51) and (feed_ionic_strength < 199):
-            m.fs.unit.applied_pressure.fix(10)
-        elif (feed_ionic_strength >= 99) and (feed_ionic_strength < 299):
+        elif (feed_ionic_strength >= 199) and (feed_ionic_strength < 299):
             m.fs.unit.applied_pressure.fix(15)
         elif feed_ionic_strength >= 299:
             m.fs.unit.applied_pressure.fix(20)
@@ -146,7 +144,7 @@ def test_config(diafiltration_model):
     assert model.fs.unit.config.include_boundary_layer == True
 
     model_no_boundary_layer = diafiltration_model(boundary_layer=False)
-    _test_config(model)
+    _test_config(model_no_boundary_layer)
     assert model_no_boundary_layer.fs.unit.config.include_boundary_layer == False
 
     model_single_salt = diafiltration_model(cation_list=["Li"])
@@ -159,6 +157,7 @@ def test_config(diafiltration_model):
             "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
         },
     )
+    _test_config(model_two_salt)
     assert len(model_two_salt.fs.unit.config.cation_list) == 2
 
     model_three_salt = diafiltration_model(
@@ -168,6 +167,7 @@ def test_config(diafiltration_model):
             "diafiltrate": {"Li": 14, "Co": 3, "Al": 3, "Cl": 29},
         },
     )
+    _test_config(model_three_salt)
     assert len(model_three_salt.fs.unit.config.cation_list) == 3
 
 
@@ -248,11 +248,11 @@ def test_build(diafiltration_model):
         assert len(membrane.d_retentate_flow_volume_dx) == 11
 
         # constraints
-        assert isinstance(membrane.overall_mol_balance, Constraint)
-        assert len(membrane.overall_mol_balance) == 10
+        assert isinstance(membrane.differential_overall_mass_balance, Constraint)
+        assert len(membrane.differential_overall_mass_balance) == 10
 
-        assert isinstance(membrane.overall_bulk_flux_equation, Constraint)
-        assert len(membrane.overall_bulk_flux_equation) == 10
+        assert isinstance(membrane.overall_mass_balance, Constraint)
+        assert len(membrane.overall_mass_balance) == 11
 
         assert isinstance(membrane.lumped_water_flux, Constraint)
         assert len(membrane.lumped_water_flux) == 10
@@ -276,22 +276,10 @@ def test_build(diafiltration_model):
         assert len(membrane.membrane_D_tilde_calculation) == 60
 
         assert isinstance(
-            membrane.retentate_flow_volume_boundary_condition,
-            Constraint,
-        )
-        assert len(membrane.retentate_flow_volume_boundary_condition) == 1
-
-        assert isinstance(
             membrane.permeate_flow_volume_boundary_condition,
             Constraint,
         )
         assert len(membrane.permeate_flow_volume_boundary_condition) == 1
-
-        assert isinstance(
-            membrane.d_retentate_flow_volume_dx_boundary_condition,
-            Constraint,
-        )
-        assert len(membrane.d_retentate_flow_volume_dx_boundary_condition) == 1
 
         assert isinstance(
             membrane.volume_flux_water_boundary_condition,
@@ -462,11 +450,11 @@ def test_build(diafiltration_model):
         assert len(membrane.d_membrane_conc_mol_comp_dz) == 132
 
         # constraints
-        assert isinstance(membrane.cation_mol_balance, Constraint)
-        assert len(membrane.cation_mol_balance) == 10
+        assert isinstance(membrane.differential_cation_mol_balance, Constraint)
+        assert len(membrane.differential_cation_mol_balance) == 10
 
-        assert isinstance(membrane.cation_bulk_flux_equation, Constraint)
-        assert len(membrane.cation_bulk_flux_equation) == 10
+        assert isinstance(membrane.cation_mol_balance, Constraint)
+        assert len(membrane.cation_mol_balance) == 11
 
         assert isinstance(
             membrane.partitioning_term_bilinear_feed_constraint, Constraint
@@ -512,12 +500,6 @@ def test_build(diafiltration_model):
         assert len(membrane.cation_flux_membrane) == 60
 
         assert isinstance(
-            membrane.retentate_conc_mol_comp_boundary_condition,
-            Constraint,
-        )
-        assert len(membrane.retentate_conc_mol_comp_boundary_condition) == 1
-
-        assert isinstance(
             membrane.membrane_conc_mol_comp_boundary_condition,
             Constraint,
         )
@@ -528,12 +510,6 @@ def test_build(diafiltration_model):
             Constraint,
         )
         assert len(membrane.permeate_conc_mol_comp_boundary_condition) == 2
-
-        assert isinstance(
-            membrane.d_retentate_conc_mol_comp_dx_boundary_condition,
-            Constraint,
-        )
-        assert len(membrane.d_retentate_conc_mol_comp_dx_boundary_condition) == 1
 
         assert isinstance(
             membrane.molar_ion_flux_boundary_condition,
@@ -715,16 +691,16 @@ def test_solve(diafiltration_model):
     _test_solve(model_LiCl)
     _test_numerical_issues(model_LiCl.fs.unit)
     LiCl_test_dict = {
-        "applied_pressure": {(0): (5.1657, 1e-4, None)},
+        "applied_pressure": {(0): (5.2828, 1e-4, None)},
         "retentate_flow_volume": {(0, 1): (12.970, 1e-4, None)},
         "retentate_conc_mol_comp": {
-            (0, 1, "Li"): (205.89, 1e-4, None),
-            (0, 1, "Cl"): (205.89, 1e-4, None),
+            (0, 1, "Li"): (205.21, 1e-4, None),
+            (0, 1, "Cl"): (205.21, 1e-4, None),
         },
-        "permeate_flow_volume": {(0, 1): (3.1954, 1e-4, None)},
+        "permeate_flow_volume": {(0, 1): (3.2800, 1e-4, None)},
         "permeate_conc_mol_comp": {
-            (0, 1, "Li"): (142.65, 1e-4, None),
-            (0, 1, "Cl"): (142.65, 1e-4, None),
+            (0, 1, "Li"): (138.22, 1e-4, None),
+            (0, 1, "Cl"): (138.22, 1e-4, None),
         },
     }
     assert_solution_equivalent(model_LiCl.fs.unit, LiCl_test_dict)
@@ -734,16 +710,16 @@ def test_solve(diafiltration_model):
     _test_solve(model_LiCl_no_boundary_layer)
     _test_numerical_issues(model_LiCl_no_boundary_layer.fs.unit)
     LiCl_no_boundary_layer_test_dict = {
-        "applied_pressure": {(0): (5.0909, 1e-4, None)},
+        "applied_pressure": {(0): (5.2255, 1e-4, None)},
         "retentate_flow_volume": {(0, 1): (12.970, 1e-4, None)},
         "retentate_conc_mol_comp": {
-            (0, 1, "Li"): (206.76, 1e-4, None),
-            (0, 1, "Cl"): (206.76, 1e-4, None),
+            (0, 1, "Li"): (205.96, 1e-4, None),
+            (0, 1, "Cl"): (205.96, 1e-4, None),
         },
-        "permeate_flow_volume": {(0, 1): (3.1890, 1e-4, None)},
+        "permeate_flow_volume": {(0, 1): (3.2800, 1e-4, None)},
         "permeate_conc_mol_comp": {
-            (0, 1, "Li"): (139.70, 1e-4, None),
-            (0, 1, "Cl"): (139.70, 1e-4, None),
+            (0, 1, "Li"): (135.27, 1e-4, None),
+            (0, 1, "Cl"): (135.27, 1e-4, None),
         },
     }
     assert_solution_equivalent(

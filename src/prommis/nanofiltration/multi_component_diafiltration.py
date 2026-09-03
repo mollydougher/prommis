@@ -396,9 +396,11 @@ class MultiComponentDiafiltrationInitializer(InitializerBase):
             x_prev = 0
             for x in model.dimensionless_module_length:
                 if x != 0:
-                    # temporary retentate concentration
+                    # temporary retentate conditions
+                    q_ret[t, x].set_value(value(q_ret[t, x_prev]))
                     for j in model.solutes:
                         conc_ret[t, x, j].set_value(value(conc_ret[t, x_prev, j]))
+
                     # guess permeate concentration with observed sieving coefficient surrogate
                     # S_i_obs = c_{i,p} / c_{i,r}
                     # a, b, and c are fitted from successful "brute force" solves
@@ -439,9 +441,10 @@ class MultiComponentDiafiltrationInitializer(InitializerBase):
                         model.volume_flux_water[t, x], model.lumped_water_flux[t, x]
                     )
                     for k in model.cations:
-                        calculate_variable_from_constraint(
-                            model.molar_ion_flux[t, x, k],
-                            model.cation_bulk_flux_equation[t, x, k],
+                        # calculate molar flux assuming convection only
+                        model.molar_ion_flux[t, x, k].set_value(
+                            value(conc_perm[t, x, k])
+                            * value(model.volume_flux_water[t, x])
                         )
                     calculate_variable_from_constraint(
                         model.molar_ion_flux[t, x, a0], model.anion_flux_membrane[t, x]
@@ -449,13 +452,18 @@ class MultiComponentDiafiltrationInitializer(InitializerBase):
                     # calculate flow rates
                     calculate_variable_from_constraint(
                         q_perm[t, x],
-                        model.overall_bulk_flux_equation[t, x],
+                        model.overall_mass_balance[t, x],
                     )
                     q_ret[t, x].set_value(value(q_f_tot[t]) - value(q_perm[t, x]))
                     # calculate derivatives
                     calculate_variable_from_constraint(
                         d_q_r_dx[t, x],
-                        model.overall_mol_balance[t, x],
+                        model.overall_mass_balance[t, x],
+                    )
+                    # d_qr / d_x = (qr(x) - qr(x_prev)) / (x - x_prev)
+                    # (d_qr / d_x)*(x - x_prev) + qr(x_prev) = qr(x)
+                    q_ret[t, x].set_value(
+                        (value(d_q_r_dx[t, x]) * (x - x_prev)) + value(q_ret[t, x_prev])
                     )
                     for k in model.cations:
                         calculate_variable_from_constraint(
@@ -1053,7 +1061,7 @@ and used when constructing these,
         """
 
         # mol balance constraints
-        def _overall_mol_balance(blk, t, x):
+        def _differential_overall_mass_balance(blk, t, x):
             if x == 0:
                 return Constraint.Skip
             return blk.d_retentate_flow_volume_dx[t, x] == (
@@ -1062,11 +1070,13 @@ and used when constructing these,
                 * blk.total_module_length
             )
 
-        self.overall_mol_balance = Constraint(
-            self.time, self.dimensionless_module_length, rule=_overall_mol_balance
+        self.differential_overall_mass_balance = Constraint(
+            self.time,
+            self.dimensionless_module_length,
+            rule=_differential_overall_mass_balance,
         )
 
-        def _cation_mol_balance(blk, t, x, k):
+        def _differential_cation_mol_balance(blk, t, x, k):
             if x == 0:
                 return Constraint.Skip
             return (
@@ -1081,43 +1091,39 @@ and used when constructing these,
                 * blk.total_module_length
             )
 
+        self.differential_cation_mol_balance = Constraint(
+            self.time,
+            self.dimensionless_module_length,
+            self.cations,
+            rule=_differential_cation_mol_balance,
+        )
+
+        def _overall_mass_balance(blk, t, x):
+            return (
+                blk.retentate_flow_volume[t, x] + blk.permeate_flow_volume[t, x]
+                == blk.feed_flow_volume[t] + blk.diafiltrate_flow_volume[t]
+            )
+
+        self.overall_mass_balance = Constraint(
+            self.time, self.dimensionless_module_length, rule=_overall_mass_balance
+        )
+
+        def _cation_mol_balance(blk, t, x, k):
+            return (
+                blk.retentate_flow_volume[t, x] * blk.retentate_conc_mol_comp[t, x, k]
+            ) + (
+                blk.permeate_flow_volume[t, x] * blk.permeate_conc_mol_comp[t, x, k]
+            ) == (
+                blk.feed_flow_volume[t] * blk.feed_conc_mol_comp[t, k]
+            ) + (
+                blk.diafiltrate_flow_volume[t] * blk.diafiltrate_conc_mol_comp[t, k]
+            )
+
         self.cation_mol_balance = Constraint(
             self.time,
             self.dimensionless_module_length,
             self.cations,
             rule=_cation_mol_balance,
-        )
-
-        # bulk flux balance constraints
-        def _overall_bulk_flux_equation(blk, t, x):
-            if x == 0:
-                return Constraint.Skip
-            return (
-                blk.permeate_flow_volume[t, x]
-                == blk.volume_flux_water[t, x]
-                * x
-                * blk.total_membrane_length
-                * blk.total_module_length
-            )
-
-        self.overall_bulk_flux_equation = Constraint(
-            self.time,
-            self.dimensionless_module_length,
-            rule=_overall_bulk_flux_equation,
-        )
-
-        def _cation_bulk_flux_equation(blk, t, x, k):
-            if x == 0:
-                return Constraint.Skip
-            return blk.molar_ion_flux[t, x, k] == (
-                blk.permeate_conc_mol_comp[t, x, k] * blk.volume_flux_water[t, x]
-            )
-
-        self.cation_bulk_flux_equation = Constraint(
-            self.time,
-            self.dimensionless_module_length,
-            self.cations,
-            rule=_cation_bulk_flux_equation,
         )
 
         # transport constraints (first principles)
@@ -1589,27 +1595,6 @@ and used when constructing these,
                 self.solutes,
                 rule=_boundary_layer_membrane_interface,
             )
-
-            def _partitioning_term_bilinear_feed_constraint(blk, t, x, j):
-                if x == 0:
-                    return Constraint.Skip
-                charge = blk.config.property_package.charge
-                conc_bl = blk.boundary_layer_conc_mol_comp
-                H_nonDonnan = (
-                    blk.config.property_package.non_Donnan_partition_coefficient
-                )
-                return blk.partitioning_term_bilinear_feed[t, x, j] == (
-                    conc_bl[t, x, 1, j]
-                    * H_nonDonnan[j]
-                    * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
-                )
-
-            self.partitioning_term_bilinear_feed_constraint = Constraint(
-                self.time,
-                self.dimensionless_module_length,
-                self.solutes,
-                rule=_partitioning_term_bilinear_feed_constraint,
-            )
         else:
 
             def _retentate_membrane_interface(blk, t, x, j):
@@ -1627,26 +1612,33 @@ and used when constructing these,
                 rule=_retentate_membrane_interface,
             )
 
-            def _partitioning_term_bilinear_feed_constraint(blk, t, x, j):
-                if x == 0:
-                    return Constraint.Skip
-                charge = blk.config.property_package.charge
-                conc_r = blk.retentate_conc_mol_comp
-                H_nonDonnan = (
-                    blk.config.property_package.non_Donnan_partition_coefficient
+        def _partitioning_term_bilinear_feed_constraint(blk, t, x, j):
+            if x == 0:
+                return Constraint.Skip
+            charge = blk.config.property_package.charge
+            conc_r = blk.retentate_conc_mol_comp
+
+            H_nonDonnan = blk.config.property_package.non_Donnan_partition_coefficient
+            if self.config.include_boundary_layer:
+                conc_bl = blk.boundary_layer_conc_mol_comp
+                return blk.partitioning_term_bilinear_feed[t, x, j] == (
+                    conc_bl[t, x, 1, j]
+                    * H_nonDonnan[j]
+                    * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
                 )
+            else:
                 return blk.partitioning_term_bilinear_feed[t, x, j] == (
                     conc_r[t, x, j]
                     * H_nonDonnan[j]
                     * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
                 )
 
-            self.partitioning_term_bilinear_feed_constraint = Constraint(
-                self.time,
-                self.dimensionless_module_length,
-                self.solutes,
-                rule=_partitioning_term_bilinear_feed_constraint,
-            )
+        self.partitioning_term_bilinear_feed_constraint = Constraint(
+            self.time,
+            self.dimensionless_module_length,
+            self.solutes,
+            rule=_partitioning_term_bilinear_feed_constraint,
+        )
 
         def _membrane_permeate_interface(blk, t, x, j):
             if x == 0:
@@ -1681,31 +1673,7 @@ and used when constructing these,
             rule=_partitioning_term_bilinear_permeate_constraint,
         )
 
-        # boundary conditions
-        def _retentate_flow_volume_boundary_condition(blk, t):
-            return (
-                blk.retentate_flow_volume[t, 0]
-                == blk.feed_flow_volume[t] + blk.diafiltrate_flow_volume[t]
-            )
-
-        self.retentate_flow_volume_boundary_condition = Constraint(
-            self.time, rule=_retentate_flow_volume_boundary_condition
-        )
-
-        def _retentate_conc_mol_comp_boundary_condition(blk, t, k):
-            return blk.retentate_conc_mol_comp[t, 0, k] == (
-                (
-                    blk.feed_flow_volume[t] * blk.feed_conc_mol_comp[t, k]
-                    + blk.diafiltrate_flow_volume[t]
-                    * blk.diafiltrate_conc_mol_comp[t, k]
-                )
-                / (blk.feed_flow_volume[t] + blk.diafiltrate_flow_volume[t])
-            )
-
-        self.retentate_conc_mol_comp_boundary_condition = Constraint(
-            self.time, self.cations, rule=_retentate_conc_mol_comp_boundary_condition
-        )
-
+        # boundary conditions and constraints to improve numerical stability
         if self.config.include_boundary_layer:
 
             def _boundary_layer_conc_mol_comp_boundary_condition(blk, t, z, j):
@@ -1734,7 +1702,6 @@ and used when constructing these,
             rule=_membrane_conc_mol_comp_boundary_condition,
         )
 
-        # constraints to improve numerical stability
         def _permeate_flow_volume_boundary_condition(blk, t):
             return (
                 blk.permeate_flow_volume[t, 0]
@@ -1753,28 +1720,6 @@ and used when constructing these,
 
         self.permeate_conc_mol_comp_boundary_condition = Constraint(
             self.time, self.solutes, rule=_permeate_conc_mol_comp_boundary_condition
-        )
-
-        def _d_retentate_flow_volume_dx_boundary_condition(blk, t):
-            return (
-                blk.d_retentate_flow_volume_dx[t, 0]
-                == self.numerical_zero_tolerance * units.m**3 / units.h
-            )
-
-        self.d_retentate_flow_volume_dx_boundary_condition = Constraint(
-            self.time, rule=_d_retentate_flow_volume_dx_boundary_condition
-        )
-
-        def _d_retentate_conc_mol_comp_dx_boundary_condition(blk, t, k):
-            return (
-                blk.d_retentate_conc_mol_comp_dx[t, 0, k]
-                == self.numerical_zero_tolerance * units.mol / units.m**3
-            )
-
-        self.d_retentate_conc_mol_comp_dx_boundary_condition = Constraint(
-            self.time,
-            self.cations,
-            rule=_d_retentate_conc_mol_comp_dx_boundary_condition,
         )
 
         def _volume_flux_water_boundary_condition(blk, t):
