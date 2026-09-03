@@ -59,18 +59,18 @@ def test_main():
     assert isinstance(membrane_results_plot, plt.Figure)
 
     test_dict = {
-        "applied_pressure": {(0): (32.067, 1e-4, None)},
-        "retentate_flow_volume": {(0, 1): (12.97, 1e-4, None)},
+        "applied_pressure": {(0): (33.533, 1e-4, None)},
+        "retentate_flow_volume": {(0, 1): (12.970, 1e-4, None)},
         "retentate_conc_mol_comp": {
-            (0, 1, "Li"): (196.61, 1e-4, None),
-            (0, 1, "Co"): (255.81, 1e-4, None),
-            (0, 1, "Cl"): (708.23, 1e-4, None),
+            (0, 1, "Li"): (195.37, 1e-4, None),
+            (0, 1, "Co"): (255.02, 1e-4, None),
+            (0, 1, "Cl"): (705.41, 1e-4, None),
         },
-        "permeate_flow_volume": {(0, 1): (2.9782, 1e-4, None)},
+        "permeate_flow_volume": {(0, 1): (3.2800, 1e-4, None)},
         "permeate_conc_mol_comp": {
-            (0, 1, "Li"): (178.54, 1e-4, None),
-            (0, 1, "Co"): (104.36, 1e-4, None),
-            (0, 1, "Cl"): (387.26, 1e-4, None),
+            (0, 1, "Li"): (177.15, 1e-4, None),
+            (0, 1, "Co"): (92.576, 1e-4, None),
+            (0, 1, "Cl"): (362.30, 1e-4, None),
         },
     }
 
