@@ -230,6 +230,10 @@ def test_build(diafiltration_model):
         assert isinstance(membrane.time, Set)
         assert len(membrane.time) == 1
 
+        # dependent on number of solutes
+        assert isinstance(membrane.solutes, Set)
+        assert isinstance(membrane.cations, Set)
+
         # variables
         assert isinstance(membrane.total_module_length, Var)
         assert len(membrane.total_module_length) == 1
@@ -270,6 +274,22 @@ def test_build(diafiltration_model):
         assert isinstance(membrane.d_retentate_flow_volume_dx, DerivativeVar)
         assert len(membrane.d_retentate_flow_volume_dx) == 11
 
+        # dependent on number of solutes
+        assert isinstance(membrane.feed_conc_mol_comp, Var)
+        assert isinstance(membrane.diafiltrate_conc_mol_comp, Var)
+        assert isinstance(membrane.membrane_cross_diffusion_coefficient_bilinear, Var)
+        assert isinstance(membrane.membrane_convection_coefficient_bilinear, Var)
+        assert isinstance(membrane.membrane_cross_diffusion_coefficient, Var)
+        assert isinstance(membrane.membrane_convection_coefficient, Var)
+        assert isinstance(membrane.membrane_conc_mol_comp, Var)
+        assert isinstance(membrane.molar_ion_flux, Var)
+        assert isinstance(membrane.retentate_conc_mol_comp, Var)
+        assert isinstance(membrane.permeate_conc_mol_comp, Var)
+        assert isinstance(membrane.partitioning_term_bilinear_feed, Var)
+        assert isinstance(membrane.partitioning_term_bilinear_permeate, Var)
+        assert isinstance(membrane.d_retentate_conc_mol_comp_dx, DerivativeVar)
+        assert isinstance(membrane.d_membrane_conc_mol_comp_dz, DerivativeVar)
+
         # constraints
         assert isinstance(membrane.differential_overall_mass_balance, Constraint)
         assert len(membrane.differential_overall_mass_balance) == 10
@@ -309,6 +329,46 @@ def test_build(diafiltration_model):
             Constraint,
         )
         assert len(membrane.volume_flux_water_boundary_condition) == 1
+
+        # dependent on number of solutes
+        assert isinstance(membrane.differential_cation_mol_balance, Constraint)
+        assert isinstance(membrane.cation_mol_balance, Constraint)
+        assert isinstance(
+            membrane.membrane_cross_diffusion_coefficient_bilinear_calculation,
+            Constraint,
+        )
+        assert isinstance(
+            membrane.membrane_convection_coefficient_bilinear_calculation,
+            Constraint,
+        )
+        assert isinstance(
+            membrane.membrane_cross_diffusion_coefficient_calculation,
+            Constraint,
+        )
+        assert isinstance(
+            membrane.membrane_convection_coefficient_calculation,
+            Constraint,
+        )
+        assert isinstance(membrane.cation_flux_membrane, Constraint)
+        assert isinstance(
+            membrane.partitioning_term_bilinear_feed_constraint, Constraint
+        )
+        assert isinstance(
+            membrane.partitioning_term_bilinear_permeate_constraint, Constraint
+        )
+        assert isinstance(membrane.membrane_permeate_interface, Constraint)
+        assert isinstance(
+            membrane.membrane_conc_mol_comp_boundary_condition,
+            Constraint,
+        )
+        assert isinstance(
+            membrane.permeate_conc_mol_comp_boundary_condition,
+            Constraint,
+        )
+        assert isinstance(
+            membrane.molar_ion_flux_boundary_condition,
+            Constraint,
+        )
 
         for t in membrane.time:
             for x in membrane.dimensionless_module_length:
@@ -381,12 +441,41 @@ def test_build(diafiltration_model):
         assert isinstance(membrane.boundary_layer_D_tilde, Var)
         assert len(membrane.boundary_layer_D_tilde) == 66
 
+        # dependent on number of solutes
+        assert isinstance(
+            membrane.boundary_layer_cross_diffusion_coefficient_bilinear,
+            Var,
+        )
+        assert isinstance(membrane.boundary_layer_cross_diffusion_coefficient, Var)
+        assert isinstance(membrane.boundary_layer_conc_mol_comp, Var)
+        assert isinstance(
+            membrane.d_boundary_layer_conc_mol_comp_dz,
+            DerivativeVar,
+        )
+
         # constraints
         assert isinstance(membrane.electroneutrality_boundary_layer, Constraint)
         assert len(membrane.electroneutrality_boundary_layer) == 60
 
         assert isinstance(membrane.boundary_layer_D_tilde_calculation, Constraint)
         assert len(membrane.boundary_layer_D_tilde_calculation) == 60
+
+        # dependent on number of solutes
+        assert isinstance(membrane.retentate_boundary_layer_interface, Constraint)
+        assert isinstance(membrane.boundary_layer_membrane_interface, Constraint)
+        assert isinstance(
+            membrane.boundary_layer_cross_diffusion_coefficient_bilinear_calculation,
+            Constraint,
+        )
+        assert isinstance(
+            membrane.boundary_layer_cross_diffusion_coefficient_calculation,
+            Constraint,
+        )
+        assert isinstance(membrane.cation_flux_boundary_layer, Constraint)
+        assert isinstance(
+            membrane.boundary_layer_conc_mol_comp_boundary_condition,
+            Constraint,
+        )
 
         # scaling factors
         assert membrane.scaling_factor[membrane.boundary_layer_D_tilde] == 1e-2
@@ -411,133 +500,41 @@ def test_build(diafiltration_model):
 
     def _test_build_single_salt(membrane):
         # sets
-        assert isinstance(membrane.solutes, Set)
         assert len(membrane.solutes) == 2
-
-        assert isinstance(membrane.cations, Set)
         assert len(membrane.cations) == 1
 
         # variables
-        assert isinstance(membrane.feed_conc_mol_comp, Var)
         assert len(membrane.feed_conc_mol_comp) == 2
-
-        assert isinstance(membrane.diafiltrate_conc_mol_comp, Var)
         assert len(membrane.diafiltrate_conc_mol_comp) == 2
-
-        assert isinstance(
-            membrane.membrane_cross_diffusion_coefficient_bilinear,
-            Var,
-        )
         assert len(membrane.membrane_cross_diffusion_coefficient_bilinear) == 66
-
-        assert isinstance(
-            membrane.membrane_convection_coefficient_bilinear,
-            Var,
-        )
         assert len(membrane.membrane_convection_coefficient_bilinear) == 66
-
-        assert isinstance(membrane.membrane_cross_diffusion_coefficient, Var)
         assert len(membrane.membrane_cross_diffusion_coefficient) == 66
-
-        assert isinstance(membrane.membrane_convection_coefficient, Var)
         assert len(membrane.membrane_convection_coefficient) == 66
-
-        assert isinstance(membrane.molar_ion_flux, Var)
         assert len(membrane.molar_ion_flux) == 22
-
-        assert isinstance(membrane.retentate_conc_mol_comp, Var)
         assert len(membrane.retentate_conc_mol_comp) == 22
-
-        assert isinstance(membrane.permeate_conc_mol_comp, Var)
         assert len(membrane.permeate_conc_mol_comp) == 22
-
-        assert isinstance(membrane.partitioning_term_bilinear_feed, Var)
         assert len(membrane.partitioning_term_bilinear_feed) == 22
-
-        assert isinstance(membrane.partitioning_term_bilinear_permeate, Var)
         assert len(membrane.partitioning_term_bilinear_permeate) == 22
-
-        assert isinstance(membrane.membrane_conc_mol_comp, Var)
         assert len(membrane.membrane_conc_mol_comp) == 132
-
-        assert isinstance(
-            membrane.d_retentate_conc_mol_comp_dx,
-            DerivativeVar,
-        )
         assert len(membrane.d_retentate_conc_mol_comp_dx) == 22
-
-        assert isinstance(
-            membrane.d_membrane_conc_mol_comp_dz,
-            DerivativeVar,
-        )
         assert len(membrane.d_membrane_conc_mol_comp_dz) == 132
 
         # constraints
-        assert isinstance(membrane.differential_cation_mol_balance, Constraint)
         assert len(membrane.differential_cation_mol_balance) == 10
-
-        assert isinstance(membrane.cation_mol_balance, Constraint)
         assert len(membrane.cation_mol_balance) == 11
-
-        assert isinstance(
-            membrane.partitioning_term_bilinear_feed_constraint, Constraint
-        )
         assert len(membrane.partitioning_term_bilinear_feed_constraint) == 20
-
-        assert isinstance(
-            membrane.partitioning_term_bilinear_permeate_constraint, Constraint
-        )
         assert len(membrane.partitioning_term_bilinear_permeate_constraint) == 20
-
-        assert isinstance(membrane.membrane_permeate_interface, Constraint)
         assert len(membrane.membrane_permeate_interface) == 20
-
-        assert isinstance(
-            membrane.membrane_cross_diffusion_coefficient_bilinear_calculation,
-            Constraint,
-        )
         assert (
             len(membrane.membrane_cross_diffusion_coefficient_bilinear_calculation)
             == 60
         )
-
-        assert isinstance(
-            membrane.membrane_convection_coefficient_bilinear_calculation,
-            Constraint,
-        )
         assert len(membrane.membrane_convection_coefficient_bilinear_calculation) == 60
-
-        assert isinstance(
-            membrane.membrane_cross_diffusion_coefficient_calculation,
-            Constraint,
-        )
         assert len(membrane.membrane_cross_diffusion_coefficient_calculation) == 60
-
-        assert isinstance(
-            membrane.membrane_convection_coefficient_calculation,
-            Constraint,
-        )
         assert len(membrane.membrane_convection_coefficient_calculation) == 60
-
-        assert isinstance(membrane.cation_flux_membrane, Constraint)
         assert len(membrane.cation_flux_membrane) == 60
-
-        assert isinstance(
-            membrane.membrane_conc_mol_comp_boundary_condition,
-            Constraint,
-        )
         assert len(membrane.membrane_conc_mol_comp_boundary_condition) == 12
-
-        assert isinstance(
-            membrane.permeate_conc_mol_comp_boundary_condition,
-            Constraint,
-        )
         assert len(membrane.permeate_conc_mol_comp_boundary_condition) == 2
-
-        assert isinstance(
-            membrane.molar_ion_flux_boundary_condition,
-            Constraint,
-        )
         assert len(membrane.molar_ion_flux_boundary_condition) == 2
 
         # ports
@@ -548,57 +545,24 @@ def test_build(diafiltration_model):
 
     def _test_build_single_salt_boundary_layer(membrane):
         # variables
-        assert isinstance(
-            membrane.boundary_layer_cross_diffusion_coefficient_bilinear,
-            Var,
-        )
         assert len(membrane.boundary_layer_cross_diffusion_coefficient_bilinear) == 66
-
-        assert isinstance(membrane.boundary_layer_cross_diffusion_coefficient, Var)
         assert len(membrane.boundary_layer_cross_diffusion_coefficient) == 66
-
-        assert isinstance(membrane.boundary_layer_conc_mol_comp, Var)
         assert len(membrane.boundary_layer_conc_mol_comp) == 132
-
-        assert isinstance(
-            membrane.d_boundary_layer_conc_mol_comp_dz,
-            DerivativeVar,
-        )
         assert len(membrane.d_boundary_layer_conc_mol_comp_dz) == 132
 
         # constraints
-        assert isinstance(membrane.retentate_boundary_layer_interface, Constraint)
         assert len(membrane.retentate_boundary_layer_interface) == 10
-
-        assert isinstance(membrane.boundary_layer_membrane_interface, Constraint)
         assert len(membrane.boundary_layer_membrane_interface) == 20
-
-        assert isinstance(
-            membrane.boundary_layer_cross_diffusion_coefficient_bilinear_calculation,
-            Constraint,
-        )
         assert (
             len(
                 membrane.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
             )
             == 60
         )
-
-        assert isinstance(
-            membrane.boundary_layer_cross_diffusion_coefficient_calculation,
-            Constraint,
-        )
         assert (
             len(membrane.boundary_layer_cross_diffusion_coefficient_calculation) == 60
         )
-
-        assert isinstance(membrane.cation_flux_boundary_layer, Constraint)
         assert len(membrane.cation_flux_boundary_layer) == 50
-
-        assert isinstance(
-            membrane.boundary_layer_conc_mol_comp_boundary_condition,
-            Constraint,
-        )
         assert len(membrane.boundary_layer_conc_mol_comp_boundary_condition) == 12
 
     def _test_build_single_salt_no_boundary_layer(membrane):
@@ -803,553 +767,128 @@ def test_solve(diafiltration_model):
         model_LiCl_no_boundary_layer.fs.unit, LiCl_no_boundary_layer_test_dict
     )
 
+    model_CoCl2 = diafiltration_model(
+        cation_list=["Co"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
+        inlet_concentration={
+            "feed": {"Co": 288, "Cl": 576},
+            "diafiltrate": {"Co": 3, "Cl": 6},
+        },
+        non_Donnan_partition_dict={"Co": 0.3, "Cl": 0.1},
+        boundary_layer=True,
+    )
+    _test_diagnostics(model_CoCl2.fs.unit)
+    _test_solve(model_CoCl2)
+    _test_numerical_issues(model_CoCl2.fs.unit)
+    CoCl2_test_dict = {
+        "applied_pressure": {(0): (18.145, 1e-4, None)},
+        "retentate_flow_volume": {(0, 1): (12.970, 1e-4, None)},
+        "retentate_conc_mol_comp": {
+            (0, 1, "Co"): (247.51, 1e-4, None),
+            (0, 1, "Cl"): (495.02, 1e-4, None),
+        },
+        "permeate_flow_volume": {(0, 1): (3.2800, 1e-4, None)},
+        "permeate_conc_mol_comp": {
+            (0, 1, "Co"): (122.28, 1e-4, None),
+            (0, 1, "Cl"): (244.56, 1e-4, None),
+        },
+    }
+    assert_solution_equivalent(model_CoCl2.fs.unit, CoCl2_test_dict)
+
+    model_CoCl2_no_boundary_layer = diafiltration_model(
+        cation_list=["Co"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
+        inlet_concentration={
+            "feed": {"Co": 288, "Cl": 576},
+            "diafiltrate": {"Co": 3, "Cl": 6},
+        },
+        non_Donnan_partition_dict={"Co": 0.3, "Cl": 0.1},
+        boundary_layer=False,
+    )
+    _test_diagnostics(model_CoCl2_no_boundary_layer.fs.unit)
+    _test_solve(model_CoCl2_no_boundary_layer)
+    _test_numerical_issues(model_CoCl2_no_boundary_layer.fs.unit)
+    CoCl2_no_boundary_layer_test_dict = {
+        "applied_pressure": {(0): (17.668, 1e-4, None)},
+        "retentate_flow_volume": {(0, 1): (12.970, 1e-4, None)},
+        "retentate_conc_mol_comp": {
+            (0, 1, "Co"): (248.50, 1e-4, None),
+            (0, 1, "Cl"): (497.01, 1e-4, None),
+        },
+        "permeate_flow_volume": {(0, 1): (3.2800, 1e-4, None)},
+        "permeate_conc_mol_comp": {
+            (0, 1, "Co"): (118.34, 1e-4, None),
+            (0, 1, "Cl"): (236.67, 1e-4, None),
+        },
+    }
+    assert_solution_equivalent(
+        model_CoCl2_no_boundary_layer.fs.unit, CoCl2_no_boundary_layer_test_dict
+    )
+
+    model_AlCl3 = diafiltration_model(
+        cation_list=["Al"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
+        inlet_concentration={
+            "feed": {"Al": 20, "Cl": 60},
+            "diafiltrate": {"Al": 3, "Cl": 9},
+        },
+        non_Donnan_partition_dict={"Al": 0.0005, "Cl": 0.1},
+        boundary_layer=True,
+    )
+    _test_diagnostics(model_AlCl3.fs.unit)
+    _test_solve(model_AlCl3)
+    _test_numerical_issues(model_AlCl3.fs.unit)
+    AlCl3_test_dict = {
+        "applied_pressure": {(0): (6.5109, 1e-4, None)},
+        "retentate_flow_volume": {(0, 1): (12.970, 1e-4, None)},
+        "retentate_conc_mol_comp": {
+            (0, 1, "Al"): (19.889, 1e-4, None),
+            (0, 1, "Cl"): (59.668, 1e-4, None),
+        },
+        "permeate_flow_volume": {(0, 1): (3.2800, 1e-4, None)},
+        "permeate_conc_mol_comp": {
+            (0, 1, "Al"): (1.0023, 1e-4, None),
+            (0, 1, "Cl"): (3.0068, 1e-4, None),
+        },
+    }
+    assert_solution_equivalent(model_AlCl3.fs.unit, AlCl3_test_dict)
+
+    model_AlCl3_no_boundary_layer = diafiltration_model(
+        cation_list=["Al"],
+        anion_list=["Cl"],
+        inlet_flow_volume={"feed": 12.5, "diafiltrate": 3.75},
+        inlet_concentration={
+            "feed": {"Al": 20, "Cl": 60},
+            "diafiltrate": {"Al": 3, "Cl": 9},
+        },
+        non_Donnan_partition_dict={"Al": 0.0005, "Cl": 0.1},
+        boundary_layer=False,
+    )
+    _test_diagnostics(model_AlCl3_no_boundary_layer.fs.unit)
+    _test_solve(model_AlCl3_no_boundary_layer)
+    _test_numerical_issues(model_AlCl3_no_boundary_layer.fs.unit)
+    AlCl3_no_boundary_layer_test_dict = {
+        "applied_pressure": {(0): (6.1631, 1e-4, None)},
+        "retentate_flow_volume": {(0, 1): (12.970, 1e-4, None)},
+        "retentate_conc_mol_comp": {
+            (0, 1, "Al"): (19.926, 1e-4, None),
+            (0, 1, "Cl"): (59.778, 1e-4, None),
+        },
+        "permeate_flow_volume": {(0, 1): (3.2800, 1e-4, None)},
+        "permeate_conc_mol_comp": {
+            (0, 1, "Al"): (0.85716, 1e-4, None),
+            (0, 1, "Cl"): (2.5715, 1e-4, None),
+        },
+    }
+    assert_solution_equivalent(
+        model_AlCl3_no_boundary_layer.fs.unit, AlCl3_no_boundary_layer_test_dict
+    )
+
 
 # TODO: incorporate remaining case studies
-
-# @pytest.mark.unit
-# def test_config_Li_no_boundary_layer(
-#     diafiltration_single_salt_Li_no_boundary_layer,
-# ):
-#     test_config(diafiltration_single_salt_Li_no_boundary_layer)
-#     test_config_no_boundary_layer(diafiltration_single_salt_Li_no_boundary_layer)
-#     test_config_single_salt(diafiltration_single_salt_Li_no_boundary_layer)
-
-
-# class TestDiafiltrationSingleSaltLithiumNoBoundaryLayer(object):
-#     @pytest.mark.build
-#     @pytest.mark.unit
-#     def test_build_Li_no_boundary_layer(
-#         self, diafiltration_single_salt_Li_no_boundary_layer
-#     ):
-#         test_build(diafiltration_single_salt_Li_no_boundary_layer)
-#         test_build_single_salt(diafiltration_single_salt_Li_no_boundary_layer)
-#         test_build_single_salt_no_boundary_layer(
-#             diafiltration_single_salt_Li_no_boundary_layer
-#         )
-
-#     @pytest.mark.component
-#     def test_diagnostics_Li_no_boundary_layer(
-#         self, diafiltration_single_salt_Li_no_boundary_layer
-#     ):
-#         test_diagnostics(diafiltration_single_salt_Li_no_boundary_layer)
-
-#     @pytest.mark.solver
-#     @pytest.mark.component
-#     def test_solve_Li_no_boundary_layer(
-#         self, diafiltration_single_salt_Li_no_boundary_layer
-#     ):
-#         test_solve(diafiltration_single_salt_Li_no_boundary_layer)
-
-#         test_dict = {
-#             "retentate_flow_volume": {(0, 1): (8.3856, 1e-4, None)},
-#             "retentate_conc_mol_comp": {
-#                 (0, 1, "Li"): (194.52, 1e-4, None),
-#                 (0, 1, "Cl"): (194.52, 1e-4, None),
-#             },
-#             "permeate_flow_volume": {(0, 1): (7.8637, 1e-4, None)},
-#             "permeate_conc_mol_comp": {
-#                 (0, 1, "Li"): (190.38, 1e-4, None),
-#                 (0, 1, "Cl"): (190.38, 1e-4, None),
-#             },
-#         }
-
-#         assert_solution_equivalent(
-#             diafiltration_single_salt_Li_no_boundary_layer.fs.unit, test_dict
-#         )
-
-#     @pytest.mark.component
-#     def test_numerical_issues_Li_no_boundary_layer(
-#         self, diafiltration_single_salt_Li_no_boundary_layer
-#     ):
-#         test_numerical_issues(diafiltration_single_salt_Li_no_boundary_layer)
-
-
-# ################################################################################
-# # Test single-salt model: CoCl2
-
-
-# @pytest.fixture(scope="module")
-# def diafiltration_single_salt_Co():
-#     """
-#     Build single-salt diafiltration unit model for CoCl2
-#     with boundary layer.
-#     """
-#     cation_list = ["Co"]
-#     anion_list = ["Cl"]
-#     inlet_flow_volume = {"feed": 12.5, "diafiltrate": 3.75}
-#     inlet_concentration = {
-#         "feed": {"Co": 288, "Cl": 576},
-#         "diafiltrate": {"Co": 3, "Cl": 6},
-#     }
-#     non_Donnan_partition_dict = {"Co": 0.3, "Cl": 0.1}
-
-#     m = ConcreteModel()
-#     m.fs = FlowsheetBlock(dynamic=False)
-#     m.fs.properties = MultiComponentDiafiltrationSoluteParameter(
-#         cation_list=cation_list,
-#         anion_list=anion_list,
-#         non_Donnan_partition_dict=non_Donnan_partition_dict,
-#     )
-
-#     Dm_Cl = units.convert(
-#         m.fs.properties.membrane_diffusion_coefficient[anion_list[0]],
-#         to_units=units.um**2 / units.s,
-#     )
-#     Dm_over_l_value = 40 # um/s
-#     l_um = value(Dm_Cl) / Dm_over_l_value  # um
-#     l_m = l_um / 1e6  # m
-
-#     m.fs.unit = MultiComponentDiafiltration(
-#         property_package=m.fs.properties,
-#         cation_list=cation_list,
-#         anion_list=anion_list,
-#         include_boundary_layer=True,
-#         total_membrane_thickness=l_m,
-#         NFE_module_length=10,
-#         NFE_boundary_layer_thickness=5,
-#         NFE_membrane_thickness=5,
-#     )
-
-#     assert value(m.fs.unit.membrane_fixed_charge) == -44
-
-#     assert degrees_of_freedom(m.fs.unit) == 7
-
-#     m.fs.unit.total_module_length.fix()
-#     m.fs.unit.total_membrane_length.fix()
-#     # reduce pressure to accommodate lower osmotic pressure of single salts
-#     m.fs.unit.applied_pressure.fix(5)
-
-#     m.fs.unit.feed_flow_volume.fix(inlet_flow_volume["feed"])
-#     m.fs.unit.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
-
-#     for t in m.fs.unit.time:
-#         for j in m.fs.unit.solutes:
-#             m.fs.unit.feed_conc_mol_comp[t, j].fix(inlet_concentration["feed"][j])
-#             m.fs.unit.diafiltrate_conc_mol_comp[t, j].fix(
-#                 inlet_concentration["diafiltrate"][j]
-#             )
-
-#     initialized_model = m.fs.unit.default_initializer()
-#     initialized_model.initialize(m.fs.unit)
-
-#     assert degrees_of_freedom(m.fs.unit) == 0
-
-#     return m
-
-
-# @pytest.mark.unit
-# def test_config_Co(diafiltration_single_salt_Co):
-#     test_config(diafiltration_single_salt_Co)
-#     test_config_boundary_layer(diafiltration_single_salt_Co)
-#     test_config_single_salt(diafiltration_single_salt_Co)
-
-
-# class TestDiafiltrationSingleSaltCobalt(object):
-#     @pytest.mark.build
-#     @pytest.mark.unit
-#     def test_build_Co(self, diafiltration_single_salt_Co):
-#         test_build(diafiltration_single_salt_Co)
-#         test_build_boundary_layer(diafiltration_single_salt_Co)
-#         test_build_single_salt(diafiltration_single_salt_Co)
-#         test_build_single_salt_boundary_layer(diafiltration_single_salt_Co)
-
-#     @pytest.mark.component
-#     def test_diagnostics_Co(self, diafiltration_single_salt_Co):
-#         test_diagnostics(diafiltration_single_salt_Co)
-
-#     @pytest.mark.solver
-#     @pytest.mark.component
-#     def test_solve_Co(self, diafiltration_single_salt_Co):
-#         test_solve(diafiltration_single_salt_Co)
-
-#         test_dict = {
-#             "retentate_flow_volume": {(0, 1): (10.475, 1e-4, None)},
-#             "retentate_conc_mol_comp": {
-#                 (0, 1, "Co"): (226.82, 1e-4, None),
-#                 (0, 1, "Cl"): (453.64, 1e-4, None),
-#             },
-#             "permeate_flow_volume": {(0, 1): (5.7640, 1e-4, None)},
-#             "permeate_conc_mol_comp": {
-#                 (0, 1, "Co"): (216.55, 1e-4, None),
-#                 (0, 1, "Cl"): (433.11, 1e-4, None),
-#             },
-#         }
-
-#         assert_solution_equivalent(diafiltration_single_salt_Co.fs.unit, test_dict)
-
-#     @pytest.mark.component
-#     def test_numerical_issues_Co(self, diafiltration_single_salt_Co):
-#         test_numerical_issues(diafiltration_single_salt_Co)
-
-
-# @pytest.fixture(scope="module")
-# def diafiltration_single_salt_Co_no_boundary_layer():
-#     """
-#     Build single-salt diafiltration unit model for CoCl2
-#     without boundary layer.
-#     """
-#     cation_list = ["Co"]
-#     anion_list = ["Cl"]
-#     inlet_flow_volume = {"feed": 12.5, "diafiltrate": 3.75}
-#     inlet_concentration = {
-#         "feed": {"Co": 288, "Cl": 576},
-#         "diafiltrate": {"Co": 3, "Cl": 6},
-#     }
-#     non_Donnan_partition_dict = {"Co": 0.3, "Cl": 0.1}
-
-#     m = ConcreteModel()
-#     m.fs = FlowsheetBlock(dynamic=False)
-#     m.fs.properties = MultiComponentDiafiltrationSoluteParameter(
-#         cation_list=cation_list,
-#         anion_list=anion_list,
-#         non_Donnan_partition_dict=non_Donnan_partition_dict,
-#     )
-
-#     Dm_Cl = units.convert(
-#         m.fs.properties.membrane_diffusion_coefficient[anion_list[0]],
-#         to_units=units.um**2 / units.s,
-#     )
-#     Dm_over_l_value = 40 # um/s
-#     l_um = value(Dm_Cl) / Dm_over_l_value  # um
-#     l_m = l_um / 1e6  # m
-
-#     m.fs.unit = MultiComponentDiafiltration(
-#         property_package=m.fs.properties,
-#         cation_list=cation_list,
-#         anion_list=anion_list,
-#         include_boundary_layer=False,
-#         total_membrane_thickness=l_m,
-#         NFE_module_length=10,
-#         NFE_boundary_layer_thickness=5,
-#         NFE_membrane_thickness=5,
-#     )
-
-#     assert value(m.fs.unit.membrane_fixed_charge) == -44
-
-#     assert degrees_of_freedom(m.fs.unit) == 7
-
-#     m.fs.unit.total_module_length.fix()
-#     m.fs.unit.total_membrane_length.fix()
-#     # reduce pressure to accommodate lower osmotic pressure of single salts
-#     m.fs.unit.applied_pressure.fix(5)
-
-#     m.fs.unit.feed_flow_volume.fix(inlet_flow_volume["feed"])
-#     m.fs.unit.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
-
-#     for t in m.fs.unit.time:
-#         for j in m.fs.unit.solutes:
-#             m.fs.unit.feed_conc_mol_comp[t, j].fix(inlet_concentration["feed"][j])
-#             m.fs.unit.diafiltrate_conc_mol_comp[t, j].fix(
-#                 inlet_concentration["diafiltrate"][j]
-#             )
-
-#     initialized_model = m.fs.unit.default_initializer()
-#     initialized_model.initialize(m.fs.unit)
-
-#     assert degrees_of_freedom(m.fs.unit) == 0
-
-#     return m
-
-
-# @pytest.mark.unit
-# def test_config_Co_no_boundary_layer(
-#     diafiltration_single_salt_Co_no_boundary_layer,
-# ):
-#     test_config(diafiltration_single_salt_Co_no_boundary_layer)
-#     test_config_no_boundary_layer(diafiltration_single_salt_Co_no_boundary_layer)
-#     test_config_single_salt(diafiltration_single_salt_Co_no_boundary_layer)
-
-
-# class TestDiafiltrationSingleSaltCobaltNoBoundaryLayer(object):
-#     @pytest.mark.build
-#     @pytest.mark.unit
-#     def test_build_Co_no_boundary_layer(
-#         self, diafiltration_single_salt_Co_no_boundary_layer
-#     ):
-#         test_build(diafiltration_single_salt_Co_no_boundary_layer)
-#         test_build_single_salt(diafiltration_single_salt_Co_no_boundary_layer)
-#         test_build_single_salt_no_boundary_layer(
-#             diafiltration_single_salt_Co_no_boundary_layer
-#         )
-
-#     @pytest.mark.component
-#     def test_diagnostics_Co_no_boundary_layer(
-#         self, diafiltration_single_salt_Co_no_boundary_layer
-#     ):
-#         test_diagnostics(diafiltration_single_salt_Co_no_boundary_layer)
-
-#     @pytest.mark.solver
-#     @pytest.mark.component
-#     def test_solve_Co_no_boundary_layer(
-#         self, diafiltration_single_salt_Co_no_boundary_layer
-#     ):
-#         test_solve(diafiltration_single_salt_Co_no_boundary_layer)
-
-#         test_dict = {
-#             "retentate_flow_volume": {(0, 1): (10.468, 1e-4, None)},
-#             "retentate_conc_mol_comp": {
-#                 (0, 1, "Co"): (227.59, 1e-4, None),
-#                 (0, 1, "Cl"): (455.17, 1e-4, None),
-#             },
-#             "permeate_flow_volume": {(0, 1): (5.7687, 1e-4, None)},
-#             "permeate_conc_mol_comp": {
-#                 (0, 1, "Co"): (215.62, 1e-4, None),
-#                 (0, 1, "Cl"): (431.24, 1e-4, None),
-#             },
-#         }
-
-#         assert_solution_equivalent(
-#             diafiltration_single_salt_Co_no_boundary_layer.fs.unit, test_dict
-#         )
-
-#     @pytest.mark.component
-#     def test_numerical_issues_Co_no_boundary_layer(
-#         self, diafiltration_single_salt_Co_no_boundary_layer
-#     ):
-#         test_numerical_issues(diafiltration_single_salt_Co_no_boundary_layer)
-
-
-# ################################################################################
-# # Test single-salt model: AlCl3
-
-
-# @pytest.fixture(scope="module")
-# def diafiltration_single_salt_Al():
-#     """
-#     Build single-salt diafiltration unit model for AlCl3
-#     with boundary layer.
-#     """
-#     cation_list = ["Al"]
-#     anion_list = ["Cl"]
-#     inlet_flow_volume = {"feed": 12.5, "diafiltrate": 3.75}
-#     inlet_concentration = {
-#         "feed": {"Al": 20, "Cl": 60},
-#         "diafiltrate": {"Al": 3, "Cl": 9},
-#     }
-#     non_Donnan_partition_dict = {"Al": 0.0005, "Cl": 0.1}
-
-#     m = ConcreteModel()
-#     m.fs = FlowsheetBlock(dynamic=False)
-#     m.fs.properties = MultiComponentDiafiltrationSoluteParameter(
-#         cation_list=cation_list,
-#         anion_list=anion_list,
-#         non_Donnan_partition_dict=non_Donnan_partition_dict,
-#     )
-
-#     Dm_Cl = units.convert(
-#         m.fs.properties.membrane_diffusion_coefficient[anion_list[0]],
-#         to_units=units.um**2 / units.s,
-#     )
-#     Dm_over_l_value = 40 # um/s
-#     l_um = value(Dm_Cl) / Dm_over_l_value  # um
-#     l_m = l_um / 1e6  # m
-
-#     m.fs.unit = MultiComponentDiafiltration(
-#         property_package=m.fs.properties,
-#         cation_list=cation_list,
-#         anion_list=anion_list,
-#         include_boundary_layer=True,
-#         total_membrane_thickness=l_m,
-#         NFE_module_length=10,
-#         NFE_boundary_layer_thickness=5,
-#         NFE_membrane_thickness=5,
-#     )
-
-#     assert value(m.fs.unit.membrane_fixed_charge) == -44
-
-#     assert degrees_of_freedom(m.fs.unit) == 7
-
-#     m.fs.unit.total_module_length.fix()
-#     m.fs.unit.total_membrane_length.fix()
-#     # reduce pressure to accommodate lower osmotic pressure of single salts
-#     m.fs.unit.applied_pressure.fix(5)
-
-#     m.fs.unit.feed_flow_volume.fix(inlet_flow_volume["feed"])
-#     m.fs.unit.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
-
-#     for t in m.fs.unit.time:
-#         for j in m.fs.unit.solutes:
-#             m.fs.unit.feed_conc_mol_comp[t, j].fix(inlet_concentration["feed"][j])
-#             m.fs.unit.diafiltrate_conc_mol_comp[t, j].fix(
-#                 inlet_concentration["diafiltrate"][j]
-#             )
-
-#     initialized_model = m.fs.unit.default_initializer()
-#     initialized_model.initialize(m.fs.unit)
-
-#     assert degrees_of_freedom(m.fs.unit) == 0
-
-#     return m
-
-
-# @pytest.mark.unit
-# def test_config_Al(diafiltration_single_salt_Al):
-#     test_config(diafiltration_single_salt_Al)
-#     test_config_boundary_layer(diafiltration_single_salt_Al)
-#     test_config_single_salt(diafiltration_single_salt_Al)
-
-
-# class TestDiafiltrationSingleSaltAluminum(object):
-#     @pytest.mark.build
-#     @pytest.mark.unit
-#     def test_build_Al(self, diafiltration_single_salt_Al):
-#         test_build(diafiltration_single_salt_Al)
-#         test_build_boundary_layer(diafiltration_single_salt_Al)
-#         test_build_single_salt(diafiltration_single_salt_Al)
-#         test_build_single_salt_boundary_layer(diafiltration_single_salt_Al)
-
-#     @pytest.mark.component
-#     def test_diagnostics_Al(self, diafiltration_single_salt_Al):
-#         test_diagnostics(diafiltration_single_salt_Al)
-
-#     @pytest.mark.solver
-#     @pytest.mark.component
-#     def test_solve_Al(self, diafiltration_single_salt_Al):
-#         test_solve(diafiltration_single_salt_Al)
-
-#         test_dict = {
-#             "retentate_flow_volume": {(0, 1): (9.5153, 1e-4, None)},
-#             "retentate_conc_mol_comp": {
-#                 (0, 1, "Al"): (17.722, 1e-4, None),
-#                 (0, 1, "Cl"): (53.166, 1e-4, None),
-#             },
-#             "permeate_flow_volume": {(0, 1): (6.6918, 1e-4, None)},
-#             "permeate_conc_mol_comp": {
-#                 (0, 1, "Al"): (14.649, 1e-4, None),
-#                 (0, 1, "Cl"): (43.947, 1e-4, None),
-#             },
-#         }
-
-#         assert_solution_equivalent(diafiltration_single_salt_Al.fs.unit, test_dict)
-
-#     @pytest.mark.component
-#     def test_numerical_issues_Al(self, diafiltration_single_salt_Al):
-#         test_numerical_issues(diafiltration_single_salt_Al)
-
-
-# @pytest.fixture(scope="module")
-# def diafiltration_single_salt_Al_no_boundary_layer():
-#     """
-#     Build single-salt diafiltration unit model for AlCl3
-#     without boundary layer.
-#     """
-#     cation_list = ["Al"]
-#     anion_list = ["Cl"]
-#     inlet_flow_volume = {"feed": 12.5, "diafiltrate": 3.75}
-#     inlet_concentration = {
-#         "feed": {"Al": 20, "Cl": 60},
-#         "diafiltrate": {"Al": 3, "Cl": 9},
-#     }
-#     non_Donnan_partition_dict = {"Al": 0.0005, "Cl": 0.1}
-
-#     m = ConcreteModel()
-#     m.fs = FlowsheetBlock(dynamic=False)
-#     m.fs.properties = MultiComponentDiafiltrationSoluteParameter(
-#         cation_list=cation_list,
-#         anion_list=anion_list,
-#         non_Donnan_partition_dict=non_Donnan_partition_dict,
-#     )
-
-#     Dm_Cl = units.convert(
-#         m.fs.properties.membrane_diffusion_coefficient[anion_list[0]],
-#         to_units=units.um**2 / units.s,
-#     )
-#     Dm_over_l_value = 40 # um/s
-#     l_um = value(Dm_Cl) / Dm_over_l_value  # um
-#     l_m = l_um / 1e6  # m
-
-#     m.fs.unit = MultiComponentDiafiltration(
-#         property_package=m.fs.properties,
-#         cation_list=cation_list,
-#         anion_list=anion_list,
-#         include_boundary_layer=False,
-#         total_membrane_thickness=l_m,
-#         NFE_module_length=10,
-#         NFE_membrane_thickness=5,
-#     )
-
-#     assert value(m.fs.unit.membrane_fixed_charge) == -44
-
-#     assert degrees_of_freedom(m.fs.unit) == 7
-
-#     m.fs.unit.total_module_length.fix()
-#     m.fs.unit.total_membrane_length.fix()
-#     # reduce pressure to accommodate lower osmotic pressure of single salts
-#     m.fs.unit.applied_pressure.fix(5)
-
-#     m.fs.unit.feed_flow_volume.fix(inlet_flow_volume["feed"])
-#     m.fs.unit.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
-
-#     for t in m.fs.unit.time:
-#         for j in m.fs.unit.solutes:
-#             m.fs.unit.feed_conc_mol_comp[t, j].fix(inlet_concentration["feed"][j])
-#             m.fs.unit.diafiltrate_conc_mol_comp[t, j].fix(
-#                 inlet_concentration["diafiltrate"][j]
-#             )
-
-#     initialized_model = m.fs.unit.default_initializer()
-#     initialized_model.initialize(m.fs.unit)
-
-#     assert degrees_of_freedom(m.fs.unit) == 0
-
-#     return m
-
-
-# @pytest.mark.unit
-# def test_config_Al(diafiltration_single_salt_Al_no_boundary_layer):
-#     test_config(diafiltration_single_salt_Al_no_boundary_layer)
-#     test_config_no_boundary_layer(diafiltration_single_salt_Al_no_boundary_layer)
-#     test_config_single_salt(diafiltration_single_salt_Al_no_boundary_layer)
-
-
-# class TestDiafiltrationSingleSaltAluminumNoBoundaryLayer(object):
-#     @pytest.mark.build
-#     @pytest.mark.unit
-#     def test_build_Al_no_boundary_layer(
-#         self, diafiltration_single_salt_Al_no_boundary_layer
-#     ):
-#         test_build(diafiltration_single_salt_Al_no_boundary_layer)
-#         test_build_single_salt(diafiltration_single_salt_Al_no_boundary_layer)
-#         test_build_single_salt_no_boundary_layer(
-#             diafiltration_single_salt_Al_no_boundary_layer
-#         )
-
-#     @pytest.mark.component
-#     def test_diagnostics_Al_no_boundary_layer(
-#         self, diafiltration_single_salt_Al_no_boundary_layer
-#     ):
-#         test_diagnostics(diafiltration_single_salt_Al_no_boundary_layer)
-
-#     @pytest.mark.solver
-#     @pytest.mark.component
-#     def test_solve_Al_no_boundary_layer(
-#         self, diafiltration_single_salt_Al_no_boundary_layer
-#     ):
-#         test_solve(diafiltration_single_salt_Al_no_boundary_layer)
-
-#         test_dict = {
-#             "retentate_flow_volume": {(0, 1): (9.4910, 1e-4, None)},
-#             "retentate_conc_mol_comp": {
-#                 (0, 1, "Al"): (18.044, 1e-4, None),
-#                 (0, 1, "Cl"): (54.131, 1e-4, None),
-#             },
-#             "permeate_flow_volume": {(0, 1): (6.7079, 1e-4, None)},
-#             "permeate_conc_mol_comp": {
-#                 (0, 1, "Al"): (14.372, 1e-4, None),
-#                 (0, 1, "Cl"): (43.115, 1e-4, None),
-#             },
-#         }
-
-#         assert_solution_equivalent(
-#             diafiltration_single_salt_Al_no_boundary_layer.fs.unit, test_dict
-#         )
-
-#     @pytest.mark.component
-#     def test_numerical_issues_Al_no_boundary_layer(
-#         self, diafiltration_single_salt_Al_no_boundary_layer
-#     ):
-#         test_numerical_issues(diafiltration_single_salt_Al_no_boundary_layer)
-
 
 # ################################################################################
 # # Test functions for two-salt model
