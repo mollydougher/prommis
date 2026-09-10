@@ -284,3 +284,117 @@ Error halved for both species when NFE doubled — consistent with **first-order
 2. Permeate outlet port exposing local concentration at x=1 rather than the flow-weighted average — fixed via `permeate_avg_conc_mol_comp` Expression.
 
 Remaining error is discretization-limited and scales as expected with NFE.
+
+---
+
+## Session 6 — Critical Mathematical Review (2026-09-10)
+
+### Finding 1 — Osmotic Pressure: Incorrect Use of `num_solutes` for Multivalent Salts ⚠️ HIGH
+
+**Location:** `osmotic_pressure_calculation` constraint; `num_solutes` parameter in property package.
+
+The osmotic pressure is computed as Δπ = RT·Σᵢ nᵢ·σᵢ·(cᵢ,r − cᵢ,p), where cᵢ are individual **ion** concentrations and nᵢ is "moles of ions per mole of salt." Multiplying individual ion concentrations by nᵢ double-counts dissociation stoichiometry. For a single LiCl system (n_Li = n_Cl = 1), the formula is correct. For any system with multivalent ions it is not.
+
+**Concrete error for LiCl + CoCl₂ at the default inlet** (C_Li=245, C_Co=288, C_Cl=821 mol/m³, n_Cl=3):
+
+| Formula | Sum |
+|---------|-----|
+| Correct: Σᵢ cᵢ,r | 1354 mol/m³ |
+| Model: Σᵢ nᵢ·cᵢ,r | 2996 mol/m³ (~2.2× overestimate) |
+
+This inflates the effective osmotic pressure, reduces water flux predictions, and shifts all rejection curves.
+
+**Fix:** Set nᵢ = 1 for all ions in the osmotic pressure formula, reducing it to Δπ = RT·Σᵢ σᵢ·(cᵢ,r − cᵢ,p). The `num_solutes` parameter can be removed from the osmotic pressure constraint.
+
+---
+
+### Finding 2 — Docstring Equation for q_p(x̄) Is Wrong ⚠️ MODERATE
+
+**Location:** Module docstring, "Bulk flux balances" section.
+
+The docstring states q_p(x̄) = x̄·w·L·J_w(x̄). This is only correct for spatially uniform J_w. The actual (correct) expression is the integral: q_p(x̄) = ∫₀^x̄ J_w(x̄')·w·L dx̄'. The implementation correctly uses `overall_mass_balance` (q_r + q_p = q_f + q_d); the docstring should be updated to match.
+
+---
+
+### Finding 3 — Feed Anion Concentration Silently Ignored ⚠️ MODERATE
+
+**Location:** `retentate_conc_mol_comp_feed_condition` (indexed over `self.cations` only).
+
+The inlet condition is only enforced for cations. The anion concentration at x̄=0 is set by `electroneutrality_retentate`, not by the user-specified feed values. Any anion concentrations provided in `feed_conc_mol_comp` or `diafiltrate_conc_mol_comp` for the anion have no effect. There is no check that the specified feed is electroneutral. **Recommendation:** Add a validation/warning that checks electroneutrality of the user-supplied feed.
+
+---
+
+### Finding 4 — `membrane_permeability` Default Inconsistency ⚠️ MODERATE
+
+**Location:** `add_mutable_parameters()`.
+
+Docstring parameter table: 0.01 m/h/bar = 10 LMH/bar. Code initializes to `11` LMH/bar (~10% discrepancy). Should be made consistent with the cited reference (Liu et al. 2025).
+
+---
+
+### Finding 5 — `membrane_D_tilde` Can Become Negative ⚠️ MODERATE
+
+**Location:** `membrane_D_tilde_calculation`.
+
+D̃ₘ = Σₖ[(zₖ²·Dₖ,ₘ − zₖ·zₐ·Dₐ,ₘ)·cₖ,ₘ] − zₐ·Dₐ,ₘ·χ. For a negatively charged membrane (zₐ = −1, χ = −44 mol/m³), the fixed-charge term −zₐ·Dₐ,ₘ·χ = −44·Dₐ,ₘ < 0. Under very dilute membrane conditions, D̃ₘ could become negative, causing numerical ill-conditioning in the bilinear coefficient formulation. Donnan enrichment of cations in practice prevents this, but no explicit lower bound or constraint enforces D̃ₘ > 0.
+
+---
+
+### Finding 6 — Anion Flux BC Is Implicit (Correct but Undocumented) — INFO
+
+The condition jₐ = Jw·cₐ,p is not an explicit constraint but follows implicitly from: `flux_boundary_condition` (jₖ = Jw·cₖ,p for cations) + `anion_flux_membrane` (Σzᵢjᵢ = 0) + `electroneutrality_permeate` (Σzᵢcᵢ,p = 0). The chain is rigorous; no fix needed, but worth documenting.
+
+---
+
+### Finding 7 — BL-Retentate Interface Only Enforced for Cations — INFO
+
+`retentate_boundary_layer_interface` enforces cₖ,r = cₖ,bl(z=0) for cations only. The anion version holds implicitly via electroneutrality in both domains. Mathematically correct; worth documenting.
+
+---
+
+### Finding 8 — `sigma` Comment Has Wrong Units (Minor)
+
+`sigma_dict` in the property package has the comment `# mm2 / h` for each entry, but σ is the dimensionless thermodynamic reflection coefficient. The `Param` declaration correctly uses `units=units.dimensionless`; only the comment is wrong.
+
+---
+
+### Finding 9 — `salt_system` Detection Is Order-Sensitive With No `else` Clause (Minor)
+
+The if/elif chain in the property package uses exact list equality. Passing `cation_list = ["Co", "Li"]` instead of `["Li", "Co"]` leaves `salt_system` undefined, causing a `NameError`. **Recommendation:** Add `else: raise ConfigurationError(...)` and/or sort `cation_list` before comparison.
+
+---
+
+### Finding 10 — Membrane Diffusivity Hard-Coded as 10⁻³ × Bulk (Minor)
+
+`membrane_diffusion_coefficient = 0.001 × boundary_layer_diffusion_coefficient` for all ions. Actual membrane diffusivity depends on porosity, tortuosity, and steric exclusion and varies per ion. This is a recognized simplification but should be treated as a fit parameter rather than a fixed physical constant.
+
+---
+
+### Finding 11 — `applied_pressure` Upper Bound Not Configurable (Minor)
+
+`applied_pressure` has a hard-coded upper bound of 41 bar (NF270-440 operating limit). Not user-configurable, which limits generalization to other membrane types.
+
+---
+
+### Finding 12 — `volume_flux_water` Lower Bound Prevents Zero Flux (Minor)
+
+Lower bound is 1e-20 rather than 0. If osmotic pressure exceeds applied pressure, the solver cannot return zero flux, potentially causing infeasibility. Setting the lower bound to 0 is more physically meaningful.
+
+---
+
+### Summary Table
+
+| # | Issue | Severity |
+|---|-------|----------|
+| 1 | `num_solutes` overcounts osmotic pressure for multivalent salts | **High** |
+| 2 | Docstring q_p(x̄) equation is mathematically wrong | Moderate |
+| 3 | Feed anion concentration silently ignored; no electroneutrality validation | Moderate |
+| 4 | `membrane_permeability` default 11 vs. 10 LMH/bar in docstring | Moderate |
+| 5 | `membrane_D_tilde` can become negative; no lower bound enforced | Moderate |
+| 6 | Anion flux BC satisfied implicitly — correct but undocumented | Info |
+| 7 | BL-retentate interface only for cations — correct but undocumented | Info |
+| 8 | `sigma` comment says "mm2/h" but σ is dimensionless | Minor |
+| 9 | `salt_system` detection order-sensitive, no `else` clause | Minor |
+| 10 | Membrane diffusivity hard-coded as 10⁻³ × bulk | Minor |
+| 11 | `applied_pressure` upper bound 41 bar not configurable | Minor |
+| 12 | `volume_flux_water` lower bound 1e-20 prevents zero flux | Minor |
