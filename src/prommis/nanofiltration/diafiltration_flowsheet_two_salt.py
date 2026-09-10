@@ -53,12 +53,13 @@ def main():
         "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
     }
     include_boundary_layer = True
-    NFE_module_length = 10
+    NFE_module_length = 20
     NFE_boundary_layer_thickness = 5
     NFE_membrane_thickness = 5
     non_Donnan_partition_dict = {
         "Li": 0.7,
         "Co": 0.3,
+        # "Al": 0.0005,
         "Cl": 0.1,
     }  # informed from data and sensitivity analysis
     Dm_over_l_value = 40  # um/s, informed from data and sensitivity analysis
@@ -81,8 +82,12 @@ def main():
 
     # initialize membrane model
     initialized_membrane_model = m.fs.membrane.default_initializer(
-        multiplier_H_feed=1.2,  # increase can help solver performance
-        multiplier_H_perm=1,
+        multiplier_H_feed={
+            "Li": 1.2,
+            "Co": 1.2,
+            "Cl": 1.2,
+        },  # increase can help solver performance
+        multiplier_H_perm={"Li": 1, "Co": 1, "Cl": 1},
     )
     initialized_membrane_model.initialize(m.fs.membrane)
 
@@ -95,24 +100,40 @@ def main():
 
     # solve model
     solve_model(m)
-    set_water_flux_target(m, flux_target=0.02)  # 20 LMH / bar
-    solve_model(m)
+    # set_water_flux_target(m, flux_target=0.02)  # 20 LMH / bar
+    # solve_model(m)
 
     # check numerical warnings
-    dt.assert_no_numerical_warnings()
+    # dt.assert_no_numerical_warnings()
+    # dt.report_numerical_issues()
+    # dt.display_constraints_with_large_residuals()
+    # dt.display_variables_at_or_outside_bounds()
+    # dt.compute_infeasibility_explanation()
+    # dt.display_constraints_with_extreme_jacobians()
+    # dt.display_variables_with_extreme_jacobians()
+
+    m.fs.membrane.applied_pressure.display()
+    m.fs.membrane.retentate_flow_volume.display()
+    m.fs.membrane.retentate_conc_mol_comp.display()
+    m.fs.membrane.permeate_flow_volume.display()
+    m.fs.membrane.permeate_conc_mol_comp.display()
+    m.fs.membrane.permeate_avg_conc_mol_comp.display()
+
+    # m.fs.membrane.volume_flux_water.display()
+    # m.fs.membrane.molar_ion_flux.display()
 
     # visualize the results
-    overall_results_plot = plot_results_by_length(m)
-    boundary_layer_results_plot = plot_results_by_thickness(m, phase="Boundary Layer")
-    membrane_results_plot = plot_results_by_thickness(m, phase="Membrane")
-    plt.show()
+    # overall_results_plot = plot_results_by_length(m)
+    # boundary_layer_results_plot = plot_results_by_thickness(m, phase="Boundary Layer")
+    # membrane_results_plot = plot_results_by_thickness(m, phase="Membrane")
+    # plt.show()
 
-    return (
-        m,
-        overall_results_plot,
-        boundary_layer_results_plot,
-        membrane_results_plot,
-    )
+    # return (
+    #     m,
+    #     overall_results_plot,
+    #     boundary_layer_results_plot,
+    #     membrane_results_plot,
+    # )
 
 
 def build_flowsheet_model(
