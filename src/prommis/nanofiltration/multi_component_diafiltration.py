@@ -307,59 +307,56 @@ from pyomo.network import Port
 from pyomo.util.calc_var_value import calculate_variable_from_constraint
 
 from idaes.core import UnitModelBlockData, declare_process_block_class, useDefault
-from idaes.core.initialization import BlockTriangularizationInitializer
+from idaes.core.initialization import InitializerBase
 from idaes.core.util.config import is_physical_parameter_block
 from idaes.core.util.constants import Constants
 from idaes.core.util.exceptions import ConfigurationError
 
 
-class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
+class MultiComponentDiafiltrationInitializer(InitializerBase):
     """
     Multi-Component Diafiltration Initializer Class.
     """
 
-    CONFIG = BlockTriangularizationInitializer.CONFIG()
+    CONFIG = InitializerBase.CONFIG()
 
-    # CONFIG.declare(
-    #     "H_feed_guess",
-    #     ConfigValue(
-    #         default=1.2,
-    #         doc="Guessed initial value of H",
-    #     ),
-    # )
-    # CONFIG.declare(
-    #     "H_permeate_guess",
-    #     ConfigValue(
-    #         default=1.2,
-    #         doc="Guessed initial value of H",
-    #     ),
-    # )
     CONFIG.declare(
-        "fudge_factor_H_feed",
+        "H_feed_guess",
         ConfigValue(
-            default=1,
-            doc="Fudge factor on H_feed guess",
+            default=1.2,
+            doc="Guessed initial value of H",
         ),
     )
     CONFIG.declare(
-        "fudge_factor_H_perm",
+        "H_permeate_guess",
         ConfigValue(
-            default=1,
-            doc="Fudge factor on H_perm guess",
+            default=1.2,
+            doc="Guessed initial value of H",
         ),
     )
+    # CONFIG.declare(
+    #     "fudge_factor_H_feed",
+    #     ConfigValue(
+    #         default=1,
+    #         doc="Fudge factor on H_feed guess",
+    #     ),
+    # )
+    # CONFIG.declare(
+    #     "fudge_factor_H_perm",
+    #     ConfigValue(
+    #         default=1,
+    #         doc="Fudge factor on H_perm guess",
+    #     ),
+    # )
 
-    def initialization_routine(self, model):
+    def initialize(self, model):
         """
-        Initializes the retentate and permeate streams, membrane and boundary
-        layer concentrations, and un-initialized derivative variables.
-
-        Method then calls the block triangularization initializer method.
+        Uses a combination of heuristics and data-based surrogates for
+        important concentration-based parameters (the partition and
+        sieving coefficients) to populate the model with a
+        reasonable initial point.
         """
-        self.propogate_inital_model_values(model)
-        # super().initialization_routine(model)
 
-    def propogate_inital_model_values(self, model):
         alpha_mem_bilinear = model.membrane_convection_coefficient_bilinear
         alpha_mem_bilinear_calc = (
             model.membrane_convection_coefficient_bilinear_calculation
@@ -371,7 +368,7 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
         charge = model.config.property_package.charge
         conc_f_tot = model.total_feed_conc_mol_comp
         conc_ret = model.retentate_conc_mol_comp
-        conc_perm = model.permeate_conc_mol_comp
+        conc_perm = model.permeate_local_conc_mol_comp
         conc_bl = model.boundary_layer_conc_mol_comp
         conc_mem = model.membrane_conc_mol_comp
         d_conc_ret_dx = model.d_retentate_conc_mol_comp_dx
@@ -393,14 +390,14 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
         is_f_tot = model.total_feed_ionic_strength
         q_f_tot = model.total_feed_flow_volume
         q_ret = model.retentate_flow_volume
-        q_perm = model.permeate_flow_volume
+        # q_perm = model.permeate_flow_volume
         zero_val = value(model.numerical_zero_tolerance)
 
         for t in model.time:
             # set initial conditions
             q_ret[t, 0].set_value(value(q_f_tot[t]))
             d_q_r_dx[t, 0].set_value(zero_val)
-            q_perm[t, 0].set_value(zero_val)
+            # q_perm[t, 0].set_value(zero_val)
             model.volume_flux_water[t, 0].set_value(zero_val)
 
             for j in model.solutes:
@@ -419,56 +416,57 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
             for x in model.dimensionless_module_length:
                 if x != 0:
                     # temporary retentate concentration
+                    q_ret[t, x].set_value(value(q_ret[t, x_prev]))
                     for j in model.solutes:
                         conc_ret[t, x, j].set_value(value(conc_ret[t, x_prev, j]))
                     # guess permeate concentration with observed sieving coefficient surrogate
                     # S_i_obs = c_{i,p} / c_{i,r}
                     # a, b, and c are fitted from successful "brute force" solves
-                    for k in model.cations:
-                        if value(charge[k]) == 3:
-                            # parameters from IS regression
-                            a = -0.093
-                            b = -0.0042
-                            c = 0.14
-                            # parameters from CONC regression
-                            a = -0.09
-                            b = -0.021
-                            c = 0.14
-                        elif value(charge[k]) == 2:
-                            # parameters from IS regression
-                            a = -0.33
-                            b = -0.016
-                            c = 0.51
-                            # parameters from CONC regression
-                            a = -0.33
-                            b = -0.045
-                            c = 0.51
-                        elif value(charge[k]) == 1:
-                            # parameters from IS regression
-                            a = -0.71
-                            b = -0.031
-                            c = 0.69
-                            # parameters from CONC regression
-                            a = -0.71
-                            b = -0.031
-                            c = 0.69
-
-                        # S_guess = a * exp(b * value(is_f_tot[t])) + c
-                        S_guess = a * exp(b * value(conc_f_tot[t, k])) + c
-                        # print(S_guess)
-
-                        conc_perm[t, x, k].set_value(
-                            value(conc_ret[t, x, k]) * round(S_guess, 1)
-                        )
-
-                    # guess permeate concentration with constant sieving coefficient
                     # for k in model.cations:
                     #     if value(charge[k]) == 3:
-                    #         conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.2)
+                    #         # parameters from IS regression
+                    #         a = -0.093
+                    #         b = -0.0042
+                    #         c = 0.14
+                    #         # parameters from CONC regression
+                    #         a = -0.09
+                    #         b = -0.021
+                    #         c = 0.14
                     #     elif value(charge[k]) == 2:
-                    #         conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.5)
-                    #     else:
-                    #         conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.8)
+                    #         # parameters from IS regression
+                    #         a = -0.33
+                    #         b = -0.016
+                    #         c = 0.51
+                    #         # parameters from CONC regression
+                    #         a = -0.33
+                    #         b = -0.045
+                    #         c = 0.51
+                    #     elif value(charge[k]) == 1:
+                    #         # parameters from IS regression
+                    #         a = -0.71
+                    #         b = -0.031
+                    #         c = 0.69
+                    #         # parameters from CONC regression
+                    #         a = -0.71
+                    #         b = -0.031
+                    #         c = 0.69
+
+                    #     # S_guess = a * exp(b * value(is_f_tot[t])) + c
+                    #     S_guess = a * exp(b * value(conc_f_tot[t, k])) + c
+                    #     # print(S_guess)
+
+                    #     conc_perm[t, x, k].set_value(
+                    #         value(conc_ret[t, x, k]) * round(S_guess, 1)
+                    #     )
+
+                    # guess permeate concentration with constant sieving coefficient
+                    for k in model.cations:
+                        if value(charge[k]) == 3:
+                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.2)
+                        elif value(charge[k]) == 2:
+                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.5)
+                        else:
+                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.8)
 
                     calculate_variable_from_constraint(
                         conc_perm[t, x, a0],
@@ -493,23 +491,31 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                         model.volume_flux_water[t, x], model.lumped_water_flux[t, x]
                     )
                     for k in model.cations:
-                        calculate_variable_from_constraint(
-                            model.molar_ion_flux[t, x, k],
-                            model.cation_bulk_flux_equation[t, x, k],
+                        # calculate molar flux assuming convection only
+                        model.molar_ion_flux[t, x, k].set_value(
+                            value(conc_perm[t, x, k])
+                            * value(model.volume_flux_water[t, x])
                         )
                     calculate_variable_from_constraint(
                         model.molar_ion_flux[t, x, a0], model.anion_flux_membrane[t, x]
                     )
                     # calculate flow rates
-                    calculate_variable_from_constraint(
-                        q_perm[t, x],
-                        model.overall_bulk_flux_equation[t, x],
+                    # approximate permeate with q_p = J_w * A_cross-section
+                    q_perm = (
+                        value(model.volume_flux_water[t, x])
+                        * value(model.total_membrane_length)
+                        * (x - x_prev)
                     )
-                    q_ret[t, x].set_value(value(q_f_tot[t]) - value(q_perm[t, x]))
+                    q_ret[t, x].set_value(value(q_f_tot[t]) - q_perm)
                     # calculate derivatives
                     calculate_variable_from_constraint(
                         d_q_r_dx[t, x],
                         model.overall_mol_balance[t, x],
+                    )
+                    # d_qr / d_x = (qr(x) - qr(x_prev)) / (x - x_prev)
+                    # (d_qr / d_x)*(x - x_prev) + qr(x_prev) = qr(x)
+                    q_ret[t, x].set_value(
+                        (value(d_q_r_dx[t, x]) * (x - x_prev)) + value(q_ret[t, x_prev])
                     )
                     for k in model.cations:
                         calculate_variable_from_constraint(
@@ -583,85 +589,82 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                     # H_i = c_{i,m} / c_{i,s}
                     # a, b, and c are fitted from successful "brute force" solves
                     for k in model.cations:
-                        if value(charge[k]) == 3:
-                            # parameters from IS regression
-                            a_feed = 4.9
-                            b_feed = -0.025
-                            c_feed = 0.23
-                            a_perm = 140
-                            b_perm = -0.034
-                            c_perm = 2.9
-                            # parameters from CONC regression
-                            a_feed = 2
-                            b_feed = -0.07
-                            c_feed = 0.2
-                            a_perm = 50
-                            b_perm = -0.09
-                            c_perm = 10
-                        elif value(charge[k]) == 2:
-                            # parameters from IS regression
-                            a_feed = 3.8
-                            b_feed = -0.026
-                            c_feed = 0.29
-                            a_perm = 20
-                            b_perm = -0.036
-                            c_perm = 0.55
-                            # parameters from CONC regression
-                            a_feed = 3
-                            b_feed = -0.07
-                            c_feed = 0.3
-                            a_perm = 20
-                            b_perm = -0.09
-                            c_perm = 0.5
-                        elif value(charge[k]) == 1:
-                            # parameters from IS regression
-                            a_feed = 2.5
-                            b_feed = -0.028
-                            c_feed = 0.34
-                            a_perm = 13
-                            b_perm = -0.046
-                            c_perm = 0.43
-                            # parameters from CONC regression
-                            a_feed = 6
-                            b_feed = -0.07
-                            c_feed = 0.5
-                            a_perm = 80
-                            b_perm = -0.1
-                            c_perm = 0.9
+                        #     if value(charge[k]) == 3:
+                        #         # parameters from IS regression
+                        #         a_feed = 4.9
+                        #         b_feed = -0.025
+                        #         c_feed = 0.23
+                        #         a_perm = 140
+                        #         b_perm = -0.034
+                        #         c_perm = 2.9
+                        #         # parameters from CONC regression
+                        #         a_feed = 2
+                        #         b_feed = -0.07
+                        #         c_feed = 0.2
+                        #         a_perm = 50
+                        #         b_perm = -0.09
+                        #         c_perm = 10
+                        #     elif value(charge[k]) == 2:
+                        #         # parameters from IS regression
+                        #         a_feed = 3.8
+                        #         b_feed = -0.026
+                        #         c_feed = 0.29
+                        #         a_perm = 20
+                        #         b_perm = -0.036
+                        #         c_perm = 0.55
+                        #         # parameters from CONC regression
+                        #         a_feed = 3
+                        #         b_feed = -0.07
+                        #         c_feed = 0.3
+                        #         a_perm = 20
+                        #         b_perm = -0.09
+                        #         c_perm = 0.5
+                        #     elif value(charge[k]) == 1:
+                        #         # parameters from IS regression
+                        #         a_feed = 2.5
+                        #         b_feed = -0.028
+                        #         c_feed = 0.34
+                        #         a_perm = 13
+                        #         b_perm = -0.046
+                        #         c_perm = 0.43
+                        #         # parameters from CONC regression
+                        #         a_feed = 6
+                        #         b_feed = -0.07
+                        #         c_feed = 0.5
+                        #         a_perm = 80
+                        #         b_perm = -0.1
+                        #         c_perm = 0.9
 
-                        # H_feed = a_feed * exp(b_feed * value(is_f_tot[t])) + c_feed
-                        # H_perm = a_perm * exp(b_perm * value(is_f_tot[t])) + c_perm
+                        #     # H_feed = a_feed * exp(b_feed * value(is_f_tot[t])) + c_feed
+                        #     # H_perm = a_perm * exp(b_perm * value(is_f_tot[t])) + c_perm
 
-                        H_feed = a_feed * exp(b_feed * value(conc_f_tot[t, k])) + c_feed
-                        # print(H_feed)
-                        H_feed = value(self.config.fudge_factor_H_feed) * H_feed
-                        # print(H_feed)
+                        #     H_feed = a_feed * exp(b_feed * value(conc_f_tot[t, k])) + c_feed
+                        #     # print(H_feed)
+                        #     H_feed = value(self.config.fudge_factor_H_feed) * H_feed
+                        #     # print(H_feed)
 
-                        H_perm = a_perm * exp(b_perm * value(conc_f_tot[t, k])) + c_perm
-                        # print(H_perm)
-                        H_perm = value(self.config.fudge_factor_H_perm) * H_perm
-                        # print(H_perm)
+                        #     H_perm = a_perm * exp(b_perm * value(conc_f_tot[t, k])) + c_perm
+                        #     # print(H_perm)
+                        #     H_perm = value(self.config.fudge_factor_H_perm) * H_perm
+                        #     # print(H_perm)
 
                         # print(H_feed)
                         # print(round(H_feed, 1))
 
-                        # conc_mem[t, x, 0, k].set_value(
-                        #     value(self.config.H_feed_guess) * value(conc_ret[t, x, k])
-                        # )
                         conc_mem[t, x, 0, k].set_value(
-                            round(H_feed, 1) * value(conc_ret[t, x, k])
+                            value(self.config.H_feed_guess) * value(conc_ret[t, x, k])
                         )
-                        calculate_variable_from_constraint(
-                            conc_mem[t, x, 0, a0],
-                            model.electroneutrality_membrane[t, x, 0],
+                        # conc_mem[t, x, 0, k].set_value(
+                        #     round(H_feed, 1) * value(conc_ret[t, x, k])
+                        # )
+
+                        conc_mem[t, x, 1, k].set_value(
+                            value(self.config.H_permeate_guess)
+                            * value(conc_perm[t, x, k])
                         )
                         # conc_mem[t, x, 1, k].set_value(
-                        #     value(self.config.H_permeate_guess)
-                        #     * value(conc_perm[t, x, k])
+                        #     round(H_perm, 1) * value(conc_perm[t, x, k])
                         # )
-                        conc_mem[t, x, 1, k].set_value(
-                            round(H_perm, 1) * value(conc_perm[t, x, k])
-                        )
                         # calculate_variable_from_constraint(
                         #     conc_mem[t, x, 1, a0],
                         #     model.electroneutrality_membrane[t, x, 1],
@@ -675,6 +678,10 @@ class MultiComponentDiafiltrationInitializer(BlockTriangularizationInitializer):
                         #     model.Donnan_potential_permeate_side[t, x],
                         #     model.cation_equilibrium_membrane_permeate_interface[t, x, k],
                         # )
+                    calculate_variable_from_constraint(
+                        conc_mem[t, x, 0, a0],
+                        model.electroneutrality_membrane[t, x, 0],
+                    )
 
                     for z_m in model.dimensionless_membrane_thickness:
                         if z_m != 0:
@@ -839,8 +846,8 @@ and used when constructing these,
         self.discretize_model()
         self.deactivate_unnecessary_objects()
         self.add_scaling_factors()
-        self.add_ports()
         self.add_helpful_expressions()
+        self.add_ports()
 
     def add_mutable_parameters(self):
         """
@@ -934,21 +941,13 @@ and used when constructing these,
         )
         self.feed_flow_volume = Var(
             self.time,
-            initialize=12.5,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the feed",
         )
-
-        def initialize_feed_conc_mol_comp(m, t, j):
-            vals = {k: 200 for k in self.config.cation_list}
-            vals.update({self.config.anion_list[0]: 600})
-            return vals[j]
-
         self.feed_conc_mol_comp = Var(
             self.time,
             self.solutes,
-            initialize=initialize_feed_conc_mol_comp,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of solutes in the feed",
@@ -960,16 +959,9 @@ and used when constructing these,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the diafiltrate",
         )
-
-        def initialize_diafiltrate_conc_mol_comp(m, t, j):
-            vals = {k: 10 for k in self.config.cation_list}
-            vals.update({self.config.anion_list[0]: 30})
-            return vals[j]
-
         self.diafiltrate_conc_mol_comp = Var(
             self.time,
             self.solutes,
-            initialize=initialize_diafiltrate_conc_mol_comp,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of solutes in the diafiltrate",
@@ -979,22 +971,14 @@ and used when constructing these,
         self.volume_flux_water = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=0.06,
             units=units.m**3 / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric water flux of water across the membrane",
         )
-
-        def initialize_molar_ion_flux(m, t, w, j):
-            vals = {k: 10 for k in self.config.cation_list}
-            vals.update({self.config.anion_list[0]: 30})
-            return vals[j]
-
         self.molar_ion_flux = Var(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            initialize=initialize_molar_ion_flux,
             units=units.mol / units.m**2 / units.h,
             bounds=[1e-11, None],
             doc="Mole flux of solutes across the membrane (z-direction, x-dependent)",
@@ -1002,47 +986,29 @@ and used when constructing these,
         self.retentate_flow_volume = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=6.75,
             units=units.m**3 / units.h,
             bounds=[1e-11, None],
             doc="Volumetric flow rate of the retentate, x-dependent",
         )
-
-        def initialize_retentate_conc_mol_comp(m, t, w, j):
-            vals = {
-                i: 0.95 * initialize_feed_conc_mol_comp(m, t, i) for i in self.solutes
-            }
-            return vals[j]
-
         self.retentate_conc_mol_comp = Var(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            initialize=initialize_retentate_conc_mol_comp,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of solutes in the retentate, x-dependent",
         )
-        self.permeate_flow_volume = Var(
-            self.time,
-            self.dimensionless_module_length,
-            initialize=10,
-            units=units.m**3 / units.h,
-            bounds=[1e-11, None],
-            doc="Volumetric flow rate of the permeate, x-dependent",
-        )
-
-        def initialize_permeate_conc_mol_comp(m, t, w, j):
-            vals = {
-                i: 0.8 * initialize_feed_conc_mol_comp(m, t, i) for i in self.solutes
-            }
-            return vals[j]
-
-        self.permeate_conc_mol_comp = Var(
+        # self.permeate_flow_volume = Var(
+        #     self.time,
+        #     self.dimensionless_module_length,
+        #     units=units.m**3 / units.h,
+        #     bounds=[1e-11, None],
+        #     doc="Volumetric flow rate of the permeate, x-dependent",
+        # )
+        self.permeate_local_conc_mol_comp = Var(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            initialize=initialize_permeate_conc_mol_comp,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of solutes in the permeate, x-dependent",
@@ -1050,7 +1016,6 @@ and used when constructing these,
         self.osmotic_pressure = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=4,
             units=units.bar,
             bounds=[1e-11, None],
             doc="Osmostic pressure difference across the membrane",
@@ -1058,34 +1023,39 @@ and used when constructing these,
         self.Donnan_potential_feed_side = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=-1,
             units=units.dimensionless,
             doc="Dimensionless Donnan potential (feed-side)",
         )
         self.Donnan_potential_permeate_side = Var(
             self.time,
             self.dimensionless_module_length,
-            initialize=-1,
             units=units.dimensionless,
             doc="Dimensionless Donnan potential (permeate-side)",
+        )
+        self.partitioning_term_bilinear_feed = Var(
+            self.time,
+            self.dimensionless_module_length,
+            self.solutes,
+            units=units.mol / units.m**3,  # mM
+            bounds=[1e-11, None],
+            doc="Bi-linear partitioning term for the feed-side interface",
+        )
+        self.partitioning_term_bilinear_permeate = Var(
+            self.time,
+            self.dimensionless_module_length,
+            self.solutes,
+            units=units.mol / units.m**3,  # mM
+            bounds=[1e-11, None],
+            doc="Bi-linear partitioning term for the permeate-side interface",
         )
 
         # add variables dependent on dimensionless_module_length and dimensionless_membrane_thickness
         if self.config.include_boundary_layer:
-
-            def initialize_boundary_layer_conc_mol_comp(m, t, w, l, j):
-                vals = {
-                    i: 0.5 * initialize_feed_conc_mol_comp(m, t, i)
-                    for i in self.solutes
-                }
-                return vals[j]
-
             self.boundary_layer_conc_mol_comp = Var(
                 self.time,
                 self.dimensionless_module_length,
                 self.dimensionless_boundary_layer_thickness,
                 self.solutes,
-                initialize=initialize_boundary_layer_conc_mol_comp,
                 units=units.mol / units.m**3,  # mM
                 bounds=[1e-11, None],
                 doc="Mole concentration of solutes in the boundary layer, x- and z-dependent",
@@ -1095,62 +1065,34 @@ and used when constructing these,
                 self.time,
                 self.dimensionless_module_length,
                 self.dimensionless_boundary_layer_thickness,
-                initialize=1000,
                 units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D * c
                 doc="Denominator of diffusion and convection coefficients in boundary layer",
             )
-
-            def initialize_boundary_layer_cross_diffusion_coefficient_bilinear(
-                m, t, w, l, j, k
-            ):
-                vals = {
-                    k: {j: -3000 for j in self.config.cation_list}
-                    for k in self.config.cation_list
-                }
-                return vals[j][k]
-
             self.boundary_layer_cross_diffusion_coefficient_bilinear = Var(
                 self.time,
                 self.dimensionless_module_length,
                 self.dimensionless_boundary_layer_thickness,
                 self.cations,
                 self.cations,
-                initialize=initialize_boundary_layer_cross_diffusion_coefficient_bilinear,
                 units=(units.mm**2 / units.h)
                 * (units.mm**2 / units.h * units.mol / units.m**3),  # D * D,tilde
                 doc="Bi-linear cross diffusion coefficient for cations in boundary layer",
             )
-
-            def initialize_boundary_layer_cross_diffusion_coefficient(m, t, w, l, j, k):
-                vals = {
-                    k: {j: -5 for j in self.config.cation_list}
-                    for k in self.config.cation_list
-                }
-                return vals[j][k]
-
             self.boundary_layer_cross_diffusion_coefficient = Var(
                 self.time,
                 self.dimensionless_module_length,
                 self.dimensionless_boundary_layer_thickness,
                 self.cations,
                 self.cations,
-                initialize=initialize_boundary_layer_cross_diffusion_coefficient,
                 units=units.mm**2 / units.h,
                 doc="Cross diffusion coefficient for cations in boundary layer",
             )
-
-        def initialize_membrane_conc_mol_comp(m, t, w, l, j):
-            vals = {
-                i: 0.1 * initialize_feed_conc_mol_comp(m, t, i) for i in self.solutes
-            }
-            return vals[j]
 
         self.membrane_conc_mol_comp = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.solutes,
-            initialize=initialize_membrane_conc_mol_comp,
             units=units.mol / units.m**3,  # mM
             bounds=[1e-11, None],
             doc="Mole concentration of solutes in the membrane, x- and z-dependent",
@@ -1160,72 +1102,41 @@ and used when constructing these,
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
-            initialize=6,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D * c
             doc="Denominator of diffusion and convection coefficients in membrane",
         )
-
-        def initialize_membrane_cross_diffusion_coefficient_bilinear(m, t, w, l, j, k):
-            vals = {
-                k: {j: -0.3 for j in self.config.cation_list}
-                for k in self.config.cation_list
-            }
-            return vals[j][k]
-
         self.membrane_cross_diffusion_coefficient_bilinear = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.cations,
             self.cations,
-            initialize=initialize_membrane_cross_diffusion_coefficient_bilinear,
             units=(units.mm**2 / units.h)
             * (units.mm**2 / units.h * units.mol / units.m**3),  # D * D,tilde
             doc="Bi-linear cross diffusion coefficient for cations in membrane",
         )
-
-        def initialize_membrane_convection_coefficient_bilinear(m, t, w, l, j):
-            vals = {k: 1 for k in self.solutes}
-            return vals[j]
-
         self.membrane_convection_coefficient_bilinear = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.solutes,
-            initialize=initialize_membrane_convection_coefficient_bilinear,
             units=(units.mm**2 / units.hr) * (units.mol / units.m**3),  # D,tilde
             doc="Convection coefficient for cations in membrane",
         )
-
-        def initialize_membrane_cross_diffusion_coefficient(m, t, w, l, j, k):
-            vals = {
-                k: {j: -0.05 for j in self.config.cation_list}
-                for k in self.config.cation_list
-            }
-            return vals[j][k]
-
         self.membrane_cross_diffusion_coefficient = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.cations,
             self.cations,
-            initialize=initialize_membrane_cross_diffusion_coefficient,
             units=units.mm**2 / units.h,
             doc="Cross diffusion coefficient for cations in membrane",
         )
-
-        def initialize_membrane_convection_coefficient(m, t, w, l, j):
-            vals = {k: 0.2 for k in self.solutes}
-            return vals[j]
-
         self.membrane_convection_coefficient = Var(
             self.time,
             self.dimensionless_module_length,
             self.dimensionless_membrane_thickness,
             self.solutes,
-            initialize=initialize_membrane_convection_coefficient,
             units=units.dimensionless,
             doc="Convection coefficient for cations in membrane",
         )
@@ -1298,29 +1209,11 @@ and used when constructing these,
             rule=_cation_mol_balance,
         )
 
-        # bulk flux balance constraints
-        def _overall_bulk_flux_equation(blk, t, x):
-            if x == 0:
-                return Constraint.Skip
-            return (
-                blk.permeate_flow_volume[t, x]
-                == blk.volume_flux_water[t, x]
-                * x
-                * blk.total_membrane_length
-                * blk.total_module_length
-            )
-
-        self.overall_bulk_flux_equation = Constraint(
-            self.time,
-            self.dimensionless_module_length,
-            rule=_overall_bulk_flux_equation,
-        )
-
         def _cation_bulk_flux_equation(blk, t, x, k):
             if x == 0:
                 return Constraint.Skip
             return blk.molar_ion_flux[t, x, k] == (
-                blk.permeate_conc_mol_comp[t, x, k] * blk.volume_flux_water[t, x]
+                blk.permeate_local_conc_mol_comp[t, x, k] * blk.volume_flux_water[t, x]
             )
 
         self.cation_bulk_flux_equation = Constraint(
@@ -1673,7 +1566,7 @@ and used when constructing these,
         def _osmotic_pressure_calculation(blk, t, x):
             if x == 0:
                 return Constraint.Skip
-            conc_p = blk.permeate_conc_mol_comp
+            conc_p = blk.permeate_local_conc_mol_comp
             conc_r = blk.retentate_conc_mol_comp
             n = blk.config.property_package.num_solutes
             R = Constants.gas_constant  # J / mol / K
@@ -1686,8 +1579,8 @@ and used when constructing these,
                         R
                         * T
                         * sum(
-                            (n[j] * sigma[j] * (conc_bl[t, x, 1, j] - conc_p[t, x, j]))
-                            for j in blk.solutes
+                            (n[k] * sigma[k] * (conc_bl[t, x, 1, k] - conc_p[t, x, k]))
+                            for k in blk.cations
                         )
                     ),
                     to_units=units.bar,
@@ -1698,8 +1591,8 @@ and used when constructing these,
                         R
                         * T
                         * sum(
-                            (n[j] * sigma[j] * (conc_r[t, x, j] - conc_p[t, x, j]))
-                            for j in blk.solutes
+                            (n[k] * sigma[k] * (conc_r[t, x, k] - conc_p[t, x, k]))
+                            for k in blk.cations
                         )
                     ),
                     to_units=units.bar,
@@ -1759,7 +1652,7 @@ and used when constructing these,
             if x == 0:
                 return Constraint.Skip
             charge = blk.config.property_package.charge
-            conc_p = blk.permeate_conc_mol_comp
+            conc_p = blk.permeate_local_conc_mol_comp
             return 0 == sum(charge[j] * conc_p[t, x, j] for j in blk.solutes)
 
         self.electroneutrality_permeate = Constraint(
@@ -1786,16 +1679,6 @@ and used when constructing these,
                 rule=_retentate_boundary_layer_interface,
             )
 
-            self.dummy_bilinear_feed = Var(
-                self.time,
-                self.dimensionless_module_length,
-                self.solutes,
-                initialize=40,
-                units=units.mol / units.m**3,  # mM
-                bounds=[1e-11, None],
-                # doc="Mole concentration of solutes in the boundary layer, x- and z-dependent",
-            )
-
             def _cation_equilibrium_boundary_layer_membrane_interface(blk, t, x, j):
                 if x == 0:
                     return Constraint.Skip
@@ -1809,7 +1692,9 @@ and used when constructing these,
                 # H_dielectric = (
                 #     blk.config.property_package.dielectric_partition_coefficient
                 # )
-                return conc_mem[t, x, 0, j] == (blk.dummy_bilinear_feed[t, x, j])
+                return conc_mem[t, x, 0, j] == (
+                    blk.partitioning_term_bilinear_feed[t, x, j]
+                )
                 #     conc_bl[t, x, 1, j]
                 #     * H_nonDonnan[j]
                 #     # * H_steric[j]
@@ -1822,27 +1707,6 @@ and used when constructing these,
                 self.dimensionless_module_length,
                 self.solutes,
                 rule=_cation_equilibrium_boundary_layer_membrane_interface,
-            )
-
-            def _dummy_bilinear_feed_constraint(blk, t, x, j):
-                if x == 0:
-                    return Constraint.Skip
-                charge = blk.config.property_package.charge
-                conc_bl = blk.boundary_layer_conc_mol_comp
-                H_nonDonnan = (
-                    blk.config.property_package.non_Donnan_partition_coefficient
-                )
-                return blk.dummy_bilinear_feed[t, x, j] == (
-                    conc_bl[t, x, 1, j]
-                    * H_nonDonnan[j]
-                    * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
-                )
-
-            self.dummy_bilinear_feed_constraint = Constraint(
-                self.time,
-                self.dimensionless_module_length,
-                self.solutes,
-                rule=_dummy_bilinear_feed_constraint,
             )
         else:
 
@@ -1860,12 +1724,14 @@ and used when constructing these,
                 #     blk.config.property_package.dielectric_partition_coefficient
                 # )
                 return conc_mem[t, x, 0, j] == (
-                    conc_r[t, x, j]
-                    * H_nonDonnan[j]
-                    # * H_steric[j]
-                    # * H_dielectric[j]
-                    * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
+                    blk.partitioning_term_bilinear_feed[t, x, j]
                 )
+                #     conc_r[t, x, j]
+                #     * H_nonDonnan[j]
+                #     # * H_steric[j]
+                #     # * H_dielectric[j]
+                #     * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
+                # )
 
             self.cation_equilibrium_retentate_membrane_interface = Constraint(
                 self.time,
@@ -1874,14 +1740,32 @@ and used when constructing these,
                 rule=_cation_equilibrium_retentate_membrane_interface,
             )
 
-        self.dummy_bilinear_perm = Var(
+        def _partitioning_term_bilinear_feed_constraint(blk, t, x, j):
+            if x == 0:
+                return Constraint.Skip
+            charge = blk.config.property_package.charge
+            conc_r = blk.retentate_conc_mol_comp
+
+            H_nonDonnan = blk.config.property_package.non_Donnan_partition_coefficient
+            if self.config.include_boundary_layer:
+                conc_bl = blk.boundary_layer_conc_mol_comp
+                return blk.partitioning_term_bilinear_feed[t, x, j] == (
+                    conc_bl[t, x, 1, j]
+                    * H_nonDonnan[j]
+                    * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
+                )
+            else:
+                return blk.partitioning_term_bilinear_feed[t, x, j] == (
+                    conc_r[t, x, j]
+                    * H_nonDonnan[j]
+                    * exp(-charge[j] * blk.Donnan_potential_feed_side[t, x])
+                )
+
+        self.partitioning_term_bilinear_feed_constraint = Constraint(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            initialize=40,
-            units=units.mol / units.m**3,  # mM
-            bounds=[1e-11, None],
-            # doc="Mole concentration of solutes in the boundary layer, x- and z-dependent",
+            rule=_partitioning_term_bilinear_feed_constraint,
         )
 
         def _cation_equilibrium_membrane_permeate_interface(blk, t, x, j):
@@ -1889,11 +1773,13 @@ and used when constructing these,
                 return Constraint.Skip
             charge = blk.config.property_package.charge
             conc_mem = blk.membrane_conc_mol_comp
-            conc_p = blk.permeate_conc_mol_comp
+            conc_p = blk.permeate_local_conc_mol_comp
             H_nonDonnan = blk.config.property_package.non_Donnan_partition_coefficient
             # H_steric = blk.config.property_package.steric_partition_coefficient
             # H_dielectric = blk.config.property_package.dielectric_partition_coefficient
-            return conc_mem[t, x, 1, j] == (blk.dummy_bilinear_perm[t, x, j])
+            return conc_mem[t, x, 1, j] == (
+                blk.partitioning_term_bilinear_permeate[t, x, j]
+            )
             #     conc_p[t, x, j]
             #     * H_nonDonnan[j]
             #     # * H_steric[j]
@@ -1908,23 +1794,23 @@ and used when constructing these,
             rule=_cation_equilibrium_membrane_permeate_interface,
         )
 
-        def _dummy_bilinear_perm_constraint(blk, t, x, j):
+        def _partitioning_term_bilinear_permeate_constraint(blk, t, x, j):
             if x == 0:
                 return Constraint.Skip
             charge = blk.config.property_package.charge
-            conc_p = blk.permeate_conc_mol_comp
+            conc_p = blk.permeate_local_conc_mol_comp
             H_nonDonnan = blk.config.property_package.non_Donnan_partition_coefficient
-            return blk.dummy_bilinear_perm[t, x, j] == (
+            return blk.partitioning_term_bilinear_permeate[t, x, j] == (
                 conc_p[t, x, j]
                 * H_nonDonnan[j]
                 * exp(-charge[j] * blk.Donnan_potential_permeate_side[t, x])
             )
 
-        self.dummy_bilinear_perm_constraint = Constraint(
+        self.partitioning_term_bilinear_permeate_constraint = Constraint(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            rule=_dummy_bilinear_perm_constraint,
+            rule=_partitioning_term_bilinear_permeate_constraint,
         )
 
         # boundary conditions
@@ -1981,67 +1867,67 @@ and used when constructing these,
         )
 
         # constraints to improve numerical stability
-        def _permeate_flow_volume_boundary_condition(blk, t):
-            return (
-                blk.permeate_flow_volume[t, 0]
-                == self.numerical_zero_tolerance * units.m**3 / units.h
-            )
+        # def _permeate_flow_volume_boundary_condition(blk, t):
+        #     return (
+        #         blk.permeate_flow_volume[t, 0]
+        #         == self.numerical_zero_tolerance * units.m**3 / units.h
+        #     )
 
-        self.permeate_flow_volume_boundary_condition = Constraint(
-            self.time, rule=_permeate_flow_volume_boundary_condition
-        )
+        # self.permeate_flow_volume_boundary_condition = Constraint(
+        #     self.time, rule=_permeate_flow_volume_boundary_condition
+        # )
 
-        def _permeate_conc_mol_comp_boundary_condition(blk, t, j):
-            return (
-                blk.permeate_conc_mol_comp[t, 0, j]
-                == self.numerical_zero_tolerance * units.mol / units.m**3
-            )
+        # def _permeate_conc_mol_comp_boundary_condition(blk, t, j):
+        #     return (
+        #         blk.permeate_conc_mol_comp[t, 0, j]
+        #         == self.numerical_zero_tolerance * units.mol / units.m**3
+        #     )
 
-        self.permeate_conc_mol_comp_boundary_condition = Constraint(
-            self.time, self.solutes, rule=_permeate_conc_mol_comp_boundary_condition
-        )
+        # self.permeate_conc_mol_comp_boundary_condition = Constraint(
+        #     self.time, self.solutes, rule=_permeate_conc_mol_comp_boundary_condition
+        # )
 
-        def _d_retentate_flow_volume_dx_boundary_condition(blk, t):
-            return (
-                blk.d_retentate_flow_volume_dx[t, 0]
-                == self.numerical_zero_tolerance * units.m**3 / units.h
-            )
+        # def _d_retentate_flow_volume_dx_boundary_condition(blk, t):
+        #     return (
+        #         blk.d_retentate_flow_volume_dx[t, 0]
+        #         == self.numerical_zero_tolerance * units.m**3 / units.h
+        #     )
 
-        self.d_retentate_flow_volume_dx_boundary_condition = Constraint(
-            self.time, rule=_d_retentate_flow_volume_dx_boundary_condition
-        )
+        # self.d_retentate_flow_volume_dx_boundary_condition = Constraint(
+        #     self.time, rule=_d_retentate_flow_volume_dx_boundary_condition
+        # )
 
-        def _d_retentate_conc_mol_comp_dx_boundary_condition(blk, t, k):
-            return (
-                blk.d_retentate_conc_mol_comp_dx[t, 0, k]
-                == self.numerical_zero_tolerance * units.mol / units.m**3
-            )
+        # def _d_retentate_conc_mol_comp_dx_boundary_condition(blk, t, k):
+        #     return (
+        #         blk.d_retentate_conc_mol_comp_dx[t, 0, k]
+        #         == self.numerical_zero_tolerance * units.mol / units.m**3
+        #     )
 
-        self.d_retentate_conc_mol_comp_dx_boundary_condition = Constraint(
-            self.time,
-            self.cations,
-            rule=_d_retentate_conc_mol_comp_dx_boundary_condition,
-        )
+        # self.d_retentate_conc_mol_comp_dx_boundary_condition = Constraint(
+        #     self.time,
+        #     self.cations,
+        #     rule=_d_retentate_conc_mol_comp_dx_boundary_condition,
+        # )
 
-        def _volume_flux_water_boundary_condition(blk, t):
-            return (
-                blk.volume_flux_water[t, 0]
-                == self.numerical_zero_tolerance * units.m / units.h
-            )
+        # def _volume_flux_water_boundary_condition(blk, t):
+        #     return (
+        #         blk.volume_flux_water[t, 0]
+        #         == self.numerical_zero_tolerance * units.m / units.h
+        #     )
 
-        self.volume_flux_water_boundary_condition = Constraint(
-            self.time, rule=_volume_flux_water_boundary_condition
-        )
+        # self.volume_flux_water_boundary_condition = Constraint(
+        #     self.time, rule=_volume_flux_water_boundary_condition
+        # )
 
-        def _molar_ion_flux_boundary_condition(blk, t, j):
-            return (
-                blk.molar_ion_flux[t, 0, j]
-                == self.numerical_zero_tolerance * units.mol / units.m**2 / units.h
-            )
+        # def _molar_ion_flux_boundary_condition(blk, t, j):
+        #     return (
+        #         blk.molar_ion_flux[t, 0, j]
+        #         == self.numerical_zero_tolerance * units.mol / units.m**2 / units.h
+        #     )
 
-        self.molar_ion_flux_boundary_condition = Constraint(
-            self.time, self.solutes, rule=_molar_ion_flux_boundary_condition
-        )
+        # self.molar_ion_flux_boundary_condition = Constraint(
+        #     self.time, self.solutes, rule=_molar_ion_flux_boundary_condition
+        # )
 
     def discretize_model(self):
         discretizer = TransformationFactory("dae.finite_difference")
@@ -2111,112 +1997,161 @@ and used when constructing these,
         Assigns scaling factors to certain variables and constraints to
         improve solver performance.
         """
-        cations = self.config.cation_list
-        anions = self.config.anion_list
-        charge = self.config.property_package.charge
-
         self.scaling_factor = Suffix(direction=Suffix.EXPORT)
 
         self.scaling_factor[self.volume_flux_water] = 1e2
+        self.scaling_factor[self.lumped_water_flux] = 1e3
 
-        if len(self.config.cation_list) == 1:
-            if value(charge[cations[0]] > 3):
-                if self.config.include_boundary_layer:
-                    self.scaling_factor[self.boundary_layer_D_tilde] = 1e-2
-                    self.scaling_factor[
-                        self.boundary_layer_cross_diffusion_coefficient_bilinear
-                    ] = 1e-3
-                    # self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = 1e2
-                    self.scaling_factor[
-                        self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
-                    ] = 1e-2
-                    self.scaling_factor[
-                        self.boundary_layer_cross_diffusion_coefficient_calculation
-                    ] = 1e-2
-                self.scaling_factor[self.membrane_D_tilde] = 1e1
-                self.scaling_factor[
-                    self.membrane_cross_diffusion_coefficient_bilinear
-                ] = 1e3
-                self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e2
-                for t in self.time:
-                    for x in self.dimensionless_module_length:
-                        if x != 0:
-                            for z in self.dimensionless_membrane_thickness:
-                                if z != 0:
-                                    for k in cations:
-                                        self.scaling_factor[
-                                            self.membrane_convection_coefficient_bilinear[
-                                                t, x, z, k
-                                            ]
-                                        ] = 1e3
-                                        self.scaling_factor[
-                                            self.membrane_convection_coefficient
-                                        ] = 1e3
-                                    for a in anions:
-                                        self.scaling_factor[
-                                            self.membrane_convection_coefficient_bilinear[
-                                                t, x, z, a
-                                            ]
-                                        ] = 1e1
-                # self.scaling_factor[
-                #     self.membrane_cross_diffusion_coefficient_bilinear_calculation
-                # ] = 1e10
-            else:
-                if self.config.include_boundary_layer:
-                    self.scaling_factor[self.boundary_layer_D_tilde] = 1e-3
-                    self.scaling_factor[
-                        self.boundary_layer_cross_diffusion_coefficient_bilinear
-                    ] = 1e1  # check this value
-                    self.scaling_factor[
-                        self.boundary_layer_cross_diffusion_coefficient
-                    ] = 1e2
-                    self.scaling_factor[
-                        self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
-                    ] = 1e-2
-                    self.scaling_factor[
-                        self.boundary_layer_cross_diffusion_coefficient_calculation
-                    ] = 1e-2
-                self.scaling_factor[self.membrane_D_tilde] = 1e2
-                self.scaling_factor[
-                    self.membrane_cross_diffusion_coefficient_bilinear
-                ] = 1e3
-                self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e2
-                self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e5
-                self.scaling_factor[self.membrane_convection_coefficient] = 1e3
-
-        if len(self.config.cation_list) >= 2:
-            for t in self.time:
-                for x in self.dimensionless_module_length:
-                    if x != 0:
-                        self.scaling_factor[self.lumped_water_flux[t, x]] = 1e3
-
-            if self.config.include_boundary_layer:
-                self.scaling_factor[self.boundary_layer_D_tilde] = 1e-2
-                self.scaling_factor[
-                    self.boundary_layer_cross_diffusion_coefficient_bilinear
-                ] = 1e-3
-                # self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = (
-                #     1e2
-                # )
-                self.scaling_factor[
-                    self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
-                ] = 1e-2
-                self.scaling_factor[
-                    self.boundary_layer_cross_diffusion_coefficient_calculation
-                ] = 1e-2
-            self.scaling_factor[self.membrane_D_tilde] = 1e1
-            self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = (
-                1e3
-            )
+        if self.config.include_boundary_layer:
+            self.scaling_factor[self.boundary_layer_D_tilde] = 1e-2
             self.scaling_factor[
-                self.membrane_cross_diffusion_coefficient_bilinear_calculation
-            ] = 1e3
-            self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e2
-            self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e5
+                self.boundary_layer_cross_diffusion_coefficient_bilinear
+            ] = 1e-3
             self.scaling_factor[
-                self.membrane_cross_diffusion_coefficient_calculation
-            ] = 1e5
-            self.scaling_factor[self.membrane_convection_coefficient] = 1e3
+                self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
+            ] = 1e-2
+            self.scaling_factor[
+                self.boundary_layer_cross_diffusion_coefficient_calculation
+            ] = 1e-2
+
+        self.scaling_factor[self.membrane_D_tilde] = 1e1
+        self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = 1e3
+        self.scaling_factor[
+            self.membrane_cross_diffusion_coefficient_bilinear_calculation
+        ] = 1e3
+        self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e2
+        self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e5
+        self.scaling_factor[self.membrane_cross_diffusion_coefficient_calculation] = 1e5
+        self.scaling_factor[self.membrane_convection_coefficient] = 1e3
+
+        if len(self.cations) >= 2:
+            for k in self.cations:
+                if value(self.config.property_package.charge[k]) >= 3:
+                    for t in self.time:
+                        for x in self.dimensionless_module_length:
+                            if x != 0:
+                                # self.scaling_factor[self.permeate_conc_mol_comp[t, x, k]] = 1e1
+                                # self.scaling_factor[self.partitioning_term_bilinear_permeate_constraint[t, x, k]] = 1e1
+                                # self.scaling_factor[self.molar_ion_flux[t, x, k]] = 1e5
+                                for z in self.dimensionless_membrane_thickness:
+                                    #     self.scaling_factor[self.membrane_conc_mol_comp[t, x, z, k]] = 1e1
+                                    self.scaling_factor[
+                                        self.cation_flux_membrane[t, x, z, k]
+                                    ] = 1e1
+                                    # self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = 1e4
+                                    # self.scaling_factor[
+                                    #     self.membrane_cross_diffusion_coefficient_bilinear_calculation
+                                    # ] = 1e4
+                                    # self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e3
+                                    # self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e6
+                                    # self.scaling_factor[self.membrane_cross_diffusion_coefficient_calculation] = 1e6
+                                    # self.scaling_factor[self.membrane_convection_coefficient] = 1e4
+        # cations = self.config.cation_list
+        # anions = self.config.anion_list
+        # charge = self.config.property_package.charge
+
+        # self.scaling_factor = Suffix(direction=Suffix.EXPORT)
+
+        # self.scaling_factor[self.volume_flux_water] = 1e2
+
+        # if len(self.config.cation_list) == 1:
+        #     if value(charge[cations[0]] > 3):
+        #         if self.config.include_boundary_layer:
+        #             self.scaling_factor[self.boundary_layer_D_tilde] = 1e-2
+        #             self.scaling_factor[
+        #                 self.boundary_layer_cross_diffusion_coefficient_bilinear
+        #             ] = 1e-3
+        #             # self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = 1e2
+        #             self.scaling_factor[
+        #                 self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
+        #             ] = 1e-2
+        #             self.scaling_factor[
+        #                 self.boundary_layer_cross_diffusion_coefficient_calculation
+        #             ] = 1e-2
+        #         self.scaling_factor[self.membrane_D_tilde] = 1e1
+        #         self.scaling_factor[
+        #             self.membrane_cross_diffusion_coefficient_bilinear
+        #         ] = 1e3
+        #         self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e2
+        #         for t in self.time:
+        #             for x in self.dimensionless_module_length:
+        #                 if x != 0:
+        #                     for z in self.dimensionless_membrane_thickness:
+        #                         if z != 0:
+        #                             for k in cations:
+        #                                 self.scaling_factor[
+        #                                     self.membrane_convection_coefficient_bilinear[
+        #                                         t, x, z, k
+        #                                     ]
+        #                                 ] = 1e3
+        #                                 self.scaling_factor[
+        #                                     self.membrane_convection_coefficient
+        #                                 ] = 1e3
+        #                             for a in anions:
+        #                                 self.scaling_factor[
+        #                                     self.membrane_convection_coefficient_bilinear[
+        #                                         t, x, z, a
+        #                                     ]
+        #                                 ] = 1e1
+        #         # self.scaling_factor[
+        #         #     self.membrane_cross_diffusion_coefficient_bilinear_calculation
+        #         # ] = 1e10
+        #     else:
+        #         if self.config.include_boundary_layer:
+        #             self.scaling_factor[self.boundary_layer_D_tilde] = 1e-3
+        #             self.scaling_factor[
+        #                 self.boundary_layer_cross_diffusion_coefficient_bilinear
+        #             ] = 1e1  # check this value
+        #             self.scaling_factor[
+        #                 self.boundary_layer_cross_diffusion_coefficient
+        #             ] = 1e2
+        #             self.scaling_factor[
+        #                 self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
+        #             ] = 1e-2
+        #             self.scaling_factor[
+        #                 self.boundary_layer_cross_diffusion_coefficient_calculation
+        #             ] = 1e-2
+        #         self.scaling_factor[self.membrane_D_tilde] = 1e2
+        #         self.scaling_factor[
+        #             self.membrane_cross_diffusion_coefficient_bilinear
+        #         ] = 1e3
+        #         self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e2
+        #         self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e5
+        #         self.scaling_factor[self.membrane_convection_coefficient] = 1e3
+
+        # if len(self.config.cation_list) >= 2:
+        #     for t in self.time:
+        #         for x in self.dimensionless_module_length:
+        #             if x != 0:
+        #                 self.scaling_factor[self.lumped_water_flux[t, x]] = 1e3
+
+        #     if self.config.include_boundary_layer:
+        #         self.scaling_factor[self.boundary_layer_D_tilde] = 1e-2
+        #         self.scaling_factor[
+        #             self.boundary_layer_cross_diffusion_coefficient_bilinear
+        #         ] = 1e-3
+        #         # self.scaling_factor[self.boundary_layer_cross_diffusion_coefficient] = (
+        #         #     1e2
+        #         # )
+        #         self.scaling_factor[
+        #             self.boundary_layer_cross_diffusion_coefficient_bilinear_calculation
+        #         ] = 1e-2
+        #         self.scaling_factor[
+        #             self.boundary_layer_cross_diffusion_coefficient_calculation
+        #         ] = 1e-2
+        #     self.scaling_factor[self.membrane_D_tilde] = 1e1
+        #     self.scaling_factor[self.membrane_cross_diffusion_coefficient_bilinear] = (
+        #         1e3
+        #     )
+        #     self.scaling_factor[
+        #         self.membrane_cross_diffusion_coefficient_bilinear_calculation
+        #     ] = 1e3
+        #     self.scaling_factor[self.membrane_convection_coefficient_bilinear] = 1e2
+        #     self.scaling_factor[self.membrane_cross_diffusion_coefficient] = 1e5
+        #     self.scaling_factor[
+        #         self.membrane_cross_diffusion_coefficient_calculation
+        #     ] = 1e5
+        #     self.scaling_factor[self.membrane_convection_coefficient] = 1e3
 
     def add_ports(self):
         self.feed_inlet = Port(doc="Feed Inlet Port")
@@ -2242,16 +2177,55 @@ and used when constructing these,
         self.retentate_outlet.add(self._retentate_conc_mol_comp_ref, "conc_mol_comp")
 
         self.permeate_outlet = Port(doc="Permeate Outlet Port")
-        self._permeate_flow_volume_ref = Reference(
-            self.permeate_flow_volume[:, self.dimensionless_module_length.last()]
-        )
+        self._permeate_flow_volume_ref = Reference(self.permeate_outlet_flow[:])
         self.permeate_outlet.add(self._permeate_flow_volume_ref, "flow_vol")
         self._permeate_conc_mol_comp_ref = Reference(
-            self.permeate_conc_mol_comp[:, self.dimensionless_module_length.last(), :]
+            self.permeate_outlet_conc_mol_comp[:, :]
         )
         self.permeate_outlet.add(self._permeate_conc_mol_comp_ref, "conc_mol_comp")
 
     def add_helpful_expressions(self):
+        def _permeate_outlet_flow(blk, t):
+            L = blk.total_membrane_length
+            w = blk.total_module_length
+            x_values = sorted(blk.dimensionless_module_length)
+
+            q_perm_outlet = (
+                L
+                * w
+                * sum(
+                    blk.volume_flux_water[t, x_values[i]]
+                    * (x_values[i] - x_values[i - 1])
+                    for i in range(1, len(x_values))
+                )
+            )
+
+            return q_perm_outlet
+
+        self.permeate_outlet_flow = Expression(self.time, rule=_permeate_outlet_flow)
+
+        def _permeate_outlet_conc_mol_comp(blk, t, j):
+            L = blk.total_membrane_length
+            w = blk.total_module_length
+            x_values = sorted(blk.dimensionless_module_length)
+
+            conc_perm_outlet = (
+                L
+                * w
+                / blk.permeate_outlet_flow[t]
+                * sum(
+                    blk.molar_ion_flux[t, x_values[i], j]
+                    * (x_values[i] - x_values[i - 1])
+                    for i in range(1, len(x_values))
+                )
+            )
+
+            return conc_perm_outlet
+
+        self.permeate_outlet_conc_mol_comp = Expression(
+            self.time, self.solutes, rule=_permeate_outlet_conc_mol_comp
+        )
+
         def _total_feed_ionic_strength(
             blk,
             t,
@@ -2299,102 +2273,115 @@ and used when constructing these,
             self.time, self.solutes, rule=_total_feed_conc_mol_comp
         )
 
-        def _overall_partition_coefficient_feed_side(blk, t, x, j):
+        def _local_partition_coefficient_feed_side(blk, t, x, j):
             return (
                 blk.membrane_conc_mol_comp[t, x, 0, j]
                 / blk.boundary_layer_conc_mol_comp[t, x, 1, j]
             )
 
-        self.overall_partition_coefficient_feed_side = Expression(
+        self.local_partition_coefficient_feed_side = Expression(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            rule=_overall_partition_coefficient_feed_side,
+            rule=_local_partition_coefficient_feed_side,
         )
 
-        def _overall_partition_coefficient_permeate_side(blk, t, x, j):
+        def _local_partition_coefficient_permeate_side(blk, t, x, j):
             return (
                 blk.membrane_conc_mol_comp[t, x, 1, j]
-                / blk.permeate_conc_mol_comp[t, x, j]
+                / blk.permeate_local_conc_mol_comp[t, x, j]
             )
 
-        self.overall_partition_coefficient_permeate_side = Expression(
+        self.local_partition_coefficient_permeate_side = Expression(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            rule=_overall_partition_coefficient_permeate_side,
+            rule=_local_partition_coefficient_permeate_side,
         )
 
-        def _observed_rejection_percent(blk, t, x, j):
+        def _local_observed_rejection_percent(blk, t, x, j):
             return (
                 1
                 - (
-                    blk.permeate_conc_mol_comp[t, x, j]
+                    blk.permeate_local_conc_mol_comp[t, x, j]
                     / blk.retentate_conc_mol_comp[t, x, j]
                 )
             ) * 100
 
-        self.observed_rejection_percent = Expression(
+        self.local_observed_rejection_percent = Expression(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            rule=_observed_rejection_percent,
+            rule=_local_observed_rejection_percent,
         )
 
-        def _actual_rejection_percent(blk, t, x, j):
+        def _overall_observed_rejection_percent(blk, t, j):
             return (
                 1
                 - (
-                    blk.permeate_conc_mol_comp[t, x, j]
+                    blk.permeate_outlet_conc_mol_comp[t, j]
+                    / blk.retentate_conc_mol_comp[t, 0, j]  # feed
+                )
+            ) * 100
+
+        self.overall_observed_rejection_percent = Expression(
+            self.time,
+            self.solutes,
+            rule=_overall_observed_rejection_percent,
+        )
+
+        def _local_actual_rejection_percent(blk, t, x, j):
+            return (
+                1
+                - (
+                    blk.permeate_local_conc_mol_comp[t, x, j]
                     / blk.boundary_layer_conc_mol_comp[t, x, 1, j]
                 )
             ) * 100
 
-        self.actual_rejection_percent = Expression(
+        self.local_actual_rejection_percent = Expression(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            rule=_actual_rejection_percent,
+            rule=_local_actual_rejection_percent,
         )
 
-        def _observed_sieving_coefficient(blk, t, x, j):
+        def _local_observed_sieving_coefficient(blk, t, x, j):
             return (
-                blk.permeate_conc_mol_comp[t, x, j]
+                blk.permeate_local_conc_mol_comp[t, x, j]
                 / blk.retentate_conc_mol_comp[t, x, j]
             )
 
-        self.observed_sieving_coefficient = Expression(
+        self.local_observed_sieving_coefficient = Expression(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            rule=_observed_sieving_coefficient,
+            rule=_local_observed_sieving_coefficient,
         )
 
-        def _actual_sieving_coefficient(blk, t, x, j):
+        def _overall_observed_sieving_coefficient(blk, t, j):
             return (
-                blk.permeate_conc_mol_comp[t, x, j]
+                blk.permeate_outlet_conc_mol_comp[t, j]
+                / blk.retentate_conc_mol_comp[t, 0, j]  # feed
+            )
+
+        self.overall_observed_sieving_coefficient = Expression(
+            self.time,
+            self.solutes,
+            rule=_overall_observed_sieving_coefficient,
+        )
+
+        def _local_actual_sieving_coefficient(blk, t, x, j):
+            return (
+                blk.permeate_local_conc_mol_comp[t, x, j]
                 / blk.boundary_layer_conc_mol_comp[t, x, 1, j]
             )
 
-        self.actual_sieving_coefficient = Expression(
+        self.local_actual_sieving_coefficient = Expression(
             self.time,
             self.dimensionless_module_length,
             self.solutes,
-            rule=_actual_sieving_coefficient,
-        )
-
-        def _observed_membrane_selectivity(blk, t, x, j, k):
-            return (
-                blk.observed_sieving_coefficient[t, x, j]
-                / blk.observed_sieving_coefficient[t, x, k]
-            )
-
-        self.observed_membrane_selectivity = Expression(
-            self.time,
-            self.dimensionless_module_length,
-            self.cations,
-            self.cations,
-            rule=_observed_membrane_selectivity,
+            rule=_local_actual_sieving_coefficient,
         )
 
         def _boundary_layer_convective_flux(blk, t, x, z, j):

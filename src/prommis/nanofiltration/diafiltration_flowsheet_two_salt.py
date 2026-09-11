@@ -12,6 +12,7 @@ Author: Molly Dougher
 
 from pyomo.environ import (
     ConcreteModel,
+    Constraint,
     SolverFactory,
     TransformationFactory,
     assert_optimal_termination,
@@ -48,12 +49,12 @@ def main():
     m.fs = FlowsheetBlock(dynamic=False)
 
     # specify the feed
-    cation_list = ["Li", "Co"]
+    cation_list = ["Na"]
     anion_list = ["Cl"]
-    inlet_flow_volume = {"feed": 12.5, "diafiltrate": 3.75}
+    inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
     inlet_concentration = {
-        "feed": {"Li": 245, "Co": 288, "Cl": 821},
-        "diafiltrate": {"Li": 14, "Co": 3, "Cl": 20},
+        "feed": {"Na": 30.5114, "Cl": 30.5114},
+        "diafiltrate": {"Na": 1e-10, "Cl": 1e-10},
     }
 
     m.fs.stream_properties = MultiComponentDiafiltrationStreamParameter(
@@ -63,6 +64,7 @@ def main():
     m.fs.properties = MultiComponentDiafiltrationSoluteParameter(
         cation_list=cation_list,
         anion_list=anion_list,
+        non_Donnan_partition_dict={"Na": 0.2, "Cl": 0.1},
     )
 
     # add feed blocks for feed and diafiltrate
@@ -75,7 +77,7 @@ def main():
         cation_list=cation_list,
         anion_list=anion_list,
         include_boundary_layer=True,
-        NFE_module_length=15,
+        NFE_module_length=10,
         NFE_boundary_layer_thickness=5,
         NFE_membrane_thickness=5,
     )
@@ -92,7 +94,7 @@ def main():
 
     # initialize membrane model
     initialized_membrane_model = m.fs.membrane.default_initializer(
-        H_feed_guess=0.5, H_permeate_guess=0.5
+        H_feed_guess=3, H_permeate_guess=30
     )
     initialized_membrane_model.initialize(m.fs.membrane)
 
@@ -105,23 +107,39 @@ def main():
 
     # solve model
     solve_model(m)
+    unfix_pressure(m, water_flux=0.033)
+    solve_model(m)
 
     # check numerical warnings
     dt.assert_no_numerical_warnings()
+    # dt.report_numerical_issues()
 
-    # visualize the results
-    overall_results_plot = plot_results_by_length(m)
-    boundary_layer_results_plot = plot_results_by_thickness(m, phase="Boundary Layer")
-    membrane_results_plot = plot_results_by_thickness(m, phase="Membrane")
-    rejection_plot = plot_rejection_versus_concentration(m)
+    m.fs.membrane.applied_pressure.display()
+    m.fs.membrane.retentate_flow_volume.display()
+    m.fs.membrane.retentate_conc_mol_comp.display()
+    m.fs.membrane.permeate_local_conc_mol_comp.display()
+    m.fs.membrane.permeate_outlet_flow.display()
+    m.fs.membrane.permeate_outlet_conc_mol_comp.display()
 
-    return (
-        m,
-        overall_results_plot,
-        boundary_layer_results_plot,
-        membrane_results_plot,
-        rejection_plot,
-    )
+    m.fs.membrane.local_partition_coefficient_feed_side.display()
+    m.fs.membrane.local_partition_coefficient_permeate_side.display()
+
+    m.fs.membrane.overall_observed_sieving_coefficient.display()
+    m.fs.membrane.overall_observed_rejection_percent.display()
+
+    # # visualize the results
+    # overall_results_plot = plot_results_by_length(m)
+    # boundary_layer_results_plot = plot_results_by_thickness(m, phase="Boundary Layer")
+    # membrane_results_plot = plot_results_by_thickness(m, phase="Membrane")
+    # rejection_plot = plot_rejection_versus_concentration(m)
+
+    # return (
+    #     m,
+    #     overall_results_plot,
+    #     boundary_layer_results_plot,
+    #     membrane_results_plot,
+    #     rejection_plot,
+    # )
 
 
 def update_membrane_parameters(m):
@@ -138,7 +156,7 @@ def fix_variables(m, inlet_flow_volume, inlet_concentration):
     # fix degrees of freedom in the membrane
     m.fs.membrane.total_module_length.fix()
     m.fs.membrane.total_membrane_length.fix()
-    m.fs.membrane.applied_pressure.fix(20)
+    m.fs.membrane.applied_pressure.fix(3)
 
     m.fs.membrane.feed_flow_volume.fix(inlet_flow_volume["feed"])
     m.fs.membrane.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
@@ -187,6 +205,23 @@ def solve_model(m):
     assert_optimal_termination(results)
 
     scaling.propagate_solution(scaled_model, m)
+
+
+def unfix_pressure(m, water_flux=0.02):
+    m.fs.membrane.applied_pressure.unfix()
+
+    def _water_flux_constraint(m):
+        return (
+            sum(
+                m.fs.membrane.volume_flux_water[0, x]
+                for x in m.fs.membrane.dimensionless_module_length
+                if x != 0
+            )
+            / (len(m.fs.membrane.dimensionless_module_length) - 1)
+            == water_flux
+        )
+
+    m.water_flux_constraint = Constraint(rule=_water_flux_constraint)
 
 
 def plot_results_by_length(m):
