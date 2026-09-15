@@ -22,10 +22,7 @@ import pandas as pd
 import seaborn as sns
 import numpy as np
 
-from prommis.nanofiltration.multi_component_analysis import (
-    build_model,
-    get_model_averages,
-)
+from prommis.nanofiltration.multi_component_analysis import build_model
 
 
 def main():
@@ -45,116 +42,49 @@ def generate_data_comparison_heat_maps():
     fontsize = 14
 
     # load data from csv files
-    # Na_MAE_Cl_phi_005_df = load_data("005", "Na_MAE")
-    # Ca_MAE_Cl_phi_005_df = load_data("005", "Ca_MAE")
-    # La_MAE_Cl_phi_005_df = load_data("005", "La_MAE")
-    # Na_MSE_Cl_phi_005_df = load_data("005", "Na_MSE")
-    # Ca_MSE_Cl_phi_005_df = load_data("005", "Ca_MSE")
-    # La_MSE_Cl_phi_005_df = load_data("005", "La_MSE")
+    Na_MAE_Cl_phi_005_df = load_data("005", "Na_MAE")
+    Ca_MAE_Cl_phi_005_df = load_data("005", "Ca_MAE")
+    La_MAE_Cl_phi_005_df = load_data("005", "La_MAE")
 
-    # Na_MAE_Cl_phi_010_df = load_data("010", "Na_MAE")
-    # Ca_MAE_Cl_phi_010_df = load_data("010", "Ca_MAE")
-    # La_MAE_Cl_phi_010_df = load_data("010", "La_MAE")
-    # Na_MSE_Cl_phi_010_df = load_data("010", "Na_MSE")
-    # Ca_MSE_Cl_phi_010_df = load_data("010", "Ca_MSE")
-    # La_MSE_Cl_phi_010_df = load_data("010", "La_MSE")
+    Na_MAPE_Cl_phi_005_df = load_data("005", "Na_MAPE")
+    Ca_MAPE_Cl_phi_005_df = load_data("005", "Ca_MAPE")
+    La_MAPE_Cl_phi_005_df = load_data("005", "La_MAPE")
+
+    Na_MAE_Cl_phi_010_df = load_data("010", "Na_MAE")
+    Ca_MAE_Cl_phi_010_df = load_data("010", "Ca_MAE")
+    La_MAE_Cl_phi_010_df = load_data("010", "La_MAE")
+
     Na_MAPE_Cl_phi_010_df = load_data("010", "Na_MAPE")
+    Ca_MAPE_Cl_phi_010_df = load_data("010", "Ca_MAPE")
+    La_MAPE_Cl_phi_010_df = load_data("010", "La_MAPE")
 
-    # Na_MAE_Cl_phi_020_df = load_data("020", "Na_MAE")
-    # Ca_MAE_Cl_phi_020_df = load_data("020", "Ca_MAE")
-    # La_MAE_Cl_phi_020_df = load_data("020", "La_MAE")
-    # Na_MSE_Cl_phi_020_df = load_data("020", "Na_MSE")
-    # Ca_MSE_Cl_phi_020_df = load_data("020", "Ca_MSE")
-    # La_MSE_Cl_phi_020_df = load_data("020", "La_MSE")
-
-    # Na_MAE_Cl_phi_030_df = load_data("030", "Na_MAE")
-    # Ca_MAE_Cl_phi_030_df = load_data("030", "Ca_MAE")
-    # La_MAE_Cl_phi_030_df = load_data("030", "La_MAE")
-    # Na_MSE_Cl_phi_030_df = load_data("030", "Na_MSE")
-    # Ca_MSE_Cl_phi_030_df = load_data("030", "Ca_MSE")
-    # La_MSE_Cl_phi_030_df = load_data("030", "La_MSE")
-
-    # Na_MAE_Cl_phi_040_df = load_data("040", "Na_MAE")
-    # Ca_MAE_Cl_phi_040_df = load_data("040", "Ca_MAE")
-    # La_MAE_Cl_phi_040_df = load_data("040", "La_MAE")
-    # Na_MSE_Cl_phi_040_df = load_data("040", "Na_MSE")
-    # Ca_MSE_Cl_phi_040_df = load_data("040", "Ca_MSE")
-    # La_MSE_Cl_phi_040_df = load_data("040", "La_MSE")
-
-    # vmin_mae = 0
-    # vmax_mae = 1
-
-    # vmin_mse = 0
-    # vmax_mse = 1
+    vmin_mae = 0
+    vmax_mae = 1
 
     vmin_mape = 0
     vmax_mape = 200
 
     # add stars at the minumum of each subplot
-    # Na_MAE_Cl_phi_005_df_min = find_minimums(Na_MAE_Cl_phi_005_df)
-    # Ca_MAE_Cl_phi_005_df_min = find_minimums(Ca_MAE_Cl_phi_005_df)
-    # La_MAE_Cl_phi_005_df_min = find_minimums(La_MAE_Cl_phi_005_df)
-    # Na_MSE_Cl_phi_005_df_min = find_minimums(Na_MSE_Cl_phi_005_df)
-    # Ca_MSE_Cl_phi_005_df_min = find_minimums(Ca_MSE_Cl_phi_005_df)
-    # La_MSE_Cl_phi_005_df_min = find_minimums(La_MSE_Cl_phi_005_df)
+    Na_MAE_Cl_phi_005_df_min = find_minimums(Na_MAE_Cl_phi_005_df)
+    Ca_MAE_Cl_phi_005_df_min = find_minimums(Ca_MAE_Cl_phi_005_df)
+    La_MAE_Cl_phi_005_df_min = find_minimums(La_MAE_Cl_phi_005_df)
 
-    # Na_MAE_Cl_phi_010_df_min = find_minimums(Na_MAE_Cl_phi_010_df)
-    # Ca_MAE_Cl_phi_010_df_min = find_minimums(Ca_MAE_Cl_phi_010_df)
-    # La_MAE_Cl_phi_010_df_min = find_minimums(La_MAE_Cl_phi_010_df)
-    # Na_MSE_Cl_phi_010_df_min = find_minimums(Na_MSE_Cl_phi_010_df)
-    # Ca_MSE_Cl_phi_010_df_min = find_minimums(Ca_MSE_Cl_phi_010_df)
-    # La_MSE_Cl_phi_010_df_min = find_minimums(La_MSE_Cl_phi_010_df)
+    Na_MAPE_Cl_phi_005_df_min = find_minimums(Na_MAPE_Cl_phi_005_df)
+    Ca_MAPE_Cl_phi_005_df_min = find_minimums(Ca_MAPE_Cl_phi_005_df)
+    La_MAPE_Cl_phi_005_df_min = find_minimums(La_MAPE_Cl_phi_005_df)
+
+    Na_MAE_Cl_phi_010_df_min = find_minimums(Na_MAE_Cl_phi_010_df)
+    Ca_MAE_Cl_phi_010_df_min = find_minimums(Ca_MAE_Cl_phi_010_df)
+    La_MAE_Cl_phi_010_df_min = find_minimums(La_MAE_Cl_phi_010_df)
+
     Na_MAPE_Cl_phi_010_df_min = find_minimums(Na_MAPE_Cl_phi_010_df)
+    Ca_MAPE_Cl_phi_010_df_min = find_minimums(Ca_MAPE_Cl_phi_010_df)
+    La_MAPE_Cl_phi_010_df_min = find_minimums(La_MAPE_Cl_phi_010_df)
 
-    # Na_MAE_Cl_phi_020_df_min = find_minimums(Na_MAE_Cl_phi_020_df)
-    # Ca_MAE_Cl_phi_020_df_min = find_minimums(Ca_MAE_Cl_phi_020_df)
-    # La_MAE_Cl_phi_020_df_min = find_minimums(La_MAE_Cl_phi_020_df)
-    # Na_MSE_Cl_phi_020_df_min = find_minimums(Na_MSE_Cl_phi_020_df)
-    # Ca_MSE_Cl_phi_020_df_min = find_minimums(Ca_MSE_Cl_phi_020_df)
-    # La_MSE_Cl_phi_020_df_min = find_minimums(La_MSE_Cl_phi_020_df)
-
-    # Na_MAE_Cl_phi_030_df_min = find_minimums(Na_MAE_Cl_phi_030_df)
-    # Ca_MAE_Cl_phi_030_df_min = find_minimums(Ca_MAE_Cl_phi_030_df)
-    # La_MAE_Cl_phi_030_df_min = find_minimums(La_MAE_Cl_phi_030_df)
-    # Na_MSE_Cl_phi_030_df_min = find_minimums(Na_MSE_Cl_phi_030_df)
-    # Ca_MSE_Cl_phi_030_df_min = find_minimums(Ca_MSE_Cl_phi_030_df)
-    # La_MSE_Cl_phi_030_df_min = find_minimums(La_MSE_Cl_phi_030_df)
-
-    # Na_MAE_Cl_phi_040_df_min = find_minimums(Na_MAE_Cl_phi_040_df)
-    # Ca_MAE_Cl_phi_040_df_min = find_minimums(Ca_MAE_Cl_phi_040_df)
-    # La_MAE_Cl_phi_040_df_min = find_minimums(La_MAE_Cl_phi_040_df)
-    # Na_MSE_Cl_phi_040_df_min = find_minimums(Na_MSE_Cl_phi_040_df)
-    # Ca_MSE_Cl_phi_040_df_min = find_minimums(Ca_MSE_Cl_phi_040_df)
-    # La_MSE_Cl_phi_040_df_min = find_minimums(La_MSE_Cl_phi_040_df)
-
-    # fig1, (
-    #     (ax1a, ax1b),  # , ax1c, ax1d, ax1e),
-    #     (ax2a, ax2b),  # , ax2c, ax2d, ax2e),
-    #     (ax3a, ax3b),  # , ax3c, ax3d, ax3e),
-    # ) = plt.subplots(
-    #     3,
-    #     2,
-    #     dpi=75,
-    #     figsize=(11, 14.1),
-    #     sharex=True,
-    # )
-    # fig1.tight_layout(rect=[0.05, 0.05, 0.9, 0.95])
-    # fig2, (
-    #     (ax4a, ax4b),  # , ax4c, ax4d, ax4e),
-    #     (ax5a, ax5b),  # , ax5c, ax5d, ax5e),
-    #     (ax6a, ax6b),  # , ax6c, ax6d, ax6e),
-    # ) = plt.subplots(
-    #     3,
-    #     2,
-    #     dpi=75,
-    #     figsize=(11, 14.1),
-    #     sharex=True,
-    # )
-    # fig2.tight_layout(rect=[0.05, 0.05, 0.9, 0.95])
-    fig3, (
-        (ax7a, ax7b),  # , ax4c, ax4d, ax4e),
-        (ax8a, ax8b),  # , ax5c, ax5d, ax5e),
-        (ax9a, ax9b),  # , ax6c, ax6d, ax6e),
+    fig_mae, (
+        (ax1a, ax1b),  # , ax1c, ax1d, ax1e),
+        (ax2a, ax2b),  # , ax2c, ax2d, ax2e),
+        (ax3a, ax3b),  # , ax3c, ax3d, ax3e),
     ) = plt.subplots(
         3,
         2,
@@ -162,25 +92,34 @@ def generate_data_comparison_heat_maps():
         figsize=(11, 14.1),
         sharex=True,
     )
-    fig3.tight_layout(rect=[0.05, 0.05, 0.9, 0.95])
+    fig_mae.tight_layout(rect=[0.05, 0.05, 0.9, 0.95])
+    fig_mape, (
+        (ax4a, ax4b),  # , ax4c, ax4d, ax4e),
+        (ax5a, ax5b),  # , ax5c, ax5d, ax5e),
+        (ax6a, ax6b),  # , ax6c, ax6d, ax6e),
+    ) = plt.subplots(
+        3,
+        2,
+        dpi=75,
+        figsize=(11, 14.1),
+        sharex=True,
+    )
+    fig_mape.tight_layout(rect=[0.05, 0.05, 0.9, 0.95])
 
-    # for ax in fig1.axes:
-    #     ax.tick_params(bottom=False, labelsize=fontsize)
-    # for ax in fig2.axes:
-    #     ax.tick_params(bottom=False, labelsize=fontsize)
-    for ax in fig3.axes:
+    for ax in fig_mae.axes:
+        ax.tick_params(bottom=False, labelsize=fontsize)
+    for ax in fig_mape.axes:
         ax.tick_params(bottom=False, labelsize=fontsize)
 
-    # fig1.suptitle("Mean Absolute Error", fontsize=fontsize, fontweight="bold")
-    # fig2.suptitle("Mean Squared Error", fontsize=fontsize, fontweight="bold")
-    fig3.suptitle(
+    fig_mae.suptitle("Mean Absolute Error (mM)", fontsize=fontsize, fontweight="bold")
+    fig_mape.suptitle(
         "Mean Absolute Percent Error (%)", fontsize=fontsize, fontweight="bold"
     )
-    for ax in [ax7a]:
+    for ax in [ax1a, ax4a]:
         ax.set_title(
             "$\mathbf{\phi_{Cl}}$ = 0.05", fontsize=fontsize, fontweight="bold"
         )
-    for ax in [ax7b]:
+    for ax in [ax1b, ax4b]:
         ax.set_title("$\mathbf{\phi_{Cl}}$ = 0.1", fontsize=fontsize, fontweight="bold")
     # for ax in [ax1c, ax4c]:
     #     ax.set_title("$\mathbf{\phi_{Cl}}$ = 0.2", fontsize=fontsize, fontweight="bold")
@@ -189,67 +128,70 @@ def generate_data_comparison_heat_maps():
     # for ax in [ax1e, ax4e]:
     #     ax.set_title("$\mathbf{\phi_{Cl}}$ = 0.4", fontsize=fontsize, fontweight="bold")
 
-    # cbar_ax_mae = fig1.add_axes([0.91, 0.2, 0.02, 0.6])
-    # cbar_ax_mae.tick_params(labelsize=fontsize)
+    cbar_ax_mae = fig_mae.add_axes([0.91, 0.2, 0.02, 0.6])
+    cbar_ax_mae.tick_params(labelsize=fontsize)
 
-    # cbar_ax_mse = fig2.add_axes([0.91, 0.2, 0.02, 0.6])
-    # cbar_ax_mse.tick_params(labelsize=fontsize)
-
-    cbar_ax_mape = fig3.add_axes([0.91, 0.2, 0.02, 0.6])
+    cbar_ax_mape = fig_mape.add_axes([0.91, 0.2, 0.02, 0.6])
     cbar_ax_mape.tick_params(labelsize=fontsize)
 
-    # plot_data(
-    #     Na_MAE_Cl_phi_005_df,
-    #     Na_MAE_Cl_phi_005_df_min,
-    #     ax1a,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    #     yticklabels=True,
-    # )
-    # plot_data(
-    #     Ca_MAE_Cl_phi_005_df,
-    #     Ca_MAE_Cl_phi_005_df_min,
-    #     ax2a,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    #     yticklabels=True,
-    # )
-    # plot_data(
-    #     La_MAE_Cl_phi_005_df,
-    #     La_MAE_Cl_phi_005_df_min,
-    #     ax3a,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    #     yticklabels=True,
-    # )
+    plot_data(
+        Na_MAE_Cl_phi_005_df,
+        Na_MAE_Cl_phi_005_df_min,
+        ax1a,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+        yticklabels=True,
+        error="mae",
+    )
+    plot_data(
+        Ca_MAE_Cl_phi_005_df,
+        Ca_MAE_Cl_phi_005_df_min,
+        ax2a,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+        yticklabels=True,
+        error="mae",
+    )
+    plot_data(
+        La_MAE_Cl_phi_005_df,
+        La_MAE_Cl_phi_005_df_min,
+        ax3a,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+        yticklabels=True,
+        error="mae",
+    )
 
-    # plot_data(
-    #     Na_MAE_Cl_phi_010_df,
-    #     Na_MAE_Cl_phi_010_df_min,
-    #     ax1b,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    # )
-    # plot_data(
-    #     Ca_MAE_Cl_phi_010_df,
-    #     Ca_MAE_Cl_phi_010_df_min,
-    #     ax2b,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    # )
-    # plot_data(
-    #     La_MAE_Cl_phi_010_df,
-    #     La_MAE_Cl_phi_010_df_min,
-    #     ax3b,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    # )
+    plot_data(
+        Na_MAE_Cl_phi_010_df,
+        Na_MAE_Cl_phi_010_df_min,
+        ax1b,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+        error="mae",
+    )
+    plot_data(
+        Ca_MAE_Cl_phi_010_df,
+        Ca_MAE_Cl_phi_010_df_min,
+        ax2b,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+        error="mae",
+    )
+    plot_data(
+        La_MAE_Cl_phi_010_df,
+        La_MAE_Cl_phi_010_df_min,
+        ax3b,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+        error="mae",
+    )
 
     # plot_data(
     #     Na_MAE_Cl_phi_020_df,
@@ -326,191 +268,107 @@ def generate_data_comparison_heat_maps():
     #     vmax_mae,
     # )
 
-    # plot_data(
-    #     Na_MSE_Cl_phi_005_df,
-    #     Na_MSE_Cl_phi_005_df_min,
-    #     ax4a,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    #     yticklabels=True,
-    # )
-    # plot_data(
-    #     Ca_MSE_Cl_phi_005_df,
-    #     Ca_MSE_Cl_phi_005_df_min,
-    #     ax5a,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    #     yticklabels=True,
-    # )
-    # plot_data(
-    #     La_MSE_Cl_phi_005_df,
-    #     La_MSE_Cl_phi_005_df_min,
-    #     ax6a,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    #     yticklabels=True,
-    # )
-
-    # plot_data(
-    #     Na_MSE_Cl_phi_010_df,
-    #     Na_MSE_Cl_phi_010_df_min,
-    #     ax4b,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    # )
-    # plot_data(
-    #     Ca_MSE_Cl_phi_010_df,
-    #     Ca_MSE_Cl_phi_010_df_min,
-    #     ax5b,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    # )
-    # plot_data(
-    #     La_MSE_Cl_phi_010_df,
-    #     La_MSE_Cl_phi_010_df_min,
-    #     ax6b,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    # )
-
-    # plot_data(
-    #     Na_MSE_Cl_phi_020_df,
-    #     Na_MSE_Cl_phi_020_df_min,
-    #     ax4c,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    # )
-    # plot_data(
-    #     Ca_MSE_Cl_phi_020_df,
-    #     Ca_MSE_Cl_phi_020_df_min,
-    #     ax5c,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    # )
-    # plot_data(
-    #     La_MSE_Cl_phi_020_df,
-    #     La_MSE_Cl_phi_020_df_min,
-    #     ax6c,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    # )
-
-    # plot_data(
-    #     Na_MSE_Cl_phi_030_df,
-    #     Na_MSE_Cl_phi_030_df_min,
-    #     ax4d,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    # )
-    # plot_data(
-    #     Ca_MSE_Cl_phi_030_df,
-    #     Ca_MSE_Cl_phi_030_df_min,
-    #     ax5d,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    # )
-    # plot_data(
-    #     La_MSE_Cl_phi_030_df,
-    #     La_MSE_Cl_phi_030_df_min,
-    #     ax6d,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    # )
-
-    # plot_data(
-    #     Na_MSE_Cl_phi_040_df,
-    #     Na_MSE_Cl_phi_040_df_min,
-    #     ax4e,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    # )
-    # plot_data(
-    #     Ca_MSE_Cl_phi_040_df,
-    #     Ca_MSE_Cl_phi_040_df_min,
-    #     ax5e,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    # )
-    # plot_data(
-    #     La_MSE_Cl_phi_040_df,
-    #     La_MSE_Cl_phi_040_df_min,
-    #     ax6e,
-    #     cbar_ax_mse,
-    #     vmin_mse,
-    #     vmax_mse,
-    # )
+    plot_data(
+        Na_MAPE_Cl_phi_005_df,
+        Na_MAPE_Cl_phi_005_df_min,
+        ax4a,
+        cbar_ax_mape,
+        vmin_mape,
+        vmax_mape,
+        error="mape",
+    )
+    plot_data(
+        Ca_MAPE_Cl_phi_005_df,
+        Ca_MAPE_Cl_phi_005_df_min,
+        ax5a,
+        cbar_ax_mape,
+        vmin_mape,
+        vmax_mape,
+        error="mape",
+    )
+    plot_data(
+        La_MAPE_Cl_phi_005_df,
+        La_MAPE_Cl_phi_005_df_min,
+        ax6a,
+        cbar_ax_mape,
+        vmin_mape,
+        vmax_mape,
+        error="mape",
+    )
 
     plot_data(
         Na_MAPE_Cl_phi_010_df,
         Na_MAPE_Cl_phi_010_df_min,
-        ax7b,
+        ax4b,
         cbar_ax_mape,
         vmin_mape,
         vmax_mape,
+        error="mape",
+    )
+    plot_data(
+        Ca_MAPE_Cl_phi_010_df,
+        Ca_MAPE_Cl_phi_010_df_min,
+        ax5b,
+        cbar_ax_mape,
+        vmin_mape,
+        vmax_mape,
+        error="mape",
+    )
+    plot_data(
+        La_MAPE_Cl_phi_010_df,
+        La_MAPE_Cl_phi_010_df_min,
+        ax6b,
+        cbar_ax_mape,
+        vmin_mape,
+        vmax_mape,
+        error="mape",
     )
 
-    # for ax in fig1.axes:
-    #     ax.tick_params(axis="y", rotation=0)
-    # for ax in fig2.axes:
-    #     ax.tick_params(axis="y", rotation=0)
-    for ax in fig3.axes:
+    for ax in fig_mae.axes:
+        ax.tick_params(axis="y", rotation=0)
+    for ax in fig_mape.axes:
         ax.tick_params(axis="y", rotation=0)
 
-    for ax in [ax9a, ax9b]:
+    for ax in [ax3a, ax3b, ax6a, ax6b]:
         ax.set_xlabel(
             "$\mathbf{D_m}$/$\mathbf{l_m}$ (um/s)",
             fontsize=fontsize,
             fontweight="bold",
         )
-    for ax in [ax7a]:
+    for ax in [ax1a, ax4a]:
         ax.set_ylabel(
             "$\mathbf{\phi_{Na}}$",
             fontsize=fontsize,
             fontweight="bold",
         )
-    for ax in [ax8a]:
+    for ax in [ax2a, ax5a]:
         ax.set_ylabel(
             "$\mathbf{\phi_{Ca}}$",
             fontsize=fontsize,
             fontweight="bold",
         )
-    for ax in [ax9a]:
+    for ax in [ax3a, ax6a]:
         ax.set_ylabel(
             "$\mathbf{\phi_{La}}$",
             fontsize=fontsize,
             fontweight="bold",
         )
 
-    # fig1.savefig("sieving_data_mae_fine.png", dpi=600)
-    # fig2.savefig("sieving_data_mse_fine.png", dpi=600)
-    fig3.savefig("sieving_data_mape_fine.png", dpi=600)
+    fig_mae.savefig("sieving_data_mae_fine.png", dpi=600)
+    fig_mape.savefig("sieving_data_mape_fine.png", dpi=600)
 
 
 def generate_N_data_heat_maps():
     fontsize = 14
 
     # load data from csv files
-    # Na_N_Cl_phi_005_df = load_data("005", "Na_N", N=True)
-    # Ca_N_Cl_phi_005_df = load_data("005", "Ca_N", N=True)
-    # La_N_Cl_phi_005_df = load_data("005", "La_N", N=True)
+    Na_N_Cl_phi_005_df = load_data("005", "Na_N", N=True)
+    Ca_N_Cl_phi_005_df = load_data("005", "Ca_N", N=True)
+    La_N_Cl_phi_005_df = load_data("005", "La_N", N=True)
 
     Na_N_Cl_phi_010_df = load_data("010", "Na_N", N=True)
-    # Ca_N_Cl_phi_010_df = load_data("010", "Ca_N", N=True)
-    # La_N_Cl_phi_010_df = load_data("010", "La_N", N=True)
+    Ca_N_Cl_phi_010_df = load_data("010", "Ca_N", N=True)
+    La_N_Cl_phi_010_df = load_data("010", "La_N", N=True)
 
     # Na_N_Cl_phi_020_df = load_data("020", "Na_N", N=True)
     # Ca_N_Cl_phi_020_df = load_data("020", "Ca_N", N=True)
@@ -551,13 +409,13 @@ def generate_N_data_heat_maps():
     cbar_ax = fig1.add_axes([0.91, 0.2, 0.02, 0.6])
     cbar_ax.tick_params(labelsize=fontsize)
 
-    # plot_N_data(Na_N_Cl_phi_005_df, ax1a, cbar_ax, yticklabels=True)
-    # plot_N_data(Ca_N_Cl_phi_005_df, ax2a, cbar_ax, yticklabels=True)
-    # plot_N_data(La_N_Cl_phi_005_df, ax3a, cbar_ax, yticklabels=True)
+    plot_N_data(Na_N_Cl_phi_005_df, ax1a, cbar_ax, yticklabels=True)
+    plot_N_data(Ca_N_Cl_phi_005_df, ax2a, cbar_ax, yticklabels=True)
+    plot_N_data(La_N_Cl_phi_005_df, ax3a, cbar_ax, yticklabels=True)
 
     plot_N_data(Na_N_Cl_phi_010_df, ax1b, cbar_ax)
-    # plot_N_data(Ca_N_Cl_phi_010_df, ax2b, cbar_ax)
-    # plot_N_data(La_N_Cl_phi_010_df, ax3b, cbar_ax)
+    plot_N_data(Ca_N_Cl_phi_010_df, ax2b, cbar_ax)
+    plot_N_data(La_N_Cl_phi_010_df, ax3b, cbar_ax)
 
     # plot_N_data(Na_N_Cl_phi_020_df, ax1c, cbar_ax)
     # plot_N_data(Ca_N_Cl_phi_020_df, ax2c, cbar_ax)
@@ -648,7 +506,7 @@ def find_minimums(df):
     return df_min
 
 
-def plot_data(df, df_min, ax, cbar_ax, vmin, vmax, yticklabels=False):
+def plot_data(df, df_min, ax, cbar_ax, vmin, vmax, error, yticklabels=False):
     fontsize = 12
 
     tol_iridescent_sequential_hex = [
@@ -699,7 +557,10 @@ def plot_data(df, df_min, ax, cbar_ax, vmin, vmax, yticklabels=False):
     #     "#72190E",
     # ]
     cmap = mcolors.ListedColormap(tol_iridescent_sequential_hex)
-    bins = np.linspace(0, 75, 21).tolist()
+    if error == "mae":
+        bins = np.linspace(0, 30, 21).tolist()
+    elif error == "mape":
+        bins = np.linspace(0, 150, 21).tolist()
     norm = mcolors.BoundaryNorm(bins, cmap.N)
 
     sns.heatmap(
@@ -794,30 +655,29 @@ def save_data_comparison_csv(Cl_phi_key):
         98.4631: 62.5871,
         105.1806: 70.2565,
     }
-    # TODO: update to conc_p
     NF270_MC3_07_11_24_SCaCl2 = {
-        # 3.0588: 0.1893,
-        10.4631: 0.2077,
-        15.2044: 0.3179,
-        19.6055: 0.3572,
-        23.6953: 0.3761,
-        27.5362: 0.3927,
-        31.0213: 0.4157,
-        34.3589: 0.4313,
-        37.4959: 0.4388,
-        40.3890: 0.4500,
+        # 3.0588: 0.5790,
+        10.4631: 2.1731,
+        15.2044: 4.8337,
+        19.6055: 7.0021,
+        23.6953: 8.9125,
+        27.5362: 10.8142,
+        31.0213: 12.8956,
+        34.3589: 14.8202,
+        37.4959: 16.4538,
+        40.3890: 18.1746,
     }
     NF270_MC2_05_21_24_LaCl3 = {
-        # 1.4129: 0.0429,
-        4.8072: 0.0240,
-        7.0910: 0.0286,
-        9.2925: 0.0312,
-        11.3234: 0.0335,
-        13.5457: 0.0343,
-        15.5382: 0.0358,
-        17.4718: 0.0377,
-        19.3323: 0.0391,
-        21.1177: 0.0419,
+        # 1.4129: 0.0606,
+        4.8072: 0.1152,
+        7.0910: 0.2026,
+        9.2925: 0.2901,
+        11.3234: 0.3791,
+        13.5457: 0.4640,
+        15.5382: 0.5566,
+        17.4718: 0.6580,
+        19.3323: 0.7562,
+        21.1177: 0.8842,
     }
 
     sample_folder = Path(
@@ -896,7 +756,7 @@ def save_data_comparison_csv(Cl_phi_key):
             0.70: {},
         },
     }
-    Ca_sieving_dict = {
+    Ca_conc_dict = {
         40: {
             0.15: {},
             0.20: {},
@@ -948,7 +808,7 @@ def save_data_comparison_csv(Cl_phi_key):
             0.50: {},
         },
     }
-    La_sieving_dict = {
+    La_conc_dict = {
         40: {
             0.0005: {},
             0.001: {},
@@ -1074,10 +934,10 @@ def save_data_comparison_csv(Cl_phi_key):
             conc_dict = Na_conc_dict
         elif cation == "Ca":
             chloride_multiplier = 2
-            sieving_dict = Ca_sieving_dict
+            conc_dict = Ca_conc_dict
         elif cation == "La":
             chloride_multiplier = 3
-            sieving_dict = La_sieving_dict
+            conc_dict = La_conc_dict
 
         inlet_concentration = {
             "feed": {
@@ -1136,27 +996,27 @@ def save_data_comparison_csv(Cl_phi_key):
         }
         for Dm_over_l in Na_conc_dict.keys()
     }
-    Ca_sieving_residual_dict = {
+    Ca_perm_conc_residual_dict = {
         Dm_over_l: {
             cation_phi: {
                 conc: NF270_MC3_07_11_24_SCaCl2[conc]
-                - Ca_sieving_dict[Dm_over_l][cation_phi][conc]
-                for conc in Ca_sieving_dict[Dm_over_l][cation_phi].keys()
+                - Ca_conc_dict[Dm_over_l][cation_phi][conc]
+                for conc in Ca_conc_dict[Dm_over_l][cation_phi].keys()
             }
-            for cation_phi in Ca_sieving_dict[Dm_over_l].keys()
+            for cation_phi in Ca_conc_dict[Dm_over_l].keys()
         }
-        for Dm_over_l in Ca_sieving_dict.keys()
+        for Dm_over_l in Ca_conc_dict.keys()
     }
-    La_sieving_residual_dict = {
+    La_perm_conc_residual_dict = {
         Dm_over_l: {
             cation_phi: {
                 conc: NF270_MC2_05_21_24_LaCl3[conc]
-                - La_sieving_dict[Dm_over_l][cation_phi][conc]
-                for conc in La_sieving_dict[Dm_over_l][cation_phi].keys()
+                - La_conc_dict[Dm_over_l][cation_phi][conc]
+                for conc in La_conc_dict[Dm_over_l][cation_phi].keys()
             }
-            for cation_phi in La_sieving_dict[Dm_over_l].keys()
+            for cation_phi in La_conc_dict[Dm_over_l].keys()
         }
-        for Dm_over_l in La_sieving_dict.keys()
+        for Dm_over_l in La_conc_dict.keys()
     }
 
     Na_MAE_dict = {
@@ -1178,75 +1038,34 @@ def save_data_comparison_csv(Cl_phi_key):
     Ca_MAE_dict = {
         Dm_over_l: {
             cation_phi: (
-                1 / len(Ca_sieving_residual_dict[Dm_over_l][cation_phi].keys())
+                1 / len(Ca_perm_conc_residual_dict[Dm_over_l][cation_phi].keys())
             )
             * sum(
                 abs(residual)
-                for residual in Ca_sieving_residual_dict[Dm_over_l][cation_phi].values()
+                for residual in Ca_perm_conc_residual_dict[Dm_over_l][
+                    cation_phi
+                ].values()
             )
-            for cation_phi in Ca_sieving_residual_dict[Dm_over_l].keys()
-            if len(Ca_sieving_residual_dict[Dm_over_l][cation_phi].keys()) != 0
+            for cation_phi in Ca_perm_conc_residual_dict[Dm_over_l].keys()
+            if len(Ca_perm_conc_residual_dict[Dm_over_l][cation_phi].keys()) != 0
         }
-        for Dm_over_l in Ca_sieving_residual_dict.keys()
+        for Dm_over_l in Ca_perm_conc_residual_dict.keys()
     }
     La_MAE_dict = {
         Dm_over_l: {
             cation_phi: (
-                1 / len(La_sieving_residual_dict[Dm_over_l][cation_phi].keys())
+                1 / len(La_perm_conc_residual_dict[Dm_over_l][cation_phi].keys())
             )
             * sum(
                 abs(residual)
-                for residual in La_sieving_residual_dict[Dm_over_l][cation_phi].values()
-            )
-            for cation_phi in La_sieving_residual_dict[Dm_over_l].keys()
-            if len(La_sieving_residual_dict[Dm_over_l][cation_phi].keys()) != 0
-        }
-        for Dm_over_l in La_sieving_residual_dict.keys()
-    }
-
-    Na_MSE_dict = {
-        Dm_over_l: {
-            cation_phi: (
-                1 / len(Na_perm_conc_residual_dict[Dm_over_l][cation_phi].keys())
-            )
-            * sum(
-                residual**2
-                for residual in Na_perm_conc_residual_dict[Dm_over_l][
+                for residual in La_perm_conc_residual_dict[Dm_over_l][
                     cation_phi
                 ].values()
             )
-            for cation_phi in Na_perm_conc_residual_dict[Dm_over_l].keys()
-            if len(Na_perm_conc_residual_dict[Dm_over_l][cation_phi].keys()) != 0
+            for cation_phi in La_perm_conc_residual_dict[Dm_over_l].keys()
+            if len(La_perm_conc_residual_dict[Dm_over_l][cation_phi].keys()) != 0
         }
-        for Dm_over_l in Na_perm_conc_residual_dict.keys()
-    }
-    Ca_MSE_dict = {
-        Dm_over_l: {
-            cation_phi: (
-                1 / len(Ca_sieving_residual_dict[Dm_over_l][cation_phi].keys())
-            )
-            * sum(
-                residual**2
-                for residual in Ca_sieving_residual_dict[Dm_over_l][cation_phi].values()
-            )
-            for cation_phi in Ca_sieving_residual_dict[Dm_over_l].keys()
-            if len(Ca_sieving_residual_dict[Dm_over_l][cation_phi].keys()) != 0
-        }
-        for Dm_over_l in Ca_sieving_residual_dict.keys()
-    }
-    La_MSE_dict = {
-        Dm_over_l: {
-            cation_phi: (
-                1 / len(La_sieving_residual_dict[Dm_over_l][cation_phi].keys())
-            )
-            * sum(
-                residual**2
-                for residual in La_sieving_residual_dict[Dm_over_l][cation_phi].values()
-            )
-            for cation_phi in La_sieving_residual_dict[Dm_over_l].keys()
-            if len(La_sieving_residual_dict[Dm_over_l][cation_phi].keys()) != 0
-        }
-        for Dm_over_l in La_sieving_residual_dict.keys()
+        for Dm_over_l in La_perm_conc_residual_dict.keys()
     }
 
     Na_MAPE_dict = {
@@ -1265,36 +1084,61 @@ def save_data_comparison_csv(Cl_phi_key):
         }
         for Dm_over_l in Na_perm_conc_residual_dict.keys()
     }
+    Ca_MAPE_dict = {
+        Dm_over_l: {
+            cation_phi: (
+                100 / len(Ca_perm_conc_residual_dict[Dm_over_l][cation_phi].keys())
+            )
+            * sum(
+                abs(residual / NF270_MC3_07_11_24_SCaCl2[conc])
+                for conc, residual in Ca_perm_conc_residual_dict[Dm_over_l][
+                    cation_phi
+                ].items()
+            )
+            for cation_phi in Ca_perm_conc_residual_dict[Dm_over_l].keys()
+            if len(Ca_perm_conc_residual_dict[Dm_over_l][cation_phi].keys()) != 0
+        }
+        for Dm_over_l in Ca_perm_conc_residual_dict.keys()
+    }
+    La_MAPE_dict = {
+        Dm_over_l: {
+            cation_phi: (
+                100 / len(La_perm_conc_residual_dict[Dm_over_l][cation_phi].keys())
+            )
+            * sum(
+                abs(residual / NF270_MC2_05_21_24_LaCl3[conc])
+                for conc, residual in La_perm_conc_residual_dict[Dm_over_l][
+                    cation_phi
+                ].items()
+            )
+            for cation_phi in La_perm_conc_residual_dict[Dm_over_l].keys()
+            if len(La_perm_conc_residual_dict[Dm_over_l][cation_phi].keys()) != 0
+        }
+        for Dm_over_l in La_perm_conc_residual_dict.keys()
+    }
 
     Na_MAE_df = pd.DataFrame(Na_MAE_dict)
     Ca_MAE_df = pd.DataFrame(Ca_MAE_dict)
     La_MAE_df = pd.DataFrame(La_MAE_dict)
 
-    Na_MSE_df = pd.DataFrame(Na_MSE_dict)
-    Ca_MSE_df = pd.DataFrame(Ca_MSE_dict)
-    La_MSE_df = pd.DataFrame(La_MSE_dict)
-
     Na_MAPE_df = pd.DataFrame(Na_MAPE_dict)
+    Ca_MAPE_df = pd.DataFrame(Ca_MAPE_dict)
+    La_MAPE_df = pd.DataFrame(La_MAPE_dict)
 
     print(f"Na (MAE)\n{Na_MAE_df}")
-    print(f"Na (MSE)\n{Na_MSE_df}")
     print(f"Na (MAPE)\n{Na_MAPE_df}")
-
     print(f"Ca (MAE)\n{Ca_MAE_df}")
-    print(f"Ca (MSE)\n{Ca_MSE_df}")
-
+    print(f"Ca (MAPE)\n{Ca_MAPE_df}")
     print(f"La (MAE)\n{La_MAE_df}")
-    print(f"La (MSE)\n{La_MSE_df}")
+    print(f"La (MAPE)\n{La_MAPE_df}")
 
     Na_MAE_df.to_csv(f"heat_map_data/Cl_phi_{Cl_phi_key}/Na_MAE.csv")
     Ca_MAE_df.to_csv(f"heat_map_data/Cl_phi_{Cl_phi_key}/Ca_MAE.csv")
     La_MAE_df.to_csv(f"heat_map_data/Cl_phi_{Cl_phi_key}/La_MAE.csv")
 
-    Na_MSE_df.to_csv(f"heat_map_data/Cl_phi_{Cl_phi_key}/Na_MSE.csv")
-    Ca_MSE_df.to_csv(f"heat_map_data/Cl_phi_{Cl_phi_key}/Ca_MSE.csv")
-    La_MSE_df.to_csv(f"heat_map_data/Cl_phi_{Cl_phi_key}/La_MSE.csv")
-
     Na_MAPE_df.to_csv(f"heat_map_data/Cl_phi_{Cl_phi_key}/Na_MAPE.csv")
+    Ca_MAPE_df.to_csv(f"heat_map_data/Cl_phi_{Cl_phi_key}/Ca_MAPE.csv")
+    La_MAPE_df.to_csv(f"heat_map_data/Cl_phi_{Cl_phi_key}/La_MAPE.csv")
 
     Na_N_dict = {
         Dm_over_l: {
@@ -1305,17 +1149,17 @@ def save_data_comparison_csv(Cl_phi_key):
     }
     Ca_N_dict = {
         Dm_over_l: {
-            cation_phi: len(Ca_sieving_dict[Dm_over_l][cation_phi])
-            for cation_phi in Ca_sieving_dict[Dm_over_l].keys()
+            cation_phi: len(Ca_conc_dict[Dm_over_l][cation_phi])
+            for cation_phi in Ca_conc_dict[Dm_over_l].keys()
         }
-        for Dm_over_l in Ca_sieving_dict.keys()
+        for Dm_over_l in Ca_conc_dict.keys()
     }
     La_N_dict = {
         Dm_over_l: {
-            cation_phi: len(La_sieving_dict[Dm_over_l][cation_phi])
-            for cation_phi in La_sieving_dict[Dm_over_l].keys()
+            cation_phi: len(La_conc_dict[Dm_over_l][cation_phi])
+            for cation_phi in La_conc_dict[Dm_over_l].keys()
         }
-        for Dm_over_l in La_sieving_dict.keys()
+        for Dm_over_l in La_conc_dict.keys()
     }
 
     Na_N_df = pd.DataFrame(Na_N_dict)

@@ -264,6 +264,7 @@ def build_model(
                 InitializationError,
                 NoFeasibleSolutionError,
                 RuntimeError,
+                AssertionError,
             ):
                 continue
 
@@ -334,18 +335,18 @@ def solve_and_save_models(
     if run_data:
         # set concentrations
         feed = {
-            "Na": [
-                # 9.6199,
-                30.5114,
-                43.1343,
-                54.5286,
-                64.7312,
-                74.1947,
-                83.0378,
-                91.3303,
-                98.4631,
-                105.1806,
-            ],
+            # "Na": [
+            #     # 9.6199,
+            #     30.5114,
+            #     43.1343,
+            #     54.5286,
+            #     64.7312,
+            #     74.1947,
+            #     83.0378,
+            #     91.3303,
+            #     98.4631,
+            #     105.1806,
+            # ],
             # "Ca": [
             #     # 3.0588,
             #     10.4631,
@@ -358,18 +359,18 @@ def solve_and_save_models(
             #     37.4959,
             #     40.3890,
             # ],
-            # "La": [
-            #     # 1.4129,
-            #     4.8072,
-            #     7.0910,
-            #     9.2925,
-            #     11.3234,
-            #     13.5457,
-            #     15.5382,
-            #     17.4718,
-            #     19.3323,
-            #     21.1177,
-            # ],
+            "La": [
+                # 1.4129,
+                4.8072,
+                7.0910,
+                9.2925,
+                11.3234,
+                13.5457,
+                15.5382,
+                17.4718,
+                19.3323,
+                21.1177,
+            ],
         }
 
         # set average flux
@@ -419,12 +420,16 @@ def solve_and_save_models(
         if full_sensitivity:
             # Dm_over_l_sensitivity = [80, 70, 60, 50, 40]  # um/s
             # Dm_over_l_sensitivity_keys = ["80", "70", "60", "50", "40"]  # um/s
-            Dm_over_l_sensitivity = [80]  # um/s
-            Dm_over_l_sensitivity_keys = ["80"]  # um/s
+            # Dm_over_l_sensitivity = [80]  # um/s
+            # Dm_over_l_sensitivity_keys = ["80"]  # um/s
             # Dm_over_l_sensitivity = [70]  # um/s
             # Dm_over_l_sensitivity_keys = ["70"]  # um/s
-            # Dm_over_l_sensitivity = [60, 50, 40]  # um/s
-            # Dm_over_l_sensitivity_keys = ["60", "50", "40"]  # um/s
+            # Dm_over_l_sensitivity = [60]  # um/s
+            # Dm_over_l_sensitivity_keys = ["60"]  # um/s
+            # Dm_over_l_sensitivity = [50]  # um/s
+            # Dm_over_l_sensitivity_keys = ["50"]  # um/s
+            Dm_over_l_sensitivity = [40]  # um/s
+            Dm_over_l_sensitivity_keys = ["40"]  # um/s
 
             # Na
             monovalent_phi_star_sensitivity = [
@@ -491,8 +496,10 @@ def solve_and_save_models(
 
             # chloride_phi_star_sensitivity = [0.1, 0.05]
             # chloride_phi_star_sensitivity_keys = ["010", "005"]
-            chloride_phi_star_sensitivity = [0.1]
-            chloride_phi_star_sensitivity_keys = ["010"]
+            # chloride_phi_star_sensitivity = [0.1]
+            # chloride_phi_star_sensitivity_keys = ["010"]
+            chloride_phi_star_sensitivity = [0.05]
+            chloride_phi_star_sensitivity_keys = ["005"]
 
             for chloride_phi_star in chloride_phi_star_sensitivity:
                 for Dm_over_l in Dm_over_l_sensitivity:
