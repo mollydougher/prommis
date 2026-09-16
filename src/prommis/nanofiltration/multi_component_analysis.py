@@ -265,6 +265,7 @@ def build_model(
                 NoFeasibleSolutionError,
                 RuntimeError,
                 AssertionError,
+                ValueError,
             ):
                 continue
 
@@ -498,8 +499,10 @@ def solve_and_save_models(
             # chloride_phi_star_sensitivity_keys = ["010", "005"]
             # chloride_phi_star_sensitivity = [0.1]
             # chloride_phi_star_sensitivity_keys = ["010"]
-            chloride_phi_star_sensitivity = [0.05]
-            chloride_phi_star_sensitivity_keys = ["005"]
+            # chloride_phi_star_sensitivity = [0.05]
+            # chloride_phi_star_sensitivity_keys = ["005"]
+            chloride_phi_star_sensitivity = [0.01]
+            chloride_phi_star_sensitivity_keys = ["001"]
 
             for chloride_phi_star in chloride_phi_star_sensitivity:
                 for Dm_over_l in Dm_over_l_sensitivity:

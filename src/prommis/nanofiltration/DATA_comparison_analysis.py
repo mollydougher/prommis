@@ -26,11 +26,9 @@ from prommis.nanofiltration.multi_component_analysis import build_model
 
 
 def main():
-    # save_data_comparison_csv(Cl_phi_key="040")
-    # save_data_comparison_csv(Cl_phi_key="030")
-    # save_data_comparison_csv(Cl_phi_key="020")
     # save_data_comparison_csv(Cl_phi_key="010")
     # save_data_comparison_csv(Cl_phi_key="005")
+    # save_data_comparison_csv(Cl_phi_key="001")
 
     generate_data_comparison_heat_maps()
     generate_N_data_heat_maps()
@@ -42,6 +40,14 @@ def generate_data_comparison_heat_maps():
     fontsize = 14
 
     # load data from csv files
+    Na_MAE_Cl_phi_001_df = load_data("001", "Na_MAE")
+    Ca_MAE_Cl_phi_001_df = load_data("001", "Ca_MAE")
+    La_MAE_Cl_phi_001_df = load_data("001", "La_MAE")
+
+    Na_MAPE_Cl_phi_001_df = load_data("001", "Na_MAPE")
+    Ca_MAPE_Cl_phi_001_df = load_data("001", "Ca_MAPE")
+    La_MAPE_Cl_phi_001_df = load_data("001", "La_MAPE")
+
     Na_MAE_Cl_phi_005_df = load_data("005", "Na_MAE")
     Ca_MAE_Cl_phi_005_df = load_data("005", "Ca_MAE")
     La_MAE_Cl_phi_005_df = load_data("005", "La_MAE")
@@ -59,12 +65,20 @@ def generate_data_comparison_heat_maps():
     La_MAPE_Cl_phi_010_df = load_data("010", "La_MAPE")
 
     vmin_mae = 0
-    vmax_mae = 1
+    vmax_mae = 50
 
     vmin_mape = 0
     vmax_mape = 200
 
     # add stars at the minumum of each subplot
+    Na_MAE_Cl_phi_001_df_min = find_minimums(Na_MAE_Cl_phi_001_df)
+    Ca_MAE_Cl_phi_001_df_min = find_minimums(Ca_MAE_Cl_phi_001_df)
+    La_MAE_Cl_phi_001_df_min = find_minimums(La_MAE_Cl_phi_001_df)
+
+    Na_MAPE_Cl_phi_001_df_min = find_minimums(Na_MAPE_Cl_phi_001_df)
+    Ca_MAPE_Cl_phi_001_df_min = find_minimums(Ca_MAPE_Cl_phi_001_df)
+    La_MAPE_Cl_phi_001_df_min = find_minimums(La_MAPE_Cl_phi_001_df)
+
     Na_MAE_Cl_phi_005_df_min = find_minimums(Na_MAE_Cl_phi_005_df)
     Ca_MAE_Cl_phi_005_df_min = find_minimums(Ca_MAE_Cl_phi_005_df)
     La_MAE_Cl_phi_005_df_min = find_minimums(La_MAE_Cl_phi_005_df)
@@ -82,26 +96,26 @@ def generate_data_comparison_heat_maps():
     La_MAPE_Cl_phi_010_df_min = find_minimums(La_MAPE_Cl_phi_010_df)
 
     fig_mae, (
-        (ax1a, ax1b),  # , ax1c, ax1d, ax1e),
-        (ax2a, ax2b),  # , ax2c, ax2d, ax2e),
-        (ax3a, ax3b),  # , ax3c, ax3d, ax3e),
+        (ax1a, ax1b, ax1c),
+        (ax2a, ax2b, ax2c),
+        (ax3a, ax3b, ax3c),
     ) = plt.subplots(
         3,
-        2,
+        3,
         dpi=75,
-        figsize=(11, 14.1),
+        figsize=(15, 14.1),
         sharex=True,
     )
     fig_mae.tight_layout(rect=[0.05, 0.05, 0.9, 0.95])
     fig_mape, (
-        (ax4a, ax4b),  # , ax4c, ax4d, ax4e),
-        (ax5a, ax5b),  # , ax5c, ax5d, ax5e),
-        (ax6a, ax6b),  # , ax6c, ax6d, ax6e),
+        (ax4a, ax4b, ax4c),
+        (ax5a, ax5b, ax5c),
+        (ax6a, ax6b, ax6c),
     ) = plt.subplots(
         3,
-        2,
+        3,
         dpi=75,
-        figsize=(11, 14.1),
+        figsize=(15, 14.1),
         sharex=True,
     )
     fig_mape.tight_layout(rect=[0.05, 0.05, 0.9, 0.95])
@@ -117,16 +131,14 @@ def generate_data_comparison_heat_maps():
     )
     for ax in [ax1a, ax4a]:
         ax.set_title(
-            "$\mathbf{\phi_{Cl}}$ = 0.05", fontsize=fontsize, fontweight="bold"
+            "$\mathbf{\phi_{Cl}}$ = 0.01", fontsize=fontsize, fontweight="bold"
         )
     for ax in [ax1b, ax4b]:
+        ax.set_title(
+            "$\mathbf{\phi_{Cl}}$ = 0.05", fontsize=fontsize, fontweight="bold"
+        )
+    for ax in [ax1c, ax4c]:
         ax.set_title("$\mathbf{\phi_{Cl}}$ = 0.1", fontsize=fontsize, fontweight="bold")
-    # for ax in [ax1c, ax4c]:
-    #     ax.set_title("$\mathbf{\phi_{Cl}}$ = 0.2", fontsize=fontsize, fontweight="bold")
-    # for ax in [ax1d, ax4d]:
-    #     ax.set_title("$\mathbf{\phi_{Cl}}$ = 0.3", fontsize=fontsize, fontweight="bold")
-    # for ax in [ax1e, ax4e]:
-    #     ax.set_title("$\mathbf{\phi_{Cl}}$ = 0.4", fontsize=fontsize, fontweight="bold")
 
     cbar_ax_mae = fig_mae.add_axes([0.91, 0.2, 0.02, 0.6])
     cbar_ax_mae.tick_params(labelsize=fontsize)
@@ -135,8 +147,8 @@ def generate_data_comparison_heat_maps():
     cbar_ax_mape.tick_params(labelsize=fontsize)
 
     plot_data(
-        Na_MAE_Cl_phi_005_df,
-        Na_MAE_Cl_phi_005_df_min,
+        Na_MAE_Cl_phi_001_df,
+        Na_MAE_Cl_phi_001_df_min,
         ax1a,
         cbar_ax_mae,
         vmin_mae,
@@ -145,8 +157,8 @@ def generate_data_comparison_heat_maps():
         error="mae",
     )
     plot_data(
-        Ca_MAE_Cl_phi_005_df,
-        Ca_MAE_Cl_phi_005_df_min,
+        Ca_MAE_Cl_phi_001_df,
+        Ca_MAE_Cl_phi_001_df_min,
         ax2a,
         cbar_ax_mae,
         vmin_mae,
@@ -155,8 +167,8 @@ def generate_data_comparison_heat_maps():
         error="mae",
     )
     plot_data(
-        La_MAE_Cl_phi_005_df,
-        La_MAE_Cl_phi_005_df_min,
+        La_MAE_Cl_phi_001_df,
+        La_MAE_Cl_phi_001_df_min,
         ax3a,
         cbar_ax_mae,
         vmin_mae,
@@ -166,9 +178,37 @@ def generate_data_comparison_heat_maps():
     )
 
     plot_data(
+        Na_MAE_Cl_phi_005_df,
+        Na_MAE_Cl_phi_005_df_min,
+        ax1b,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+        error="mae",
+    )
+    plot_data(
+        Ca_MAE_Cl_phi_005_df,
+        Ca_MAE_Cl_phi_005_df_min,
+        ax2b,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+        error="mae",
+    )
+    plot_data(
+        La_MAE_Cl_phi_005_df,
+        La_MAE_Cl_phi_005_df_min,
+        ax3b,
+        cbar_ax_mae,
+        vmin_mae,
+        vmax_mae,
+        error="mae",
+    )
+
+    plot_data(
         Na_MAE_Cl_phi_010_df,
         Na_MAE_Cl_phi_010_df_min,
-        ax1b,
+        ax1c,
         cbar_ax_mae,
         vmin_mae,
         vmax_mae,
@@ -177,7 +217,7 @@ def generate_data_comparison_heat_maps():
     plot_data(
         Ca_MAE_Cl_phi_010_df,
         Ca_MAE_Cl_phi_010_df_min,
-        ax2b,
+        ax2c,
         cbar_ax_mae,
         vmin_mae,
         vmax_mae,
@@ -186,92 +226,48 @@ def generate_data_comparison_heat_maps():
     plot_data(
         La_MAE_Cl_phi_010_df,
         La_MAE_Cl_phi_010_df_min,
-        ax3b,
+        ax3c,
         cbar_ax_mae,
         vmin_mae,
         vmax_mae,
         error="mae",
     )
 
-    # plot_data(
-    #     Na_MAE_Cl_phi_020_df,
-    #     Na_MAE_Cl_phi_020_df_min,
-    #     ax1c,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    # )
-    # plot_data(
-    #     Ca_MAE_Cl_phi_020_df,
-    #     Ca_MAE_Cl_phi_020_df_min,
-    #     ax2c,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    # )
-    # plot_data(
-    #     La_MAE_Cl_phi_020_df,
-    #     La_MAE_Cl_phi_020_df_min,
-    #     ax3c,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    # )
-
-    # plot_data(
-    #     Na_MAE_Cl_phi_030_df,
-    #     Na_MAE_Cl_phi_030_df_min,
-    #     ax1d,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    # )
-    # plot_data(
-    #     Ca_MAE_Cl_phi_030_df,
-    #     Ca_MAE_Cl_phi_030_df_min,
-    #     ax2d,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    # )
-    # plot_data(
-    #     La_MAE_Cl_phi_030_df,
-    #     La_MAE_Cl_phi_030_df_min,
-    #     ax3d,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    # )
-
-    # plot_data(
-    #     Na_MAE_Cl_phi_040_df,
-    #     Na_MAE_Cl_phi_040_df_min,
-    #     ax1e,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    # )
-    # plot_data(
-    #     Ca_MAE_Cl_phi_040_df,
-    #     Ca_MAE_Cl_phi_040_df_min,
-    #     ax2e,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    # )
-    # plot_data(
-    #     La_MAE_Cl_phi_040_df,
-    #     La_MAE_Cl_phi_040_df_min,
-    #     ax3e,
-    #     cbar_ax_mae,
-    #     vmin_mae,
-    #     vmax_mae,
-    # )
+    plot_data(
+        Na_MAPE_Cl_phi_001_df,
+        Na_MAPE_Cl_phi_001_df_min,
+        ax4a,
+        cbar_ax_mape,
+        vmin_mape,
+        vmax_mape,
+        error="mape",
+        yticklabels=True,
+    )
+    plot_data(
+        Ca_MAPE_Cl_phi_001_df,
+        Ca_MAPE_Cl_phi_001_df_min,
+        ax5a,
+        cbar_ax_mape,
+        vmin_mape,
+        vmax_mape,
+        error="mape",
+        yticklabels=True,
+    )
+    plot_data(
+        La_MAPE_Cl_phi_001_df,
+        La_MAPE_Cl_phi_001_df_min,
+        ax6a,
+        cbar_ax_mape,
+        vmin_mape,
+        vmax_mape,
+        error="mape",
+        yticklabels=True,
+    )
 
     plot_data(
         Na_MAPE_Cl_phi_005_df,
         Na_MAPE_Cl_phi_005_df_min,
-        ax4a,
+        ax4b,
         cbar_ax_mape,
         vmin_mape,
         vmax_mape,
@@ -280,7 +276,7 @@ def generate_data_comparison_heat_maps():
     plot_data(
         Ca_MAPE_Cl_phi_005_df,
         Ca_MAPE_Cl_phi_005_df_min,
-        ax5a,
+        ax5b,
         cbar_ax_mape,
         vmin_mape,
         vmax_mape,
@@ -289,7 +285,7 @@ def generate_data_comparison_heat_maps():
     plot_data(
         La_MAPE_Cl_phi_005_df,
         La_MAPE_Cl_phi_005_df_min,
-        ax6a,
+        ax6b,
         cbar_ax_mape,
         vmin_mape,
         vmax_mape,
@@ -299,7 +295,7 @@ def generate_data_comparison_heat_maps():
     plot_data(
         Na_MAPE_Cl_phi_010_df,
         Na_MAPE_Cl_phi_010_df_min,
-        ax4b,
+        ax4c,
         cbar_ax_mape,
         vmin_mape,
         vmax_mape,
@@ -308,7 +304,7 @@ def generate_data_comparison_heat_maps():
     plot_data(
         Ca_MAPE_Cl_phi_010_df,
         Ca_MAPE_Cl_phi_010_df_min,
-        ax5b,
+        ax5c,
         cbar_ax_mape,
         vmin_mape,
         vmax_mape,
@@ -317,7 +313,7 @@ def generate_data_comparison_heat_maps():
     plot_data(
         La_MAPE_Cl_phi_010_df,
         La_MAPE_Cl_phi_010_df_min,
-        ax6b,
+        ax6c,
         cbar_ax_mape,
         vmin_mape,
         vmax_mape,
@@ -329,7 +325,7 @@ def generate_data_comparison_heat_maps():
     for ax in fig_mape.axes:
         ax.tick_params(axis="y", rotation=0)
 
-    for ax in [ax3a, ax3b, ax6a, ax6b]:
+    for ax in [ax3a, ax3b, ax3c, ax6a, ax6b, ax6c]:
         ax.set_xlabel(
             "$\mathbf{D_m}$/$\mathbf{l_m}$ (um/s)",
             fontsize=fontsize,
@@ -362,6 +358,10 @@ def generate_N_data_heat_maps():
     fontsize = 14
 
     # load data from csv files
+    Na_N_Cl_phi_001_df = load_data("001", "Na_N", N=True)
+    Ca_N_Cl_phi_001_df = load_data("001", "Ca_N", N=True)
+    La_N_Cl_phi_001_df = load_data("001", "La_N", N=True)
+
     Na_N_Cl_phi_005_df = load_data("005", "Na_N", N=True)
     Ca_N_Cl_phi_005_df = load_data("005", "Ca_N", N=True)
     La_N_Cl_phi_005_df = load_data("005", "La_N", N=True)
@@ -370,28 +370,16 @@ def generate_N_data_heat_maps():
     Ca_N_Cl_phi_010_df = load_data("010", "Ca_N", N=True)
     La_N_Cl_phi_010_df = load_data("010", "La_N", N=True)
 
-    # Na_N_Cl_phi_020_df = load_data("020", "Na_N", N=True)
-    # Ca_N_Cl_phi_020_df = load_data("020", "Ca_N", N=True)
-    # La_N_Cl_phi_020_df = load_data("020", "La_N", N=True)
-
-    # Na_N_Cl_phi_030_df = load_data("030", "Na_N", N=True)
-    # Ca_N_Cl_phi_030_df = load_data("030", "Ca_N", N=True)
-    # La_N_Cl_phi_030_df = load_data("030", "La_N", N=True)
-
-    # Na_N_Cl_phi_040_df = load_data("040", "Na_N", N=True)
-    # Ca_N_Cl_phi_040_df = load_data("040", "Ca_N", N=True)
-    # La_N_Cl_phi_040_df = load_data("040", "La_N", N=True)
-
     # add stars at the minumum of each subplot
     fig1, (
-        (ax1a, ax1b),  # , ax1c, ax1d, ax1e),
-        (ax2a, ax2b),  # , ax2c, ax2d, ax2e),
-        (ax3a, ax3b),  # , ax3c, ax3d, ax3e),
+        (ax1a, ax1b, ax1c),
+        (ax2a, ax2b, ax2c),
+        (ax3a, ax3b, ax3c),
     ) = plt.subplots(
         3,
-        2,
+        3,
         dpi=75,
-        figsize=(11, 14.1),
+        figsize=(15, 14.1),
         sharex=True,
     )
     fig1.tight_layout(rect=[0.05, 0.05, 0.9, 0.95])
@@ -400,39 +388,29 @@ def generate_N_data_heat_maps():
         ax.tick_params(bottom=False, labelsize=fontsize)
 
     fig1.suptitle("Number of Points", fontsize=fontsize, fontweight="bold")
-    ax1a.set_title("$\mathbf{\phi_{Cl}}$ = 0.05", fontsize=fontsize, fontweight="bold")
-    ax1b.set_title("$\mathbf{\phi_{Cl}}$ = 0.1", fontsize=fontsize, fontweight="bold")
-    # ax1c.set_title("$\mathbf{\phi_{Cl}}$ = 0.2", fontsize=fontsize, fontweight="bold")
-    # ax1d.set_title("$\mathbf{\phi_{Cl}}$ = 0.3", fontsize=fontsize, fontweight="bold")
-    # ax1e.set_title("$\mathbf{\phi_{Cl}}$ = 0.4", fontsize=fontsize, fontweight="bold")
+    ax1a.set_title("$\mathbf{\phi_{Cl}}$ = 0.01", fontsize=fontsize, fontweight="bold")
+    ax1b.set_title("$\mathbf{\phi_{Cl}}$ = 0.05", fontsize=fontsize, fontweight="bold")
+    ax1c.set_title("$\mathbf{\phi_{Cl}}$ = 0.1", fontsize=fontsize, fontweight="bold")
 
     cbar_ax = fig1.add_axes([0.91, 0.2, 0.02, 0.6])
     cbar_ax.tick_params(labelsize=fontsize)
 
-    plot_N_data(Na_N_Cl_phi_005_df, ax1a, cbar_ax, yticklabels=True)
-    plot_N_data(Ca_N_Cl_phi_005_df, ax2a, cbar_ax, yticklabels=True)
-    plot_N_data(La_N_Cl_phi_005_df, ax3a, cbar_ax, yticklabels=True)
+    plot_N_data(Na_N_Cl_phi_001_df, ax1a, cbar_ax, yticklabels=True)
+    plot_N_data(Ca_N_Cl_phi_001_df, ax2a, cbar_ax, yticklabels=True)
+    plot_N_data(La_N_Cl_phi_001_df, ax3a, cbar_ax, yticklabels=True)
 
-    plot_N_data(Na_N_Cl_phi_010_df, ax1b, cbar_ax)
-    plot_N_data(Ca_N_Cl_phi_010_df, ax2b, cbar_ax)
-    plot_N_data(La_N_Cl_phi_010_df, ax3b, cbar_ax)
+    plot_N_data(Na_N_Cl_phi_005_df, ax1b, cbar_ax)
+    plot_N_data(Ca_N_Cl_phi_005_df, ax2b, cbar_ax)
+    plot_N_data(La_N_Cl_phi_005_df, ax3b, cbar_ax)
 
-    # plot_N_data(Na_N_Cl_phi_020_df, ax1c, cbar_ax)
-    # plot_N_data(Ca_N_Cl_phi_020_df, ax2c, cbar_ax)
-    # plot_N_data(La_N_Cl_phi_020_df, ax3c, cbar_ax)
-
-    # plot_N_data(Na_N_Cl_phi_030_df, ax1d, cbar_ax)
-    # plot_N_data(Ca_N_Cl_phi_030_df, ax2d, cbar_ax)
-    # plot_N_data(La_N_Cl_phi_030_df, ax3d, cbar_ax)
-
-    # plot_N_data(Na_N_Cl_phi_040_df, ax1e, cbar_ax)
-    # plot_N_data(Ca_N_Cl_phi_040_df, ax2e, cbar_ax)
-    # plot_N_data(La_N_Cl_phi_040_df, ax3e, cbar_ax)
+    plot_N_data(Na_N_Cl_phi_010_df, ax1c, cbar_ax)
+    plot_N_data(Ca_N_Cl_phi_010_df, ax2c, cbar_ax)
+    plot_N_data(La_N_Cl_phi_010_df, ax3c, cbar_ax)
 
     for ax in fig1.axes:
         ax.tick_params(axis="y", rotation=0)
 
-    for ax in [ax3a, ax3b]:  # , ax3c, ax3d, ax3e]:
+    for ax in [ax3a, ax3b, ax3c]:
         ax.set_xlabel(
             "$\mathbf{D_m}$/$\mathbf{l_m}$ (um/s)",
             fontsize=fontsize,
@@ -534,34 +512,16 @@ def plot_data(df, df_min, ax, cbar_ax, vmin, vmax, error, yticklabels=False):
         "#684957",
         "#46353A",
     ]
-    # tol_discrete_rainbow_hex = [
-    #     "#D9CCE3",
-    #     "#CAACCB",
-    #     "#BA8DB4",
-    #     "#AA6F9E",
-    #     "#994F88",
-    #     "#882E72",
-    #     "#1965B0",
-    #     "#437DBF",
-    #     "#6195CF",
-    #     "#7BAFDE",
-    #     "#4EB265",
-    #     "#90C987",
-    #     "#CAE0AB",
-    #     "#F7F056",
-    #     "#F6C141",
-    #     "#F1932D",
-    #     "#E8601C",
-    #     "#DC050C",
-    #     "#A5170E",
-    #     "#72190E",
-    # ]
-    cmap = mcolors.ListedColormap(tol_iridescent_sequential_hex)
-    if error == "mae":
-        bins = np.linspace(0, 30, 21).tolist()
-    elif error == "mape":
-        bins = np.linspace(0, 150, 21).tolist()
-    norm = mcolors.BoundaryNorm(bins, cmap.N)
+    cmap = mcolors.LinearSegmentedColormap.from_list(
+        name="paul-tol-iridescent", colors=tol_iridescent_sequential_hex
+    )
+    # cmap.set_bad('#999999')
+    # cmap = mcolors.ListedColormap(tol_iridescent_sequential_hex)
+    # if error == "mae":
+    #     bins = np.linspace(0, 30, 21).tolist()
+    # elif error == "mape":
+    #     bins = np.linspace(0, 150, 21).tolist()
+    # norm = mcolors.BoundaryNorm(bins, cmap.N)
 
     sns.heatmap(
         df,
@@ -574,7 +534,7 @@ def plot_data(df, df_min, ax, cbar_ax, vmin, vmax, error, yticklabels=False):
         vmin=vmin,
         vmax=vmax,
         cmap=cmap,
-        norm=norm,
+        # norm=norm,
         yticklabels=yticklabels,
     ).invert_yaxis()
 
@@ -910,8 +870,8 @@ def save_data_comparison_csv(Cl_phi_key):
         "0000",
     ]
 
-    chloride_phi_star_sensitivity = [0.1, 0.05]
-    chloride_phi_star_sensitivity_keys = ["010", "005"]
+    chloride_phi_star_sensitivity = [0.1, 0.05, 0.01]
+    chloride_phi_star_sensitivity_keys = ["010", "005", "001"]
 
     for case_study in case_study_list:
         concentration = float(50)  # mM
