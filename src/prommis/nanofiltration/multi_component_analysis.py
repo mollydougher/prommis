@@ -482,6 +482,7 @@ def solve_and_save_models(
                 0.005,
                 0.001,
                 0.0005,
+                0.0001,
             ]
             trivalent_phi_star_sensitivity_keys = [
                 "0250",
@@ -492,7 +493,8 @@ def solve_and_save_models(
                 "0010",
                 "0005",
                 "0001",
-                "0000",
+                "00005",
+                "00001",
             ]
 
             # chloride_phi_star_sensitivity = [0.1, 0.05]
