@@ -156,14 +156,14 @@ def generate_data_comparison_heat_maps():
     cbar_ax_mae_na.tick_params(labelsize=fontsize)
     cbar_ax_mae_ca = fig_mae.add_axes([0.91, 0.38, 0.02, 0.26])
     cbar_ax_mae_ca.tick_params(labelsize=fontsize)
-    cbar_ax_mae_la = fig_mae.add_axes([0.91, 0.08, 0.02, 0.26])
+    cbar_ax_mae_la = fig_mae.add_axes([0.91, 0.085, 0.02, 0.26])
     cbar_ax_mae_la.tick_params(labelsize=fontsize)
 
     cbar_ax_mape_na = fig_mape.add_axes([0.91, 0.67, 0.02, 0.26])
     cbar_ax_mape_na.tick_params(labelsize=fontsize)
     cbar_ax_mape_ca = fig_mape.add_axes([0.91, 0.38, 0.02, 0.26])
     cbar_ax_mape_ca.tick_params(labelsize=fontsize)
-    cbar_ax_mape_la = fig_mape.add_axes([0.91, 0.08, 0.02, 0.26])
+    cbar_ax_mape_la = fig_mape.add_axes([0.91, 0.085, 0.02, 0.26])
     cbar_ax_mape_la.tick_params(labelsize=fontsize)
 
     plot_data(
@@ -440,13 +440,13 @@ def generate_N_data_heat_maps():
 def load_data(Cl_phi_key, filename, N=False):
     if filename[0:2] == "Na":
         # indices = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
-        indices = [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7]
+        indices = [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75]
     elif filename[0:2] == "La":
         # indices = [0.005, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4]
         indices = [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.15, 0.2, 0.25]
     else:
         # indices = [0.05, 0.1, 0.2, 0.3, 0.4]
-        indices = [0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
+        indices = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
 
     if N:
         folder = "N_data"
@@ -462,8 +462,8 @@ def load_data(Cl_phi_key, filename, N=False):
 
 
 def find_minimums(df):
-    Na_indices = [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7]
-    Ca_indices = [0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
+    Na_indices = [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75]
+    Ca_indices = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
     La_indices = [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.15, 0.2, 0.25]
 
     if df.index.tolist() == Na_indices:
@@ -658,6 +658,7 @@ def save_data_comparison_csv(Cl_phi_key):
             0.60: {},
             0.65: {},
             0.70: {},
+            0.75: {},
         },
         50: {
             0.20: {},
@@ -671,6 +672,7 @@ def save_data_comparison_csv(Cl_phi_key):
             0.60: {},
             0.65: {},
             0.70: {},
+            0.75: {},
         },
         60: {
             0.20: {},
@@ -684,6 +686,7 @@ def save_data_comparison_csv(Cl_phi_key):
             0.60: {},
             0.65: {},
             0.70: {},
+            0.75: {},
         },
         70: {
             0.20: {},
@@ -697,6 +700,7 @@ def save_data_comparison_csv(Cl_phi_key):
             0.60: {},
             0.65: {},
             0.70: {},
+            0.75: {},
         },
         80: {
             0.20: {},
@@ -710,10 +714,13 @@ def save_data_comparison_csv(Cl_phi_key):
             0.60: {},
             0.65: {},
             0.70: {},
+            0.75: {},
         },
     }
     Ca_conc_dict = {
         40: {
+            0.05: {},
+            0.10: {},
             0.15: {},
             0.20: {},
             0.25: {},
@@ -724,6 +731,8 @@ def save_data_comparison_csv(Cl_phi_key):
             0.50: {},
         },
         50: {
+            0.05: {},
+            0.10: {},
             0.15: {},
             0.20: {},
             0.25: {},
@@ -734,6 +743,8 @@ def save_data_comparison_csv(Cl_phi_key):
             0.50: {},
         },
         60: {
+            0.05: {},
+            0.10: {},
             0.15: {},
             0.20: {},
             0.25: {},
@@ -744,6 +755,8 @@ def save_data_comparison_csv(Cl_phi_key):
             0.50: {},
         },
         70: {
+            0.05: {},
+            0.10: {},
             0.15: {},
             0.20: {},
             0.25: {},
@@ -754,6 +767,8 @@ def save_data_comparison_csv(Cl_phi_key):
             0.50: {},
         },
         80: {
+            0.05: {},
+            0.10: {},
             0.15: {},
             0.20: {},
             0.25: {},
@@ -831,6 +846,7 @@ def save_data_comparison_csv(Cl_phi_key):
     Dm_over_l_sensitivity_keys = ["80", "70", "60", "50", "40"]  # um/s
 
     cation_phi_star_sensitivity = [
+        0.75,
         0.7,
         0.65,
         0.6,
@@ -852,6 +868,7 @@ def save_data_comparison_csv(Cl_phi_key):
         0.0001,
     ]
     cation_phi_star_sensitivity_keys = [
+        "0750",
         "0700",
         "0650",
         "0600",

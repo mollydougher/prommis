@@ -336,42 +336,42 @@ def solve_and_save_models(
     if run_data:
         # set concentrations
         feed = {
-            # "Na": [
-            #     # 9.6199,
-            #     30.5114,
-            #     43.1343,
-            #     54.5286,
-            #     64.7312,
-            #     74.1947,
-            #     83.0378,
-            #     91.3303,
-            #     98.4631,
-            #     105.1806,
-            # ],
-            # "Ca": [
-            #     # 3.0588,
-            #     10.4631,
-            #     15.2044,
-            #     19.6055,
-            #     23.6953,
-            #     27.5362,
-            #     31.0213,
-            #     34.3589,
-            #     37.4959,
-            #     40.3890,
-            # ],
-            "La": [
-                # 1.4129,
-                4.8072,
-                7.0910,
-                9.2925,
-                11.3234,
-                13.5457,
-                15.5382,
-                17.4718,
-                19.3323,
-                21.1177,
+            "Na": [
+                # 9.6199,
+                30.5114,
+                43.1343,
+                54.5286,
+                64.7312,
+                74.1947,
+                83.0378,
+                91.3303,
+                98.4631,
+                105.1806,
             ],
+            "Ca": [
+                # 3.0588,
+                10.4631,
+                15.2044,
+                19.6055,
+                23.6953,
+                27.5362,
+                31.0213,
+                34.3589,
+                37.4959,
+                40.3890,
+            ],
+            # "La": [
+            #     # 1.4129,
+            #     4.8072,
+            #     7.0910,
+            #     9.2925,
+            #     11.3234,
+            #     13.5457,
+            #     15.5382,
+            #     17.4718,
+            #     19.3323,
+            #     21.1177,
+            # ],
         }
 
         # set average flux
@@ -419,8 +419,8 @@ def solve_and_save_models(
         full_sensitivity = True
 
         if full_sensitivity:
-            # Dm_over_l_sensitivity = [80, 70, 60, 50, 40]  # um/s
-            # Dm_over_l_sensitivity_keys = ["80", "70", "60", "50", "40"]  # um/s
+            Dm_over_l_sensitivity = [80, 70, 60, 50, 40]  # um/s
+            Dm_over_l_sensitivity_keys = ["80", "70", "60", "50", "40"]  # um/s
             # Dm_over_l_sensitivity = [80]  # um/s
             # Dm_over_l_sensitivity_keys = ["80"]  # um/s
             # Dm_over_l_sensitivity = [70]  # um/s
@@ -429,11 +429,12 @@ def solve_and_save_models(
             # Dm_over_l_sensitivity_keys = ["60"]  # um/s
             # Dm_over_l_sensitivity = [50]  # um/s
             # Dm_over_l_sensitivity_keys = ["50"]  # um/s
-            Dm_over_l_sensitivity = [40]  # um/s
-            Dm_over_l_sensitivity_keys = ["40"]  # um/s
+            # Dm_over_l_sensitivity = [40]  # um/s
+            # Dm_over_l_sensitivity_keys = ["40"]  # um/s
 
             # Na
             monovalent_phi_star_sensitivity = [
+                0.75,
                 0.7,
                 0.65,
                 0.6,
@@ -447,6 +448,7 @@ def solve_and_save_models(
                 0.2,
             ]
             monovalent_phi_star_sensitivity_keys = [
+                "0750",
                 "0700",
                 "0650",
                 "0600",
@@ -460,7 +462,7 @@ def solve_and_save_models(
                 "0200",
             ]
             # Ca
-            divalent_phi_star_sensitivity = [0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0.15]
+            divalent_phi_star_sensitivity = [0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0.15, 0.1, 0.05]
             divalent_phi_star_sensitivity_keys = [
                 "0500",
                 "0450",
@@ -470,6 +472,8 @@ def solve_and_save_models(
                 "0250",
                 "0200",
                 "0150",
+                "0100",
+                "0050",
             ]
             # La
             trivalent_phi_star_sensitivity = [
