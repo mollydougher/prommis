@@ -351,7 +351,7 @@ def generate_data_comparison_heat_maps():
             fontsize=fontsize,
             fontweight="bold",
         )
-
+    # TODO rename plots to perm conc not sieving
     fig_mae.savefig("sieving_data_mae_fine.png", dpi=600)
     fig_mape.savefig("sieving_data_mape_fine.png", dpi=600)
 
@@ -597,7 +597,7 @@ def save_data_comparison_csv(Cl_phi_key):
 
     Cl_Dm = 2.03  # um2/s
 
-    # NF270_MC5_07_23_24_NaCl = {conc_f: sieving_p, ...}
+    # NF270_MC5_07_23_24_NaCl = {conc_f: conc_p, ...}
     NF270_MC5_07_23_24_NaCl = {
         # 9.6199: 1.8036,
         30.5114: 7.0040,

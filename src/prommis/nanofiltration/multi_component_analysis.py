@@ -62,7 +62,7 @@ def main():
         set_IS=set_IS,
     )
 
-    # data_comparison_plots(save_figure=True)
+    data_comparison_plots(save_figure=True)
 
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=False, save_figure=True)
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True)
@@ -85,7 +85,7 @@ def main():
 
     # plot_Donnan_potentials(total_h=True, sieving=True)
     # plot_Donnan_potentials(x_axis="cation_concentration", total_h=True, sieving=True)
-    # plt.show()
+    plt.show()
 
 
 def build_model(
@@ -241,8 +241,8 @@ def build_model(
                 unfix_pressure(m, water_flux=water_flux)
                 solve_model(m)
 
-                full_sensitivity = True
-                data = False
+                full_sensitivity = False
+                data = True
                 single_salt = False
                 two_salt = False
 
@@ -360,18 +360,18 @@ def solve_and_save_models(
                 37.4959,
                 40.3890,
             ],
-            # "La": [
-            #     # 1.4129,
-            #     4.8072,
-            #     7.0910,
-            #     9.2925,
-            #     11.3234,
-            #     13.5457,
-            #     15.5382,
-            #     17.4718,
-            #     19.3323,
-            #     21.1177,
-            # ],
+            "La": [
+                # 1.4129,
+                4.8072,
+                7.0910,
+                9.2925,
+                11.3234,
+                13.5457,
+                15.5382,
+                17.4718,
+                19.3323,
+                21.1177,
+            ],
         }
 
         # set average flux
@@ -416,7 +416,7 @@ def solve_and_save_models(
 
         Dm_Cl = 2.03  # um2/s
 
-        full_sensitivity = True
+        full_sensitivity = False
 
         if full_sensitivity:
             Dm_over_l_sensitivity = [80, 70, 60, 50, 40]  # um/s
@@ -462,7 +462,18 @@ def solve_and_save_models(
                 "0200",
             ]
             # Ca
-            divalent_phi_star_sensitivity = [0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0.15, 0.1, 0.05]
+            divalent_phi_star_sensitivity = [
+                0.5,
+                0.45,
+                0.4,
+                0.35,
+                0.3,
+                0.25,
+                0.2,
+                0.15,
+                0.1,
+                0.05,
+            ]
             divalent_phi_star_sensitivity_keys = [
                 "0500",
                 "0450",
@@ -1404,13 +1415,15 @@ def get_model_averages_flux(model, solute):
 def data_comparison_plots(save_figure=True):
     markersize = 10
     fontsize = 14
+    closed_alpha = 0.6
+    capsize = 2
 
     anion_list = ["Cl"]
     inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
     include_boundary_layer = True
-    NFE_module_length = 15
-    NFE_boundary_layer_thickness = 5
-    NFE_membrane_thickness = 5
+    NFE_module_length = 10
+    NFE_boundary_layer_thickness = 10
+    NFE_membrane_thickness = 10
 
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
@@ -1418,9 +1431,15 @@ def data_comparison_plots(save_figure=True):
     fig1, ax1 = plt.subplots(
         1,
         dpi=100,
-        figsize=(5, 5),
+        figsize=(5, 4.5),
         constrained_layout=True,
     )
+
+    inax1 = ax1.inset_axes([0.1, 0.5, 0.45, 0.45])
+    inax1.set_xlim(3, 23)
+    inax1.set_ylim(0, 1.1)
+    inax1.tick_params(direction="in", top=True, right=True, labelsize=10)
+    # ax1.indicate_inset_zoom(inax1, edgecolor="black")
 
     # color blind friendly
     tol_bright_hex = [
@@ -1438,16 +1457,17 @@ def data_comparison_plots(save_figure=True):
     La_color = tol_bright_hex[2]
 
     ax1.set_xlabel(
-        "Feed Concentration (mM)",
+        "Feed or Retentate Concentration (mM)",
         fontsize=fontsize,
         fontweight="bold",
     )
-    ax1.set_ylabel("Observed Sieving Coefficient", fontsize=fontsize, fontweight="bold")
+    ax1.set_ylabel("Permeate Concentration (mM)", fontsize=fontsize, fontweight="bold")
     ax1.plot(
         [],
         [],
         color=Na_color,
         marker="o",
+        alpha=closed_alpha,
         markersize=markersize,
         linestyle="None",
         label="Na",
@@ -1457,6 +1477,7 @@ def data_comparison_plots(save_figure=True):
         [],
         color=Ca_color,
         marker="o",
+        alpha=closed_alpha,
         markersize=markersize,
         linestyle="None",
         label="Ca",
@@ -1466,6 +1487,7 @@ def data_comparison_plots(save_figure=True):
         [],
         color=La_color,
         marker="o",
+        alpha=closed_alpha,
         markersize=markersize,
         linestyle="None",
         label="La",
@@ -1485,14 +1507,17 @@ def data_comparison_plots(save_figure=True):
         [],
         color="black",
         marker="o",
+        alpha=closed_alpha,
         markersize=markersize,
         linestyle="None",
         label="predicted",
     )
-    ax1.legend(loc="upper left", fontsize=fontsize - 2, ncol=2)
+    ax1.legend(loc="lower right", fontsize=fontsize - 3, ncol=2)
     ax1.tick_params(
         direction="in", top=True, right=True, labelsize=fontsize - 2, labelleft=True
     )
+    # ax1.set_xlim(0,110)
+    # ax1.set_ylim(0,110)
 
     model_folder = Path(f"multi_component_case_studies/DATA_comparison/")
     # 45 characters (0-44) make up folder name before model name
@@ -1502,7 +1527,7 @@ def data_comparison_plots(save_figure=True):
 
     Dm_over_l = 60  # um/s
     Dm_Cl = 2.03  # um2/s
-    chloride_phi_star = 0.1
+    chloride_phi_star = 0.05
 
     for case_study_file in case_study_list:
         cation = str(case_study_file)[45:47]
@@ -1510,15 +1535,15 @@ def data_comparison_plots(save_figure=True):
         cation_list = [cation]
         if cation == "Na":
             chloride_multiplier = 1
-            cation_phi_star = 0.7
+            cation_phi_star = 0.75
             color = Na_color
         if cation == "Ca":
             chloride_multiplier = 2
-            cation_phi_star = 0.3
+            cation_phi_star = 0.4
             color = Ca_color
         if cation == "La":
             chloride_multiplier = 3
-            cation_phi_star = 0.0005
+            cation_phi_star = 0.0001
             color = La_color
         inlet_concentration = {
             "feed": {
@@ -1551,32 +1576,46 @@ def data_comparison_plots(save_figure=True):
         )
         from_json(model, fname=case_study_file)
 
-        average_variable_dict = get_model_averages(model, cation)
+        # average_variable_dict = get_model_averages(model, cation)
 
         x_value_predicted = value(
             model.fs.membrane.retentate_conc_mol_comp[0, 0, cation]
         )
-        y_obs_data_predicted = average_variable_dict["observed_sieving"]["avg"]
-        y_obs_err_predicted = average_variable_dict["observed_sieving"]["spread"]
+        # y_obs_data_predicted = average_variable_dict["observed_sieving"]["avg"]
+        # y_obs_err_predicted = average_variable_dict["observed_sieving"]["spread"]
+        y_data_predicted = value(
+            model.fs.membrane.permeate_outlet_conc_mol_comp[0, cation]
+        )
 
-        alpha = 1
+        # alpha = 1
         marker = "o"
 
-        ax1.errorbar(
-            x_value_predicted,
-            y_obs_data_predicted,
-            yerr=y_obs_err_predicted,
-            ecolor=color,
-            capsize=3,
-        )
+        # ax1.errorbar(
+        #     x_value_predicted,
+        #     y_obs_data_predicted,
+        #     yerr=y_obs_err_predicted,
+        #     ecolor=color,
+        #     capsize=3,
+        # )
         ax1.plot(
             x_value_predicted,
-            y_obs_data_predicted,
+            y_data_predicted,
             color=color,
             marker=marker,
-            alpha=alpha,
+            alpha=closed_alpha,
             markersize=markersize,
         )
+        inax1.plot(
+            x_value_predicted,
+            y_data_predicted,
+            color=color,
+            marker=marker,
+            alpha=closed_alpha,
+            markersize=markersize,
+        )
+
+    ax1.axline((0, 0), slope=1, color="black", linestyle="-", linewidth=1)
+    # inax1.axline((0, 0), slope=1, color='black', linestyle='-', linewidth=1)
 
     NF270_MC5_07_23_24_NaCl = {
         "conc_feed": [
@@ -1590,6 +1629,18 @@ def data_comparison_plots(save_figure=True):
             91.3303,
             98.4631,
             105.1806,
+        ],
+        "conc_perm": [
+            # 1.8036,
+            7.0040,
+            15.3808,
+            24.0802,
+            32.6817,
+            40.8896,
+            49.0773,
+            57.0895,
+            62.5871,
+            70.2565,
         ],
         "sieving_obs": [
             # 0.1875,
@@ -1619,20 +1670,40 @@ def data_comparison_plots(save_figure=True):
 
     ax1.plot(
         NF270_MC5_07_23_24_NaCl["conc_feed"],
-        NF270_MC5_07_23_24_NaCl["sieving_obs"],
+        NF270_MC5_07_23_24_NaCl["conc_perm"],
         markerfacecolor="none",
         markeredgecolor=Na_color,
         marker="o",
         linestyle="None",
-        alpha=alpha,
+        # alpha=alpha,
         markersize=markersize,
     )
     ax1.errorbar(
         NF270_MC5_07_23_24_NaCl["conc_feed"],
-        NF270_MC5_07_23_24_NaCl["sieving_obs"],
-        yerr=NF270_MC5_07_23_24_NaCl["sieving_obs_error"],
+        NF270_MC5_07_23_24_NaCl["conc_perm"],
+        xerr=[0.0093 * conc for conc in NF270_MC5_07_23_24_NaCl["conc_feed"]],
+        yerr=[0.03 * conc for conc in NF270_MC5_07_23_24_NaCl["conc_perm"]],
         ecolor=Na_color,
-        capsize=3,
+        capsize=capsize,
+        linestyle="None",
+    )
+    inax1.plot(
+        NF270_MC5_07_23_24_NaCl["conc_feed"],
+        NF270_MC5_07_23_24_NaCl["conc_perm"],
+        markerfacecolor="none",
+        markeredgecolor=Na_color,
+        marker="o",
+        linestyle="None",
+        # alpha=alpha,
+        markersize=markersize,
+    )
+    inax1.errorbar(
+        NF270_MC5_07_23_24_NaCl["conc_feed"],
+        NF270_MC5_07_23_24_NaCl["conc_perm"],
+        xerr=[0.0093 * conc for conc in NF270_MC5_07_23_24_NaCl["conc_feed"]],
+        yerr=[0.03 * conc for conc in NF270_MC5_07_23_24_NaCl["conc_perm"]],
+        ecolor=Na_color,
+        capsize=capsize,
         linestyle="None",
     )
 
@@ -1648,6 +1719,18 @@ def data_comparison_plots(save_figure=True):
             34.3589,
             37.4959,
             40.3890,
+        ],
+        "conc_perm": [
+            # 0.5790,
+            2.1731,
+            4.8337,
+            7.0021,
+            8.9125,
+            10.8142,
+            12.8956,
+            14.8202,
+            16.4538,
+            18.1746,
         ],
         "sieving_obs": [
             # 0.1893,
@@ -1677,20 +1760,40 @@ def data_comparison_plots(save_figure=True):
 
     ax1.plot(
         NF270_MC3_07_11_24_SCaCl2["conc_feed"],
-        NF270_MC3_07_11_24_SCaCl2["sieving_obs"],
+        NF270_MC3_07_11_24_SCaCl2["conc_perm"],
         markerfacecolor="none",
         markeredgecolor=Ca_color,
         marker="o",
         linestyle="None",
-        alpha=alpha,
+        # alpha=alpha,
         markersize=markersize,
     )
     ax1.errorbar(
         NF270_MC3_07_11_24_SCaCl2["conc_feed"],
-        NF270_MC3_07_11_24_SCaCl2["sieving_obs"],
-        yerr=NF270_MC3_07_11_24_SCaCl2["sieving_obs_error"],
+        NF270_MC3_07_11_24_SCaCl2["conc_perm"],
+        xerr=[0.0093 * conc for conc in NF270_MC3_07_11_24_SCaCl2["conc_feed"]],
+        yerr=[0.03 * conc for conc in NF270_MC3_07_11_24_SCaCl2["conc_perm"]],
         ecolor=Ca_color,
-        capsize=3,
+        capsize=capsize,
+        linestyle="None",
+    )
+    inax1.plot(
+        NF270_MC3_07_11_24_SCaCl2["conc_feed"],
+        NF270_MC3_07_11_24_SCaCl2["conc_perm"],
+        markerfacecolor="none",
+        markeredgecolor=Ca_color,
+        marker="o",
+        linestyle="None",
+        # alpha=alpha,
+        markersize=markersize,
+    )
+    inax1.errorbar(
+        NF270_MC3_07_11_24_SCaCl2["conc_feed"],
+        NF270_MC3_07_11_24_SCaCl2["conc_perm"],
+        xerr=[0.0093 * conc for conc in NF270_MC3_07_11_24_SCaCl2["conc_feed"]],
+        yerr=[0.03 * conc for conc in NF270_MC3_07_11_24_SCaCl2["conc_perm"]],
+        ecolor=Ca_color,
+        capsize=capsize,
         linestyle="None",
     )
 
@@ -1706,6 +1809,18 @@ def data_comparison_plots(save_figure=True):
             17.4718,
             19.3323,
             21.1177,
+        ],
+        "conc_perm": [
+            # 0.0606,
+            0.1152,
+            0.2026,
+            0.2901,
+            0.3791,
+            0.4640,
+            0.5566,
+            0.6580,
+            0.7562,
+            0.8842,
         ],
         "sieving_obs": [
             # 0.0429,
@@ -1734,25 +1849,46 @@ def data_comparison_plots(save_figure=True):
     }
     ax1.plot(
         NF270_MC2_05_21_24_LaCl3["conc_feed"],
-        NF270_MC2_05_21_24_LaCl3["sieving_obs"],
+        NF270_MC2_05_21_24_LaCl3["conc_perm"],
         markerfacecolor="none",
         markeredgecolor=La_color,
         marker="o",
         linestyle="None",
-        alpha=alpha,
+        # alpha=alpha,
         markersize=markersize,
     )
     ax1.errorbar(
         NF270_MC2_05_21_24_LaCl3["conc_feed"],
-        NF270_MC2_05_21_24_LaCl3["sieving_obs"],
-        yerr=NF270_MC2_05_21_24_LaCl3["sieving_obs_error"],
+        NF270_MC2_05_21_24_LaCl3["conc_perm"],
+        xerr=[0.0093 * conc for conc in NF270_MC2_05_21_24_LaCl3["conc_feed"]],
+        yerr=[0.03 * conc for conc in NF270_MC2_05_21_24_LaCl3["conc_perm"]],
         ecolor=La_color,
-        capsize=3,
+        capsize=capsize,
+        linestyle="None",
+    )
+
+    inax1.plot(
+        NF270_MC2_05_21_24_LaCl3["conc_feed"],
+        NF270_MC2_05_21_24_LaCl3["conc_perm"],
+        markerfacecolor="none",
+        markeredgecolor=La_color,
+        marker="o",
+        linestyle="None",
+        # alpha=alpha,
+        markersize=markersize,
+    )
+    inax1.errorbar(
+        NF270_MC2_05_21_24_LaCl3["conc_feed"],
+        NF270_MC2_05_21_24_LaCl3["conc_perm"],
+        xerr=[0.0093 * conc for conc in NF270_MC2_05_21_24_LaCl3["conc_feed"]],
+        yerr=[0.03 * conc for conc in NF270_MC2_05_21_24_LaCl3["conc_perm"]],
+        ecolor=La_color,
+        capsize=capsize,
         linestyle="None",
     )
 
     if save_figure:
-        fig1.savefig("sieving_data_comparison_single_salts.png", dpi=600)
+        fig1.savefig("permeate_conc_data_comparison_single_salts.png", dpi=600)
 
 
 def rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True):
