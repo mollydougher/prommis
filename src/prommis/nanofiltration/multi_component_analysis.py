@@ -47,8 +47,8 @@ from prommis.nanofiltration.multi_component_diafiltration import (
 
 def main():
     set_IS = False
-    run_data = True
-    run_single_salt = False
+    run_data = False
+    run_single_salt = False  # set to True to generate case studies for H and S regression/surrogate generation
     run_two_salt = False
     run_three_salt = False
     run_salt_ratio = False
@@ -62,7 +62,7 @@ def main():
         set_IS=set_IS,
     )
 
-    data_comparison_plots(save_figure=True)
+    # data_comparison_plots(save_figure=True)
 
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=False, save_figure=True)
     # rejection_plots_equimolar(x_axis="ionic_strength", sieving=True, save_figure=True)
@@ -84,7 +84,7 @@ def main():
     # plot_flux_contributions(x_axis="ionic_strength", percent=True, save_figure=True)
 
     # plot_Donnan_potentials(total_h=True, sieving=True)
-    # plot_Donnan_potentials(x_axis="cation_concentration", total_h=True, sieving=True)
+    plot_Donnan_potentials(x_axis="cation_concentration", total_h=True, sieving=True)
     plt.show()
 
 
@@ -157,15 +157,15 @@ def build_model(
             m.fs.membrane.diafiltrate_conc_mol_comp[t, j].fix(
                 inlet_concentration["diafiltrate"][j]
             )
-    # TODO: initial pressure values may need to be tweaked
+    # initial pressure values may need to be tweaked to successfully initialize
     if len(cation_list) == 1:
         if value(m.fs.membrane.total_feed_ionic_strength[0]) < 249:
             m.fs.membrane.applied_pressure.fix(3)
         elif (value(m.fs.membrane.total_feed_ionic_strength[0]) >= 249) and (
-            value(m.fs.membrane.total_feed_ionic_strength[0]) < 599
+            value(m.fs.membrane.total_feed_ionic_strength[0]) < 601
         ):
             m.fs.membrane.applied_pressure.fix(10)
-        elif value(m.fs.membrane.total_feed_ionic_strength[0]) >= 599:
+        elif value(m.fs.membrane.total_feed_ionic_strength[0]) >= 601:
             m.fs.membrane.applied_pressure.fix(20)
     elif len(cation_list) > 1:
         if value(m.fs.membrane.total_feed_ionic_strength[0]) < 51:
@@ -207,21 +207,16 @@ def build_model(
 
     # initialize membrane model
     if initialize_and_solve:
-        if value(m.fs.membrane.total_feed_ionic_strength[0]) < 150:
+        if ("Na" in cation_list) or ("Li" in cation_list):
             H_feed_guesses = np.arange(0.2, 4.8, 0.1)
-            H_permeate_guesses = np.arange(2, 48, 1)
-
-        # if ("La" in cation_list) or ("Al" in cation_list):
-        #     # guess larger H_permeate
-        #     if inlet_concentration["feed"][cation_list[0]] <= 8:
-        #         H_feed_guesses = np.arange(3.2, 6, 0.2)
-        #         H_permeate_guesses = np.arange(10, 17, 0.5)
-        #     else:
-        #         H_feed_guesses = np.arange(0.2, 3.5, 0.1)
-        #         H_permeate_guesses = np.arange(2, 18.5, 0.5)
-        # else:
-        #     H_feed_guesses = np.arange(0.2, 1.8, 0.1)
-        #     H_permeate_guesses = np.arange(0.2, 1.8, 0.1)
+            H_permeate_guesses = np.arange(0.2, 4.8, 0.1)
+        else:
+            if value(m.fs.membrane.total_feed_ionic_strength[0]) < 650:
+                H_feed_guesses = np.arange(0.2, 4.8, 0.1)
+                H_permeate_guesses = np.arange(2, 48, 1)
+            else:
+                H_feed_guesses = np.arange(0.2, 4.8, 0.1)
+                H_permeate_guesses = np.arange(0.2, 4.8, 0.1)
 
         H_guesses = np.column_stack((H_feed_guesses, H_permeate_guesses))
         H_guesses = np.flip(H_guesses, axis=0)
@@ -242,8 +237,8 @@ def build_model(
                 solve_model(m)
 
                 full_sensitivity = False
-                data = True
-                single_salt = False
+                data = False
+                single_salt = True
                 two_salt = False
 
                 key_name = "CONC"
@@ -591,11 +586,11 @@ def solve_and_save_models(
                                 )
 
         else:
-            Dm_over_l_value = 40  # um/s
-            monovalent_phi_star_value = 0.7
-            divalent_phi_star_value = 0.3
-            trivalent_phi_star_value = 0.0005
-            chloride_phi_star_value = 0.1
+            Dm_over_l_value = 60  # um/s
+            monovalent_phi_star_value = 0.75
+            divalent_phi_star_value = 0.4
+            trivalent_phi_star_value = 0.0001
+            chloride_phi_star_value = 0.05
 
             for cation in feed.keys():
                 l_um = Dm_Cl / Dm_over_l_value  # um
@@ -633,7 +628,7 @@ def solve_and_save_models(
                             cation: cation_phi_star_value,
                             "Cl": chloride_phi_star_value,
                         },
-                        save=False,
+                        save=True,
                     )
 
     IS_key = ["025", "050", "075", "100", "150", "200", "400", "600", "800"]
@@ -674,23 +669,20 @@ def solve_and_save_models(
             key_list = IS_key
         else:
             feed = {
-                # "Li": [25, 50, 75, 100, 150, 200, 250, 300],
-                # "Co": [25, 50, 75, 100, 150, 200, 250, 300],
-                # "Al": [25, 50, 75, 100, 150, 200, 250, 300],
                 "Li": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
                 "Co": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
-                "Al": [10, 20, 30, 40, 50, 75, 100, 125],
+                "Al": [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
             }
             key_list = CONC_key
 
         Dm_Cl = 2.03  # um2/s
-        Dm_over_l_value = 40  # um/s
+        Dm_over_l_value = 60  # um/s
         l_um = Dm_Cl / Dm_over_l_value  # um
         l_m = l_um / 1e6  # m
-        monovalent_phi_star_value = 0.7
-        divalent_phi_star_value = 0.3
-        trivalent_phi_star_value = 0.0005
-        chloride_phi_star_value = 0.1
+        monovalent_phi_star_value = 0.75
+        divalent_phi_star_value = 0.4
+        trivalent_phi_star_value = 0.0001
+        chloride_phi_star_value = 0.05
 
         for cation in feed.keys():
             if cation == "Li":
@@ -714,7 +706,7 @@ def solve_and_save_models(
                             },
                             "diafiltrate": {
                                 cation: diafiltrate[cation],
-                                "Cl": chloride_multiplier * 1e-10,
+                                "Cl": 1e-10,
                             },
                         },
                         default_args=default_args,
@@ -749,7 +741,7 @@ def solve_and_save_models(
                             },
                             "diafiltrate": {
                                 cation: diafiltrate[cation],
-                                "Cl": chloride_multiplier * 1e-10,
+                                "Cl": 1e-10,
                             },
                         },
                         default_args=default_args,
@@ -1123,104 +1115,117 @@ def calculate_spread(list):
 
 
 def get_model_averages(model, solute):
-    actual_sieving = []
-    observed_sieving = []
-    observed_rejection = []
-    actual_rejection = []
-    flux = []
-    H_feed = []
-    H_perm = []
-    Donnan_potential_feed = []
-    Donnan_potential_perm = []
+    local_actual_sieving = []
+    local_observed_sieving = []
+    local_observed_rejection = []
+    local_actual_rejection = []
+    local_flux = []
+    local_H_feed = []
+    local_H_perm = []
+    local_Donnan_potential_feed = []
+    local_Donnan_potential_perm = []
 
     for t in model.fs.membrane.time:
         for x in model.fs.membrane.dimensionless_module_length:
             if x != 0:
-                actual_sieving.append(
-                    value(model.fs.membrane.actual_sieving_coefficient[t, x, solute])
-                )
-                observed_sieving.append(
-                    value(model.fs.membrane.observed_sieving_coefficient[t, x, solute])
-                )
-                observed_rejection.append(
-                    value(model.fs.membrane.observed_rejection_percent[t, x, solute])
-                )
-                actual_rejection.append(
-                    value(model.fs.membrane.actual_rejection_percent[t, x, solute])
-                )
-                flux.append(value(model.fs.membrane.molar_ion_flux[t, x, solute]))
-                H_feed.append(
+                local_actual_sieving.append(
                     value(
-                        model.fs.membrane.overall_partition_coefficient_feed_side[
+                        model.fs.membrane.local_actual_sieving_coefficient[t, x, solute]
+                    )
+                )
+                local_observed_sieving.append(
+                    value(
+                        model.fs.membrane.local_observed_sieving_coefficient[
                             t, x, solute
                         ]
                     )
                 )
-                H_perm.append(
+                local_observed_rejection.append(
                     value(
-                        model.fs.membrane.overall_partition_coefficient_permeate_side[
+                        model.fs.membrane.local_observed_rejection_percent[t, x, solute]
+                    )
+                )
+                local_actual_rejection.append(
+                    value(
+                        model.fs.membrane.local_actual_rejection_percent[t, x, solute]
+                    )
+                )
+                local_flux.append(value(model.fs.membrane.molar_ion_flux[t, x, solute]))
+                local_H_feed.append(
+                    value(
+                        model.fs.membrane.local_partition_coefficient_feed_side[
                             t, x, solute
                         ]
                     )
                 )
-                Donnan_potential_feed.append(
+                local_H_perm.append(
+                    value(
+                        model.fs.membrane.local_partition_coefficient_permeate_side[
+                            t, x, solute
+                        ]
+                    )
+                )
+                local_Donnan_potential_feed.append(
                     value(model.fs.membrane.Donnan_potential_feed_side[t, x])
                 )
-                Donnan_potential_perm.append(
+                local_Donnan_potential_perm.append(
                     value(model.fs.membrane.Donnan_potential_permeate_side[t, x])
                 )
 
-    avg_actual_sieving = np.average(actual_sieving)
-    spread_actual_sieving = calculate_spread(actual_sieving)
+    avg_local_actual_sieving = np.average(local_actual_sieving)
+    spread_local_actual_sieving = calculate_spread(local_actual_sieving)
 
-    avg_observed_sieving = np.average(observed_sieving)
-    spread_observed_sieving = calculate_spread(observed_sieving)
+    avg_local_observed_sieving = np.average(local_observed_sieving)
+    spread_local_observed_sieving = calculate_spread(local_observed_sieving)
 
-    avg_observed_rejection = np.average(observed_rejection)
-    spread_observed_rejection = calculate_spread(observed_rejection)
+    avg_local_observed_rejection = np.average(local_observed_rejection)
+    spread_local_observed_rejection = calculate_spread(local_observed_rejection)
 
-    avg_actual_rejection = np.average(actual_rejection)
-    spread_actual_rejection = calculate_spread(actual_rejection)
+    avg_local_actual_rejection = np.average(local_actual_rejection)
+    spread_local_actual_rejection = calculate_spread(local_actual_rejection)
 
-    avg_flux = np.average(flux)
-    spread_flux = calculate_spread(flux)
+    avg_local_flux = np.average(local_flux)
+    spread_local_flux = calculate_spread(local_flux)
 
-    avg_H_feed = np.average(H_feed)
-    spread_H_feed = calculate_spread(H_feed)
+    avg_local_H_feed = np.average(local_H_feed)
+    spread_local_H_feed = calculate_spread(local_H_feed)
 
-    avg_H_perm = np.average(H_perm)
-    spread_H_perm = calculate_spread(H_perm)
+    avg_local_H_perm = np.average(local_H_perm)
+    spread_local_H_perm = calculate_spread(local_H_perm)
 
-    avg_Donnan_potential_feed = np.average(Donnan_potential_feed)
-    spread_Donnan_potential_feed = calculate_spread(Donnan_potential_feed)
+    avg_local_Donnan_potential_feed = np.average(local_Donnan_potential_feed)
+    spread_local_Donnan_potential_feed = calculate_spread(local_Donnan_potential_feed)
 
-    avg_Donnan_potential_perm = np.average(Donnan_potential_perm)
-    spread_Donnan_potential_perm = calculate_spread(Donnan_potential_perm)
+    avg_local_Donnan_potential_perm = np.average(local_Donnan_potential_perm)
+    spread_local_Donnan_potential_perm = calculate_spread(local_Donnan_potential_perm)
 
     info_dict = {
-        "actual_sieving": {
-            "avg": avg_actual_sieving,
-            "spread": spread_actual_sieving,
+        "local_actual_sieving": {
+            "avg": avg_local_actual_sieving,
+            "spread": spread_local_actual_sieving,
         },
-        "observed_sieving": {
-            "avg": avg_observed_sieving,
-            "spread": spread_observed_sieving,
+        "local_observed_sieving": {
+            "avg": avg_local_observed_sieving,
+            "spread": spread_local_observed_sieving,
         },
-        # "observed_rejection": {"avg": avg_observed_rejection, "spread": spread_observed_rejection},
-        "actual_rejection": {
-            "avg": avg_actual_rejection,
-            "spread": spread_actual_rejection,
+        "local_observed_rejection": {
+            "avg": avg_local_observed_rejection,
+            "spread": spread_local_observed_rejection,
         },
-        "flux": {"avg": avg_flux, "spread": spread_flux},
-        "H_feed": {"avg": avg_H_feed, "spread": spread_H_feed},
-        "H_perm": {"avg": avg_H_perm, "spread": spread_H_perm},
-        "Donnan_potential_feed": {
-            "avg": avg_Donnan_potential_feed,
-            "spread": spread_Donnan_potential_feed,
+        "local_actual_rejection": {
+            "avg": avg_local_actual_rejection,
+            "spread": spread_local_actual_rejection,
         },
-        "Donnan_potential_perm": {
-            "avg": avg_Donnan_potential_perm,
-            "spread": spread_Donnan_potential_perm,
+        "local_flux": {"avg": avg_local_flux, "spread": spread_local_flux},
+        "local_H_feed": {"avg": avg_local_H_feed, "spread": spread_local_H_feed},
+        "local_H_perm": {"avg": avg_local_H_perm, "spread": spread_local_H_perm},
+        "local_Donnan_potential_feed": {
+            "avg": avg_local_Donnan_potential_feed,
+            "spread": spread_local_Donnan_potential_feed,
+        },
+        "local_Donnan_potential_perm": {
+            "avg": avg_local_Donnan_potential_perm,
+            "spread": spread_local_Donnan_potential_perm,
         },
     }
 
@@ -4707,9 +4712,9 @@ def plot_Donnan_potentials(
     anion_list = ["Cl"]
     inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
     include_boundary_layer = True
-    NFE_module_length = 15
-    NFE_boundary_layer_thickness = 5
-    NFE_membrane_thickness = 5
+    NFE_module_length = 10
+    NFE_boundary_layer_thickness = 10
+    NFE_membrane_thickness = 10
 
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
@@ -4752,12 +4757,12 @@ def plot_Donnan_potentials(
             )
 
     ax1a.set_ylabel(
-        "Dimensionless Donnan Potential",
+        "Local Dimensionless Donnan Potential\n(Average)",
         fontsize=fontsize,
         fontweight="bold",
     )
     ax2a.set_ylabel(
-        "$z_i$ * Dimensionless Donnan Potential",
+        "$z_i$ * Local Dimensionless Donnan\nPotential (Average)",
         fontsize=fontsize,
         fontweight="bold",
     )
@@ -4775,7 +4780,7 @@ def plot_Donnan_potentials(
 
     if total_h:
         ax3a.set_ylabel(
-            "Overall Partitioning Coefficient",
+            "Local Partitioning Coefficient (Average)",
             fontsize=fontsize,
             fontweight="bold",
         )
@@ -4791,7 +4796,7 @@ def plot_Donnan_potentials(
         )
     if sieving:
         ax4.set_ylabel(
-            "Observed Sieving Coefficient (Average)",
+            "Overall Observed Sieving Coefficient",
             fontsize=fontsize,
             fontweight="bold",
         )
@@ -5034,40 +5039,50 @@ def plot_Donnan_potentials(
                     if total_h:
                         y_ax4 = y_ax4_al
 
-                y_ax1a.append(average_variable_dict["Donnan_potential_feed"]["avg"])
+                y_ax1a.append(
+                    average_variable_dict["local_Donnan_potential_feed"]["avg"]
+                )
                 y_err_ax1a.append(
-                    average_variable_dict["Donnan_potential_feed"]["spread"]
+                    average_variable_dict["local_Donnan_potential_feed"]["spread"]
                 )
 
-                y_ax1b.append(average_variable_dict["Donnan_potential_perm"]["avg"])
+                y_ax1b.append(
+                    average_variable_dict["local_Donnan_potential_perm"]["avg"]
+                )
                 y_err_ax1b.append(
-                    average_variable_dict["Donnan_potential_perm"]["spread"]
+                    average_variable_dict["local_Donnan_potential_perm"]["spread"]
                 )
 
                 y_ax2a.append(
                     -value(model.fs.membrane.config.property_package.charge[solute])
-                    * average_variable_dict["Donnan_potential_feed"]["avg"]
+                    * average_variable_dict["local_Donnan_potential_feed"]["avg"]
                 )
                 y_err_ax2a.append(
                     value(model.fs.membrane.config.property_package.charge[solute])
-                    * average_variable_dict["Donnan_potential_feed"]["spread"]
+                    * average_variable_dict["local_Donnan_potential_feed"]["spread"]
                 )
 
                 y_ax2b.append(
                     -value(model.fs.membrane.config.property_package.charge[solute])
-                    * average_variable_dict["Donnan_potential_perm"]["avg"]
+                    * average_variable_dict["local_Donnan_potential_perm"]["avg"]
                 )
                 y_err_ax2b.append(
                     value(model.fs.membrane.config.property_package.charge[solute])
-                    * average_variable_dict["Donnan_potential_perm"]["spread"]
+                    * average_variable_dict["local_Donnan_potential_perm"]["spread"]
                 )
 
                 if total_h:
-                    y_ax3a.append(average_variable_dict["H_feed"]["avg"])
-                    y_ax3b.append(average_variable_dict["H_perm"]["avg"])
+                    y_ax3a.append(average_variable_dict["local_H_feed"]["avg"])
+                    y_ax3b.append(average_variable_dict["local_H_perm"]["avg"])
 
                 if sieving:
-                    y_ax4.append(average_variable_dict["observed_sieving"]["avg"])
+                    y_ax4.append(
+                        value(
+                            model.fs.membrane.overall_observed_sieving_coefficient[
+                                0, solute
+                            ]
+                        )
+                    )
 
     data_dict_li = {
         ax1a: [y_ax1a_li, y_err_ax1a_li],
@@ -5109,7 +5124,7 @@ def plot_Donnan_potentials(
     elif x_axis == "cation_concentration":
         x_li = [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200]
         x_co = [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200]
-        x_al = [10, 20, 30, 40, 50, 75, 100, 125]
+        x_al = [10, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200]
 
     for ax, y in data_dict_li.items():
         ax.plot(
@@ -5367,9 +5382,9 @@ def plot_Donnan_potentials(
             xy_3a_li = (75, 2.5)
             xy_3a_co = (75, 2)
             xy_3a_al = (75, 1.5)
-            xy_3b_li = (75, 16)
-            xy_3b_co = (75, 13)
-            xy_3b_al = (75, 10)
+            xy_3b_li = (75, 31)
+            xy_3b_co = (75, 25)
+            xy_3b_al = (75, 19)
 
         ax3a.annotate(
             f"$y = {a_ax3a_li:.2g} \exp({b_ax3a_li:.2g} x) + {c_ax3a_li:.2g}$",
@@ -5451,9 +5466,9 @@ def plot_Donnan_potentials(
             xy_4_co = (200, 0.45)
             xy_4_al = (200, 0.15)
         elif x_axis == "cation_concentration":
-            xy_4_li = (75, 0.58)
-            xy_4_co = (75, 0.45)
-            xy_4_al = (75, 0.16)
+            xy_4_li = (87, 0.59)
+            xy_4_co = (80, 0.45)
+            xy_4_al = (70, 0.1)
 
         ax4.annotate(
             f"$y = {a_ax4_li:.2g} \exp({b_ax4_li:.2g} x) + {c_ax4_li:.2g}$",
