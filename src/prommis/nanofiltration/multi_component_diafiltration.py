@@ -320,34 +320,34 @@ class MultiComponentDiafiltrationInitializer(InitializerBase):
 
     CONFIG = InitializerBase.CONFIG()
 
-    CONFIG.declare(
-        "H_feed_guess",
-        ConfigValue(
-            default=1.2,
-            doc="Guessed initial value of H",
-        ),
-    )
-    CONFIG.declare(
-        "H_permeate_guess",
-        ConfigValue(
-            default=1.2,
-            doc="Guessed initial value of H",
-        ),
-    )
     # CONFIG.declare(
-    #     "fudge_factor_H_feed",
+    #     "H_feed_guess",
     #     ConfigValue(
-    #         default=1,
-    #         doc="Fudge factor on H_feed guess",
+    #         default=1.2,
+    #         doc="Guessed initial value of H",
     #     ),
     # )
     # CONFIG.declare(
-    #     "fudge_factor_H_perm",
+    #     "H_permeate_guess",
     #     ConfigValue(
-    #         default=1,
-    #         doc="Fudge factor on H_perm guess",
+    #         default=1.2,
+    #         doc="Guessed initial value of H",
     #     ),
     # )
+    CONFIG.declare(
+        "fudge_factor_H_feed",
+        ConfigValue(
+            default=1,
+            doc="Fudge factor on H_feed guess",
+        ),
+    )
+    CONFIG.declare(
+        "fudge_factor_H_perm",
+        ConfigValue(
+            default=1,
+            doc="Fudge factor on H_perm guess",
+        ),
+    )
 
     def initialize(self, model):
         """
@@ -422,51 +422,51 @@ class MultiComponentDiafiltrationInitializer(InitializerBase):
                     # guess permeate concentration with observed sieving coefficient surrogate
                     # S_i_obs = c_{i,p} / c_{i,r}
                     # a, b, and c are fitted from successful "brute force" solves
-                    # for k in model.cations:
-                    #     if value(charge[k]) == 3:
-                    #         # parameters from IS regression
-                    #         a = -0.093
-                    #         b = -0.0042
-                    #         c = 0.14
-                    #         # parameters from CONC regression
-                    #         a = -0.09
-                    #         b = -0.021
-                    #         c = 0.14
-                    #     elif value(charge[k]) == 2:
-                    #         # parameters from IS regression
-                    #         a = -0.33
-                    #         b = -0.016
-                    #         c = 0.51
-                    #         # parameters from CONC regression
-                    #         a = -0.33
-                    #         b = -0.045
-                    #         c = 0.51
-                    #     elif value(charge[k]) == 1:
-                    #         # parameters from IS regression
-                    #         a = -0.71
-                    #         b = -0.031
-                    #         c = 0.69
-                    #         # parameters from CONC regression
-                    #         a = -0.71
-                    #         b = -0.031
-                    #         c = 0.69
-
-                    #     # S_guess = a * exp(b * value(is_f_tot[t])) + c
-                    #     S_guess = a * exp(b * value(conc_f_tot[t, k])) + c
-                    #     # print(S_guess)
-
-                    #     conc_perm[t, x, k].set_value(
-                    #         value(conc_ret[t, x, k]) * round(S_guess, 1)
-                    #     )
-
-                    # guess permeate concentration with constant sieving coefficient
                     for k in model.cations:
                         if value(charge[k]) == 3:
-                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.2)
+                            # parameters from IS regression
+                            # a = -0.093
+                            # b = -0.0042
+                            # c = 0.14
+                            # parameters from CONC regression
+                            a = -0.09
+                            b = -0.021
+                            c = 0.14
                         elif value(charge[k]) == 2:
-                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.5)
-                        else:
-                            conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.8)
+                            # parameters from IS regression
+                            # a = -0.33
+                            # b = -0.016
+                            # c = 0.51
+                            # parameters from CONC regression
+                            a = -0.33
+                            b = -0.045
+                            c = 0.51
+                        elif value(charge[k]) == 1:
+                            # parameters from IS regression
+                            # a = -0.71
+                            # b = -0.031
+                            # c = 0.69
+                            # parameters from CONC regression
+                            a = -0.71
+                            b = -0.031
+                            c = 0.69
+
+                        # S_guess = a * exp(b * value(is_f_tot[t])) + c
+                        S_guess = a * exp(b * value(conc_f_tot[t, k])) + c
+                        # print(S_guess)
+
+                        conc_perm[t, x, k].set_value(
+                            value(conc_ret[t, x, k]) * round(S_guess, 1)
+                        )
+
+                    # guess permeate concentration with constant sieving coefficient
+                    # for k in model.cations:
+                    #     if value(charge[k]) == 3:
+                    #         conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.2)
+                    #     elif value(charge[k]) == 2:
+                    #         conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.5)
+                    #     else:
+                    #         conc_perm[t, x, k].set_value(value(conc_ret[t, x, k]) * 0.8)
 
                     calculate_variable_from_constraint(
                         conc_perm[t, x, a0],
@@ -589,7 +589,7 @@ class MultiComponentDiafiltrationInitializer(InitializerBase):
                     # H_i = c_{i,m} / c_{i,s}
                     # a, b, and c are fitted from successful "brute force" solves
                     for k in model.cations:
-                        #     if value(charge[k]) == 3:
+                        if value(charge[k]) == 3:
                         #         # parameters from IS regression
                         #         a_feed = 4.9
                         #         b_feed = -0.025
@@ -597,14 +597,14 @@ class MultiComponentDiafiltrationInitializer(InitializerBase):
                         #         a_perm = 140
                         #         b_perm = -0.034
                         #         c_perm = 2.9
-                        #         # parameters from CONC regression
-                        #         a_feed = 2
-                        #         b_feed = -0.07
-                        #         c_feed = 0.2
-                        #         a_perm = 50
-                        #         b_perm = -0.09
-                        #         c_perm = 10
-                        #     elif value(charge[k]) == 2:
+                                # parameters from CONC regression
+                            a_feed = 2
+                            b_feed = -0.07
+                            c_feed = 0.2
+                            a_perm = 50
+                            b_perm = -0.09
+                            c_perm = 10
+                        elif value(charge[k]) == 2:
                         #         # parameters from IS regression
                         #         a_feed = 3.8
                         #         b_feed = -0.026
@@ -612,14 +612,14 @@ class MultiComponentDiafiltrationInitializer(InitializerBase):
                         #         a_perm = 20
                         #         b_perm = -0.036
                         #         c_perm = 0.55
-                        #         # parameters from CONC regression
-                        #         a_feed = 3
-                        #         b_feed = -0.07
-                        #         c_feed = 0.3
-                        #         a_perm = 20
-                        #         b_perm = -0.09
-                        #         c_perm = 0.5
-                        #     elif value(charge[k]) == 1:
+                                # parameters from CONC regression
+                            a_feed = 3
+                            b_feed = -0.07
+                            c_feed = 0.3
+                            a_perm = 20
+                            b_perm = -0.09
+                            c_perm = 0.5
+                        elif value(charge[k]) == 1:
                         #         # parameters from IS regression
                         #         a_feed = 2.5
                         #         b_feed = -0.028
@@ -627,44 +627,44 @@ class MultiComponentDiafiltrationInitializer(InitializerBase):
                         #         a_perm = 13
                         #         b_perm = -0.046
                         #         c_perm = 0.43
-                        #         # parameters from CONC regression
-                        #         a_feed = 6
-                        #         b_feed = -0.07
-                        #         c_feed = 0.5
-                        #         a_perm = 80
-                        #         b_perm = -0.1
-                        #         c_perm = 0.9
+                                # parameters from CONC regression
+                            a_feed = 6
+                            b_feed = -0.07
+                            c_feed = 0.5
+                            a_perm = 80
+                            b_perm = -0.1
+                            c_perm = 0.9
 
                         #     # H_feed = a_feed * exp(b_feed * value(is_f_tot[t])) + c_feed
                         #     # H_perm = a_perm * exp(b_perm * value(is_f_tot[t])) + c_perm
 
-                        #     H_feed = a_feed * exp(b_feed * value(conc_f_tot[t, k])) + c_feed
+                        H_feed = a_feed * exp(b_feed * value(conc_f_tot[t, k])) + c_feed
                         #     # print(H_feed)
-                        #     H_feed = value(self.config.fudge_factor_H_feed) * H_feed
+                        H_feed = value(self.config.fudge_factor_H_feed) * H_feed
                         #     # print(H_feed)
 
-                        #     H_perm = a_perm * exp(b_perm * value(conc_f_tot[t, k])) + c_perm
+                        H_perm = a_perm * exp(b_perm * value(conc_f_tot[t, k])) + c_perm
                         #     # print(H_perm)
-                        #     H_perm = value(self.config.fudge_factor_H_perm) * H_perm
+                        H_perm = value(self.config.fudge_factor_H_perm) * H_perm
                         #     # print(H_perm)
 
                         # print(H_feed)
                         # print(round(H_feed, 1))
 
-                        conc_mem[t, x, 0, k].set_value(
-                            value(self.config.H_feed_guess) * value(conc_ret[t, x, k])
-                        )
                         # conc_mem[t, x, 0, k].set_value(
-                        #     round(H_feed, 1) * value(conc_ret[t, x, k])
+                        #     value(self.config.H_feed_guess) * value(conc_ret[t, x, k])
                         # )
-
-                        conc_mem[t, x, 1, k].set_value(
-                            value(self.config.H_permeate_guess)
-                            * value(conc_perm[t, x, k])
+                        conc_mem[t, x, 0, k].set_value(
+                            round(H_feed, 1) * value(conc_ret[t, x, k])
                         )
+
                         # conc_mem[t, x, 1, k].set_value(
-                        #     round(H_perm, 1) * value(conc_perm[t, x, k])
+                        #     value(self.config.H_permeate_guess)
+                        #     * value(conc_perm[t, x, k])
                         # )
+                        conc_mem[t, x, 1, k].set_value(
+                            round(H_perm, 1) * value(conc_perm[t, x, k])
+                        )
                         # calculate_variable_from_constraint(
                         #     conc_mem[t, x, 1, a0],
                         #     model.electroneutrality_membrane[t, x, 1],
