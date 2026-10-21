@@ -46,7 +46,7 @@ def build_model(
     NFE_args,
     water_flux,
     data_membrane_thickness,
-    multiplier_H_feed=1,
+    multiplier_H_feed=1.2,
     multiplier_H_perm=1,
     non_Donnan_partition_dict={},
     initialize_and_solve=True,
@@ -218,7 +218,6 @@ def generate_single_salt_data(cation):
 
     for water_flux in water_fluxes:
         for concentration in concentrations:
-            i = 0
             if concentration == concentrations[0]:
                 model = build_model(
                     cation_list=[cation],
@@ -254,7 +253,7 @@ def generate_single_salt_data(cation):
 
                 for t in model.fs.membrane.time:
                     for j in model.fs.membrane.solutes:
-                        model.fs.membrane.feed_conc_mol_comp[t, j].set_value(concentrations[i+1])
+                        model.fs.membrane.feed_conc_mol_comp[t, j].set_value(concentration)
         
                 solve_model(model)
                 unfix_pressure(model, water_flux_target=water_flux)
@@ -266,8 +265,6 @@ def generate_single_salt_data(cation):
                 conc_list.append(concentration)
                 water_flux_list.append(water_flux)
                 ion_flux_list.append(get_average_flux(model, cation))
-
-                i += 1
 
     dict = {
         "feed_conc": conc_list,
