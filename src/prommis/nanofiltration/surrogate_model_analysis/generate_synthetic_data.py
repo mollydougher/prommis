@@ -4,7 +4,6 @@ Synthetic data generation for multi-component diafiltration model.
 Author: Molly Dougher
 """
 
-from pyomo.contrib.solver.common.util import NoFeasibleSolutionError
 from pyomo.environ import (
     ConcreteModel,
     Constraint,
@@ -16,7 +15,6 @@ from pyomo.environ import (
 from pyomo.network import Arc
 
 from idaes.core import FlowsheetBlock
-from idaes.core.util.exceptions import InitializationError
 from idaes.core.util.model_diagnostics import DiagnosticsToolbox
 from idaes.models.unit_models import Feed, Product
 
@@ -37,7 +35,8 @@ from prommis.nanofiltration.multi_component_diafiltration import (
 
 def main():
     # generate_single_salt_data(cation="Na")
-    generate_single_salt_data(cation="Ca")
+    # generate_single_salt_data(cation="Ca")
+    generate_single_salt_data(cation="La")
 
 
 def build_model(
@@ -105,22 +104,10 @@ def build_model(
             )
     # initial pressure values may need to be tweaked to successfully initialize
     feed_ionic_strength = value(m.fs.membrane.feed_ionic_strength[0])
-    if len(cation_list) == 1:
-        if feed_ionic_strength < 249:
-            m.fs.membrane.applied_pressure.fix(3)
-        elif (feed_ionic_strength >= 249) and (feed_ionic_strength < 601):
-            m.fs.membrane.applied_pressure.fix(10)
-        elif feed_ionic_strength >= 601:
-            m.fs.membrane.applied_pressure.fix(20)
-    elif len(cation_list) > 1:
-        if feed_ionic_strength < 51:
-            m.fs.membrane.applied_pressure.fix(5)
-        elif (feed_ionic_strength >= 51) and (feed_ionic_strength < 199):
-            m.fs.membrane.applied_pressure.fix(10)
-        elif (feed_ionic_strength >= 99) and (feed_ionic_strength < 299):
-            m.fs.membrane.applied_pressure.fix(15)
-        elif feed_ionic_strength >= 299:
-            m.fs.membrane.applied_pressure.fix(20)
+    if feed_ionic_strength < 201:
+        m.fs.membrane.applied_pressure.fix(5)
+    elif feed_ionic_strength >= 201:
+        m.fs.membrane.applied_pressure.fix(15)
 
     # add and connect flowsheet streams
     m.fs.feed_stream = Arc(
@@ -158,6 +145,9 @@ def build_model(
         unfix_pressure(m, water_flux_target=water_flux)
         solve_model(m)
 
+        dt = DiagnosticsToolbox(m)
+        dt.assert_no_numerical_warnings()
+
     return m
 
 
@@ -170,9 +160,6 @@ def solve_model(m):
     assert_optimal_termination(results)
 
     scaling.propagate_solution(scaled_model, m)
-
-    dt = DiagnosticsToolbox(m)
-    dt.assert_no_numerical_warnings()
 
     return results
 
@@ -194,9 +181,7 @@ def unfix_pressure(m, water_flux_target):
     m.water_flux_constraint = Constraint(rule=_water_flux_constraint)
 
 
-def generate_single_salt_data(
-    cation="Na",
-):
+def generate_single_salt_data(cation):
     anion_list = ["Cl"]
     inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
     diafiltrate = {"Na": 1e-10, "Ca": 1e-10, "La": 1e-10}
@@ -233,7 +218,8 @@ def generate_single_salt_data(
 
     for water_flux in water_fluxes:
         for concentration in concentrations:
-            try:
+            i = 0
+            if concentration == concentrations[0]:
                 model = build_model(
                     cation_list=[cation],
                     inlet_concentration={
@@ -263,14 +249,25 @@ def generate_single_salt_data(
                 water_flux_list.append(water_flux)
                 ion_flux_list.append(get_average_flux(model, cation))
 
-            except (
-                InitializationError,
-                NoFeasibleSolutionError,
-                RuntimeError,
-                AssertionError,
-                ValueError,
-            ):
-                continue
+            else:
+                model.del_component(model.water_flux_constraint)
+
+                for t in model.fs.membrane.time:
+                    for j in model.fs.membrane.solutes:
+                        model.fs.membrane.feed_conc_mol_comp[t, j].set_value(concentrations[i+1])
+        
+                solve_model(model)
+                unfix_pressure(model, water_flux_target=water_flux)
+                solve_model(model)
+        
+                dt = DiagnosticsToolbox(model)
+                dt.assert_no_numerical_warnings(model)
+
+                conc_list.append(concentration)
+                water_flux_list.append(water_flux)
+                ion_flux_list.append(get_average_flux(model, cation))
+
+                i += 1
 
     dict = {
         "feed_conc": conc_list,

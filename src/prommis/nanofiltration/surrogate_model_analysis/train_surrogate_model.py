@@ -27,10 +27,12 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    solute = "Na"
-    salt = "Sodium Chloride"
+    # solute = "Na"
+    # salt = "Sodium Chloride"
     # solute = "Ca"
     # salt = "Calcium Chloride"
+    solute = "La"
+    salt = "Lanthanum Chloride"
 
     datafile = f"training_data/single_salt/{solute}_chloride"
 
