@@ -4,7 +4,7 @@ Surrogate model training for multi-component diafiltration model.
 Author: Molly Dougher
 """
 
-from pandas import read_csv
+from pandas import DataFrame, read_csv
 
 from idaes.core.surrogate.metrics import compute_fit_metrics
 from idaes.core.surrogate.pysmo_surrogate import (
@@ -23,18 +23,22 @@ from idaes.core.surrogate.plotting.sm_plotter import (
 
 from pyomo.environ import value
 
+import matplotlib.pyplot as plt
+
 
 def main():
-    polymonial_surrogate = train_polynomial_surrogate_model(
-        datafile="training_data/single_salt/Na_chloride",
-        visualize=False,
+    polymonial_surrogate, polynomial_testing_error_metrics = (
+        train_polynomial_surrogate_model(
+            datafile="training_data/single_salt/Na_chloride",
+            visualize=False,
+        )
     )
     polymonial_surrogate.save_to_file(
         f"surrogate_models/single_salt/NaCl_polynomial_surrogate",
         overwrite=True,
     )
 
-    kriging_surrogate = train_kriging_surrogate_model(
+    kriging_surrogate, kriging_testing_error_metrics = train_kriging_surrogate_model(
         datafile="training_data/single_salt/Na_chloride",
         visualize=False,
     )
@@ -45,7 +49,7 @@ def main():
 
     basis_functions = ["cubic", "gaussian", "mq", "imq"]
     for basis_func in basis_functions:
-        rbf_surrogate = train_rbf_surrogate_model(
+        rbf_surrogate, rbf_testing_error_metrics = train_rbf_surrogate_model(
             datafile="training_data/single_salt/Na_chloride",
             basis_func=basis_func,
             visualize=False,
@@ -54,6 +58,23 @@ def main():
             f"surrogate_models/single_salt/NaCl_rbf_{basis_func}_surrogate",
             overwrite=True,
         )
+        if basis_func == "cubic":
+            rbf_cubic_testing_error_metrics = rbf_testing_error_metrics
+        elif basis_func == "gaussian":
+            rbf_gaussian_testing_error_metrics = rbf_testing_error_metrics
+        elif basis_func == "mq":
+            rbf_mq_testing_error_metrics = rbf_testing_error_metrics
+        elif basis_func == "imq":
+            rbf_imq_testing_error_metrics = rbf_testing_error_metrics
+
+    plot_testing_error_metrics(
+        polynomial_testing_error_metrics,
+        kriging_testing_error_metrics,
+        rbf_cubic_testing_error_metrics,
+        rbf_gaussian_testing_error_metrics,
+        rbf_mq_testing_error_metrics,
+        rbf_imq_testing_error_metrics,
+    )
 
 
 def train_polynomial_surrogate_model(datafile, max_order=4, visualize=True):
@@ -106,7 +127,7 @@ def train_polynomial_surrogate_model(datafile, max_order=4, visualize=True):
         surrogate_parity(surrogate, data_validation, show=True)
         surrogate_residual(surrogate, data_validation, show=True)
 
-    return surrogate
+    return (surrogate, testing_metrics)
 
 
 def train_kriging_surrogate_model(datafile, visualize=True):
@@ -156,7 +177,7 @@ def train_kriging_surrogate_model(datafile, visualize=True):
         surrogate_parity(surrogate, data_validation, show=True)
         surrogate_residual(surrogate, data_validation, show=True)
 
-    return surrogate
+    return (surrogate, testing_metrics)
 
 
 def train_rbf_surrogate_model(datafile, basis_func="cubic", visualize=True):
@@ -206,7 +227,69 @@ def train_rbf_surrogate_model(datafile, basis_func="cubic", visualize=True):
         surrogate_parity(surrogate, data_validation, show=True)
         surrogate_residual(surrogate, data_validation, show=True)
 
-    return surrogate
+    return (surrogate, testing_metrics)
+
+
+def plot_testing_error_metrics(
+    polynomial_testing_error_metrics,
+    kriging_testing_error_metrics,
+    rbf_cubic_testing_error_metrics,
+    rbf_gaussian_testing_error_metrics,
+    rbf_mq_testing_error_metrics,
+    rbf_imq_testing_error_metrics,
+    drop_r2=False,
+):
+
+    metric_list = []
+    poly_error_list = []
+    krig_error_list = []
+    rbf_cubic_error_list = []
+    rbf_gauss_error_list = []
+    rbf_mq_error_list = []
+    rbf_imq_error_list = []
+
+    for var, info in polynomial_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            metric_list.append(error_metric)
+            poly_error_list.append(value(val))
+    for var, info in kriging_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            krig_error_list.append(value(val))
+    for var, info in rbf_cubic_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            rbf_cubic_error_list.append(value(val))
+    for var, info in rbf_gaussian_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            rbf_gauss_error_list.append(value(val))
+    for var, info in rbf_mq_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            rbf_mq_error_list.append(value(val))
+    for var, info in rbf_imq_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            rbf_imq_error_list.append(value(val))
+
+    dict = {
+        "Error Metric": metric_list,
+        "Polynomial": poly_error_list,
+        "Kriging": krig_error_list,
+        "RBF (Cubic)": rbf_cubic_error_list,
+        "RBF (Gaussian)": rbf_gauss_error_list,
+        "RBF (MQ)": rbf_mq_error_list,
+        "RBF (IMQ)": rbf_imq_error_list,
+    }
+
+    df = DataFrame(dict).set_index("Error Metric")
+
+    if drop_r2:
+        df = df.drop("R2", axis=0)
+
+    print(df)
+
+    ax1 = df.plot.bar(rot=0)
+
+    ax1.legend()
+
+    plt.show()
 
 
 if __name__ == "__main__":
