@@ -62,7 +62,7 @@ def generate_per_salt_analysis():
         overwrite=True,
     )
 
-    basis_functions = ["cubic", "gaussian", "mq", "imq"]
+    basis_functions = ["linear", "cubic", "spline", "gaussian", "mq", "imq"]
     for basis_func in basis_functions:
         rbf_surrogate, rbf_testing_error_metrics = train_rbf_surrogate_model(
             datafile=datafile,
@@ -73,8 +73,12 @@ def generate_per_salt_analysis():
             f"surrogate_models/single_salt/{solute}Cl_rbf_{basis_func}_surrogate",
             overwrite=True,
         )
-        if basis_func == "cubic":
+        if basis_func == "linear":
+            rbf_linear_testing_error_metrics = rbf_testing_error_metrics
+        elif basis_func == "cubic":
             rbf_cubic_testing_error_metrics = rbf_testing_error_metrics
+        elif basis_func == "spline":
+            rbf_spline_testing_error_metrics = rbf_testing_error_metrics
         elif basis_func == "gaussian":
             rbf_gaussian_testing_error_metrics = rbf_testing_error_metrics
         elif basis_func == "mq":
@@ -87,7 +91,9 @@ def generate_per_salt_analysis():
         salt,
         polynomial_testing_error_metrics,
         kriging_testing_error_metrics,
+        rbf_linear_testing_error_metrics,
         rbf_cubic_testing_error_metrics,
+        rbf_spline_testing_error_metrics,
         rbf_gaussian_testing_error_metrics,
         rbf_mq_testing_error_metrics,
         rbf_imq_testing_error_metrics,
@@ -121,7 +127,7 @@ def generate_mixed_salt_analysis():
         overwrite=True,
     )
 
-    basis_functions = ["cubic", "gaussian", "mq", "imq"]
+    basis_functions = ["linear", "cubic", "spline", "gaussian", "mq", "imq"]
     for basis_func in basis_functions:
         rbf_surrogate, rbf_testing_error_metrics = train_rbf_surrogate_model(
             datafile=datafile,
@@ -132,8 +138,12 @@ def generate_mixed_salt_analysis():
             f"surrogate_models/single_salt/single_salt_rbf_{basis_func}_surrogate",
             overwrite=True,
         )
-        if basis_func == "cubic":
+        if basis_func == "linear":
+            rbf_linear_testing_error_metrics = rbf_testing_error_metrics
+        elif basis_func == "cubic":
             rbf_cubic_testing_error_metrics = rbf_testing_error_metrics
+        elif basis_func == "spline":
+            rbf_spline_testing_error_metrics = rbf_testing_error_metrics
         elif basis_func == "gaussian":
             rbf_gaussian_testing_error_metrics = rbf_testing_error_metrics
         elif basis_func == "mq":
@@ -144,7 +154,9 @@ def generate_mixed_salt_analysis():
     plot_single_salt_testing_error_metrics(
         polynomial_testing_error_metrics,
         kriging_testing_error_metrics,
+        rbf_linear_testing_error_metrics,
         rbf_cubic_testing_error_metrics,
+        rbf_spline_testing_error_metrics,
         rbf_gaussian_testing_error_metrics,
         rbf_mq_testing_error_metrics,
         rbf_imq_testing_error_metrics,
@@ -313,7 +325,9 @@ def plot_solute_testing_error_metrics(
     salt,
     polynomial_testing_error_metrics,
     kriging_testing_error_metrics,
+    rbf_linear_testing_error_metrics,
     rbf_cubic_testing_error_metrics,
+    rbf_spline_testing_error_metrics,
     rbf_gaussian_testing_error_metrics,
     rbf_mq_testing_error_metrics,
     rbf_imq_testing_error_metrics,
@@ -324,7 +338,9 @@ def plot_solute_testing_error_metrics(
     metric_list = []
     poly_error_list = []
     krig_error_list = []
+    rbf_linear_error_list = []
     rbf_cubic_error_list = []
+    rbf_spline_error_list = []
     rbf_gauss_error_list = []
     rbf_mq_error_list = []
     rbf_imq_error_list = []
@@ -336,9 +352,15 @@ def plot_solute_testing_error_metrics(
     for var, info in kriging_testing_error_metrics.items():
         for error_metric, val in info.items():
             krig_error_list.append(value(val))
+    for var, info in rbf_linear_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            rbf_linear_error_list.append(value(val))
     for var, info in rbf_cubic_testing_error_metrics.items():
         for error_metric, val in info.items():
             rbf_cubic_error_list.append(value(val))
+    for var, info in rbf_spline_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            rbf_spline_error_list.append(value(val))
     for var, info in rbf_gaussian_testing_error_metrics.items():
         for error_metric, val in info.items():
             rbf_gauss_error_list.append(value(val))
@@ -353,7 +375,9 @@ def plot_solute_testing_error_metrics(
         "Error Metric": metric_list,
         "Polynomial": poly_error_list,
         "Kriging": krig_error_list,
+        "RBF (Linear)": rbf_cubic_error_list,
         "RBF (Cubic)": rbf_cubic_error_list,
+        "RBF (Spline)": rbf_cubic_error_list,
         "RBF (Gaussian)": rbf_gauss_error_list,
         "RBF (MQ)": rbf_mq_error_list,
         "RBF (IMQ)": rbf_imq_error_list,
@@ -378,7 +402,9 @@ def plot_solute_testing_error_metrics(
 def plot_single_salt_testing_error_metrics(
     polynomial_testing_error_metrics,
     kriging_testing_error_metrics,
+    rbf_linear_testing_error_metrics,
     rbf_cubic_testing_error_metrics,
+    rbf_spline_testing_error_metrics,
     rbf_gaussian_testing_error_metrics,
     rbf_mq_testing_error_metrics,
     rbf_imq_testing_error_metrics,
@@ -389,7 +415,9 @@ def plot_single_salt_testing_error_metrics(
     metric_list = []
     poly_error_list = []
     krig_error_list = []
+    rbf_linear_error_list = []
     rbf_cubic_error_list = []
+    rbf_spline_error_list = []
     rbf_gauss_error_list = []
     rbf_mq_error_list = []
     rbf_imq_error_list = []
@@ -401,9 +429,15 @@ def plot_single_salt_testing_error_metrics(
     for var, info in kriging_testing_error_metrics.items():
         for error_metric, val in info.items():
             krig_error_list.append(value(val))
+    for var, info in rbf_linear_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            rbf_linear_error_list.append(value(val))
     for var, info in rbf_cubic_testing_error_metrics.items():
         for error_metric, val in info.items():
             rbf_cubic_error_list.append(value(val))
+    for var, info in rbf_spline_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            rbf_spline_error_list.append(value(val))
     for var, info in rbf_gaussian_testing_error_metrics.items():
         for error_metric, val in info.items():
             rbf_gauss_error_list.append(value(val))
@@ -418,7 +452,9 @@ def plot_single_salt_testing_error_metrics(
         "Error Metric": metric_list,
         "Polynomial": poly_error_list,
         "Kriging": krig_error_list,
+        "RBF (Linear)": rbf_cubic_error_list,
         "RBF (Cubic)": rbf_cubic_error_list,
+        "RBF (Spline)": rbf_cubic_error_list,
         "RBF (Gaussian)": rbf_gauss_error_list,
         "RBF (MQ)": rbf_mq_error_list,
         "RBF (IMQ)": rbf_imq_error_list,

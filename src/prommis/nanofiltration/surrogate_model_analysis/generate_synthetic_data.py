@@ -256,12 +256,14 @@ def generate_data_per_salt(cation):
 
                     for t in model.fs.membrane.time:
                         for j in model.fs.membrane.solutes:
-                            model.fs.membrane.feed_conc_mol_comp[t, j].set_value(concentration)
-            
+                            model.fs.membrane.feed_conc_mol_comp[t, j].set_value(
+                                concentration
+                            )
+
                     solve_model(model)
                     unfix_pressure(model, water_flux_target=water_flux)
                     solve_model(model)
-            
+
                     dt = DiagnosticsToolbox(model)
                     dt.assert_no_numerical_warnings(model)
 
@@ -270,35 +272,35 @@ def generate_data_per_salt(cation):
                     ion_flux_list.append(get_average_flux(model, cation))
     else:
         for water_flux in water_fluxes:
-                for concentration in concentrations:
-                    model = build_model(
-                        cation_list=[cation],
-                        inlet_concentration={
-                            "feed": {
-                                cation: concentration,
-                                "Cl": chloride_multiplier * concentration,
-                            },
-                            "diafiltrate": {
-                                cation: diafiltrate[cation],
-                                "Cl": 1e-10,
-                            },
+            for concentration in concentrations:
+                model = build_model(
+                    cation_list=[cation],
+                    inlet_concentration={
+                        "feed": {
+                            cation: concentration,
+                            "Cl": chloride_multiplier * concentration,
                         },
-                        default_args=default_args,
-                        NFE_args=NFE_args,
-                        water_flux=water_flux,
-                        data_membrane_thickness=l_m,
-                        multiplier_H_feed=1.2,
-                        multiplier_H_perm=1,
-                        non_Donnan_partition_dict={
-                            cation: cation_phi_star_value,
-                            "Cl": chloride_phi_star_value,
+                        "diafiltrate": {
+                            cation: diafiltrate[cation],
+                            "Cl": 1e-10,
                         },
-                        initialize_and_solve=True,
-                    )
-    
-                    conc_list.append(concentration)
-                    water_flux_list.append(water_flux)
-                    ion_flux_list.append(get_average_flux(model, cation))
+                    },
+                    default_args=default_args,
+                    NFE_args=NFE_args,
+                    water_flux=water_flux,
+                    data_membrane_thickness=l_m,
+                    multiplier_H_feed=1.2,
+                    multiplier_H_perm=1,
+                    non_Donnan_partition_dict={
+                        cation: cation_phi_star_value,
+                        "Cl": chloride_phi_star_value,
+                    },
+                    initialize_and_solve=True,
+                )
+
+                conc_list.append(concentration)
+                water_flux_list.append(water_flux)
+                ion_flux_list.append(get_average_flux(model, cation))
 
     dict = {
         "feed_conc": conc_list,
@@ -386,12 +388,14 @@ def generate_single_salt_data():
 
                         for t in model.fs.membrane.time:
                             for j in model.fs.membrane.solutes:
-                                model.fs.membrane.feed_conc_mol_comp[t, j].set_value(concentration)
-                
+                                model.fs.membrane.feed_conc_mol_comp[t, j].set_value(
+                                    concentration
+                                )
+
                         solve_model(model)
                         unfix_pressure(model, water_flux_target=water_flux)
                         solve_model(model)
-                
+
                         dt = DiagnosticsToolbox(model)
                         dt.assert_no_numerical_warnings(model)
 
@@ -401,36 +405,36 @@ def generate_single_salt_data():
                         ion_flux_list.append(get_average_flux(model, cation))
         else:
             for water_flux in water_fluxes:
-                    for concentration in concentrations:
-                        model = build_model(
-                            cation_list=[cation],
-                            inlet_concentration={
-                                "feed": {
-                                    cation: concentration,
-                                    "Cl": chloride_multiplier * concentration,
-                                },
-                                "diafiltrate": {
-                                    cation: diafiltrate[cation],
-                                    "Cl": 1e-10,
-                                },
+                for concentration in concentrations:
+                    model = build_model(
+                        cation_list=[cation],
+                        inlet_concentration={
+                            "feed": {
+                                cation: concentration,
+                                "Cl": chloride_multiplier * concentration,
                             },
-                            default_args=default_args,
-                            NFE_args=NFE_args,
-                            water_flux=water_flux,
-                            data_membrane_thickness=l_m,
-                            multiplier_H_feed=1.2,
-                            multiplier_H_perm=1,
-                            non_Donnan_partition_dict={
-                                cation: cation_phi_star_value,
-                                "Cl": chloride_phi_star_value,
+                            "diafiltrate": {
+                                cation: diafiltrate[cation],
+                                "Cl": 1e-10,
                             },
-                            initialize_and_solve=True,
-                        )
-        
-                        valence_list.append(chloride_multiplier)
-                        conc_list.append(concentration)
-                        water_flux_list.append(water_flux)
-                        ion_flux_list.append(get_average_flux(model, cation))
+                        },
+                        default_args=default_args,
+                        NFE_args=NFE_args,
+                        water_flux=water_flux,
+                        data_membrane_thickness=l_m,
+                        multiplier_H_feed=1.2,
+                        multiplier_H_perm=1,
+                        non_Donnan_partition_dict={
+                            cation: cation_phi_star_value,
+                            "Cl": chloride_phi_star_value,
+                        },
+                        initialize_and_solve=True,
+                    )
+
+                    valence_list.append(chloride_multiplier)
+                    conc_list.append(concentration)
+                    water_flux_list.append(water_flux)
+                    ion_flux_list.append(get_average_flux(model, cation))
 
     dict = {
         "valency": valence_list,
