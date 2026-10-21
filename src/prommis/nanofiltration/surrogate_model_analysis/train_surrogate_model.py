@@ -26,14 +26,34 @@ from pyomo.environ import value
 
 def main():
     polymonial_surrogate = train_polynomial_surrogate_model(
-        datafile="training_data/single_salt/Na_chloride"
+        datafile="training_data/single_salt/Na_chloride",
+        visualize=False,
     )
+    polymonial_surrogate.save_to_file(
+        f"surrogate_models/single_salt/NaCl_polynomial_surrogate",
+        overwrite=True,
+    )
+
     kriging_surrogate = train_kriging_surrogate_model(
-        datafile="training_data/single_salt/Na_chloride"
+        datafile="training_data/single_salt/Na_chloride",
+        visualize=False,
     )
-    rbf_surrogate = train_rbf_surrogate_model(
-        datafile="training_data/single_salt/Na_chloride"
+    kriging_surrogate.save_to_file(
+        f"surrogate_models/single_salt/NaCl_kriging_surrogate",
+        overwrite=True,
     )
+
+    basis_functions = ["cubic", "gaussian", "mq", "imq"]
+    for basis_func in basis_functions:
+        rbf_surrogate = train_rbf_surrogate_model(
+            datafile="training_data/single_salt/Na_chloride",
+            basis_func=basis_func,
+            visualize=False,
+        )
+        rbf_surrogate.save_to_file(
+            f"surrogate_models/single_salt/NaCl_rbf_{basis_func}_surrogate",
+            overwrite=True,
+        )
 
 
 def train_polynomial_surrogate_model(datafile, max_order=4, visualize=True):
