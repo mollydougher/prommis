@@ -34,9 +34,9 @@ from prommis.nanofiltration.multi_component_diafiltration import (
 
 
 def main():
-    generate_single_salt_data(cation="Na")
-    generate_single_salt_data(cation="Ca")
-    generate_single_salt_data(cation="La")
+    generate_data_per_salt(cation="Na")
+    generate_data_per_salt(cation="Ca")
+    generate_data_per_salt(cation="La")
 
 
 def build_model(
@@ -181,7 +181,133 @@ def unfix_pressure(m, water_flux_target):
     m.water_flux_constraint = Constraint(rule=_water_flux_constraint)
 
 
-def generate_single_salt_data(cation):
+def generate_data_per_salt(cation):
+    anion_list = ["Cl"]
+    inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
+    diafiltrate = {"Na": 1e-10, "Ca": 1e-10, "La": 1e-10}
+    include_boundary_layer = True
+    NFE_module_length = 10
+    NFE_boundary_layer_thickness = 10
+    NFE_membrane_thickness = 10
+
+    default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
+    NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
+
+    concentrations = [25, 50, 100, 150, 200]
+    water_fluxes = [0.01, 0.02, 0.03]
+
+    Dm_Cl = 2.03  # um2/s
+    Dm_over_l_value = 60  # um/s
+    l_um = Dm_Cl / Dm_over_l_value  # um
+    l_m = l_um / 1e6  # m
+    chloride_phi_star_value = 0.05
+
+    if cation == "Na":
+        chloride_multiplier = 1
+        cation_phi_star_value = 0.75
+    elif cation == "Ca":
+        chloride_multiplier = 2
+        cation_phi_star_value = 0.4
+    elif cation == "La":
+        chloride_multiplier = 3
+        cation_phi_star_value = 0.0001
+
+    conc_list = []
+    water_flux_list = []
+    ion_flux_list = []
+
+    if cation == "La":
+        for water_flux in water_fluxes:
+            for concentration in concentrations:
+                if concentration == concentrations[0]:
+                    model = build_model(
+                        cation_list=[cation],
+                        inlet_concentration={
+                            "feed": {
+                                cation: concentration,
+                                "Cl": chloride_multiplier * concentration,
+                            },
+                            "diafiltrate": {
+                                cation: diafiltrate[cation],
+                                "Cl": 1e-10,
+                            },
+                        },
+                        default_args=default_args,
+                        NFE_args=NFE_args,
+                        water_flux=water_flux,
+                        data_membrane_thickness=l_m,
+                        multiplier_H_feed=1.2,
+                        multiplier_H_perm=1,
+                        non_Donnan_partition_dict={
+                            cation: cation_phi_star_value,
+                            "Cl": chloride_phi_star_value,
+                        },
+                        initialize_and_solve=True,
+                    )
+
+                    conc_list.append(concentration)
+                    water_flux_list.append(water_flux)
+                    ion_flux_list.append(get_average_flux(model, cation))
+
+                else:
+                    model.del_component(model.water_flux_constraint)
+
+                    for t in model.fs.membrane.time:
+                        for j in model.fs.membrane.solutes:
+                            model.fs.membrane.feed_conc_mol_comp[t, j].set_value(concentration)
+            
+                    solve_model(model)
+                    unfix_pressure(model, water_flux_target=water_flux)
+                    solve_model(model)
+            
+                    dt = DiagnosticsToolbox(model)
+                    dt.assert_no_numerical_warnings(model)
+
+                    conc_list.append(concentration)
+                    water_flux_list.append(water_flux)
+                    ion_flux_list.append(get_average_flux(model, cation))
+    else:
+        for water_flux in water_fluxes:
+                for concentration in concentrations:
+                    model = build_model(
+                        cation_list=[cation],
+                        inlet_concentration={
+                            "feed": {
+                                cation: concentration,
+                                "Cl": chloride_multiplier * concentration,
+                            },
+                            "diafiltrate": {
+                                cation: diafiltrate[cation],
+                                "Cl": 1e-10,
+                            },
+                        },
+                        default_args=default_args,
+                        NFE_args=NFE_args,
+                        water_flux=water_flux,
+                        data_membrane_thickness=l_m,
+                        multiplier_H_feed=1.2,
+                        multiplier_H_perm=1,
+                        non_Donnan_partition_dict={
+                            cation: cation_phi_star_value,
+                            "Cl": chloride_phi_star_value,
+                        },
+                        initialize_and_solve=True,
+                    )
+    
+                    conc_list.append(concentration)
+                    water_flux_list.append(water_flux)
+                    ion_flux_list.append(get_average_flux(model, cation))
+
+    dict = {
+        "feed_conc": conc_list,
+        "water_flux": water_flux_list,
+        "ion_flux": ion_flux_list,
+    }
+    df = DataFrame(data=dict)
+    df.to_csv(f"training_data/single_salt/{cation}_chloride", index=False)
+
+
+def generate_data_per_salt(cation):
     anion_list = ["Cl"]
     inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
     diafiltrate = {"Na": 1e-10, "Ca": 1e-10, "La": 1e-10}
