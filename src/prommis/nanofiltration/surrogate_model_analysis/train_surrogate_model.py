@@ -27,35 +27,42 @@ import matplotlib.pyplot as plt
 
 
 def main():
+    solute = "Na"
+    salt = "Sodium Chloride"
+    # solute = "Ca"
+    # salt = "Calcium Chloride"
+
+    datafile = f"training_data/single_salt/{solute}_chloride"
+
     polymonial_surrogate, polynomial_testing_error_metrics = (
         train_polynomial_surrogate_model(
-            datafile="training_data/single_salt/Na_chloride",
+            datafile=datafile,
             visualize=False,
         )
     )
     polymonial_surrogate.save_to_file(
-        f"surrogate_models/single_salt/NaCl_polynomial_surrogate",
+        f"surrogate_models/single_salt/{solute}Cl_polynomial_surrogate",
         overwrite=True,
     )
 
     kriging_surrogate, kriging_testing_error_metrics = train_kriging_surrogate_model(
-        datafile="training_data/single_salt/Na_chloride",
+        datafile=datafile,
         visualize=False,
     )
     kriging_surrogate.save_to_file(
-        f"surrogate_models/single_salt/NaCl_kriging_surrogate",
+        f"surrogate_models/single_salt/{solute}Cl_kriging_surrogate",
         overwrite=True,
     )
 
     basis_functions = ["cubic", "gaussian", "mq", "imq"]
     for basis_func in basis_functions:
         rbf_surrogate, rbf_testing_error_metrics = train_rbf_surrogate_model(
-            datafile="training_data/single_salt/Na_chloride",
+            datafile=datafile,
             basis_func=basis_func,
             visualize=False,
         )
         rbf_surrogate.save_to_file(
-            f"surrogate_models/single_salt/NaCl_rbf_{basis_func}_surrogate",
+            f"surrogate_models/single_salt/{solute}Cl_rbf_{basis_func}_surrogate",
             overwrite=True,
         )
         if basis_func == "cubic":
@@ -68,13 +75,19 @@ def main():
             rbf_imq_testing_error_metrics = rbf_testing_error_metrics
 
     plot_testing_error_metrics(
+        solute,
+        salt,
         polynomial_testing_error_metrics,
         kriging_testing_error_metrics,
         rbf_cubic_testing_error_metrics,
         rbf_gaussian_testing_error_metrics,
         rbf_mq_testing_error_metrics,
         rbf_imq_testing_error_metrics,
+        drop_r2=True,
+        save_figure=True,
     )
+
+    plt.show()
 
 
 def train_polynomial_surrogate_model(datafile, max_order=4, visualize=True):
@@ -231,6 +244,8 @@ def train_rbf_surrogate_model(datafile, basis_func="cubic", visualize=True):
 
 
 def plot_testing_error_metrics(
+    solute,
+    salt,
     polynomial_testing_error_metrics,
     kriging_testing_error_metrics,
     rbf_cubic_testing_error_metrics,
@@ -238,6 +253,7 @@ def plot_testing_error_metrics(
     rbf_mq_testing_error_metrics,
     rbf_imq_testing_error_metrics,
     drop_r2=False,
+    save_figure=True,
 ):
 
     metric_list = []
@@ -288,8 +304,10 @@ def plot_testing_error_metrics(
     ax1 = df.plot.bar(rot=0)
 
     ax1.legend()
+    ax1.set_title(f"{salt}")
 
-    plt.show()
+    if save_figure:
+        plt.savefig(f"figures/error_metrics_{solute}.png", dpi=600)
 
 
 if __name__ == "__main__":

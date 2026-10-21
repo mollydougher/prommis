@@ -4,8 +4,6 @@ Synthetic data generation for multi-component diafiltration model.
 Author: Molly Dougher
 """
 
-from pathlib import Path
-
 from pyomo.contrib.solver.common.util import NoFeasibleSolutionError
 from pyomo.environ import (
     ConcreteModel,
@@ -38,7 +36,8 @@ from prommis.nanofiltration.multi_component_diafiltration import (
 
 
 def main():
-    generate_single_salt_data(cation="Na")
+    # generate_single_salt_data(cation="Na")
+    generate_single_salt_data(cation="Ca")
 
 
 def build_model(
