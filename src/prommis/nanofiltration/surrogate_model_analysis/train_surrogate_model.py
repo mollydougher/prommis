@@ -27,6 +27,12 @@ import matplotlib.pyplot as plt
 
 
 def main():
+    # generate_per_salt_analysis()
+
+    generate_mixed_salt_analysis()
+
+
+def generate_per_salt_analysis():
     # solute = "Na"
     # salt = "Sodium Chloride"
     # solute = "Ca"
@@ -76,9 +82,66 @@ def main():
         elif basis_func == "imq":
             rbf_imq_testing_error_metrics = rbf_testing_error_metrics
 
-    plot_testing_error_metrics(
+    plot_solute_testing_error_metrics(
         solute,
         salt,
+        polynomial_testing_error_metrics,
+        kriging_testing_error_metrics,
+        rbf_cubic_testing_error_metrics,
+        rbf_gaussian_testing_error_metrics,
+        rbf_mq_testing_error_metrics,
+        rbf_imq_testing_error_metrics,
+        drop_r2=True,
+        save_figure=True,
+    )
+
+    plt.show()
+
+
+def generate_mixed_salt_analysis():
+    datafile = f"training_data/single_salt/mixed_chlorides"
+
+    polymonial_surrogate, polynomial_testing_error_metrics = (
+        train_polynomial_surrogate_model(
+            datafile=datafile,
+            visualize=False,
+        )
+    )
+    polymonial_surrogate.save_to_file(
+        f"surrogate_models/single_salt/single_salt_polynomial_surrogate",
+        overwrite=True,
+    )
+
+    kriging_surrogate, kriging_testing_error_metrics = train_kriging_surrogate_model(
+        datafile=datafile,
+        visualize=False,
+    )
+    kriging_surrogate.save_to_file(
+        f"surrogate_models/single_salt/single_salt_kriging_surrogate",
+        overwrite=True,
+    )
+
+    basis_functions = ["cubic", "gaussian", "mq", "imq"]
+    for basis_func in basis_functions:
+        rbf_surrogate, rbf_testing_error_metrics = train_rbf_surrogate_model(
+            datafile=datafile,
+            basis_func=basis_func,
+            visualize=False,
+        )
+        rbf_surrogate.save_to_file(
+            f"surrogate_models/single_salt/single_salt_rbf_{basis_func}_surrogate",
+            overwrite=True,
+        )
+        if basis_func == "cubic":
+            rbf_cubic_testing_error_metrics = rbf_testing_error_metrics
+        elif basis_func == "gaussian":
+            rbf_gaussian_testing_error_metrics = rbf_testing_error_metrics
+        elif basis_func == "mq":
+            rbf_mq_testing_error_metrics = rbf_testing_error_metrics
+        elif basis_func == "imq":
+            rbf_imq_testing_error_metrics = rbf_testing_error_metrics
+
+    plot_single_salt_testing_error_metrics(
         polynomial_testing_error_metrics,
         kriging_testing_error_metrics,
         rbf_cubic_testing_error_metrics,
@@ -245,7 +308,7 @@ def train_rbf_surrogate_model(datafile, basis_func="cubic", visualize=True):
     return (surrogate, testing_metrics)
 
 
-def plot_testing_error_metrics(
+def plot_solute_testing_error_metrics(
     solute,
     salt,
     polynomial_testing_error_metrics,
@@ -310,6 +373,71 @@ def plot_testing_error_metrics(
 
     if save_figure:
         plt.savefig(f"figures/error_metrics_{solute}.png", dpi=600)
+
+
+def plot_single_salt_testing_error_metrics(
+    polynomial_testing_error_metrics,
+    kriging_testing_error_metrics,
+    rbf_cubic_testing_error_metrics,
+    rbf_gaussian_testing_error_metrics,
+    rbf_mq_testing_error_metrics,
+    rbf_imq_testing_error_metrics,
+    drop_r2=False,
+    save_figure=True,
+):
+
+    metric_list = []
+    poly_error_list = []
+    krig_error_list = []
+    rbf_cubic_error_list = []
+    rbf_gauss_error_list = []
+    rbf_mq_error_list = []
+    rbf_imq_error_list = []
+
+    for var, info in polynomial_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            metric_list.append(error_metric)
+            poly_error_list.append(value(val))
+    for var, info in kriging_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            krig_error_list.append(value(val))
+    for var, info in rbf_cubic_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            rbf_cubic_error_list.append(value(val))
+    for var, info in rbf_gaussian_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            rbf_gauss_error_list.append(value(val))
+    for var, info in rbf_mq_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            rbf_mq_error_list.append(value(val))
+    for var, info in rbf_imq_testing_error_metrics.items():
+        for error_metric, val in info.items():
+            rbf_imq_error_list.append(value(val))
+
+    dict = {
+        "Error Metric": metric_list,
+        "Polynomial": poly_error_list,
+        "Kriging": krig_error_list,
+        "RBF (Cubic)": rbf_cubic_error_list,
+        "RBF (Gaussian)": rbf_gauss_error_list,
+        "RBF (MQ)": rbf_mq_error_list,
+        "RBF (IMQ)": rbf_imq_error_list,
+    }
+
+    df = DataFrame(dict).set_index("Error Metric")
+
+    if drop_r2:
+        df = df.drop("R2", axis=0)
+
+    print(df)
+
+    ax1 = df.plot.bar(rot=0)
+
+    ax1.legend()
+    ax1.set_title("Single Chloride Salts")
+
+    if save_figure:
+        plt.savefig(f"figures/error_metrics_single_salt.png", dpi=600)
 
 
 if __name__ == "__main__":
