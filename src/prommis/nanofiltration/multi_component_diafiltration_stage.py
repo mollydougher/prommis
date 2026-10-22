@@ -112,10 +112,29 @@ class MultiComponentDiafiltrationStageFlowsheet():
         m.fs.retentate_block = Product(property_package=m.fs.stream_properties)
         m.fs.permeate_block = Product(RangeSet(1, self.num_tubes), property_package=m.fs.stream_properties)
 
+        return m
+
+    def solve_sub_model(self, m):
+        """
+        Solves scaled model.
+
+        Args:
+            m: Pyomo model
+        """
+        scaling = TransformationFactory("core.scale_model")
+        scaled_model = scaling.create_using(m.parent_block(), rename=False)
+
+        solver = SolverFactory("ipopt")
+        results = solver.solve(scaled_model, tee=True)
+        assert_optimal_termination(results)
+
+        scaling.propagate_solution(scaled_model, m.parent_block())
+
+    def initialize_flowsheet(self, m, pressure):
         for i in RangeSet(1, self.num_tubes):
             m.fs.membrane[i].total_module_length.fix()
             m.fs.membrane[i].total_membrane_length.fix()
-            m.fs.membrane[i].applied_pressure.fix(5)
+            m.fs.membrane[i].applied_pressure.fix(pressure)
 
         m.fs.membrane[1].feed_flow_volume.fix(self.inlet_flow_volume["feed"])
         m.fs.membrane[1].diafiltrate_flow_volume.fix(self.inlet_flow_volume["diafiltrate"])
@@ -149,7 +168,7 @@ class MultiComponentDiafiltrationStageFlowsheet():
 
         for i in RangeSet(2, self.num_tubes):
             m.fs.membrane[i].deactivate()
-        self.solve_model(m.fs.membrane, sub_model=True)
+        self.solve_sub_model(m.fs.membrane)
 
         for i in RangeSet(2, self.num_tubes):
             m.fs.membrane[i-1].deactivate()
@@ -171,7 +190,7 @@ class MultiComponentDiafiltrationStageFlowsheet():
 
             dt_membrane_temp = DiagnosticsToolbox(m.fs.membrane[i])
             dt_membrane_temp.assert_no_structural_warnings()
-            self.solve_model(m.fs.membrane, sub_model=True)
+            self.solve_sub_model(m.fs.membrane)
 
             for t in m.fs.membrane[i].time:
                 m.fs.membrane[i].feed_flow_volume[t].unfix()
@@ -181,6 +200,8 @@ class MultiComponentDiafiltrationStageFlowsheet():
         for i in RangeSet(1, self.num_tubes):
             m.fs.membrane[i].activate()
 
+
+    def add_and_connect_streams(self, m):
         m.fs.feed_stream = Arc(
             source=m.fs.feed_block[1].outlet,
             destination=m.fs.membrane[1].feed_inlet,
@@ -218,32 +239,3 @@ class MultiComponentDiafiltrationStageFlowsheet():
             )
 
         TransformationFactory("network.expand_arcs").apply_to(m)
-
-        dt = DiagnosticsToolbox(m)
-        dt.assert_no_structural_warnings()
-
-        # solve flowsheet
-        self.solve_model(m)
-        dt.assert_no_numerical_warnings()
-
-        return m
-
-    def solve_model(self, m, sub_model=False):
-        """
-        Solves scaled model.
-
-        Args:
-            m: Pyomo model
-        """
-        if sub_model:
-            m = m.parent_block()
-
-        scaling = TransformationFactory("core.scale_model")
-        scaled_model = scaling.create_using(m, rename=False)
-
-        solver = SolverFactory("ipopt")
-        results = solver.solve(scaled_model, tee=True)
-        assert_optimal_termination(results)
-
-        scaling.propagate_solution(scaled_model, m)
-

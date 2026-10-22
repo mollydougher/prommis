@@ -7,6 +7,7 @@ Author: Molly Dougher
 from pyomo.environ import (
     ConcreteModel,
     Constraint,
+    RangeSet,
     SolverFactory,
     TransformationFactory,
     assert_optimal_termination,
@@ -43,10 +44,10 @@ def main():
 
     # generate_single_salt_tube_data()
 
-    generate_stage_data()
+    generate_stage_data_per_salt(cation="Na")
 
 
-def build_model(
+def build_tube_model(
     cation_list,
     inlet_concentration,
     default_args,
@@ -149,13 +150,66 @@ def build_model(
         initialized_membrane_model.initialize(m.fs.membrane)
 
         solve_model(m)
-        unfix_pressure(m, water_flux_target=water_flux)
+        unfix_pressure(m, water_flux_target=water_flux, stage_bool=False)
         solve_model(m)
 
         dt = DiagnosticsToolbox(m)
         dt.assert_no_numerical_warnings()
 
     return m
+
+
+def build_stage_model(
+    cation_list,
+    inlet_concentration,
+    default_args,
+    NFE_args,
+    water_flux,
+    data_membrane_thickness,
+    num_tubes,
+    non_Donnan_partition_dict={},
+    initialize_and_solve=True,
+):
+    anion_list, inlet_flow_volume, include_boundary_layer = default_args
+    NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness = NFE_args
+
+    membrane_stage = MultiComponentDiafiltrationStageFlowsheet(
+        cation_list=cation_list,
+        anion_list=anion_list,
+        num_tubes=num_tubes,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration=inlet_concentration,
+        non_Donnan_partition_dict=non_Donnan_partition_dict,
+        include_boundary_layer=include_boundary_layer,
+        total_membrane_thickness=data_membrane_thickness,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+
+    model = membrane_stage.build_flowsheet()
+
+    if initialize_and_solve:
+        if inlet_concentration["feed"][cation_list[0]] < 101:
+            pressure = 3
+        elif inlet_concentration["feed"][cation_list[0]] >= 101:
+            pressure = 5
+
+        membrane_stage.initialize_flowsheet(model, pressure)
+        membrane_stage.add_and_connect_streams(model)
+
+        dt = DiagnosticsToolbox(model)
+        dt.assert_no_structural_warnings()
+
+        solve_model(model)
+        unfix_pressure(
+            model, water_flux_target=water_flux, stage_bool=True, num_tubes=num_tubes
+        )
+        solve_model(model)
+
+        dt.assert_no_numerical_warnings()
+
+    return model
 
 
 def solve_model(m):
@@ -171,21 +225,52 @@ def solve_model(m):
     return results
 
 
-def unfix_pressure(m, water_flux_target):
-    m.fs.membrane.applied_pressure.unfix()
+def unfix_pressure(m, water_flux_target, stage_bool, num_tubes=None):
+    if stage_bool:
+        for i in RangeSet(num_tubes):
+            m.fs.membrane[i].applied_pressure.unfix()
 
-    def _water_flux_constraint(m):
-        return (
-            sum(
-                m.fs.membrane.volume_flux_water[0, x]
-                for x in m.fs.membrane.dimensionless_module_length
-                if x != 0
+        def _water_flux_constraint(m):
+            return (
+                sum(
+                    m.fs.membrane[1].volume_flux_water[0, x]
+                    for x in m.fs.membrane[1].dimensionless_module_length
+                    if x != 0
+                )
+                / (len(m.fs.membrane[1].dimensionless_module_length) - 1)
+                == water_flux_target
             )
-            / (len(m.fs.membrane.dimensionless_module_length) - 1)
-            == water_flux_target
-        )
 
-    m.water_flux_constraint = Constraint(rule=_water_flux_constraint)
+        m.water_flux_constraint = Constraint(rule=_water_flux_constraint)
+
+        def _equal_pressure_constraint(m, i):
+            if i == 1:
+                return Constraint.Skip
+            else:
+                return (
+                    0
+                    == m.fs.membrane[i].applied_pressure[0]
+                    - m.fs.membrane[1].applied_pressure[0]
+                )
+
+        m.equal_pressure_constraint = Constraint(
+            RangeSet(num_tubes), rule=_equal_pressure_constraint
+        )
+    else:
+        m.fs.membrane.applied_pressure.unfix()
+
+        def _water_flux_constraint(m):
+            return (
+                sum(
+                    m.fs.membrane.volume_flux_water[0, x]
+                    for x in m.fs.membrane.dimensionless_module_length
+                    if x != 0
+                )
+                / (len(m.fs.membrane.dimensionless_module_length) - 1)
+                == water_flux_target
+            )
+
+        m.water_flux_constraint = Constraint(rule=_water_flux_constraint)
 
 
 def generate_tube_data_per_salt(cation):
@@ -227,7 +312,7 @@ def generate_tube_data_per_salt(cation):
         for water_flux in water_fluxes:
             for concentration in concentrations:
                 if concentration == concentrations[0]:
-                    model = build_model(
+                    model = build_tube_model(
                         cation_list=[cation],
                         inlet_concentration={
                             "feed": {
@@ -254,7 +339,9 @@ def generate_tube_data_per_salt(cation):
 
                     conc_list.append(concentration)
                     water_flux_list.append(water_flux)
-                    ion_flux_list.append(get_average_flux(model, cation))
+                    ion_flux_list.append(
+                        get_average_flux(model, cation, stage_bool=False)
+                    )
 
                 else:
                     model.del_component(model.water_flux_constraint)
@@ -266,7 +353,9 @@ def generate_tube_data_per_salt(cation):
                             )
 
                     solve_model(model)
-                    unfix_pressure(model, water_flux_target=water_flux)
+                    unfix_pressure(
+                        model, water_flux_target=water_flux, stage_bool=False
+                    )
                     solve_model(model)
 
                     dt = DiagnosticsToolbox(model)
@@ -274,11 +363,13 @@ def generate_tube_data_per_salt(cation):
 
                     conc_list.append(concentration)
                     water_flux_list.append(water_flux)
-                    ion_flux_list.append(get_average_flux(model, cation))
+                    ion_flux_list.append(
+                        get_average_flux(model, cation, stage_bool=False)
+                    )
     else:
         for water_flux in water_fluxes:
             for concentration in concentrations:
-                model = build_model(
+                model = build_tube_model(
                     cation_list=[cation],
                     inlet_concentration={
                         "feed": {
@@ -305,7 +396,7 @@ def generate_tube_data_per_salt(cation):
 
                 conc_list.append(concentration)
                 water_flux_list.append(water_flux)
-                ion_flux_list.append(get_average_flux(model, cation))
+                ion_flux_list.append(get_average_flux(model, cation, stage_bool=False))
 
     dict = {
         "feed_conc": conc_list,
@@ -358,7 +449,7 @@ def generate_single_salt_tube_data():
             for water_flux in water_fluxes:
                 for concentration in concentrations:
                     if concentration == concentrations[0]:
-                        model = build_model(
+                        model = build_tube_model(
                             cation_list=[cation],
                             inlet_concentration={
                                 "feed": {
@@ -386,7 +477,9 @@ def generate_single_salt_tube_data():
                         valence_list.append(chloride_multiplier)
                         conc_list.append(concentration)
                         water_flux_list.append(water_flux)
-                        ion_flux_list.append(get_average_flux(model, cation))
+                        ion_flux_list.append(
+                            get_average_flux(model, cation, stage_bool=False)
+                        )
 
                     else:
                         model.del_component(model.water_flux_constraint)
@@ -407,11 +500,13 @@ def generate_single_salt_tube_data():
                         valence_list.append(chloride_multiplier)
                         conc_list.append(concentration)
                         water_flux_list.append(water_flux)
-                        ion_flux_list.append(get_average_flux(model, cation))
+                        ion_flux_list.append(
+                            get_average_flux(model, cation, stage_bool=False)
+                        )
         else:
             for water_flux in water_fluxes:
                 for concentration in concentrations:
-                    model = build_model(
+                    model = build_tube_model(
                         cation_list=[cation],
                         inlet_concentration={
                             "feed": {
@@ -439,7 +534,9 @@ def generate_single_salt_tube_data():
                     valence_list.append(chloride_multiplier)
                     conc_list.append(concentration)
                     water_flux_list.append(water_flux)
-                    ion_flux_list.append(get_average_flux(model, cation))
+                    ion_flux_list.append(
+                        get_average_flux(model, cation, stage_bool=False)
+                    )
 
     dict = {
         "valency": valence_list,
@@ -451,50 +548,106 @@ def generate_single_salt_tube_data():
     df.to_csv(f"training_data/single_salt/mixed_chlorides", index=False)
 
 
-def generate_stage_data():
-    cation_list = ["Na"]
+def generate_stage_data_per_salt(cation):
     anion_list = ["Cl"]
     inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
-    inlet_concentration = {
-        "feed": {"Na": 200, "Cl": 200},
-        "diafiltrate": {"Na": 1e-10, "Cl": 1e-10},
-    }
+    diafiltrate = {"Na": 1e-10, "Ca": 1e-10, "La": 1e-10}
     include_boundary_layer = True
     NFE_module_length = 10
     NFE_boundary_layer_thickness = 10
     NFE_membrane_thickness = 10
+    num_tubes = 5
+
+    default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
+    NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
+
+    concentrations = [25]  # , 50, 100, 150, 200]
+    water_fluxes = [0.01]  # , 0.02, 0.03]
 
     Dm_Cl = 2.03  # um2/s
     Dm_over_l_value = 60  # um/s
     l_um = Dm_Cl / Dm_over_l_value  # um
     l_m = l_um / 1e6  # m
+    chloride_phi_star_value = 0.05
 
-    membrane_stage = MultiComponentDiafiltrationStageFlowsheet(
-        cation_list=cation_list,
-        anion_list=anion_list,
-        num_tubes=5,
-        inlet_flow_volume=inlet_flow_volume,
-        inlet_concentration=inlet_concentration,
-        non_Donnan_partition_dict={
-            "Na": 0.75,
-            "Cl": 0.05,
-        },
-        include_boundary_layer=include_boundary_layer,
-        total_membrane_thickness=l_m,
-        NFE_module_length=NFE_module_length,
-        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
-        NFE_membrane_thickness=NFE_membrane_thickness,
-    )
+    if cation == "Na":
+        chloride_multiplier = 1
+        cation_phi_star_value = 0.75
+    elif cation == "Ca":
+        chloride_multiplier = 2
+        cation_phi_star_value = 0.4
+    elif cation == "La":
+        chloride_multiplier = 3
+        cation_phi_star_value = 0.0001
 
-    model = membrane_stage.build_flowsheet()
+    conc_list = []
+    water_flux_list = []
+    ion_flux_list = []
+
+    for water_flux in water_fluxes:
+        for concentration in concentrations:
+            print("=====================")
+            print("Solving for")
+            print(f"water flux = {water_flux}")
+            print(f"concentration = {concentration}")
+            print("=====================")
+            model = build_stage_model(
+                cation_list=[cation],
+                inlet_concentration={
+                    "feed": {
+                        cation: concentration,
+                        "Cl": chloride_multiplier * concentration,
+                    },
+                    "diafiltrate": {
+                        cation: diafiltrate[cation],
+                        "Cl": 1e-10,
+                    },
+                },
+                default_args=default_args,
+                NFE_args=NFE_args,
+                water_flux=water_flux,
+                data_membrane_thickness=l_m,
+                non_Donnan_partition_dict={
+                    cation: cation_phi_star_value,
+                    "Cl": chloride_phi_star_value,
+                },
+                num_tubes=num_tubes,
+                initialize_and_solve=True,
+            )
+
+            conc_list.append(concentration)
+            water_flux_list.append(water_flux)
+            ion_flux_list.append(
+                get_average_flux(model, cation, stage_bool=True, num_tubes=num_tubes)
+            )
+
+        dict = {
+            "feed_conc": conc_list,
+            "water_flux": water_flux_list,
+            "ion_flux": ion_flux_list,
+        }
+        df = DataFrame(data=dict)
+        df.to_csv(f"training_data/stage/single_salt/{cation}_chloride", index=False)
 
 
-def get_average_flux(model, solute):
+def get_average_flux(model, solute, stage_bool, num_tubes=None):
     local_flux = []
-    for t in model.fs.membrane.time:
-        for x in model.fs.membrane.dimensionless_module_length:
-            if x != 0:
-                local_flux.append(value(model.fs.membrane.molar_ion_flux[t, x, solute]))
+
+    if stage_bool:
+        for i in RangeSet(1, num_tubes):
+            for t in model.fs.membrane[i].time:
+                for x in model.fs.membrane[i].dimensionless_module_length:
+                    if x != 0:
+                        local_flux.append(
+                            value(model.fs.membrane[i].molar_ion_flux[t, x, solute])
+                        )
+    else:
+        for t in model.fs.membrane.time:
+            for x in model.fs.membrane.dimensionless_module_length:
+                if x != 0:
+                    local_flux.append(
+                        value(model.fs.membrane.molar_ion_flux[t, x, solute])
+                    )
 
     avg_local_flux = np.average(local_flux)
 
