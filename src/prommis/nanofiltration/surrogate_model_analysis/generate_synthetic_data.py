@@ -31,14 +31,19 @@ from prommis.nanofiltration.multi_component_diafiltration_solute_properties impo
 from prommis.nanofiltration.multi_component_diafiltration import (
     MultiComponentDiafiltration,
 )
+from prommis.nanofiltration.multi_component_diafiltration_stage import (
+    MultiComponentDiafiltrationStageFlowsheet,
+)
 
 
 def main():
-    # generate_data_per_salt(cation="Na")
-    # generate_data_per_salt(cation="Ca")
-    # generate_data_per_salt(cation="La")
+    # generate_tube_data_per_salt(cation="Na")
+    # generate_tube_data_per_salt(cation="Ca")
+    # generate_tube_data_per_salt(cation="La")
 
-    generate_single_salt_data()
+    # generate_single_salt_tube_data()
+
+    generate_stage_data()
 
 
 def build_model(
@@ -183,7 +188,7 @@ def unfix_pressure(m, water_flux_target):
     m.water_flux_constraint = Constraint(rule=_water_flux_constraint)
 
 
-def generate_data_per_salt(cation):
+def generate_tube_data_per_salt(cation):
     anion_list = ["Cl"]
     inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
     diafiltrate = {"Na": 1e-10, "Ca": 1e-10, "La": 1e-10}
@@ -311,7 +316,7 @@ def generate_data_per_salt(cation):
     df.to_csv(f"training_data/single_salt/{cation}_chloride", index=False)
 
 
-def generate_single_salt_data():
+def generate_single_salt_tube_data():
     anion_list = ["Cl"]
     inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
     diafiltrate = {"Na": 1e-10, "Ca": 1e-10, "La": 1e-10}
@@ -444,6 +449,44 @@ def generate_single_salt_data():
     }
     df = DataFrame(data=dict)
     df.to_csv(f"training_data/single_salt/mixed_chlorides", index=False)
+
+
+def generate_stage_data():
+    cation_list = ["Na"]
+    anion_list = ["Cl"]
+    inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
+    inlet_concentration = {
+        "feed": {"Na": 200, "Cl": 200},
+        "diafiltrate": {"Na": 1e-10, "Cl": 1e-10},
+    }
+    include_boundary_layer = True
+    NFE_module_length = 10
+    NFE_boundary_layer_thickness = 10
+    NFE_membrane_thickness = 10
+
+    Dm_Cl = 2.03  # um2/s
+    Dm_over_l_value = 60  # um/s
+    l_um = Dm_Cl / Dm_over_l_value  # um
+    l_m = l_um / 1e6  # m
+
+    membrane_stage = MultiComponentDiafiltrationStageFlowsheet(
+        cation_list=cation_list,
+        anion_list=anion_list,
+        num_tubes=5,
+        inlet_flow_volume=inlet_flow_volume,
+        inlet_concentration=inlet_concentration,
+        non_Donnan_partition_dict={
+            "Na": 0.75,
+            "Cl": 0.05,
+        },
+        include_boundary_layer=include_boundary_layer,
+        total_membrane_thickness=l_m,
+        NFE_module_length=NFE_module_length,
+        NFE_boundary_layer_thickness=NFE_boundary_layer_thickness,
+        NFE_membrane_thickness=NFE_membrane_thickness,
+    )
+
+    model = membrane_stage.build_flowsheet()
 
 
 def get_average_flux(model, solute):
