@@ -193,11 +193,7 @@ def build_stage_model(
     if initialize_and_solve:
         if inlet_concentration["feed"][cation_list[0]] < 30:
             pressure = 3
-        elif (inlet_concentration["feed"][cation_list[0]] >= 30) and (
-            inlet_concentration["feed"][cation_list[0]] < 101
-        ):
-            pressure = 4
-        elif inlet_concentration["feed"][cation_list[0]] >= 101:
+        elif inlet_concentration["feed"][cation_list[0]] >= 30:
             pressure = 5
 
         membrane_stage.initialize_flowsheet(model, pressure)
@@ -235,39 +231,17 @@ def unfix_pressure(m, water_flux_target, stage_bool, num_tubes=None):
         for i in RangeSet(1, num_tubes):
             m.fs.membrane[i].applied_pressure.unfix()
 
-        def _average_membrane_water_flux(m, i):
-            return sum(
+        def _water_flux_constraint(m, i):
+            return (sum(
                 m.fs.membrane[i].volume_flux_water[0, x]
                 for x in m.fs.membrane[i].dimensionless_module_length
                 if x != 0
             ) / (len(m.fs.membrane[i].dimensionless_module_length) - 1)
+            == water_flux_target)
 
-        m.average_membrane_water_flux = Expression(
-            RangeSet(1, num_tubes), rule=_average_membrane_water_flux
+        m.water_flux_constraint = Constraint(
+            RangeSet(1, num_tubes), rule=_water_flux_constraint
         )
-
-        def _water_flux_constraint(m):
-            return (
-                sum(m.average_membrane_water_flux[i] for i in RangeSet(1, num_tubes))
-                / (num_tubes)
-                == water_flux_target
-            )
-
-        m.water_flux_constraint = Constraint(rule=_water_flux_constraint)
-
-        # def _equal_pressure_constraint(m, i):
-        #     if i == 1:
-        #         return Constraint.Skip
-        #     else:
-        #         return (
-        #             0
-        #             == m.fs.membrane[i].applied_pressure[0]
-        #             - m.fs.membrane[1].applied_pressure[0]
-        #         )
-
-        # m.equal_pressure_constraint = Constraint(
-        #     RangeSet(num_tubes), rule=_equal_pressure_constraint
-        # )
     else:
         m.fs.membrane.applied_pressure.unfix()
 
@@ -562,7 +536,11 @@ def generate_single_salt_tube_data():
 
 def generate_stage_data_per_salt(cation):
     anion_list = ["Cl"]
-    inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
+    # cannot operate at 0.02 m/h water flux or higher at current q_f (16.25 m3/h) and num_tubes (5)
+    # for now, doubling the flow rate in the stage
+    # TODO: investigate flow rate as an input in the tube surrogates so we can compare a stage surrogate
+    # to a stage constructed of tube surrogates
+    inlet_flow_volume = {"feed": 2*(12.5 + 3.75), "diafiltrate": 1e-10}
     diafiltrate = {"Na": 1e-10, "Ca": 1e-10, "La": 1e-10}
     include_boundary_layer = True
     NFE_module_length = 10
@@ -574,7 +552,7 @@ def generate_stage_data_per_salt(cation):
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
     concentrations = [25, 50, 100, 150, 200]
-    water_fluxes = [0.01]  # , 0.02, 0.03]
+    water_fluxes = [0.01, 0.02, 0.03]
 
     Dm_Cl = 2.03  # um2/s
     Dm_over_l_value = 60  # um/s

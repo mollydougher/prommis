@@ -134,10 +134,7 @@ class MultiComponentDiafiltrationStageFlowsheet():
         for i in RangeSet(1, self.num_tubes):
             m.fs.membrane[i].total_module_length.fix()
             m.fs.membrane[i].total_membrane_length.fix()
-            if i == 1:
-                m.fs.membrane[i].applied_pressure.fix(pressure)
-            else:
-                m.fs.membrane[i].applied_pressure.fix(pressure - (pressure*(i-1)*0.05))
+            m.fs.membrane[i].applied_pressure.fix(pressure)
 
         m.fs.membrane[1].feed_flow_volume.fix(self.inlet_flow_volume["feed"])
         m.fs.membrane[1].diafiltrate_flow_volume.fix(self.inlet_flow_volume["diafiltrate"])
@@ -193,7 +190,7 @@ class MultiComponentDiafiltrationStageFlowsheet():
 
             dt_membrane_temp = DiagnosticsToolbox(m.fs.membrane[i])
             dt_membrane_temp.assert_no_structural_warnings()
-            self.solve_sub_model(m.fs.membrane)
+            self.solve_sub_model(m.fs.membrane[i])
 
             for t in m.fs.membrane[i].time:
                 m.fs.membrane[i].feed_flow_volume[t].unfix()
