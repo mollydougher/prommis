@@ -573,7 +573,7 @@ def generate_stage_data_per_salt(cation):
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
-    concentrations = [25, 50]  # , 100, 150, 200]
+    concentrations = [25, 50, 100, 150, 200]
     water_fluxes = [0.01]  # , 0.02, 0.03]
 
     Dm_Cl = 2.03  # um2/s
