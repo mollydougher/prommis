@@ -7,6 +7,7 @@ Author: Molly Dougher
 from pyomo.environ import (
     ConcreteModel,
     Constraint,
+    Expression,
     RangeSet,
     SolverFactory,
     TransformationFactory,
@@ -227,35 +228,42 @@ def solve_model(m):
 
 def unfix_pressure(m, water_flux_target, stage_bool, num_tubes=None):
     if stage_bool:
-        for i in RangeSet(num_tubes):
+        for i in RangeSet(1, num_tubes):
             m.fs.membrane[i].applied_pressure.unfix()
+
+        def _average_membrane_water_flux(m, i):
+            return sum(
+                m.fs.membrane[i].volume_flux_water[0, x]
+                for x in m.fs.membrane[i].dimensionless_module_length
+                if x != 0
+            ) / (len(m.fs.membrane[i].dimensionless_module_length) - 1)
+
+        m.average_membrane_water_flux = Expression(
+            RangeSet(1, num_tubes), rule=_average_membrane_water_flux
+        )
 
         def _water_flux_constraint(m):
             return (
-                sum(
-                    m.fs.membrane[1].volume_flux_water[0, x]
-                    for x in m.fs.membrane[1].dimensionless_module_length
-                    if x != 0
-                )
-                / (len(m.fs.membrane[1].dimensionless_module_length) - 1)
+                sum(m.average_membrane_water_flux[i] for i in RangeSet(1, num_tubes))
+                / (num_tubes)
                 == water_flux_target
             )
 
         m.water_flux_constraint = Constraint(rule=_water_flux_constraint)
 
-        def _equal_pressure_constraint(m, i):
-            if i == 1:
-                return Constraint.Skip
-            else:
-                return (
-                    0
-                    == m.fs.membrane[i].applied_pressure[0]
-                    - m.fs.membrane[1].applied_pressure[0]
-                )
+        # def _equal_pressure_constraint(m, i):
+        #     if i == 1:
+        #         return Constraint.Skip
+        #     else:
+        #         return (
+        #             0
+        #             == m.fs.membrane[i].applied_pressure[0]
+        #             - m.fs.membrane[1].applied_pressure[0]
+        #         )
 
-        m.equal_pressure_constraint = Constraint(
-            RangeSet(num_tubes), rule=_equal_pressure_constraint
-        )
+        # m.equal_pressure_constraint = Constraint(
+        #     RangeSet(num_tubes), rule=_equal_pressure_constraint
+        # )
     else:
         m.fs.membrane.applied_pressure.unfix()
 
