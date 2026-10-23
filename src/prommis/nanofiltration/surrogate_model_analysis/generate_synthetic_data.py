@@ -45,7 +45,9 @@ def main():
 
     # generate_single_salt_tube_data()
 
-    generate_stage_data_per_salt(cation="Na")
+    # generate_stage_data_per_salt(cation="Na")
+    # generate_stage_data_per_salt(cation="Ca")
+    generate_stage_data_per_salt(cation="La")
 
 
 def build_tube_model(
@@ -193,8 +195,16 @@ def build_stage_model(
     if initialize_and_solve:
         if inlet_concentration["feed"][cation_list[0]] < 30:
             pressure = 3
-        elif inlet_concentration["feed"][cation_list[0]] >= 30:
+        elif (inlet_concentration["feed"][cation_list[0]] >= 30) and (
+            inlet_concentration["feed"][cation_list[0]] < 99
+        ):
             pressure = 5
+        elif inlet_concentration["feed"][cation_list[0]] >= 99:
+            if (cation_list[0] == "La") and (water_flux == 0.03):
+                # higher valency & ionic strength at higher flux
+                pressure = 10
+            else:
+                pressure = 5
 
         membrane_stage.initialize_flowsheet(model, pressure)
         membrane_stage.add_and_connect_streams(model)
@@ -232,12 +242,15 @@ def unfix_pressure(m, water_flux_target, stage_bool, num_tubes=None):
             m.fs.membrane[i].applied_pressure.unfix()
 
         def _water_flux_constraint(m, i):
-            return (sum(
-                m.fs.membrane[i].volume_flux_water[0, x]
-                for x in m.fs.membrane[i].dimensionless_module_length
-                if x != 0
-            ) / (len(m.fs.membrane[i].dimensionless_module_length) - 1)
-            == water_flux_target)
+            return (
+                sum(
+                    m.fs.membrane[i].volume_flux_water[0, x]
+                    for x in m.fs.membrane[i].dimensionless_module_length
+                    if x != 0
+                )
+                / (len(m.fs.membrane[i].dimensionless_module_length) - 1)
+                == water_flux_target
+            )
 
         m.water_flux_constraint = Constraint(
             RangeSet(1, num_tubes), rule=_water_flux_constraint
@@ -540,7 +553,7 @@ def generate_stage_data_per_salt(cation):
     # for now, doubling the flow rate in the stage
     # TODO: investigate flow rate as an input in the tube surrogates so we can compare a stage surrogate
     # to a stage constructed of tube surrogates
-    inlet_flow_volume = {"feed": 2*(12.5 + 3.75), "diafiltrate": 1e-10}
+    inlet_flow_volume = {"feed": 2 * (12.5 + 3.75), "diafiltrate": 1e-10}
     diafiltrate = {"Na": 1e-10, "Ca": 1e-10, "La": 1e-10}
     include_boundary_layer = True
     NFE_module_length = 10
@@ -576,6 +589,11 @@ def generate_stage_data_per_salt(cation):
 
     for water_flux in water_fluxes:
         for concentration in concentrations:
+            if water_flux == 0.03:
+                # ionic strength in final tube gets too high
+                # TODO: determine if changes needed to the "experiments"
+                if (concentration == 150) or (concentration == 200):
+                    continue
             print("=====================")
             print("Solving for")
             print(f"water flux = {water_flux}")
