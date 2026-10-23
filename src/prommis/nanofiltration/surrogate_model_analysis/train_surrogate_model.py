@@ -27,19 +27,22 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    # generate_per_salt_analysis(length_scale="tube")
+    # generate_per_salt_analysis(solute="Na", salt="Sodium Chloride", length_scale="tube")
+    # generate_per_salt_analysis(
+    #     solute="Ca", salt="Calcium Chloride", length_scale="tube"
+    # )
+    # generate_per_salt_analysis(
+    #     solute="La", salt="Lanthanum Chloride", length_scale="tube"
+    # )
 
-    generate_mixed_salt_analysis(length_scale="tube")
+    # generate_mixed_salt_analysis(length_scale="tube")
+
+    generate_per_salt_analysis(
+        solute="Na", salt="Sodium Chloride", length_scale="stage"
+    )
 
 
-def generate_per_salt_analysis(length_scale):
-    # solute = "Na"
-    # salt = "Sodium Chloride"
-    # solute = "Ca"
-    # salt = "Calcium Chloride"
-    solute = "La"
-    salt = "Lanthanum Chloride"
-
+def generate_per_salt_analysis(solute, salt, length_scale):
     datafile = f"training_data/{length_scale}/single_salt/{solute}_chloride"
 
     polymonial_surrogate, polynomial_testing_error_metrics = (
