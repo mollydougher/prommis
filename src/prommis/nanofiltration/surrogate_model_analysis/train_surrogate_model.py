@@ -37,8 +37,14 @@ def main():
 
     # generate_mixed_salt_analysis(length_scale="tube")
 
+    # generate_per_salt_analysis(
+    #     solute="Na", salt="Sodium Chloride", length_scale="stage"
+    # )
+    # generate_per_salt_analysis(
+    #     solute="Ca", salt="Calcium Chloride", length_scale="stage"
+    # )
     generate_per_salt_analysis(
-        solute="Na", salt="Sodium Chloride", length_scale="stage"
+        solute="La", salt="Lanthanum Chloride", length_scale="stage"
     )
 
 
