@@ -191,8 +191,12 @@ def build_stage_model(
     model = membrane_stage.build_flowsheet()
 
     if initialize_and_solve:
-        if inlet_concentration["feed"][cation_list[0]] < 101:
+        if inlet_concentration["feed"][cation_list[0]] < 30:
             pressure = 3
+        elif (inlet_concentration["feed"][cation_list[0]] >= 30) and (
+            inlet_concentration["feed"][cation_list[0]] < 101
+        ):
+            pressure = 4
         elif inlet_concentration["feed"][cation_list[0]] >= 101:
             pressure = 5
 
@@ -569,7 +573,7 @@ def generate_stage_data_per_salt(cation):
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
-    concentrations = [25]  # , 50, 100, 150, 200]
+    concentrations = [25, 50]  # , 100, 150, 200]
     water_fluxes = [0.01]  # , 0.02, 0.03]
 
     Dm_Cl = 2.03  # um2/s
