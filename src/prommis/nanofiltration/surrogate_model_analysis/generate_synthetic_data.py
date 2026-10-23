@@ -404,7 +404,7 @@ def generate_tube_data_per_salt(cation):
         "ion_flux": ion_flux_list,
     }
     df = DataFrame(data=dict)
-    df.to_csv(f"training_data/single_salt/{cation}_chloride", index=False)
+    df.to_csv(f"training_data/tube/single_salt/{cation}_chloride", index=False)
 
 
 def generate_single_salt_tube_data():
@@ -545,7 +545,7 @@ def generate_single_salt_tube_data():
         "ion_flux": ion_flux_list,
     }
     df = DataFrame(data=dict)
-    df.to_csv(f"training_data/single_salt/mixed_chlorides", index=False)
+    df.to_csv(f"training_data/tube/single_salt/mixed_chlorides", index=False)
 
 
 def generate_stage_data_per_salt(cation):
