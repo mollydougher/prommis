@@ -27,12 +27,12 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    # generate_per_salt_analysis()
+    # generate_per_salt_analysis(length_scale="tube")
 
-    generate_mixed_salt_analysis()
+    generate_mixed_salt_analysis(length_scale="tube")
 
 
-def generate_per_salt_analysis():
+def generate_per_salt_analysis(length_scale):
     # solute = "Na"
     # salt = "Sodium Chloride"
     # solute = "Ca"
@@ -40,7 +40,7 @@ def generate_per_salt_analysis():
     solute = "La"
     salt = "Lanthanum Chloride"
 
-    datafile = f"training_data/single_salt/{solute}_chloride"
+    datafile = f"training_data/{length_scale}/single_salt/{solute}_chloride"
 
     polymonial_surrogate, polynomial_testing_error_metrics = (
         train_polynomial_surrogate_model(
@@ -49,7 +49,7 @@ def generate_per_salt_analysis():
         )
     )
     polymonial_surrogate.save_to_file(
-        f"surrogate_models/single_salt/{solute}Cl_polynomial_surrogate",
+        f"surrogate_models/{length_scale}/single_salt/{solute}Cl_polynomial_surrogate",
         overwrite=True,
     )
 
@@ -58,7 +58,7 @@ def generate_per_salt_analysis():
         visualize=False,
     )
     kriging_surrogate.save_to_file(
-        f"surrogate_models/single_salt/{solute}Cl_kriging_surrogate",
+        f"surrogate_models/{length_scale}/single_salt/{solute}Cl_kriging_surrogate",
         overwrite=True,
     )
 
@@ -70,7 +70,7 @@ def generate_per_salt_analysis():
             visualize=False,
         )
         rbf_surrogate.save_to_file(
-            f"surrogate_models/single_salt/{solute}Cl_rbf_{basis_func}_surrogate",
+            f"surrogate_models/{length_scale}/single_salt/{solute}Cl_rbf_{basis_func}_surrogate",
             overwrite=True,
         )
         if basis_func == "linear":
@@ -87,6 +87,7 @@ def generate_per_salt_analysis():
             rbf_imq_testing_error_metrics = rbf_testing_error_metrics
 
     plot_solute_testing_error_metrics(
+        length_scale,
         solute,
         salt,
         polynomial_testing_error_metrics,
@@ -104,8 +105,8 @@ def generate_per_salt_analysis():
     plt.show()
 
 
-def generate_mixed_salt_analysis():
-    datafile = f"training_data/single_salt/mixed_chlorides"
+def generate_mixed_salt_analysis(length_scale):
+    datafile = f"training_data/{length_scale}/single_salt/mixed_chlorides"
 
     polymonial_surrogate, polynomial_testing_error_metrics = (
         train_polynomial_surrogate_model(
@@ -114,7 +115,7 @@ def generate_mixed_salt_analysis():
         )
     )
     polymonial_surrogate.save_to_file(
-        f"surrogate_models/single_salt/single_salt_polynomial_surrogate",
+        f"surrogate_models/{length_scale}/single_salt/single_salt_polynomial_surrogate",
         overwrite=True,
     )
 
@@ -123,7 +124,7 @@ def generate_mixed_salt_analysis():
         visualize=False,
     )
     kriging_surrogate.save_to_file(
-        f"surrogate_models/single_salt/single_salt_kriging_surrogate",
+        f"surrogate_models/{length_scale}/single_salt/single_salt_kriging_surrogate",
         overwrite=True,
     )
 
@@ -135,7 +136,7 @@ def generate_mixed_salt_analysis():
             visualize=False,
         )
         rbf_surrogate.save_to_file(
-            f"surrogate_models/single_salt/single_salt_rbf_{basis_func}_surrogate",
+            f"surrogate_models/{length_scale}/single_salt/single_salt_rbf_{basis_func}_surrogate",
             overwrite=True,
         )
         if basis_func == "linear":
@@ -152,6 +153,7 @@ def generate_mixed_salt_analysis():
             rbf_imq_testing_error_metrics = rbf_testing_error_metrics
 
     plot_single_salt_testing_error_metrics(
+        length_scale,
         polynomial_testing_error_metrics,
         kriging_testing_error_metrics,
         rbf_linear_testing_error_metrics,
@@ -167,7 +169,7 @@ def generate_mixed_salt_analysis():
     plt.show()
 
 
-def train_polynomial_surrogate_model(datafile, max_order=4, visualize=True):
+def train_polynomial_surrogate_model(datafile, max_order=4, visualize=False):
     # load data from full expressions
     data = read_csv(datafile)
 
@@ -212,15 +214,25 @@ def train_polynomial_surrogate_model(datafile, max_order=4, visualize=True):
 
     if visualize:
         # visualize
+        surrogate_scatter2D(surrogate, data_training, show=True)
+        surrogate_scatter3D(surrogate, data_training, show=True)
+        surrogate_parity(surrogate, data_training, show=True)
+        surrogate_residual(surrogate, data_training, show=True)
+
         surrogate_scatter2D(surrogate, data_validation, show=True)
         surrogate_scatter3D(surrogate, data_validation, show=True)
         surrogate_parity(surrogate, data_validation, show=True)
         surrogate_residual(surrogate, data_validation, show=True)
 
+        surrogate_scatter2D(surrogate, data, show=True)
+        surrogate_scatter3D(surrogate, data, show=True)
+        surrogate_parity(surrogate, data, show=True)
+        surrogate_residual(surrogate, data, show=True)
+
     return (surrogate, testing_metrics)
 
 
-def train_kriging_surrogate_model(datafile, visualize=True):
+def train_kriging_surrogate_model(datafile, visualize=False):
     # load data from full expressions
     data = read_csv(datafile)
 
@@ -262,15 +274,25 @@ def train_kriging_surrogate_model(datafile, visualize=True):
 
     if visualize:
         # visualize
+        surrogate_scatter2D(surrogate, data_training, show=True)
+        surrogate_scatter3D(surrogate, data_training, show=True)
+        surrogate_parity(surrogate, data_training, show=True)
+        surrogate_residual(surrogate, data_training, show=True)
+
         surrogate_scatter2D(surrogate, data_validation, show=True)
         surrogate_scatter3D(surrogate, data_validation, show=True)
         surrogate_parity(surrogate, data_validation, show=True)
         surrogate_residual(surrogate, data_validation, show=True)
 
+        surrogate_scatter2D(surrogate, data, show=True)
+        surrogate_scatter3D(surrogate, data, show=True)
+        surrogate_parity(surrogate, data, show=True)
+        surrogate_residual(surrogate, data, show=True)
+
     return (surrogate, testing_metrics)
 
 
-def train_rbf_surrogate_model(datafile, basis_func="cubic", visualize=True):
+def train_rbf_surrogate_model(datafile, basis_func="cubic", visualize=False):
     # load data from full expressions
     data = read_csv(datafile)
 
@@ -312,15 +334,26 @@ def train_rbf_surrogate_model(datafile, basis_func="cubic", visualize=True):
 
     if visualize:
         # visualize
+        surrogate_scatter2D(surrogate, data_training, show=True)
+        surrogate_scatter3D(surrogate, data_training, show=True)
+        surrogate_parity(surrogate, data_training, show=True)
+        surrogate_residual(surrogate, data_training, show=True)
+
         surrogate_scatter2D(surrogate, data_validation, show=True)
         surrogate_scatter3D(surrogate, data_validation, show=True)
         surrogate_parity(surrogate, data_validation, show=True)
         surrogate_residual(surrogate, data_validation, show=True)
 
+        surrogate_scatter2D(surrogate, data, show=True)
+        surrogate_scatter3D(surrogate, data, show=True)
+        surrogate_parity(surrogate, data, show=True)
+        surrogate_residual(surrogate, data, show=True)
+
     return (surrogate, testing_metrics)
 
 
 def plot_solute_testing_error_metrics(
+    length_scale,
     solute,
     salt,
     polynomial_testing_error_metrics,
@@ -396,10 +429,11 @@ def plot_solute_testing_error_metrics(
     ax1.set_title(f"{salt}")
 
     if save_figure:
-        plt.savefig(f"figures/error_metrics_{solute}.png", dpi=600)
+        plt.savefig(f"figures/{length_scale}/error_metrics_{solute}.png", dpi=600)
 
 
 def plot_single_salt_testing_error_metrics(
+    length_scale,
     polynomial_testing_error_metrics,
     kriging_testing_error_metrics,
     rbf_linear_testing_error_metrics,
@@ -473,7 +507,7 @@ def plot_single_salt_testing_error_metrics(
     ax1.set_title("Single Chloride Salts")
 
     if save_figure:
-        plt.savefig(f"figures/error_metrics_single_salt.png", dpi=600)
+        plt.savefig(f"figures/{length_scale}/error_metrics_single_salt.png", dpi=600)
 
 
 if __name__ == "__main__":
