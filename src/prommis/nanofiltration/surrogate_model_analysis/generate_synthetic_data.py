@@ -39,15 +39,15 @@ from prommis.nanofiltration.multi_component_diafiltration_stage import (
 
 
 def main():
-    # generate_tube_data_per_salt(cation="Na")
-    # generate_tube_data_per_salt(cation="Ca")
-    # generate_tube_data_per_salt(cation="La")
+    generate_tube_data_per_salt(cation="Na")
+    generate_tube_data_per_salt(cation="Ca")
+    generate_tube_data_per_salt(cation="La")
 
-    # generate_single_salt_tube_data()
+    generate_single_salt_tube_data()
 
     # generate_stage_data_per_salt(cation="Na")
     # generate_stage_data_per_salt(cation="Ca")
-    generate_stage_data_per_salt(cation="La")
+    # generate_stage_data_per_salt(cation="La")
 
 
 def build_tube_model(
@@ -55,7 +55,7 @@ def build_tube_model(
     inlet_concentration,
     default_args,
     NFE_args,
-    water_flux,
+    applied_pressure,
     data_membrane_thickness,
     multiplier_H_feed=1.2,
     multiplier_H_perm=1,
@@ -101,10 +101,6 @@ def build_tube_model(
     # fix the degrees of freedom to their default values
     m.fs.membrane.total_module_length.fix()
     m.fs.membrane.total_membrane_length.fix()
-    # if len(cation_list) == 1:
-    #     m.fs.membrane.applied_pressure.fix(5)
-    # else:
-    #     m.fs.membrane.applied_pressure.fix(10)
     m.fs.membrane.feed_flow_volume.fix(inlet_flow_volume["feed"])
     m.fs.membrane.diafiltrate_flow_volume.fix(inlet_flow_volume["diafiltrate"])
     for t in m.fs.membrane.time:
@@ -152,8 +148,17 @@ def build_tube_model(
         )
         initialized_membrane_model.initialize(m.fs.membrane)
 
+        if (cation_list[0] == "La") and (
+            inlet_concentration["feed"][cation_list[0]] == 25
+        ):
+            m.fs.membrane.scaling_factor[m.fs.membrane.molar_ion_flux] = 1e3
+            m.fs.membrane.scaling_factor[m.fs.membrane.boundary_layer_conc_mol_comp] = (
+                1e3
+            )
+            m.fs.membrane.scaling_factor[m.fs.membrane.membrane_conc_mol_comp] = 1e3
+
         solve_model(m)
-        unfix_pressure(m, water_flux_target=water_flux, stage_bool=False)
+        m.fs.membrane.applied_pressure.fix(applied_pressure)
         solve_model(m)
 
         dt = DiagnosticsToolbox(m)
@@ -285,7 +290,7 @@ def generate_tube_data_per_salt(cation):
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
     concentrations = [25, 50, 100, 150, 200]
-    water_fluxes = [0.01, 0.02, 0.03]
+    pressures = [5, 10, 15]
 
     Dm_Cl = 2.03  # um2/s
     Dm_over_l_value = 60  # um/s
@@ -304,12 +309,18 @@ def generate_tube_data_per_salt(cation):
         cation_phi_star_value = 0.0001
 
     conc_list = []
-    water_flux_list = []
+    pressure_list = []
     ion_flux_list = []
 
     if cation == "La":
-        for water_flux in water_fluxes:
+        for pressure in pressures:
             for concentration in concentrations:
+                print("=====================")
+                print("Solving for")
+                print(f"applied pressure = {pressure}")
+                print(f"concentration = {concentration}")
+                print("=====================")
+
                 if concentration == concentrations[0]:
                     model = build_tube_model(
                         cation_list=[cation],
@@ -325,7 +336,7 @@ def generate_tube_data_per_salt(cation):
                         },
                         default_args=default_args,
                         NFE_args=NFE_args,
-                        water_flux=water_flux,
+                        applied_pressure=pressure,
                         data_membrane_thickness=l_m,
                         multiplier_H_feed=1.2,
                         multiplier_H_perm=1,
@@ -337,14 +348,12 @@ def generate_tube_data_per_salt(cation):
                     )
 
                     conc_list.append(concentration)
-                    water_flux_list.append(water_flux)
+                    pressure_list.append(pressure)
                     ion_flux_list.append(
                         get_average_flux(model, cation, stage_bool=False)
                     )
 
                 else:
-                    model.del_component(model.water_flux_constraint)
-
                     for t in model.fs.membrane.time:
                         for j in model.fs.membrane.solutes:
                             model.fs.membrane.feed_conc_mol_comp[t, j].set_value(
@@ -352,21 +361,19 @@ def generate_tube_data_per_salt(cation):
                             )
 
                     solve_model(model)
-                    unfix_pressure(
-                        model, water_flux_target=water_flux, stage_bool=False
-                    )
+                    model.fs.membrane.applied_pressure.fix(pressure)
                     solve_model(model)
 
                     dt = DiagnosticsToolbox(model)
                     dt.assert_no_numerical_warnings(model)
 
                     conc_list.append(concentration)
-                    water_flux_list.append(water_flux)
+                    pressure_list.append(pressure)
                     ion_flux_list.append(
                         get_average_flux(model, cation, stage_bool=False)
                     )
     else:
-        for water_flux in water_fluxes:
+        for pressure in pressures:
             for concentration in concentrations:
                 model = build_tube_model(
                     cation_list=[cation],
@@ -382,7 +389,7 @@ def generate_tube_data_per_salt(cation):
                     },
                     default_args=default_args,
                     NFE_args=NFE_args,
-                    water_flux=water_flux,
+                    applied_pressure=pressure,
                     data_membrane_thickness=l_m,
                     multiplier_H_feed=1.2,
                     multiplier_H_perm=1,
@@ -394,12 +401,12 @@ def generate_tube_data_per_salt(cation):
                 )
 
                 conc_list.append(concentration)
-                water_flux_list.append(water_flux)
+                pressure_list.append(pressure)
                 ion_flux_list.append(get_average_flux(model, cation, stage_bool=False))
 
     dict = {
         "feed_conc": conc_list,
-        "water_flux": water_flux_list,
+        "pressure": pressure_list,
         "ion_flux": ion_flux_list,
     }
     df = DataFrame(data=dict)
@@ -420,7 +427,7 @@ def generate_single_salt_tube_data():
 
     cations = ["Na", "Ca", "La"]
     concentrations = [25, 50, 100, 150, 200]
-    water_fluxes = [0.01, 0.02, 0.03]
+    pressures = [5, 10, 15]
 
     Dm_Cl = 2.03  # um2/s
     Dm_over_l_value = 60  # um/s
@@ -430,7 +437,7 @@ def generate_single_salt_tube_data():
 
     valence_list = []
     conc_list = []
-    water_flux_list = []
+    pressure_list = []
     ion_flux_list = []
 
     for cation in cations:
@@ -445,7 +452,7 @@ def generate_single_salt_tube_data():
             cation_phi_star_value = 0.0001
 
         if cation == "La":
-            for water_flux in water_fluxes:
+            for pressure in pressures:
                 for concentration in concentrations:
                     if concentration == concentrations[0]:
                         model = build_tube_model(
@@ -462,7 +469,7 @@ def generate_single_salt_tube_data():
                             },
                             default_args=default_args,
                             NFE_args=NFE_args,
-                            water_flux=water_flux,
+                            applied_pressure=pressure,
                             data_membrane_thickness=l_m,
                             multiplier_H_feed=1.2,
                             multiplier_H_perm=1,
@@ -475,14 +482,12 @@ def generate_single_salt_tube_data():
 
                         valence_list.append(chloride_multiplier)
                         conc_list.append(concentration)
-                        water_flux_list.append(water_flux)
+                        pressure_list.append(pressure)
                         ion_flux_list.append(
                             get_average_flux(model, cation, stage_bool=False)
                         )
 
                     else:
-                        model.del_component(model.water_flux_constraint)
-
                         for t in model.fs.membrane.time:
                             for j in model.fs.membrane.solutes:
                                 model.fs.membrane.feed_conc_mol_comp[t, j].set_value(
@@ -490,7 +495,7 @@ def generate_single_salt_tube_data():
                                 )
 
                         solve_model(model)
-                        unfix_pressure(model, water_flux_target=water_flux)
+                        model.fs.membrane.applied_pressure.fix(pressure)
                         solve_model(model)
 
                         dt = DiagnosticsToolbox(model)
@@ -498,12 +503,12 @@ def generate_single_salt_tube_data():
 
                         valence_list.append(chloride_multiplier)
                         conc_list.append(concentration)
-                        water_flux_list.append(water_flux)
+                        pressure_list.append(pressure)
                         ion_flux_list.append(
                             get_average_flux(model, cation, stage_bool=False)
                         )
         else:
-            for water_flux in water_fluxes:
+            for pressure in pressures:
                 for concentration in concentrations:
                     model = build_tube_model(
                         cation_list=[cation],
@@ -519,7 +524,7 @@ def generate_single_salt_tube_data():
                         },
                         default_args=default_args,
                         NFE_args=NFE_args,
-                        water_flux=water_flux,
+                        applied_pressure=pressure,
                         data_membrane_thickness=l_m,
                         multiplier_H_feed=1.2,
                         multiplier_H_perm=1,
@@ -532,7 +537,7 @@ def generate_single_salt_tube_data():
 
                     valence_list.append(chloride_multiplier)
                     conc_list.append(concentration)
-                    water_flux_list.append(water_flux)
+                    pressure_list.append(pressure)
                     ion_flux_list.append(
                         get_average_flux(model, cation, stage_bool=False)
                     )
@@ -540,7 +545,7 @@ def generate_single_salt_tube_data():
     dict = {
         "valency": valence_list,
         "feed_conc": conc_list,
-        "water_flux": water_flux_list,
+        "pressure": pressure_list,
         "ion_flux": ion_flux_list,
     }
     df = DataFrame(data=dict)
