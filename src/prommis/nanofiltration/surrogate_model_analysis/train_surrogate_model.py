@@ -27,15 +27,15 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    generate_per_salt_analysis(solute="Na", salt="Sodium Chloride", length_scale="tube")
-    generate_per_salt_analysis(
-        solute="Ca", salt="Calcium Chloride", length_scale="tube"
-    )
-    generate_per_salt_analysis(
-        solute="La", salt="Lanthanum Chloride", length_scale="tube"
-    )
+    # generate_per_salt_analysis(solute="Na", salt="Sodium Chloride", length_scale="tube")
+    # generate_per_salt_analysis(
+    #     solute="Ca", salt="Calcium Chloride", length_scale="tube"
+    # )
+    # generate_per_salt_analysis(
+    #     solute="La", salt="Lanthanum Chloride", length_scale="tube"
+    # )
 
-    # generate_mixed_salt_analysis(length_scale="tube")
+    generate_mixed_salt_analysis(length_scale="tube")
 
     # generate_per_salt_analysis(
     #     solute="Na", salt="Sodium Chloride", length_scale="stage"
@@ -172,6 +172,7 @@ def generate_mixed_salt_analysis(length_scale):
         rbf_mq_testing_error_metrics,
         rbf_imq_testing_error_metrics,
         drop_r2=True,
+        drop_sse=True,
         save_figure=True,
     )
 
@@ -452,6 +453,7 @@ def plot_single_salt_testing_error_metrics(
     rbf_mq_testing_error_metrics,
     rbf_imq_testing_error_metrics,
     drop_r2=False,
+    drop_sse=False,
     save_figure=True,
 ):
 
@@ -507,6 +509,8 @@ def plot_single_salt_testing_error_metrics(
 
     if drop_r2:
         df = df.drop("R2", axis=0)
+    if drop_sse:
+        df = df.drop("SSE", axis=0)
 
     print(df)
 

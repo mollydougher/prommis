@@ -37,11 +37,11 @@ from prommis.nanofiltration.multi_component_diafiltration_stage import (
 
 
 def main():
-    generate_tube_data_per_salt(cation="Na")
-    generate_tube_data_per_salt(cation="Ca")
-    generate_tube_data_per_salt(cation="La")
+    # generate_tube_data_per_salt(cation="Na")
+    # generate_tube_data_per_salt(cation="Ca")
+    # generate_tube_data_per_salt(cation="La")
 
-    # generate_single_salt_tube_data()
+    generate_single_salt_tube_data()
 
     # generate_stage_data_per_salt(cation="Na")
     # generate_stage_data_per_salt(cation="Ca")
@@ -428,19 +428,18 @@ def generate_tube_data_per_salt(cation):
 
 def generate_single_salt_tube_data():
     anion_list = ["Cl"]
-    inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
     diafiltrate = {"Na": 1e-10, "Ca": 1e-10, "La": 1e-10}
     include_boundary_layer = True
     NFE_module_length = 10
     NFE_boundary_layer_thickness = 10
     NFE_membrane_thickness = 10
 
-    default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
     cations = ["Na", "Ca", "La"]
-    concentrations = [25, 50, 100, 150, 200]
+    concentrations = [50, 125, 200]
     pressures = [5, 10, 15]
+    feed_flows = [10, 13.5, 17]
 
     Dm_Cl = 2.03  # um2/s
     Dm_over_l_value = 60  # um/s
@@ -451,6 +450,7 @@ def generate_single_salt_tube_data():
     valence_list = []
     conc_list = []
     pressure_list = []
+    feed_flow_list = []
     ion_flux_list = []
 
     for cation in cations:
@@ -465,9 +465,82 @@ def generate_single_salt_tube_data():
             cation_phi_star_value = 0.0001
 
         if cation == "La":
-            for pressure in pressures:
-                for concentration in concentrations:
-                    if concentration == concentrations[0]:
+            for feed_flow in feed_flows:
+                for pressure in pressures:
+                    for concentration in concentrations:
+                        inlet_flow_volume = {"feed": feed_flow, "diafiltrate": 1e-10}
+                        default_args = (
+                            anion_list,
+                            inlet_flow_volume,
+                            include_boundary_layer,
+                        )
+
+                        if concentration == concentrations[0]:
+                            model = build_tube_model(
+                                cation_list=[cation],
+                                inlet_concentration={
+                                    "feed": {
+                                        cation: concentration,
+                                        "Cl": chloride_multiplier * concentration,
+                                    },
+                                    "diafiltrate": {
+                                        cation: diafiltrate[cation],
+                                        "Cl": 1e-10,
+                                    },
+                                },
+                                default_args=default_args,
+                                NFE_args=NFE_args,
+                                applied_pressure=pressure,
+                                data_membrane_thickness=l_m,
+                                multiplier_H_feed=1.2,
+                                multiplier_H_perm=1,
+                                non_Donnan_partition_dict={
+                                    cation: cation_phi_star_value,
+                                    "Cl": chloride_phi_star_value,
+                                },
+                                initialize_and_solve=True,
+                            )
+
+                            valence_list.append(chloride_multiplier)
+                            conc_list.append(concentration)
+                            pressure_list.append(pressure)
+                            feed_flow_list.append(feed_flow)
+                            ion_flux_list.append(
+                                get_average_flux(model, cation, stage_bool=False)
+                            )
+
+                        else:
+                            for t in model.fs.membrane.time:
+                                for j in model.fs.membrane.solutes:
+                                    model.fs.membrane.feed_conc_mol_comp[
+                                        t, j
+                                    ].set_value(concentration)
+
+                            solve_model(model)
+                            model.fs.membrane.applied_pressure.fix(pressure)
+                            solve_model(model)
+
+                            dt = DiagnosticsToolbox(model)
+                            dt.assert_no_numerical_warnings(model)
+
+                            valence_list.append(chloride_multiplier)
+                            conc_list.append(concentration)
+                            pressure_list.append(pressure)
+                            feed_flow_list.append(feed_flow)
+                            ion_flux_list.append(
+                                get_average_flux(model, cation, stage_bool=False)
+                            )
+        else:
+            for feed_flow in feed_flows:
+                for pressure in pressures:
+                    for concentration in concentrations:
+                        inlet_flow_volume = {"feed": feed_flow, "diafiltrate": 1e-10}
+                        default_args = (
+                            anion_list,
+                            inlet_flow_volume,
+                            include_boundary_layer,
+                        )
+
                         model = build_tube_model(
                             cation_list=[cation],
                             inlet_concentration={
@@ -496,69 +569,16 @@ def generate_single_salt_tube_data():
                         valence_list.append(chloride_multiplier)
                         conc_list.append(concentration)
                         pressure_list.append(pressure)
+                        feed_flow_list.append(feed_flow)
                         ion_flux_list.append(
                             get_average_flux(model, cation, stage_bool=False)
                         )
-
-                    else:
-                        for t in model.fs.membrane.time:
-                            for j in model.fs.membrane.solutes:
-                                model.fs.membrane.feed_conc_mol_comp[t, j].set_value(
-                                    concentration
-                                )
-
-                        solve_model(model)
-                        model.fs.membrane.applied_pressure.fix(pressure)
-                        solve_model(model)
-
-                        dt = DiagnosticsToolbox(model)
-                        dt.assert_no_numerical_warnings(model)
-
-                        valence_list.append(chloride_multiplier)
-                        conc_list.append(concentration)
-                        pressure_list.append(pressure)
-                        ion_flux_list.append(
-                            get_average_flux(model, cation, stage_bool=False)
-                        )
-        else:
-            for pressure in pressures:
-                for concentration in concentrations:
-                    model = build_tube_model(
-                        cation_list=[cation],
-                        inlet_concentration={
-                            "feed": {
-                                cation: concentration,
-                                "Cl": chloride_multiplier * concentration,
-                            },
-                            "diafiltrate": {
-                                cation: diafiltrate[cation],
-                                "Cl": 1e-10,
-                            },
-                        },
-                        default_args=default_args,
-                        NFE_args=NFE_args,
-                        applied_pressure=pressure,
-                        data_membrane_thickness=l_m,
-                        multiplier_H_feed=1.2,
-                        multiplier_H_perm=1,
-                        non_Donnan_partition_dict={
-                            cation: cation_phi_star_value,
-                            "Cl": chloride_phi_star_value,
-                        },
-                        initialize_and_solve=True,
-                    )
-
-                    valence_list.append(chloride_multiplier)
-                    conc_list.append(concentration)
-                    pressure_list.append(pressure)
-                    ion_flux_list.append(
-                        get_average_flux(model, cation, stage_bool=False)
-                    )
 
     dict = {
         "valency": valence_list,
         "feed_conc": conc_list,
         "pressure": pressure_list,
+        "feed_flow": feed_flow_list,
         "ion_flux": ion_flux_list,
     }
     df = DataFrame(data=dict)
