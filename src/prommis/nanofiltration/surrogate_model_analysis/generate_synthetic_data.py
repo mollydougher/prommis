@@ -38,8 +38,8 @@ from prommis.nanofiltration.multi_component_diafiltration_stage import (
 
 def main():
     generate_tube_data_per_salt(cation="Na")
-    # generate_tube_data_per_salt(cation="Ca")
-    # generate_tube_data_per_salt(cation="La")
+    generate_tube_data_per_salt(cation="Ca")
+    generate_tube_data_per_salt(cation="La")
 
     # generate_single_salt_tube_data()
 
@@ -107,12 +107,10 @@ def build_tube_model(
             m.fs.membrane.diafiltrate_conc_mol_comp[t, j].fix(
                 inlet_concentration["diafiltrate"][j]
             )
-    # initial pressure values may need to be tweaked to successfully initialize
-    feed_ionic_strength = value(m.fs.membrane.feed_ionic_strength[0])
-    if feed_ionic_strength < 201:
+    if cation_list[0] == "Na":
         m.fs.membrane.applied_pressure.fix(5)
-    elif feed_ionic_strength >= 201:
-        m.fs.membrane.applied_pressure.fix(15)
+    else:
+        m.fs.membrane.applied_pressure.fix(10)
 
     # add and connect flowsheet streams
     m.fs.feed_stream = Arc(
@@ -147,13 +145,22 @@ def build_tube_model(
         initialized_membrane_model.initialize(m.fs.membrane)
 
         if (
-            (cation_list[0] == "La")
-            and (inlet_concentration["feed"][cation_list[0]] == 25)
-        ) or (
-            (cation_list[0] == "Na")
-            and (inlet_concentration["feed"][cation_list[0]] == 125)
-            and (inlet_flow_volume["feed"] == 10)
-            and (applied_pressure == 15)
+            (
+                (cation_list[0] == "La")
+                and (inlet_concentration["feed"][cation_list[0]] == 25)
+            )
+            or (
+                (cation_list[0] == "Na")
+                and (inlet_concentration["feed"][cation_list[0]] == 125)
+                and (inlet_flow_volume["feed"] == 10)
+                and (applied_pressure == 15)
+            )
+            or (
+                (cation_list[0] == "Ca")
+                and (inlet_concentration["feed"][cation_list[0]] == 200)
+                and (inlet_flow_volume["feed"] == 10)
+                and (applied_pressure == 5)
+            )
         ):
             m.fs.membrane.scaling_factor[m.fs.membrane.molar_ion_flux] = 1e3
             m.fs.membrane.scaling_factor[m.fs.membrane.boundary_layer_conc_mol_comp] = (
@@ -166,6 +173,16 @@ def build_tube_model(
             and (inlet_concentration["feed"][cation_list[0]] == 50)
             and (inlet_flow_volume["feed"] == 17)
         ):
+            m.fs.membrane.scaling_factor[m.fs.membrane.membrane_D_tilde_calculation] = (
+                1e1
+            )
+
+        if (
+            (cation_list[0] == "Ca")
+            and (inlet_concentration["feed"][cation_list[0]] == 50)
+            and (inlet_flow_volume["feed"] == 10)
+        ):
+            m.fs.membrane.scaling_factor[m.fs.membrane.cation_bulk_flux_equation] = 1e2
             m.fs.membrane.scaling_factor[m.fs.membrane.membrane_D_tilde_calculation] = (
                 1e1
             )
