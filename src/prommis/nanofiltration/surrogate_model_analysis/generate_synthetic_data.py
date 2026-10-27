@@ -41,9 +41,9 @@ def main():
     # generate_tube_data_per_salt(cation="Ca")
     # generate_tube_data_per_salt(cation="La")
 
-    generate_single_salt_tube_data()
+    # generate_single_salt_tube_data()
 
-    # generate_stage_data_per_salt(cation="Na")
+    generate_stage_data_per_salt(cation="Na")
     # generate_stage_data_per_salt(cation="Ca")
     # generate_stage_data_per_salt(cation="La")
 
@@ -189,7 +189,8 @@ def build_stage_model(
     inlet_concentration,
     default_args,
     NFE_args,
-    water_flux,
+    applied_pressure,
+    pressure_drop,
     data_membrane_thickness,
     num_tubes,
     non_Donnan_partition_dict={},
@@ -215,29 +216,12 @@ def build_stage_model(
     model = membrane_stage.build_flowsheet()
 
     if initialize_and_solve:
-        if inlet_concentration["feed"][cation_list[0]] < 30:
-            pressure = 3
-        elif (inlet_concentration["feed"][cation_list[0]] >= 30) and (
-            inlet_concentration["feed"][cation_list[0]] < 99
-        ):
-            pressure = 5
-        elif inlet_concentration["feed"][cation_list[0]] >= 99:
-            if (cation_list[0] == "La") and (water_flux == 0.03):
-                # higher valency & ionic strength at higher flux
-                pressure = 10
-            else:
-                pressure = 5
-
-        membrane_stage.initialize_flowsheet(model, pressure)
+        membrane_stage.initialize_flowsheet(model, applied_pressure, pressure_drop)
         membrane_stage.add_and_connect_streams(model)
 
         dt = DiagnosticsToolbox(model)
         dt.assert_no_structural_warnings()
 
-        solve_model(model)
-        unfix_pressure(
-            model, water_flux_target=water_flux, stage_bool=True, num_tubes=num_tubes
-        )
         solve_model(model)
 
         dt.assert_no_numerical_warnings()
@@ -271,9 +255,6 @@ def generate_tube_data_per_salt(cation):
     concentrations = [50, 125, 200]
     pressures = [5, 10, 15]
     feed_flows = [10, 13.5, 17]
-    # concentrations = [125]
-    # pressures = [5]
-    # feed_flows = [10]
 
     Dm_Cl = 2.03  # um2/s
     Dm_over_l_value = 60  # um/s
@@ -587,11 +568,6 @@ def generate_single_salt_tube_data():
 
 def generate_stage_data_per_salt(cation):
     anion_list = ["Cl"]
-    # cannot operate at 0.02 m/h water flux or higher at current q_f (16.25 m3/h) and num_tubes (5)
-    # for now, doubling the flow rate in the stage
-    # TODO: investigate flow rate as an input in the tube surrogates so we can compare a stage surrogate
-    # to a stage constructed of tube surrogates
-    inlet_flow_volume = {"feed": 2 * (12.5 + 3.75), "diafiltrate": 1e-10}
     diafiltrate = {"Na": 1e-10, "Ca": 1e-10, "La": 1e-10}
     include_boundary_layer = True
     NFE_module_length = 10
@@ -599,11 +575,12 @@ def generate_stage_data_per_salt(cation):
     NFE_membrane_thickness = 10
     num_tubes = 5
 
-    default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
-    concentrations = [25, 50, 100, 150, 200]
-    water_fluxes = [0.01, 0.02, 0.03]
+    # diafiltrate needs to be added later in the stage in order to look at higher pressures / lower concentrations
+    # otherwise, the stage is drying out
+    concentrations = [150, 175, 200]
+    pressures = [5, 6, 7]
 
     Dm_Cl = 2.03  # um2/s
     Dm_over_l_value = 60  # um/s
@@ -622,20 +599,23 @@ def generate_stage_data_per_salt(cation):
         cation_phi_star_value = 0.0001
 
     conc_list = []
-    water_flux_list = []
+    pressure_list = []
     ion_flux_list = []
 
-    for water_flux in water_fluxes:
+    # maximum tube feed flow rate is 17 m3/h
+    inlet_flow_volume = {"feed": 17, "diafiltrate": 1e-10}
+    default_args = (
+        anion_list,
+        inlet_flow_volume,
+        include_boundary_layer,
+    )
+
+    for pressure in pressures:
         for concentration in concentrations:
-            if water_flux == 0.03:
-                # ionic strength in final tube gets too high
-                # TODO: determine if changes needed to the "experiments"
-                if (concentration == 150) or (concentration == 200):
-                    continue
             print("=====================")
             print("Solving for")
-            print(f"water flux = {water_flux}")
-            print(f"concentration = {concentration}")
+            print(f"tube 1 applied pressure = {pressure}")
+            print(f"tube 1 feed concentration = {concentration}")
             print("=====================")
             model = build_stage_model(
                 cation_list=[cation],
@@ -651,7 +631,8 @@ def generate_stage_data_per_salt(cation):
                 },
                 default_args=default_args,
                 NFE_args=NFE_args,
-                water_flux=water_flux,
+                applied_pressure=pressure,
+                pressure_drop=0.5,  # assume a pressure drop per tube
                 data_membrane_thickness=l_m,
                 non_Donnan_partition_dict={
                     cation: cation_phi_star_value,
@@ -662,14 +643,14 @@ def generate_stage_data_per_salt(cation):
             )
 
             conc_list.append(concentration)
-            water_flux_list.append(water_flux)
+            pressure_list.append(pressure)
             ion_flux_list.append(
                 get_average_flux(model, cation, stage_bool=True, num_tubes=num_tubes)
             )
 
         dict = {
             "feed_conc": conc_list,
-            "water_flux": water_flux_list,
+            "pressure": pressure_list,
             "ion_flux": ion_flux_list,
         }
         df = DataFrame(data=dict)

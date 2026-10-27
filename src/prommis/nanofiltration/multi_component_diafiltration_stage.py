@@ -130,11 +130,14 @@ class MultiComponentDiafiltrationStageFlowsheet():
 
         scaling.propagate_solution(scaled_model, m.parent_block())
 
-    def initialize_flowsheet(self, m, pressure):
+    def initialize_flowsheet(self, m, pressure, pressure_drop):
         for i in RangeSet(1, self.num_tubes):
             m.fs.membrane[i].total_module_length.fix()
             m.fs.membrane[i].total_membrane_length.fix()
-            m.fs.membrane[i].applied_pressure.fix(pressure)
+            if i == 1:
+                m.fs.membrane[i].applied_pressure.fix(pressure)
+            else:
+                m.fs.membrane[i].applied_pressure.fix(pressure - (i-1*pressure_drop))
 
         m.fs.membrane[1].feed_flow_volume.fix(self.inlet_flow_volume["feed"])
         m.fs.membrane[1].diafiltrate_flow_volume.fix(self.inlet_flow_volume["diafiltrate"])
