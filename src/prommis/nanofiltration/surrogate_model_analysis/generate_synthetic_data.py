@@ -144,48 +144,35 @@ def build_tube_model(
         )
         initialized_membrane_model.initialize(m.fs.membrane)
 
-        if (
-            (
-                (cation_list[0] == "La")
-                and (inlet_concentration["feed"][cation_list[0]] == 25)
-            )
-            or (
-                (cation_list[0] == "Na")
-                and (inlet_concentration["feed"][cation_list[0]] == 125)
+        if cation_list[0] == "Na":
+            if (
+                (inlet_concentration["feed"]["Na"] == 125)
                 and (inlet_flow_volume["feed"] == 10)
                 and (applied_pressure == 15)
-            )
-            or (
-                (cation_list[0] == "Ca")
-                and (inlet_concentration["feed"][cation_list[0]] == 200)
-                and (inlet_flow_volume["feed"] == 10)
-                and (applied_pressure == 5)
-            )
-        ):
-            m.fs.membrane.scaling_factor[m.fs.membrane.molar_ion_flux] = 1e3
-            m.fs.membrane.scaling_factor[m.fs.membrane.boundary_layer_conc_mol_comp] = (
-                1e3
-            )
-            m.fs.membrane.scaling_factor[m.fs.membrane.membrane_conc_mol_comp] = 1e3
+            ):
+                m.fs.membrane.scaling_factor[m.fs.membrane.molar_ion_flux] = 1e3
+                m.fs.membrane.scaling_factor[
+                    m.fs.membrane.boundary_layer_conc_mol_comp
+                ] = 1e3
+                m.fs.membrane.scaling_factor[m.fs.membrane.membrane_conc_mol_comp] = 1e3
 
-        if (
-            (cation_list[0] == "Na")
-            and (inlet_concentration["feed"][cation_list[0]] == 50)
-            and (inlet_flow_volume["feed"] == 17)
-        ):
-            m.fs.membrane.scaling_factor[m.fs.membrane.membrane_D_tilde_calculation] = (
-                1e1
-            )
+            elif (inlet_concentration["feed"][cation_list[0]] == 50) and (
+                inlet_flow_volume["feed"] == 17
+            ):
+                m.fs.membrane.scaling_factor[
+                    m.fs.membrane.membrane_D_tilde_calculation
+                ] = 1e1
 
-        if (
-            (cation_list[0] == "Ca")
-            and (inlet_concentration["feed"][cation_list[0]] == 50)
-            and (inlet_flow_volume["feed"] == 10)
-        ):
-            m.fs.membrane.scaling_factor[m.fs.membrane.cation_bulk_flux_equation] = 1e2
-            m.fs.membrane.scaling_factor[m.fs.membrane.membrane_D_tilde_calculation] = (
-                1e1
-            )
+        if cation_list[0] == "Ca":
+            if (inlet_concentration["feed"][cation_list[0]] == 50) and (
+                inlet_flow_volume["feed"] == 10
+            ):
+                m.fs.membrane.scaling_factor[
+                    m.fs.membrane.cation_bulk_flux_equation
+                ] = 1e2
+                m.fs.membrane.scaling_factor[
+                    m.fs.membrane.membrane_D_tilde_calculation
+                ] = 1e1
 
         solve_model(m)
         m.fs.membrane.applied_pressure.fix(applied_pressure)
