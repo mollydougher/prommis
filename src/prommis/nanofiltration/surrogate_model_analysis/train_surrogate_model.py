@@ -35,7 +35,7 @@ def main():
         solute="La", salt="Lanthanum Chloride", length_scale="tube"
     )
 
-    generate_mixed_salt_analysis(length_scale="tube")
+    # generate_mixed_salt_analysis(length_scale="tube")
 
     # generate_per_salt_analysis(
     #     solute="Na", salt="Sodium Chloride", length_scale="stage"
@@ -183,10 +183,10 @@ def train_polynomial_surrogate_model(datafile, max_order=4, visualize=False):
     data = read_csv(datafile)
 
     # define input and output labels
-    input_labels = ["feed_conc", "pressure"]
+    input_labels = ["feed_conc", "pressure", "feed_flow"]
     output_labels = ["ion_flux"]
-    xmin = [25, 5]
-    xmax = [200, 15]
+    xmin = [25, 5, 10]
+    xmax = [200, 15, 17]
     input_bounds = {
         input_labels[i]: (xmin[i], xmax[i]) for i in range(len(input_labels))
     }
@@ -246,10 +246,10 @@ def train_kriging_surrogate_model(datafile, visualize=False):
     data = read_csv(datafile)
 
     # define input and output labels
-    input_labels = ["feed_conc", "pressure"]
+    input_labels = ["feed_conc", "pressure", "feed_flow"]
     output_labels = ["ion_flux"]
-    xmin = [25, 5]
-    xmax = [200, 15]
+    xmin = [25, 5, 10]
+    xmax = [200, 15, 17]
     input_bounds = {
         input_labels[i]: (xmin[i], xmax[i]) for i in range(len(input_labels))
     }
@@ -306,10 +306,10 @@ def train_rbf_surrogate_model(datafile, basis_func="cubic", visualize=False):
     data = read_csv(datafile)
 
     # define input and output labels
-    input_labels = ["feed_conc", "pressure"]
+    input_labels = ["feed_conc", "pressure", "feed_flow"]
     output_labels = ["ion_flux"]
-    xmin = [25, 5]
-    xmax = [200, 15]
+    xmin = [25, 5, 10]
+    xmax = [200, 15, 17]
     input_bounds = {
         input_labels[i]: (xmin[i], xmax[i]) for i in range(len(input_labels))
     }
