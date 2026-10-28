@@ -568,7 +568,6 @@ def generate_single_salt_tube_data():
 
 def generate_stage_data_per_salt(cation):
     anion_list = ["Cl"]
-    diafiltrate = {"Na": 1e-10, "Ca": 1e-10, "La": 1e-10}
     include_boundary_layer = True
     NFE_module_length = 10
     NFE_boundary_layer_thickness = 10
@@ -576,11 +575,6 @@ def generate_stage_data_per_salt(cation):
     num_tubes = 5
 
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
-
-    # diafiltrate needs to be added later in the stage in order to look at higher pressures / lower concentrations
-    # otherwise, the stage is drying out
-    concentrations = [150, 175, 200]
-    pressures = [5, 6, 7]
 
     Dm_Cl = 2.03  # um2/s
     Dm_over_l_value = 60  # um/s
@@ -591,6 +585,10 @@ def generate_stage_data_per_salt(cation):
     if cation == "Na":
         chloride_multiplier = 1
         cation_phi_star_value = 0.75
+
+        concentrations = [150, 175, 200]
+        pressures = [5, 7, 9]
+
     elif cation == "Ca":
         chloride_multiplier = 2
         cation_phi_star_value = 0.4
@@ -603,7 +601,9 @@ def generate_stage_data_per_salt(cation):
     ion_flux_list = []
 
     # maximum tube feed flow rate is 17 m3/h
-    inlet_flow_volume = {"feed": 17, "diafiltrate": 1e-10}
+    # diafiltrate needs to be added later in the stage in order to look at higher pressures / lower concentrations
+    # otherwise, the stage is drying out
+    inlet_flow_volume = {"feed": 17, "diafiltrate": [1e-10, 1e-10, 1e-10, 5, 1e-10]}
     default_args = (
         anion_list,
         inlet_flow_volume,
@@ -625,8 +625,8 @@ def generate_stage_data_per_salt(cation):
                         "Cl": chloride_multiplier * concentration,
                     },
                     "diafiltrate": {
-                        cation: diafiltrate[cation],
-                        "Cl": 1e-10,
+                        cation: [1e-10, 1e-10, 1e-10, 10, 1e-10],
+                        "Cl": [1e-10, 1e-10, 1e-10, chloride_multiplier * 10, 1e-10],
                     },
                 },
                 default_args=default_args,

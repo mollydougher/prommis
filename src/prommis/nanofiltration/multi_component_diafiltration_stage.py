@@ -106,6 +106,9 @@ class MultiComponentDiafiltrationStageFlowsheet():
             NFE_membrane_thickness=self.NFE_membrane_thickness,
         )
 
+        for i in RangeSet(1, self.num_tubes):
+            m.fs.membrane[i].retentate_flow_volume.setub(17+1e-4)
+
         m.fs.feed_block = Feed(RangeSet(1, self.num_tubes), property_package=m.fs.stream_properties)
         m.fs.diafiltrate_block = Feed(RangeSet(1, self.num_tubes), property_package=m.fs.stream_properties)
         # only collect final retentate
@@ -140,24 +143,24 @@ class MultiComponentDiafiltrationStageFlowsheet():
                 m.fs.membrane[i].applied_pressure.fix(pressure - (i-1*pressure_drop))
 
         m.fs.membrane[1].feed_flow_volume.fix(self.inlet_flow_volume["feed"])
-        m.fs.membrane[1].diafiltrate_flow_volume.fix(self.inlet_flow_volume["diafiltrate"])
+        m.fs.membrane[1].diafiltrate_flow_volume.fix(self.inlet_flow_volume["diafiltrate"][0])
         for t in m.fs.membrane[1].time:
             for j in m.fs.membrane[1].solutes:
                 m.fs.membrane[1].feed_conc_mol_comp[t, j].fix(
                     self.inlet_concentration["feed"][j]
                 )
                 m.fs.membrane[1].diafiltrate_conc_mol_comp[t, j].fix(
-                    self.inlet_concentration["diafiltrate"][j]
+                    self.inlet_concentration["diafiltrate"][j][0]
                 )
 
         for i in RangeSet(2,self.num_tubes):
             m.fs.membrane[i].diafiltrate_flow_volume.fix(
-                value(m.fs.membrane[i].numerical_zero_tolerance)
+                self.inlet_flow_volume["diafiltrate"][i-1]
             )
             for t in m.fs.membrane[i].time:
                 for j in m.fs.membrane[i].solutes:
                     m.fs.membrane[i].diafiltrate_conc_mol_comp[t, j].fix(
-                        value(m.fs.membrane[i].numerical_zero_tolerance)
+                        self.inlet_concentration["diafiltrate"][j][i-1]
                     )
 
         initialized_membrane_1 = m.fs.membrane[1].default_initializer(
