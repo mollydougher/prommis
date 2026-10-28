@@ -27,25 +27,25 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    # generate_per_salt_analysis(solute="Na", salt="Sodium Chloride", length_scale="tube")
+    generate_per_salt_analysis(solute="Na", salt="Sodium Chloride", length_scale="tube")
+    generate_per_salt_analysis(
+        solute="Ca", salt="Calcium Chloride", length_scale="tube"
+    )
+    generate_per_salt_analysis(
+        solute="La", salt="Lanthanum Chloride", length_scale="tube"
+    )
+
+    generate_mixed_salt_analysis(length_scale="tube")
+
     # generate_per_salt_analysis(
-    #     solute="Ca", salt="Calcium Chloride", length_scale="tube"
+    #     solute="Na", salt="Sodium Chloride", length_scale="stage"
     # )
     # generate_per_salt_analysis(
-    #     solute="La", salt="Lanthanum Chloride", length_scale="tube"
+    #     solute="Ca", salt="Calcium Chloride", length_scale="stage"
     # )
-
-    # generate_mixed_salt_analysis(length_scale="tube")
-
-    generate_per_salt_analysis(
-        solute="Na", salt="Sodium Chloride", length_scale="stage"
-    )
-    generate_per_salt_analysis(
-        solute="Ca", salt="Calcium Chloride", length_scale="stage"
-    )
-    generate_per_salt_analysis(
-        solute="La", salt="Lanthanum Chloride", length_scale="stage"
-    )
+    # generate_per_salt_analysis(
+    #     solute="La", salt="Lanthanum Chloride", length_scale="stage"
+    # )
 
 
 def generate_per_salt_analysis(solute, salt, length_scale):
@@ -185,33 +185,48 @@ def generate_mixed_salt_analysis(length_scale):
     plt.show()
 
 
-def train_polynomial_surrogate_model(datafile, length_scale, max_order=4, visualize=False):
+def train_polynomial_surrogate_model(
+    datafile, length_scale, max_order=4, visualize=False
+):
     # load data from full expressions
     data = read_csv(datafile)
 
-    print(str(datafile))
-
     # define input and output labels
     if length_scale == "tube":
-        input_labels = ["feed_conc", "pressure", "feed_flow"]
         output_labels = ["ion_flux"]
-        xmin = [25, 5, 10]
-        xmax = [200, 15, 17]
+        # datafile = training_data/tube/single_salt/XX_chloride
+        cation = str(datafile)[31:33]
+        if cation == "Na":
+            input_labels = ["feed_conc", "pressure", "feed_flow"]
+            xmin = [50, 3, 8]
+            xmax = [200, 13, 17]
+        elif cation == "Ca":
+            input_labels = ["feed_conc", "pressure", "feed_flow"]
+            xmin = [50, 5, 8]
+            xmax = [200, 15, 17]
+        elif cation == "La":
+            input_labels = ["feed_conc", "pressure", "feed_flow"]
+            xmin = [50, 7, 8]
+            xmax = [200, 17, 17]
+        else:  # mixed chlorides
+            input_labels = ["valency", "feed_conc", "pressure", "feed_flow"]
+            xmin = [1, 50, 3, 8]
+            xmax = [3, 200, 17, 17]
     elif length_scale == "stage":
-            input_labels = ["feed_conc", "pressure"]
-            output_labels = ["ion_flux"]
+        input_labels = ["feed_conc", "pressure"]
+        output_labels = ["ion_flux"]
 
-            # datafile = training_data/stage/single_salt/XX_chloride
-            cation = str(datafile)[32:34]
-            if cation == "Na":
-                xmin = [150, 5]
-                xmax = [200, 9]
-            elif cation == "Ca":
-                xmin = [150, 8]
-                xmax = [200, 12]
-            elif cation == "La":
-                xmin = [50, 12]
-                xmax = [100, 16]
+        # datafile = training_data/stage/single_salt/XX_chloride
+        cation = str(datafile)[32:34]
+        if cation == "Na":
+            xmin = [150, 5]
+            xmax = [200, 9]
+        elif cation == "Ca":
+            xmin = [150, 8]
+            xmax = [200, 12]
+        elif cation == "La":
+            xmin = [50, 12]
+            xmax = [100, 16]
     input_bounds = {
         input_labels[i]: (xmin[i], xmax[i]) for i in range(len(input_labels))
     }
@@ -272,25 +287,40 @@ def train_kriging_surrogate_model(datafile, length_scale, visualize=False):
 
     # define input and output labels
     if length_scale == "tube":
-        input_labels = ["feed_conc", "pressure", "feed_flow"]
         output_labels = ["ion_flux"]
-        xmin = [25, 5, 10]
-        xmax = [200, 15, 17]
+        # datafile = training_data/tube/single_salt/XX_chloride
+        cation = str(datafile)[31:33]
+        if cation == "Na":
+            input_labels = ["feed_conc", "pressure", "feed_flow"]
+            xmin = [50, 3, 8]
+            xmax = [200, 13, 17]
+        elif cation == "Ca":
+            input_labels = ["feed_conc", "pressure", "feed_flow"]
+            xmin = [50, 5, 8]
+            xmax = [200, 15, 17]
+        elif cation == "La":
+            input_labels = ["feed_conc", "pressure", "feed_flow"]
+            xmin = [50, 7, 8]
+            xmax = [200, 17, 17]
+        else:  # mixed chlorides
+            input_labels = ["valency", "feed_conc", "pressure", "feed_flow"]
+            xmin = [1, 50, 3, 8]
+            xmax = [3, 200, 17, 17]
     elif length_scale == "stage":
-            input_labels = ["feed_conc", "pressure"]
-            output_labels = ["ion_flux"]
+        input_labels = ["feed_conc", "pressure"]
+        output_labels = ["ion_flux"]
 
-            # datafile = training_data/stage/single_salt/XX_chloride
-            cation = str(datafile)[32:34]
-            if cation == "Na":
-                xmin = [150, 5]
-                xmax = [200, 9]
-            elif cation == "Ca":
-                xmin = [150, 8]
-                xmax = [200, 12]
-            elif cation == "La":
-                xmin = [50, 12]
-                xmax = [100, 16]
+        # datafile = training_data/stage/single_salt/XX_chloride
+        cation = str(datafile)[32:34]
+        if cation == "Na":
+            xmin = [150, 5]
+            xmax = [200, 9]
+        elif cation == "Ca":
+            xmin = [150, 8]
+            xmax = [200, 12]
+        elif cation == "La":
+            xmin = [50, 12]
+            xmax = [100, 16]
     input_bounds = {
         input_labels[i]: (xmin[i], xmax[i]) for i in range(len(input_labels))
     }
@@ -342,31 +372,48 @@ def train_kriging_surrogate_model(datafile, length_scale, visualize=False):
     return (surrogate, testing_metrics)
 
 
-def train_rbf_surrogate_model(datafile, length_scale, basis_func="cubic", visualize=False):
+def train_rbf_surrogate_model(
+    datafile, length_scale, basis_func="cubic", visualize=False
+):
     # load data from full expressions
     data = read_csv(datafile)
 
     # define input and output labels
     if length_scale == "tube":
-        input_labels = ["feed_conc", "pressure", "feed_flow"]
         output_labels = ["ion_flux"]
-        xmin = [25, 5, 10]
-        xmax = [200, 15, 17]
+        # datafile = training_data/tube/single_salt/XX_chloride
+        cation = str(datafile)[31:33]
+        if cation == "Na":
+            input_labels = ["feed_conc", "pressure", "feed_flow"]
+            xmin = [50, 3, 8]
+            xmax = [200, 13, 17]
+        elif cation == "Ca":
+            input_labels = ["feed_conc", "pressure", "feed_flow"]
+            xmin = [50, 5, 8]
+            xmax = [200, 15, 17]
+        elif cation == "La":
+            input_labels = ["feed_conc", "pressure", "feed_flow"]
+            xmin = [50, 7, 8]
+            xmax = [200, 17, 17]
+        else:  # mixed chlorides
+            input_labels = ["valency", "feed_conc", "pressure", "feed_flow"]
+            xmin = [1, 50, 3, 8]
+            xmax = [3, 200, 17, 17]
     elif length_scale == "stage":
-            input_labels = ["feed_conc", "pressure"]
-            output_labels = ["ion_flux"]
+        input_labels = ["feed_conc", "pressure"]
+        output_labels = ["ion_flux"]
 
-            # datafile = training_data/stage/single_salt/XX_chloride
-            cation = str(datafile)[32:34]
-            if cation == "Na":
-                xmin = [150, 5]
-                xmax = [200, 9]
-            elif cation == "Ca":
-                xmin = [150, 8]
-                xmax = [200, 12]
-            elif cation == "La":
-                xmin = [50, 12]
-                xmax = [100, 16]
+        # datafile = training_data/stage/single_salt/XX_chloride
+        cation = str(datafile)[32:34]
+        if cation == "Na":
+            xmin = [150, 5]
+            xmax = [200, 9]
+        elif cation == "Ca":
+            xmin = [150, 8]
+            xmax = [200, 12]
+        elif cation == "La":
+            xmin = [50, 12]
+            xmax = [100, 16]
     input_bounds = {
         input_labels[i]: (xmin[i], xmax[i]) for i in range(len(input_labels))
     }
