@@ -35,17 +35,17 @@ def main():
     #     solute="La", salt="Lanthanum Chloride", length_scale="tube"
     # )
 
-    generate_mixed_salt_analysis(length_scale="tube")
+    # generate_mixed_salt_analysis(length_scale="tube")
 
-    # generate_per_salt_analysis(
-    #     solute="Na", salt="Sodium Chloride", length_scale="stage"
-    # )
-    # generate_per_salt_analysis(
-    #     solute="Ca", salt="Calcium Chloride", length_scale="stage"
-    # )
-    # generate_per_salt_analysis(
-    #     solute="La", salt="Lanthanum Chloride", length_scale="stage"
-    # )
+    generate_per_salt_analysis(
+        solute="Na", salt="Sodium Chloride", length_scale="stage"
+    )
+    generate_per_salt_analysis(
+        solute="Ca", salt="Calcium Chloride", length_scale="stage"
+    )
+    generate_per_salt_analysis(
+        solute="La", salt="Lanthanum Chloride", length_scale="stage"
+    )
 
 
 def generate_per_salt_analysis(solute, salt, length_scale):
@@ -54,6 +54,7 @@ def generate_per_salt_analysis(solute, salt, length_scale):
     polymonial_surrogate, polynomial_testing_error_metrics = (
         train_polynomial_surrogate_model(
             datafile=datafile,
+            length_scale=length_scale,
             visualize=False,
         )
     )
@@ -64,6 +65,7 @@ def generate_per_salt_analysis(solute, salt, length_scale):
 
     kriging_surrogate, kriging_testing_error_metrics = train_kriging_surrogate_model(
         datafile=datafile,
+        length_scale=length_scale,
         visualize=False,
     )
     kriging_surrogate.save_to_file(
@@ -75,6 +77,7 @@ def generate_per_salt_analysis(solute, salt, length_scale):
     for basis_func in basis_functions:
         rbf_surrogate, rbf_testing_error_metrics = train_rbf_surrogate_model(
             datafile=datafile,
+            length_scale=length_scale,
             basis_func=basis_func,
             visualize=False,
         )
@@ -120,6 +123,7 @@ def generate_mixed_salt_analysis(length_scale):
     polymonial_surrogate, polynomial_testing_error_metrics = (
         train_polynomial_surrogate_model(
             datafile=datafile,
+            length_scale=length_scale,
             visualize=False,
         )
     )
@@ -130,6 +134,7 @@ def generate_mixed_salt_analysis(length_scale):
 
     kriging_surrogate, kriging_testing_error_metrics = train_kriging_surrogate_model(
         datafile=datafile,
+        length_scale=length_scale,
         visualize=False,
     )
     kriging_surrogate.save_to_file(
@@ -141,6 +146,7 @@ def generate_mixed_salt_analysis(length_scale):
     for basis_func in basis_functions:
         rbf_surrogate, rbf_testing_error_metrics = train_rbf_surrogate_model(
             datafile=datafile,
+            length_scale=length_scale,
             basis_func=basis_func,
             visualize=False,
         )
@@ -179,15 +185,33 @@ def generate_mixed_salt_analysis(length_scale):
     plt.show()
 
 
-def train_polynomial_surrogate_model(datafile, max_order=4, visualize=False):
+def train_polynomial_surrogate_model(datafile, length_scale, max_order=4, visualize=False):
     # load data from full expressions
     data = read_csv(datafile)
 
+    print(str(datafile))
+
     # define input and output labels
-    input_labels = ["feed_conc", "pressure", "feed_flow"]
-    output_labels = ["ion_flux"]
-    xmin = [25, 5, 10]
-    xmax = [200, 15, 17]
+    if length_scale == "tube":
+        input_labels = ["feed_conc", "pressure", "feed_flow"]
+        output_labels = ["ion_flux"]
+        xmin = [25, 5, 10]
+        xmax = [200, 15, 17]
+    elif length_scale == "stage":
+            input_labels = ["feed_conc", "pressure"]
+            output_labels = ["ion_flux"]
+
+            # datafile = training_data/stage/single_salt/XX_chloride
+            cation = str(datafile)[32:34]
+            if cation == "Na":
+                xmin = [150, 5]
+                xmax = [200, 9]
+            elif cation == "Ca":
+                xmin = [150, 8]
+                xmax = [200, 12]
+            elif cation == "La":
+                xmin = [50, 12]
+                xmax = [100, 16]
     input_bounds = {
         input_labels[i]: (xmin[i], xmax[i]) for i in range(len(input_labels))
     }
@@ -242,15 +266,31 @@ def train_polynomial_surrogate_model(datafile, max_order=4, visualize=False):
     return (surrogate, testing_metrics)
 
 
-def train_kriging_surrogate_model(datafile, visualize=False):
+def train_kriging_surrogate_model(datafile, length_scale, visualize=False):
     # load data from full expressions
     data = read_csv(datafile)
 
     # define input and output labels
-    input_labels = ["feed_conc", "pressure", "feed_flow"]
-    output_labels = ["ion_flux"]
-    xmin = [25, 5, 10]
-    xmax = [200, 15, 17]
+    if length_scale == "tube":
+        input_labels = ["feed_conc", "pressure", "feed_flow"]
+        output_labels = ["ion_flux"]
+        xmin = [25, 5, 10]
+        xmax = [200, 15, 17]
+    elif length_scale == "stage":
+            input_labels = ["feed_conc", "pressure"]
+            output_labels = ["ion_flux"]
+
+            # datafile = training_data/stage/single_salt/XX_chloride
+            cation = str(datafile)[32:34]
+            if cation == "Na":
+                xmin = [150, 5]
+                xmax = [200, 9]
+            elif cation == "Ca":
+                xmin = [150, 8]
+                xmax = [200, 12]
+            elif cation == "La":
+                xmin = [50, 12]
+                xmax = [100, 16]
     input_bounds = {
         input_labels[i]: (xmin[i], xmax[i]) for i in range(len(input_labels))
     }
@@ -302,15 +342,31 @@ def train_kriging_surrogate_model(datafile, visualize=False):
     return (surrogate, testing_metrics)
 
 
-def train_rbf_surrogate_model(datafile, basis_func="cubic", visualize=False):
+def train_rbf_surrogate_model(datafile, length_scale, basis_func="cubic", visualize=False):
     # load data from full expressions
     data = read_csv(datafile)
 
     # define input and output labels
-    input_labels = ["feed_conc", "pressure", "feed_flow"]
-    output_labels = ["ion_flux"]
-    xmin = [25, 5, 10]
-    xmax = [200, 15, 17]
+    if length_scale == "tube":
+        input_labels = ["feed_conc", "pressure", "feed_flow"]
+        output_labels = ["ion_flux"]
+        xmin = [25, 5, 10]
+        xmax = [200, 15, 17]
+    elif length_scale == "stage":
+            input_labels = ["feed_conc", "pressure"]
+            output_labels = ["ion_flux"]
+
+            # datafile = training_data/stage/single_salt/XX_chloride
+            cation = str(datafile)[32:34]
+            if cation == "Na":
+                xmin = [150, 5]
+                xmax = [200, 9]
+            elif cation == "Ca":
+                xmin = [150, 8]
+                xmax = [200, 12]
+            elif cation == "La":
+                xmin = [50, 12]
+                xmax = [100, 16]
     input_bounds = {
         input_labels[i]: (xmin[i], xmax[i]) for i in range(len(input_labels))
     }
