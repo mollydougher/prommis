@@ -135,7 +135,7 @@ class MultiComponentDiafiltrationStageFlowsheet():
             if i == 1:
                 m.fs.membrane[i].applied_pressure.fix(pressure)
             else:
-                m.fs.membrane[i].applied_pressure.fix(pressure - (i-1*pressure_drop))
+                m.fs.membrane[i].applied_pressure.fix(pressure - (i - 1) * pressure_drop)
 
         m.fs.membrane[1].feed_flow_volume.fix(self.inlet_flow_volume["feed"])
         m.fs.membrane[1].diafiltrate_flow_volume.fix(self.inlet_flow_volume["diafiltrate"][0])
