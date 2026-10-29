@@ -47,7 +47,7 @@ def main():
     # generate_stage_data_per_salt(cation="Ca")
     # generate_stage_data_per_salt(cation="La")
 
-    generate_single_salt_stage_data()
+    # generate_single_salt_stage_data()  # already generated
 
 
 def build_tube_model(
@@ -422,181 +422,230 @@ def generate_tube_data_per_salt(cation):
     df.to_csv(f"training_data/tube/single_salt/{cation}_chloride", index=False)
 
 
-def generate_single_salt_tube_data():
-    anion_list = ["Cl"]
-    diafiltrate = {"Na": 1e-10, "Ca": 1e-10, "La": 1e-10}
-    include_boundary_layer = True
-    NFE_module_length = 10
-    NFE_boundary_layer_thickness = 10
-    NFE_membrane_thickness = 10
+# Extended tube training grid (per cation). The stage data show tubes 2-5 see
+# feed flows down to ~4.4 m3/h and cation concentrations up to ~267 mol/m3, so
+# the tube data cover flow 4-17 m3/h and concentrations up to 275 (200 for La).
+# Pressure grids are chosen to avoid conditions where the tube nearly dries out.
+TUBE_GRID = {
+    "Na": {
+        "valence": 1,
+        "phi_star": 0.75,
+        "concentrations": [100, 150, 200, 275],
+        "pressures": [3, 5, 7, 9],
+    },
+    "Ca": {
+        "valence": 2,
+        "phi_star": 0.4,
+        "concentrations": [100, 150, 200, 275],
+        "pressures": [5, 8, 11, 14],
+    },
+    "La": {
+        "valence": 3,
+        "phi_star": 0.0001,
+        "concentrations": [50, 100, 150, 200],
+        "pressures": [7, 10, 13, 16],
+    },
+}
+TUBE_FEED_FLOWS = [4, 8, 12.5, 17]  # m3/h
+TUBE_START_FLOW = 8  # m3/h; flow of the fresh build and of the concentration ladder
+# solved points that leave less than this fraction of the feed as retentate are
+# nearly dry; they are left out of the data and logged as failed cases
+MIN_RETENTATE_FRACTION = 0.05
 
-    NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
 
-    cations = ["Na", "Ca", "La"]
-    concentrations = [50, 125, 200]
-    feed_flows = [8, 12.5, 17]
-
+def build_tube_start(cation, cfg, pressure):
+    """Fresh tube build at the start flow and the lowest concentration."""
     Dm_Cl = 2.03  # um2/s
     Dm_over_l_value = 60  # um/s
-    l_um = Dm_Cl / Dm_over_l_value  # um
-    l_m = l_um / 1e6  # m
-    chloride_phi_star_value = 0.05
+    l_m = (Dm_Cl / Dm_over_l_value) / 1e6  # m
+    concentration = cfg["concentrations"][0]
+    return build_tube_model(
+        cation_list=[cation],
+        inlet_concentration={
+            "feed": {cation: concentration, "Cl": cfg["valence"] * concentration},
+            "diafiltrate": {cation: 1e-10, "Cl": 1e-10},
+        },
+        default_args=(["Cl"], {"feed": TUBE_START_FLOW, "diafiltrate": 1e-10}, True),
+        NFE_args=[10, 10, 10],
+        applied_pressure=pressure,
+        data_membrane_thickness=l_m,
+        multiplier_H_feed=1.2,
+        multiplier_H_perm=1,
+        non_Donnan_partition_dict={cation: cfg["phi_star"], "Cl": 0.05},
+        initialize_and_solve=True,
+    )
 
-    valence_list = []
-    conc_list = []
-    pressure_list = []
-    feed_flow_list = []
-    ion_flux_list = []
-    water_flux_list = []  # tube-average water flux, m3/m2/h
 
-    for cation in cations:
-        if cation == "Na":
-            chloride_multiplier = 1
-            cation_phi_star_value = 0.75
-            pressures = [3, 8, 13]
-        elif cation == "Ca":
-            chloride_multiplier = 2
-            cation_phi_star_value = 0.4
-            pressures = [5, 10, 15]
-        elif cation == "La":
-            chloride_multiplier = 3
-            cation_phi_star_value = 0.0001
-            pressures = [7, 12, 17]
+def set_tube_feed(model, cation, valence, flow=None, concentration=None):
+    """Fix the tube feed flow and/or cation (and matching chloride) concentration."""
+    blk = model.fs.membrane
+    if flow is not None:
+        blk.feed_flow_volume.fix(flow)
+    if concentration is not None:
+        for t in blk.time:
+            blk.feed_conc_mol_comp[t, cation].fix(concentration)
+            blk.feed_conc_mol_comp[t, "Cl"].fix(valence * concentration)
+        if cation == "La" and concentration >= 200:
+            blk.scaling_factor[blk.molar_ion_flux] = 1e3
 
-        if cation == "La":
-            for feed_flow in feed_flows:
-                for pressure in pressures:
-                    for concentration in concentrations:
-                        inlet_flow_volume = {"feed": feed_flow, "diafiltrate": 1e-10}
-                        default_args = (
-                            anion_list,
-                            inlet_flow_volume,
-                            include_boundary_layer,
-                        )
 
-                        if concentration == concentrations[0]:
-                            model = build_tube_model(
-                                cation_list=[cation],
-                                inlet_concentration={
-                                    "feed": {
-                                        cation: concentration,
-                                        "Cl": chloride_multiplier * concentration,
-                                    },
-                                    "diafiltrate": {
-                                        cation: diafiltrate[cation],
-                                        "Cl": 1e-10,
-                                    },
-                                },
-                                default_args=default_args,
-                                NFE_args=NFE_args,
-                                applied_pressure=pressure,
-                                data_membrane_thickness=l_m,
-                                multiplier_H_feed=1.2,
-                                multiplier_H_perm=1,
-                                non_Donnan_partition_dict={
-                                    cation: cation_phi_star_value,
-                                    "Cl": chloride_phi_star_value,
-                                },
-                                initialize_and_solve=True,
-                            )
+def step_tube_flow(model, cation, valence, from_flow, to_flow, max_step=1.5):
+    """Move the tube feed flow in small steps, solving at each."""
+    n_steps = max(1, int(np.ceil(abs(to_flow - from_flow) / max_step)))
+    for k in range(1, n_steps + 1):
+        set_tube_feed(
+            model, cation, valence, flow=from_flow + (to_flow - from_flow) * k / n_steps
+        )
+        solve_model(model)
 
-                            valence_list.append(chloride_multiplier)
-                            conc_list.append(concentration)
-                            pressure_list.append(pressure)
-                            feed_flow_list.append(feed_flow)
-                            ion_flux_list.append(
-                                get_average_flux(model, cation, stage_bool=False)
-                            )
-                            water_flux_list.append(
-                                get_average_water_flux(model, stage_bool=False)
-                            )
 
-                        else:
-                            for t in model.fs.membrane.time:
-                                for j in model.fs.membrane.solutes:
-                                    model.fs.membrane.feed_conc_mol_comp[
-                                        t, j
-                                    ].set_value(concentration)
+def step_tube_conc(model, cation, valence, from_conc, to_conc, max_step=25):
+    """Move the tube feed concentration in small steps, solving at each."""
+    n_steps = max(1, int(np.ceil(abs(to_conc - from_conc) / max_step)))
+    for k in range(1, n_steps + 1):
+        set_tube_feed(
+            model,
+            cation,
+            valence,
+            concentration=from_conc + (to_conc - from_conc) * k / n_steps,
+        )
+        solve_model(model)
 
-                            if concentration == 200:
-                                model.fs.membrane.scaling_factor[
-                                    model.fs.membrane.molar_ion_flux
-                                ] = 1e3
 
-                            solve_model(model)
-                            model.fs.membrane.applied_pressure.fix(pressure)
-                            solve_model(model)
+def generate_tube_data_by_continuation(cation, pressure, data, failed_cases):
+    """
+    Generate the tube data of one cation at one pressure. The tube is built once
+    (fresh builds are erratic) at the start flow and lowest concentration, then
+    the concentration is stepped up the grid. At each concentration the flow is
+    stepped to 4, back to the start flow, up to 12.5 and 17 m3/h, and back to
+    the start flow. Points that fail, or are nearly dry, are logged in
+    failed_cases and the model is restored or rebuilt before continuing.
+    """
+    cfg = TUBE_GRID[cation]
+    valence = cfg["valence"]
+    concentrations = cfg["concentrations"]
+    # (flow, record this point in the data?)
+    waypoints = [(4, True), (8, False), (12.5, True), (17, True), (8, False)]
 
-                            dt = DiagnosticsToolbox(model)
-                            dt.assert_no_numerical_warnings(model)
+    def log_failure(flow, concentration, message):
+        failed_cases.append(
+            {
+                "valency": valence,
+                "feed_conc": concentration,
+                "pressure": pressure,
+                "feed_flow": flow,
+                "message": message,
+            }
+        )
 
-                            valence_list.append(chloride_multiplier)
-                            conc_list.append(concentration)
-                            pressure_list.append(pressure)
-                            feed_flow_list.append(feed_flow)
-                            ion_flux_list.append(
-                                get_average_flux(model, cation, stage_bool=False)
-                            )
-                            water_flux_list.append(
-                                get_average_water_flux(model, stage_bool=False)
-                            )
-        else:
-            for feed_flow in feed_flows:
-                for pressure in pressures:
-                    for concentration in concentrations:
-                        inlet_flow_volume = {"feed": feed_flow, "diafiltrate": 1e-10}
-                        default_args = (
-                            anion_list,
-                            inlet_flow_volume,
-                            include_boundary_layer,
-                        )
+    def record(model, flow, concentration):
+        DiagnosticsToolbox(model).assert_no_numerical_warnings(model)
+        blk = model.fs.membrane
+        t = blk.time.first()
+        x_out = blk.dimensionless_module_length.last()
+        retentate_fraction = value(blk.retentate_flow_volume[t, x_out]) / flow
+        if retentate_fraction < MIN_RETENTATE_FRACTION:
+            log_failure(
+                flow,
+                concentration,
+                f"nearly dry (retentate fraction {retentate_fraction:.3f})",
+            )
+            return
+        data["valency"].append(valence)
+        data["feed_conc"].append(concentration)
+        data["pressure"].append(pressure)
+        data["feed_flow"].append(flow)
+        data["ion_flux"].append(get_average_flux(model, cation, stage_bool=False))
+        data["water_flux"].append(get_average_water_flux(model, stage_bool=False))
 
-                        model = build_tube_model(
-                            cation_list=[cation],
-                            inlet_concentration={
-                                "feed": {
-                                    cation: concentration,
-                                    "Cl": chloride_multiplier * concentration,
-                                },
-                                "diafiltrate": {
-                                    cation: diafiltrate[cation],
-                                    "Cl": 1e-10,
-                                },
-                            },
-                            default_args=default_args,
-                            NFE_args=NFE_args,
-                            applied_pressure=pressure,
-                            data_membrane_thickness=l_m,
-                            multiplier_H_feed=1.2,
-                            multiplier_H_perm=1,
-                            non_Donnan_partition_dict={
-                                cation: cation_phi_star_value,
-                                "Cl": chloride_phi_star_value,
-                            },
-                            initialize_and_solve=True,
-                        )
+    def rebuild(concentration):
+        model = build_tube_start(cation, cfg, pressure)
+        if concentration != concentrations[0]:
+            step_tube_conc(model, cation, valence, concentrations[0], concentration)
+        return model
 
-                        valence_list.append(chloride_multiplier)
-                        conc_list.append(concentration)
-                        pressure_list.append(pressure)
-                        feed_flow_list.append(feed_flow)
-                        ion_flux_list.append(
-                            get_average_flux(model, cation, stage_bool=False)
-                        )
-                        water_flux_list.append(
-                            get_average_water_flux(model, stage_bool=False)
-                        )
+    print("=====================")
+    print(f"Building {cation} tube at pressure = {pressure}")
+    print("=====================")
+    try:
+        model = build_tube_start(cation, cfg, pressure)
+    except Exception as e:
+        for concentration in concentrations:
+            for flow in TUBE_FEED_FLOWS:
+                log_failure(flow, concentration, "build: " + str(e).splitlines()[0][:100])
+        return
 
-    dict = {
-        "valency": valence_list,
-        "feed_conc": conc_list,
-        "pressure": pressure_list,
-        "feed_flow": feed_flow_list,
-        "ion_flux": ion_flux_list,
-        "water_flux": water_flux_list,
+    concentration = concentrations[0]
+    for index, target in enumerate(concentrations):
+        print("=====================")
+        print(f"Solving {cation}: pressure = {pressure}, concentration = {target}")
+        print("=====================")
+        try:
+            if target != concentration:
+                step_tube_conc(model, cation, valence, concentration, target)
+            concentration = target
+        except Exception as e:
+            # higher concentrations are not reached
+            for c in concentrations[index:]:
+                for flow in TUBE_FEED_FLOWS:
+                    log_failure(flow, c, "concentration step: " + str(e).splitlines()[0][:80])
+            return
+        try:
+            record(model, TUBE_START_FLOW, concentration)
+        except Exception as e:
+            log_failure(TUBE_START_FLOW, concentration, str(e).splitlines()[0][:100])
+
+        flow = TUBE_START_FLOW
+        for waypoint, do_record in waypoints:
+            try:
+                step_tube_flow(model, cation, valence, flow, waypoint)
+                flow = waypoint
+                if do_record:
+                    record(model, flow, concentration)
+            except Exception as e:
+                if do_record:
+                    log_failure(waypoint, concentration, str(e).splitlines()[0][:100])
+                # restore the model at the start flow, or rebuild it
+                try:
+                    set_tube_feed(model, cation, valence, flow=TUBE_START_FLOW)
+                    solve_model(model)
+                except Exception:
+                    try:
+                        model = rebuild(concentration)
+                    except Exception as e2:
+                        for c in concentrations[index + 1 :]:
+                            for f in TUBE_FEED_FLOWS:
+                                log_failure(f, c, "could not restore model")
+                        return
+                flow = TUBE_START_FLOW
+
+
+def generate_single_salt_tube_data():
+    data = {
+        "valency": [],
+        "feed_conc": [],
+        "pressure": [],
+        "feed_flow": [],
+        "ion_flux": [],
+        "water_flux": [],  # tube-average water flux, m3/m2/h
     }
-    df = DataFrame(data=dict)
-    df.to_csv(f"training_data/tube/single_salt/mixed_chlorides", index=False)
+    failed_cases = []
+
+    for cation, cfg in TUBE_GRID.items():
+        for pressure in cfg["pressures"]:
+            generate_tube_data_by_continuation(cation, pressure, data, failed_cases)
+
+    df = DataFrame(data=data)
+    df.to_csv("training_data/tube/single_salt/mixed_chlorides", index=False)
+
+    if failed_cases:
+        print("The following tube cases did not solve, or are nearly dry, and are")
+        print("not in the data:")
+        for case in failed_cases:
+            print(case)
+        DataFrame(data=failed_cases).to_csv(
+            "training_data/tube/single_salt/mixed_chlorides_failed_cases", index=False
+        )
 
 
 def generate_stage_data_per_salt(cation):

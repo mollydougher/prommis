@@ -1,0 +1,241 @@
+cation,feed_flow,feed_conc,pressure,status,ion_flux,water_flux,retentate_flow,permeate_flow,message
+Na,4,50,3,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+Na,4,50,5,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+Na,4,50,8,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+Na,4,50,13,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+Na,4,200,3,solved,1.6981081167966274,0.009971665853330796,2.364646800153749,1.6353531999462505,
+Na,4,200,5,solved,2.8956347015502777,0.016922173390584723,1.2247635640441055,2.7752364360558945,
+Na,4,200,8,solved,5.137382116162817,0.023490398869217343,0.1475745855483553,3.8524254145516443,
+Na,4,200,13,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+Na,4,250,3,solved,1.8616520775810244,0.008600995987995517,2.589436658068735,1.410563342031265,
+Na,4,250,5,solved,3.13223323124305,0.014777607973679571,1.5764722924165497,2.42352770768345,
+Na,4,250,8,solved,5.313832018095172,0.021920099864183324,0.40510362237393516,3.5948963777260645,
+Na,4,250,13,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+Na,4,300,3,solved,1.9766660661710174,0.007507708090215591,2.7687358733046428,1.231264126795357,
+Na,4,300,5,solved,3.3084401580208933,0.012998576321077576,1.8682334834432777,2.1317665166567226,
+Na,4,300,8,solved,5.481786184989806,0.020102571565605826,0.703178263340644,3.2968217367593553,
+Na,4,300,13,solved,9.687095665749377,0.024313864063836906,0.012526293630746718,3.9874737064692525,
+Na,6,50,3,solved,0.522430856041652,0.01689562126435732,3.229118112745399,2.7708818873546006,
+Na,6,50,5,solved,1.1283590635762057,0.029477920068253078,1.1656211089064934,4.834378891193506,
+Na,6,50,8,solved,3.536934821310362,0.0365116667913445,0.012086646319500006,5.9879133537805,
+Na,6,50,13,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+Na,6,200,3,solved,1.6812355230000118,0.010104046455233972,4.3429363814416275,1.6570636186583718,
+Na,6,200,5,solved,2.7986512615116235,0.017773828436762167,3.085092136471005,2.9149078636289953,
+Na,6,200,8,solved,4.72270138977739,0.028242688511502734,1.3681990842135514,4.631800915886449,
+Na,6,200,13,solved,8.856933998610353,0.03591452349330166,0.11001814719852647,5.889981852901473,
+Na,6,250,3,solved,1.851491509719558,0.00869268015997673,4.574400453863816,1.425599546236184,
+Na,6,250,5,solved,3.074280530893104,0.015343610470739427,3.4836478828987336,2.516352117201266,
+Na,6,250,8,solved,5.0522743587966605,0.02501243728507927,1.8979602853469997,4.102039714753001,
+Na,6,250,13,solved,9.041902836130326,0.03451348104696317,0.3397891083980385,5.6602108917019605,
+Na,6,300,3,solved,1.9702851779742834,0.007571938925353653,4.7582020163420005,1.2417979837579995,
+Na,6,300,5,solved,3.2722055348135433,0.01338632617295096,3.8046425077360415,2.195357492363957,
+Na,6,300,8,solved,5.3126767851559915,0.022197233091183342,2.359653773145932,3.640346226954068,
+Na,6,300,13,solved,9.221654939636606,0.03258862326513345,0.6554657846181138,5.344534215481886,
+Na,8,50,3,solved,0.4908299170308732,0.01710294293504505,5.19511735875261,2.8048826413473886,
+Na,8,50,5,solved,0.9154057472466443,0.030989412890680856,2.9177362860283385,5.082263714071661,
+Na,8,50,8,solved,2.56953368337829,0.0461750193253075,0.427296830749568,7.572703169350432,
+Na,8,50,13,solved,7.250352801190549,0.048779255546422234,0.00020209048884092237,7.999797909613246,
+Na,8,200,3,solved,1.673363696211812,0.010164961474582844,6.332946318268414,1.6670536818315864,
+Na,8,200,5,solved,2.7549582417614698,0.018140877629680762,5.024896068832356,2.975103931267645,
+Na,8,200,8,solved,4.5215450936507215,0.03025523697697071,3.038141135876803,4.961858864223196,
+Na,8,200,13,solved,8.302753162629887,0.04397964929959471,0.7873375149664679,7.212662485133534,
+Na,8,250,3,solved,1.8466922648368218,0.008735590714749344,6.56736312288111,1.4326368772188924,
+Na,8,250,5,solved,3.0475494919339012,0.015597057423133798,5.442082582706056,2.5579174173939427,
+Na,8,250,8,solved,4.92685026664075,0.02636680909909151,3.675843307848994,4.324156692251007,
+Na,8,250,13,solved,8.630600544198975,0.040571101678066816,1.3463393248970406,6.653660675202961,
+Na,8,300,3,solved,1.9672469187197996,0.007602329509185516,6.753217960593576,1.2467820395064246,
+Na,8,300,5,solved,3.2552727814846145,0.013563831869285985,5.775531573537097,2.2244684265629013,
+Na,8,300,8,solved,5.231713209201337,0.02313847945740639,4.205289369085351,3.794710631014649,
+Na,8,300,13,solved,8.922686540506351,0.03709741176746874,1.9160244702351268,6.083975529864873,
+Na,17,50,3,solved,0.44811943108365454,0.01741101920802933,14.14459284998319,2.85540715011681,
+Na,17,50,5,solved,0.6923245619499505,0.03290613914973227,11.603393179543906,5.396606820556092,
+Na,17,50,8,solved,1.2551318414870907,0.05730001650197212,7.602797293776571,9.397202706323426,
+Na,17,50,13,solved,3.523821114547361,0.09071034283554873,2.123503775070007,14.876496225029989,
+Na,17,200,3,solved,1.661524082791372,0.010255617614914584,15.318078711254005,1.681921288845992,
+Na,17,200,5,solved,2.6908669912295973,0.018663158418550273,13.939242019457751,3.060757980642245,
+Na,17,200,8,solved,4.224598560980597,0.0329870149077594,11.590129555227456,5.40987044487254,
+Na,17,200,13,solved,7.13615539374822,0.05781003330104721,7.519154538728255,9.480845461371743,
+Na,17,250,3,solved,1.8394081286602055,0.008800252606106628,15.556758572698513,1.443241427401487,
+Na,17,250,5,solved,3.0076493468759873,0.01596728017275978,14.381366051767385,2.618633948332605,
+Na,17,250,8,solved,4.737473266694307,0.028291549822135748,12.360185829269732,4.639814170830262,
+Na,17,250,13,solved,7.84022924449246,0.05045602183562131,8.7252124190581,8.274787581041895,
+Na,17,300,3,solved,1.9626077974714753,0.007648500224194503,15.745645963332098,1.2543540367678985,
+Na,17,300,5,solved,3.2297541693047327,0.013827229844093852,14.732334305668607,2.2676656944313915,
+Na,17,300,8,solved,5.108207003359281,0.0245116487762349,12.980089600797475,4.019910399302524,
+Na,17,300,13,solved,8.378898779331447,0.04430644019825034,9.733743807586944,7.266256192513056,
+Ca,4,50,5,solved,0.7094929891060892,0.019087620798202212,0.8696301891948371,3.130369810905163,
+Ca,4,50,8,solved,1.413125385955249,0.023500581800991426,0.1459045847374059,3.854095415362595,
+Ca,4,50,10,solved,1.905128429814932,0.024127243868467676,0.04313200567130015,3.9568679944287,
+Ca,4,50,15,solved,3.106679420847409,0.0243771662073471,0.002144742095393094,3.9978552580049245,
+Ca,4,200,5,solved,1.0675098206990528,0.006971684408648443,2.856643757081656,1.1433562430183448,
+Ca,4,200,8,solved,1.7148505874338755,0.012054891748489746,2.022997753347681,1.977002246752318,
+Ca,4,200,10,solved,2.160415303605325,0.015134591221307687,1.5179270398055398,2.4820729602944605,
+Ca,4,200,15,solved,3.3170906451364695,0.020229721378325863,0.682325694054558,3.3176743060454417,
+Ca,4,250,5,solved,1.0932561048521419,0.005496215425610359,3.098620670299901,0.9013793298000989,
+Ca,4,250,8,solved,1.7537248063081932,0.009636803226463852,2.419564270959928,1.5804357291400717,
+Ca,4,250,10,solved,2.2010776791657727,0.01240465931431003,1.9656358725531544,2.034364127546845,
+Ca,4,250,15,solved,3.349390552670839,0.01792722383135964,1.0599352917570188,2.9400647083429803,
+Ca,4,300,5,solved,1.105238301576208,0.004492533743910567,3.2632244660986673,0.736775534001333,
+Ca,4,300,8,solved,1.7736107392616283,0.007892507285971595,2.705628805200658,1.2943711948993413,
+Ca,4,300,10,solved,2.223668259176418,0.010283614463205406,2.3134872281343126,1.6865127719656867,
+Ca,4,300,15,solved,3.369494784844588,0.01568824655240003,1.4271275655063949,2.5728724345936045,
+Ca,6,50,5,solved,0.6280740950364013,0.02164923813070841,2.449524946663821,3.5504750534361795,
+Ca,6,50,8,solved,1.2203534291721392,0.031387511297923956,0.8524481472404714,5.147551852859528,
+Ca,6,50,10,solved,1.7123388233928836,0.03403744668868816,0.41785874315514066,5.582141256944858,
+Ca,6,50,15,solved,2.9663906709560015,0.035949622038237775,0.1042619858290058,5.895738014270993,
+Ca,6,200,5,solved,1.064724224610257,0.0071104197565677405,4.83389116002289,1.1661088400771094,
+Ca,6,200,8,solved,1.7011183097883933,0.012832322102437548,3.8954991753002415,2.1045008247997576,
+Ca,6,200,10,solved,2.13499352401568,0.0167921133273616,3.2460934144126967,2.7539065856873024,
+Ca,6,200,15,solved,3.2762214709947584,0.025035363471787954,1.8942003907267755,4.105799609373223,
+Ca,6,250,5,solved,1.0922429372287652,0.005567037600925641,5.087005833548195,0.912994166551805,
+Ca,6,250,8,solved,1.7484070901360833,0.010040599931906003,4.353341611267416,1.6466583888325848,
+Ca,6,250,10,solved,2.1904456261310115,0.013310102934032203,3.817143118918718,2.182856881181281,
+Ca,6,250,15,solved,3.328343607438164,0.02109878800093342,2.539798767946918,3.4602012321530813,
+Ca,6,300,5,solved,1.1048702800704937,0.004532308938604446,5.256701334168872,0.7432986659311293,
+Ca,6,300,8,solved,1.7716176492600841,0.00811790542775951,4.66866350994744,1.3313364901525593,
+Ca,6,300,10,solved,2.219515843272703,0.010800999122676019,4.2286361439811335,1.7713638561188672,
+Ca,6,300,15,solved,3.360459797144375,0.017747050899444207,3.08948365259115,2.9105163475088496,
+Ca,8,50,5,solved,0.5892623229276537,0.02289743082115815,4.244821345430064,3.755178654669936,
+Ca,8,50,8,solved,1.081159283330668,0.03649006951561422,2.0156285995392644,5.984371400560732,
+Ca,8,50,10,solved,1.5316382022281407,0.04179163869237692,1.1461712545501836,6.853828745549815,
+Ca,8,50,15,solved,2.8030991563403886,0.046572451314334094,0.3621179845492076,7.637882015550791,
+Ca,8,200,5,solved,1.0633230033361685,0.00717866985388267,6.82269814406324,1.1773018560367579,
+Ca,8,200,8,solved,1.6935993206200979,0.013231395164989071,5.8300511930417915,2.1699488070582076,
+Ca,8,200,10,solved,2.119596548790445,0.017691528295924557,5.09858935956837,2.901410640531628,
+Ca,8,200,15,solved,3.2397243008106322,0.028185826657586628,3.3775244282557932,4.622475571844207,
+Ca,8,250,5,solved,1.0917340504554112,0.005601854407922627,7.081295877200688,0.9187041228993108,
+Ca,8,250,8,solved,1.7455514471244062,0.010244283617297577,6.3199374868631955,1.6800625132368028,
+Ca,8,250,10,solved,2.1842436631156117,0.01378451185377605,5.739340056080728,2.260659944019272,
+Ca,8,250,15,solved,3.3106122904850004,0.023026364532253787,4.223676216810379,3.7763237832896217,
+Ca,8,300,5,solved,1.1046851217628877,0.004551866212629912,7.253493941228695,0.7465060588713055,
+Ca,8,300,8,solved,1.77055424569128,0.00823040736911196,6.650213191565639,1.3497868085343614,
+Ca,8,300,10,solved,2.217128817979692,0.011065977515039562,6.185179687633512,1.814820312466488,
+Ca,8,300,15,solved,3.352819656839732,0.018929404947463202,4.8955775887160335,3.104422411383965,
+Ca,17,50,5,solved,0.5328118646413416,0.024779560128265214,12.936152139064506,4.063847861035495,
+Ca,17,50,8,solved,0.8473920427805298,0.04491426377314404,9.63406074130438,7.365939258795622,
+Ca,17,50,10,solved,1.1201971686948156,0.05759057147182435,7.555146278720806,9.444853721379191,
+Ca,17,50,15,solved,2.10338987578289,0.08154300653230888,3.6269469288013387,13.373053071298656,
+Ca,17,200,5,solved,1.061087851208682,0.007285613807951568,15.805159335595942,1.1948406645040575,
+Ca,17,200,8,solved,1.680791915921739,0.013878579900185109,14.723912896469638,2.2760871036303576,
+Ca,17,200,10,solved,2.091280720251114,0.019216506647095937,13.848492909976265,3.151507090123734,
+Ca,17,200,15,solved,3.148169258460393,0.03450907634168104,11.340511480064308,5.6594885200356915,
+Ca,17,250,5,solved,1.0909231115338462,0.005656378200781022,16.072353975171914,0.9276460249280873,
+Ca,17,250,8,solved,1.740753358896577,0.010570199189662757,15.266487332995302,1.733512667104692,
+Ca,17,250,10,solved,2.1731296339501434,0.014568159384071763,14.61082186111223,2.389178138987768,
+Ca,17,250,15,solved,3.2686856769917823,0.026660096355107004,12.627744197862453,4.372255802237548,
+Ca,17,300,5,solved,1.10438964754628,0.00458249588591914,16.24847067480926,0.7515293252907389,
+Ca,17,300,8,solved,1.7687768788008362,0.00840886968382872,15.62094537195209,1.3790546281479101,
+Ca,17,300,10,solved,2.212904123307757,0.011495627893676617,15.114717025537033,1.885282974562965,
+Ca,17,300,15,solved,3.335147344979407,0.02105291938085051,13.547321221640512,3.4526787784594832,
+La,4,50,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,50,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,50,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,50,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,200,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,200,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,200,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,200,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,250,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,250,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,250,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,250,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,300,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,300,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,300,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4,300,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6,50,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6,50,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6,50,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6,50,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6,200,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6,200,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6,200,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6,200,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6,250,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6,250,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6,250,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6,250,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6,300,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: maxIterations"
+La,6,300,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: maxIterations"
+La,6,300,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: maxIterations"
+La,6,300,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: maxIterations"
+La,8,50,7,solved,0.05243333361754202,0.012955040289334436,5.875373392649152,2.124626607450847,
+La,8,50,10,solved,0.08030240696653075,0.023161729938032463,4.201476290262677,3.798523709837324,
+La,8,50,12,solved,0.10380786172932836,0.027708089029920092,3.4558733991931048,4.544126600906896,
+La,8,50,17,solved,0.17582961412820258,0.03400361639508187,2.4234069113065746,5.576593088793426,
+La,8,200,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8,200,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8,200,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8,200,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8,250,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8,250,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8,250,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8,250,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8,300,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8,300,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8,300,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8,300,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,17,50,7,solved,0.0488408159444764,0.0162862874605584,14.32904885656842,2.6709511435315783,
+La,17,50,10,solved,0.06971019428401631,0.03353160325607036,11.500817066104458,5.499182933995538,
+La,17,50,12,solved,0.0875105568534093,0.043529528866203634,9.861157266042603,7.138842734057396,
+La,17,50,17,solved,0.1464468910444292,0.06213819279935645,6.809336381005538,10.190663619094458,
+La,17,200,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,17,200,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,17,200,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,17,200,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,17,250,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,17,250,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,17,250,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,17,250,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,17,300,7,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,17,300,10,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,17,300,12,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,17,300,17,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4.0,100.0,7.0,solved,0.07567029770413303,0.002139597518272076,3.6491060071033803,0.35089399299662044,
+La,4.0,100.0,10.0,solved,0.10499056757768255,0.005447359803488101,3.106632992327952,0.8933670077720486,
+La,4.0,100.0,12.0,solved,0.12873688772144512,0.008231096033898736,2.6501002505406075,1.3498997495593927,
+La,4.0,100.0,17.0,solved,0.20202242121793743,0.013068434694706893,1.8567767101680692,2.1432232899319303,
+La,4.0,125.0,7.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4.0,125.0,10.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4.0,125.0,12.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4.0,125.0,17.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4.0,150.0,7.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4.0,150.0,10.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4.0,150.0,12.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4.0,150.0,17.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4.0,175.0,7.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4.0,175.0,10.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4.0,175.0,12.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,4.0,175.0,17.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,100.0,7.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,100.0,10.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,100.0,12.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,100.0,17.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,125.0,7.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,125.0,10.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,125.0,12.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,125.0,17.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,150.0,7.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,150.0,10.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,150.0,12.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,150.0,17.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,175.0,7.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,175.0,10.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,175.0,12.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,6.0,175.0,17.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8.0,100.0,7.0,solved,0.07502848069986741,0.0022203537031984075,7.635861992775461,0.3641380073245388,
+La,8.0,100.0,10.0,solved,0.10144545196078544,0.006636607129785606,6.9115964308151625,1.0884035692848393,
+La,8.0,100.0,12.0,solved,0.12190183732732725,0.0114547250084444,6.121425098715118,1.8785749013848811,
+La,8.0,100.0,17.0,solved,0.18708363682308693,0.021755530118699233,4.432093060633324,3.567906939466674,
+La,8.0,125.0,7.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8.0,125.0,10.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8.0,125.0,12.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8.0,125.0,17.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8.0,150.0,7.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8.0,150.0,10.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8.0,150.0,12.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8.0,150.0,17.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8.0,175.0,7.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8.0,175.0,10.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8.0,175.0,12.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
+La,8.0,175.0,17.0,failed,,,,,"Solver failed to return an optimal solution. Solution status: warning, Termination condition: infeasible"
