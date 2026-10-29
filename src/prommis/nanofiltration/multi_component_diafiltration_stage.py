@@ -12,21 +12,16 @@ Author: Molly Dougher
 
 from pyomo.environ import (
     ConcreteModel,
-    Constraint,
-    Expression,
-    Objective,
     RangeSet,
     SolverFactory,
     TransformationFactory,
     assert_optimal_termination,
-    maximize,
-    units,
     value,
 )
 from pyomo.network import Arc
 
 from idaes.core import FlowsheetBlock
-from idaes.core.util.model_diagnostics import DiagnosticsToolbox
+from idaes.core.util.diagnostics_tools.diagnostics_toolbox import DiagnosticsToolbox
 from idaes.models.unit_models import Feed, Product
 
 from prommis.nanofiltration.multi_component_diafiltration_stream_properties import (
