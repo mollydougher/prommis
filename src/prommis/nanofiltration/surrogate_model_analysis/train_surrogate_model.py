@@ -12,6 +12,7 @@ Author: Molly Dougher, Claude
 """
 
 import os
+import time
 
 import numpy as np
 
@@ -37,6 +38,7 @@ from pyomo.environ import value
 import matplotlib.pyplot as plt
 
 RBF_BASIS_FUNCTIONS = ["linear", "cubic", "spline", "gaussian", "mq", "imq"]
+TRAINING_TIMES = {}  # wall-clock seconds spent in the PySMO trainer, by model name
 STAGE_TUBE_CONDITIONS_FILE = (
     "training_data/stage/single_salt/mixed_chlorides_tube_conditions"
 )
@@ -147,6 +149,16 @@ def train_and_save_all_surrogates(
             f"surrogate_models/{length_scale}/single_salt/{save_prefix}_rbf_{basis_func}_surrogate",
             overwrite=True,
         )
+
+    # training cost: time in the PySMO trainer and number of high-fidelity points
+    n_points = len(read_csv(datafile))
+    DataFrame(
+        {
+            "model": list(TRAINING_TIMES.keys()),
+            "training_time_s": list(TRAINING_TIMES.values()),
+            "n_training_points_total": n_points,
+        }
+    ).to_csv(f"figures/{length_scale}/training_times.csv", index=False)
 
     if return_surrogates:
         return testing_metrics, surrogates
@@ -304,7 +316,9 @@ def train_polynomial_surrogate_model(
     pr_trainer.config.maximum_polynomial_order = max_order
 
     # train surrogate model
+    start = time.perf_counter()
     poly_train = pr_trainer.train_surrogate()
+    TRAINING_TIMES["Polynomial"] = time.perf_counter() - start
 
     return assess_surrogate(
         poly_train,
@@ -330,7 +344,9 @@ def train_kriging_surrogate_model(datafile, length_scale, visualize=False):
 
     krg_trainer.config.numerical_gradients = False
 
+    start = time.perf_counter()
     krg_train = krg_trainer.train_surrogate()
+    TRAINING_TIMES["Kriging"] = time.perf_counter() - start
 
     return assess_surrogate(
         krg_train,
@@ -358,7 +374,9 @@ def train_rbf_surrogate_model(
 
     rbf_trainer.config.basis_function = basis_func
 
+    start = time.perf_counter()
     rbf_train = rbf_trainer.train_surrogate()
+    TRAINING_TIMES[f"RBF ({basis_func})"] = time.perf_counter() - start
 
     return assess_surrogate(
         rbf_train,
