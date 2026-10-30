@@ -96,7 +96,7 @@ def main():
     cost.to_csv(f"{OUTPUT_FOLDER}/comparison_training_cost.csv")
     print(cost.to_string())
 
-    plot_comparison(results)
+    plot_comparison(results, size, cost)
     plt.show()
 
 
@@ -543,47 +543,12 @@ def training_cost_table():
     return table
 
 
-def plot_comparison(results):
-    fig, axes = plt.subplots(1, 3, figsize=(16, 4.8))
-    colors = {"Na": "tab:blue", "Ca": "tab:orange", "La": "tab:green"}
-    markers = {"training": "o", "test": "s"}
+def plot_comparison(results, size, cost):
+    """Poster figure (percent error) and summary table; see poster_figures.py."""
+    import poster_figures  # same folder; scripts are run from here
 
-    for ax, model, title in (
-        (axes[0], "stage", "Stage surrogate"),
-        (axes[1], "chain", "Tube surrogate chain"),
-    ):
-        for (cation, label), group in results.groupby(["cation", "set"]):
-            ax.scatter(
-                group["hf_flux"],
-                group[f"{model}_flux"],
-                color=colors[cation],
-                marker=markers[label],
-                label=f"{cation} ({label})",
-                alpha=0.8,
-            )
-        lims = [results["hf_flux"].min() * 0.9, results["hf_flux"].max() * 1.1]
-        ax.plot(lims, lims, "k--", linewidth=1)
-        ax.set_xlabel("High-fidelity stage-average cation flux")
-        ax.set_ylabel("Surrogate stage-average cation flux")
-        ax.set_title(title)
-    axes[0].legend(fontsize=8)
-
-    ax = axes[2]
-    x = np.arange(3)
-    for offset, model, name in ((-0.2, "stage", "Stage surrogate"), (0.2, "chain", "Tube chain")):
-        mape = [
-            results[results["cation"] == c][f"{model}_percent_error"].abs().mean()
-            for c in ("Na", "Ca", "La")
-        ]
-        ax.bar(x + offset, mape, width=0.4, label=name)
-    ax.set_xticks(x)
-    ax.set_xticklabels(["Na", "Ca", "La"])
-    ax.set_ylabel("Mean absolute percent error (%)")
-    ax.set_title("Flux error against high-fidelity stage")
-    ax.legend()
-
-    plt.tight_layout()
-    plt.savefig(f"{OUTPUT_FOLDER}/comparison_stage_flux.png", dpi=600)
+    poster_figures.plot_percent_error(results)
+    poster_figures.save_table(poster_figures.poster_table(results, size, cost))
 
 
 if __name__ == "__main__":
