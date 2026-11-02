@@ -1,0 +1,4 @@
+,variables,constraints,degrees of freedom
+Stage surrogate,4,1,0
+Tube surrogate chain,41,33,0
+High-fidelity stage (unit models only),10763,9985,35
