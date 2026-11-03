@@ -15,7 +15,7 @@ from pyomo.environ import (
 from pyomo.network import Arc
 
 from idaes.core import FlowsheetBlock
-from idaes.core.util.diagnostics_tools.diagnostics_toolbox import DiagnosticsToolbox
+from idaes.core.util import DiagnosticsToolbox
 from idaes.models.unit_models import Feed, Product
 
 import numpy as np
@@ -41,13 +41,13 @@ def main():
     # generate_tube_data_per_salt(cation="Ca")
     # generate_tube_data_per_salt(cation="La")
 
-    generate_single_salt_tube_data()  # adds water_flux output
+    # generate_single_salt_tube_data()  # adds water_flux output
 
     # generate_stage_data_per_salt(cation="Na")
     # generate_stage_data_per_salt(cation="Ca")
     # generate_stage_data_per_salt(cation="La")
 
-    # generate_single_salt_stage_data()  # already generated
+    generate_single_salt_stage_data()  # already generated
 
 
 def build_tube_model(
@@ -864,22 +864,22 @@ def generate_single_salt_stage_data():
             chloride_multiplier = 1
             cation_phi_star_value = 0.75
 
-            concentrations = [150, 175, 200]
-            pressures = [5, 6, 7]
+            concentrations = [150, 166.67, 183.33, 200]
+            pressures = [5, 5.67, 6.33, 7]
 
         elif cation == "Ca":
             chloride_multiplier = 2
             cation_phi_star_value = 0.4
 
-            concentrations = [150, 175, 200]
-            pressures = [8, 10, 12]
+            concentrations = [150, 166.67, 183.33, 200]
+            pressures = [8, 9.33, 10.67, 12]
 
         elif cation == "La":
             chloride_multiplier = 3
             cation_phi_star_value = 0.0001
 
-            concentrations = [50, 75, 100]
-            pressures = [12, 14, 16]
+            concentrations = [50, 66.67, 83.33, 100]
+            pressures = [12, 13.33, 14.67, 16]
 
         if cation == "La":
             inlet_flow_volume = {

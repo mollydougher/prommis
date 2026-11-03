@@ -21,7 +21,7 @@ from pyomo.environ import (
 from pyomo.network import Arc
 
 from idaes.core import FlowsheetBlock
-from idaes.core.util.diagnostics_tools.diagnostics_toolbox import DiagnosticsToolbox
+from idaes.core.util import DiagnosticsToolbox
 from idaes.models.unit_models import Feed, Product
 
 from prommis.nanofiltration.multi_component_diafiltration_stream_properties import (
