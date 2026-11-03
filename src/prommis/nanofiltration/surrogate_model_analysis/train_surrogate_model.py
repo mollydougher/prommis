@@ -67,6 +67,27 @@ def main():
 
     generate_mixed_salt_analysis(length_scale="stage")
 
+    generate_all_data_surrogates()
+
+
+def generate_all_data_surrogates():
+    """Kriging surrogates trained on all of the data, used in compare_surrogate_models.py."""
+    for length_scale in ("tube", "stage"):
+        datafile = f"training_data/{length_scale}/single_salt/mixed_chlorides"
+        surrogate, elapsed = train_kriging_on_all_data(datafile, length_scale)
+        surrogate.save_to_file(
+            f"surrogate_models/{length_scale}/single_salt/single_salt_kriging_all_data_surrogate",
+            overwrite=True,
+        )
+        DataFrame(
+            {
+                "model": ["Kriging (all data)"],
+                "training_time_s": [elapsed],
+                "n_training_points_total": [len(read_csv(datafile))],
+            }
+        ).to_csv(f"figures/{length_scale}/training_times_all_data.csv", index=False)
+        print(f"{length_scale}: Kriging on all data trained in {elapsed:.1f} s")
+
 
 def generate_per_salt_analysis(solute, salt, length_scale):
     datafile = f"training_data/{length_scale}/single_salt/{solute}_chloride"
@@ -292,18 +313,20 @@ def assess_surrogate(
     return (surrogate, testing_metrics)
 
 
-def split_data(data, input_labels):
+def split_data(data, input_labels, seed=None):
+    """Random 80/20 training/validation split; the default seed (number of data
+    points) reproduces the split of the saved surrogates."""
     n_data = data[input_labels[0]].size
-    return split_training_validation(data, 0.8, seed=n_data)
+    return split_training_validation(data, 0.8, seed=n_data if seed is None else seed)
 
 
 def train_polynomial_surrogate_model(
-    datafile, length_scale, max_order=4, visualize=False
+    datafile, length_scale, max_order=4, visualize=False, seed=None
 ):
     data, input_labels, output_labels, input_bounds = prepare_training_data(
         datafile, length_scale
     )
-    data_training, data_validation = split_data(data, input_labels)
+    data_training, data_validation = split_data(data, input_labels, seed)
 
     # create PySMO regression trainer object
     pr_trainer = PysmoPolyTrainer(
@@ -330,11 +353,11 @@ def train_polynomial_surrogate_model(
     )
 
 
-def train_kriging_surrogate_model(datafile, length_scale, visualize=False):
+def train_kriging_surrogate_model(datafile, length_scale, visualize=False, seed=None):
     data, input_labels, output_labels, input_bounds = prepare_training_data(
         datafile, length_scale
     )
-    data_training, data_validation = split_data(data, input_labels)
+    data_training, data_validation = split_data(data, input_labels, seed)
 
     krg_trainer = PysmoKrigingTrainer(
         input_labels=input_labels,
@@ -358,13 +381,37 @@ def train_kriging_surrogate_model(datafile, length_scale, visualize=False):
     )
 
 
+def train_kriging_on_all_data(datafile, length_scale):
+    """
+    Kriging surrogate trained on every point in the data file (no 80/20 split), for
+    use in the flowsheet comparison; the validation-split models are used to choose
+    the surrogate type. Returns the surrogate and its training time in seconds.
+    """
+    data, input_labels, output_labels, input_bounds = prepare_training_data(
+        datafile, length_scale
+    )
+    krg_trainer = PysmoKrigingTrainer(
+        input_labels=input_labels,
+        output_labels=output_labels,
+        training_dataframe=data,
+    )
+    krg_trainer.config.numerical_gradients = False
+
+    start = time.perf_counter()
+    krg_train = krg_trainer.train_surrogate()
+    elapsed = time.perf_counter() - start
+
+    surrogate = PysmoSurrogate(krg_train, input_labels, output_labels, input_bounds)
+    return surrogate, elapsed
+
+
 def train_rbf_surrogate_model(
-    datafile, length_scale, basis_func="cubic", visualize=False
+    datafile, length_scale, basis_func="cubic", visualize=False, seed=None
 ):
     data, input_labels, output_labels, input_bounds = prepare_training_data(
         datafile, length_scale
     )
-    data_training, data_validation = split_data(data, input_labels)
+    data_training, data_validation = split_data(data, input_labels, seed)
 
     rbf_trainer = PysmoRBFTrainer(
         input_labels=input_labels,

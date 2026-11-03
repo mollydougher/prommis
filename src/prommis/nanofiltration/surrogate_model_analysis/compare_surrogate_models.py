@@ -52,11 +52,13 @@ from idaes.core.util.model_statistics import (
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
+# Kriging surrogates trained on all of the data (train_surrogate_model.py,
+# generate_all_data_surrogates); the 80/20 models are only used to choose the type
 TUBE_SURROGATE_FILE = os.path.join(
-    HERE, "surrogate_models/tube/single_salt/single_salt_kriging_surrogate"
+    HERE, "surrogate_models/tube/single_salt/single_salt_kriging_all_data_surrogate"
 )
 STAGE_SURROGATE_FILE = os.path.join(
-    HERE, "surrogate_models/stage/single_salt/single_salt_kriging_surrogate"
+    HERE, "surrogate_models/stage/single_salt/single_salt_kriging_all_data_surrogate"
 )
 
 NUM_TUBES = 5
@@ -533,10 +535,10 @@ def training_cost_table():
 
     times = []
     for scale in ("tube", "stage"):
-        file = os.path.join(HERE, f"figures/{scale}/training_times.csv")
+        file = os.path.join(HERE, f"figures/{scale}/training_times_all_data.csv")
         if os.path.exists(file):
             t = pd.read_csv(file).set_index("model")["training_time_s"]
-            times.append(t.get("Kriging", np.nan))
+            times.append(t.get("Kriging (all data)", np.nan))
         else:
             times.append(np.nan)
     table["Kriging training time (s)"] = times
