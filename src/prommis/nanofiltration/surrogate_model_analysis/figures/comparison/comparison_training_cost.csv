@@ -1,3 +1,3 @@
 ,high-fidelity runs,tube solves equivalent,Kriging training time (s)
-Tube surrogate (single tube),186,186,146.9791894999944
-Stage surrogate (5-tube stage),48,240,5.764891708000505
+Tube surrogate (single tube),186,186,130.48156741599996
+Stage surrogate (5-tube stage),48,240,4.5486739580001085
