@@ -33,6 +33,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from figure_style import apply_style, savefig_kwargs
+
 import train_surrogate_model as tsm
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -126,8 +128,9 @@ def summarize(all_splits):
     return summary
 
 
-def plot_grouped_bars(summary, models, output, scales, path, title, figsize):
+def plot_grouped_bars(summary, models, output, scales, path, title, figsize, poster=False):
     """Grouped bars: metric on the x-axis, colour = model, filled = tube, hatched = stage."""
+    apply_style()
     fig, ax = plt.subplots(figsize=figsize)
     n_bars = len(models) * len(scales)
     width = 0.8 / n_bars
@@ -146,16 +149,17 @@ def plot_grouped_bars(summary, models, output, scales, path, title, figsize):
                 ax.bar(
                     x, mean, width * 0.92,
                     color=COLORS[model] if filled else "white",
-                    edgecolor=COLORS[model], hatch=None if filled else "////", linewidth=1.4,
+                    edgecolor=COLORS[model], hatch=None if filled else "////", linewidth=2,
                 )
                 # keep the lower error bar on the log axis (spread can exceed the mean)
                 ax.errorbar(x, mean, yerr=[[min(std, 0.9 * mean)], [std]], color="k",
-                            capsize=2, linewidth=1, zorder=4)
+                            capsize=3, linewidth=1.5, zorder=4)
     ax.set_yscale("log")
     ax.set_xticks(range(len(METRICS)))
     ax.set_xticklabels([METRIC_LABELS[m] for m in METRICS])
-    ax.set_ylabel("Validation error (log scale)")
-    ax.set_title(title)
+    ax.set_ylabel("Validation Error")
+    if title:
+        ax.set_title(title, pad=10)
 
     handles = [plt.Rectangle((0, 0), 1, 1, color=COLORS[m]) for m in models]
     labels = list(models)
@@ -165,12 +169,19 @@ def plot_grouped_bars(summary, models, output, scales, path, title, figsize):
             plt.Rectangle((0, 0), 1, 1, facecolor="white", edgecolor="0.4", hatch="////"),
         ]
         labels += ["Tube (filled)", "Stage (hatched)"]
-    ax.legend(handles, labels, fontsize=8, ncol=2 if len(models) > 4 else 1, loc="best")
+    if len(models) <= 4:  # poster version: legend inside the axes, in headroom above the bars
+        ax.legend(handles, labels, fontsize=13, ncol=1, loc="upper left")
+    else:
+        ax.legend(handles, labels, fontsize=10, ncol=2, loc="upper left",
+                  bbox_to_anchor=(1.02, 1.0), borderaxespad=0)
     n_splits = int(summary["n_splits"].max())
-    fig.text(0.01, 0.005, f"Mean and standard deviation over {n_splits} random 80/20 splits.",
-             fontsize=7, ha="left", va="bottom")
-    plt.tight_layout(rect=(0, 0.02, 1, 1))
-    plt.savefig(path, dpi=600)
+    note = f"Mean and standard deviation over {n_splits} random 80/20 splits"
+    if poster:
+        ax.set_title(f"Mean Surrogate Error for {n_splits} Random 80/20 Splits", fontsize=14,
+                     fontweight="bold", pad=10)
+    else:
+        ax.annotate(note + ".", xy=(0, -0.12), xycoords="axes fraction", fontsize=10, ha="left", va="top")
+    plt.savefig(path, **savefig_kwargs())
     plt.close(fig)
 
 
@@ -181,7 +192,7 @@ def make_figures(summary):
     plot_grouped_bars(
         summary, poster, "ion_flux", SCALES,
         f"{OUTPUT_FOLDER}/surrogate_type_error_metrics_poster.png",
-        "Surrogate type comparison: cation flux", (7.5, 4.8),
+        None, (9, 5.5), poster=True,
     )
     plot_grouped_bars(
         summary, master, "ion_flux", SCALES,

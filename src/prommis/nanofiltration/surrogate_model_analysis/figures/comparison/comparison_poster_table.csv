@@ -1,11 +1,8 @@
 ,High-fidelity stage,Stage surrogate,Tube surrogate chain
-"Test MAPE, all cations (%)",-,0.30,0.54
-"Test MAPE, Na / Ca / La (%)",-,0.03 / 0.05 / 0.81,0.41 / 0.21 / 0.99
-Test maximum error (%),-,1.0,1.7
 Variables,"10,763",4,41
 Constraints,"9,985",1,33
-Solve time (s),~2.7 (continuation move),0.027,0.068
-Training HF runs,-,48 stage solves,186 tube solves
+Solve time per point (s),~2.7 (continuation move),0.027,0.068
+Training HF runs (all data),-,48 stage solves,186 tube solves
 Training cost (tube-solve equiv.),-,240,186
-Kriging training time (s),-,4.5,130.5
+"Kriging training time, all data (s)",-,4.5,130.5
 Reusable for other stage designs,-,No,Yes

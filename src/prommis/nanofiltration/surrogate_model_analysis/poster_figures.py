@@ -17,6 +17,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from matplotlib.lines import Line2D
+
+from figure_style import apply_style, savefig_kwargs, MARKER_SIZE, LINE_WIDTH
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 FOLDER = os.path.join(HERE, "figures/comparison")
 
@@ -27,13 +31,14 @@ CHAIN_COLOR = "#D55E00"
 
 def plot_percent_error(results, path=None):
     """Signed percent error for each condition; test points filled, training hollow."""
+    apply_style()
     fig, (ax1, ax2) = plt.subplots(
-        1, 2, figsize=(11, 4.6), gridspec_kw={"width_ratios": [1.5, 1]}
+        1, 2, figsize=(13, 5.5), gridspec_kw={"width_ratios": [1.3, 1], "wspace": 0.3}
     )
     rng = np.random.default_rng(0)
     models = (
-        ("stage", "Stage surrogate", STAGE_COLOR, -0.18),
-        ("chain", "Tube surrogate chain", CHAIN_COLOR, 0.18),
+        ("stage", "Stage", STAGE_COLOR, -0.18),
+        ("chain", "Tube chain", CHAIN_COLOR, 0.18),
     )
 
     for model, name, color, offset in models:
@@ -44,18 +49,28 @@ def plot_percent_error(results, path=None):
                 ax1.scatter(
                     x,
                     g[f"{model}_percent_error"],
-                    s=40,
+                    s=MARKER_SIZE**2,
                     facecolors=color if filled else "none",
                     edgecolors=color,
-                    linewidths=1.3,
-                    label=f"{name}, {label}" if k == 0 else None,
+                    linewidths=1.8,
+                    alpha=0.7,
                 )
-    ax1.axhline(0, color="k", linewidth=0.8)
+    ax1.axhline(0, color="k", linewidth=1.2)
     ax1.set_xticks(range(3))
     ax1.set_xticklabels(CATIONS)
-    ax1.set_ylabel("Stage-average flux error vs. HF (%)")
-    ax1.set_title("(a) Signed error at each condition")
-    ax1.legend(fontsize=8, loc="best")
+    ax1.set_ylabel("Error in Flux Prediction (%)")
+    ax1.set_title("Surrogate Error for All Data", pad=10)
+    grey = "0.35"
+    ax1.legend(
+        handles=[
+            Line2D([], [], marker="o", linestyle="", color=STAGE_COLOR, markersize=MARKER_SIZE + 1, label="Stage"),
+            Line2D([], [], marker="o", linestyle="", color=CHAIN_COLOR, markersize=MARKER_SIZE + 1, label="Tube chain"),
+            Line2D([], [], marker="o", linestyle="", markerfacecolor="none", markeredgecolor=grey,
+                   markeredgewidth=1.8, markersize=MARKER_SIZE + 1, label="Training"),
+            Line2D([], [], marker="o", linestyle="", color=grey, markersize=MARKER_SIZE + 1, label="Test"),
+        ],
+        loc="upper left", fontsize=13, handletextpad=0.3,
+    )
 
     # (b) held-out test points only: mean and max absolute error
     test = results[results["set"] == "test"]
@@ -68,27 +83,26 @@ def plot_percent_error(results, path=None):
             [e.mean() for e in err],
             width=0.34,
             color=color,
-            label=f"{name} (mean)",
+            label=name,
         )
         ax2.scatter(
             x + offset,
             [e.max() for e in err],
             marker="_",
-            s=300,
+            s=450,
             color="k",
-            linewidths=2,
+            linewidths=LINE_WIDTH,
             label="Maximum" if model == "stage" else None,
             zorder=3,
         )
     ax2.set_xticks(x)
     ax2.set_xticklabels(CATIONS + ["All"])
-    ax2.set_ylabel("Absolute error, held-out test points (%)")
-    ax2.set_title("(b) Held-out test error (n = 6 per cation)")
-    ax2.set_ylim(0, 2.5)
-    ax2.legend(fontsize=8, loc="upper left", ncol=1)
+    ax2.set_ylabel("Absolute Error (%)")
+    ax2.set_title("Mean Surrogate Error for\nTest Data (n=6 per cation)", pad=10)
+    ax2.set_ylim(0, 1.8)
+    ax2.legend(loc="upper left", fontsize=13, handlelength=1.2, handletextpad=0.7)
 
-    plt.tight_layout()
-    plt.savefig(path or f"{FOLDER}/comparison_percent_error.png", dpi=600)
+    plt.savefig(path or f"{FOLDER}/comparison_percent_error.png", **savefig_kwargs())
     return fig
 
 
@@ -114,19 +128,16 @@ def poster_table(results, size, cost):
     t_stage = cost.iloc[1]["Kriging training time (s)"]
 
     rows = {
-        "Test MAPE, all cations (%)": ["-", f"{err('stage').mean():.2f}", f"{err('chain').mean():.2f}"],
-        "Test MAPE, Na / Ca / La (%)": ["-", fmt_mape("stage"), fmt_mape("chain")],
-        "Test maximum error (%)": ["-", f"{err('stage').max():.1f}", f"{err('chain').max():.1f}"],
         "Variables": [f"{int(size.iloc[2, 0]):,}", f"{int(size.iloc[0, 0])}", f"{int(size.iloc[1, 0])}"],
         "Constraints": [f"{int(size.iloc[2, 1]):,}", f"{int(size.iloc[0, 1])}", f"{int(size.iloc[1, 1])}"],
-        "Solve time (s)": [
+        "Solve time per point (s)": [
             f"~{hf_time:.1f} (continuation move)",
             f"{results['stage_solve_time_s'].median():.3f}",
             f"{results['chain_solve_time_s'].median():.3f}",
         ],
-        "Training HF runs": ["-", f"{n_stage} stage solves", f"{n_tube} tube solves"],
+        "Training HF runs (all data)": ["-", f"{n_stage} stage solves", f"{n_tube} tube solves"],
         "Training cost (tube-solve equiv.)": ["-", f"{n_stage * 5}", f"{n_tube}"],
-        "Kriging training time (s)": ["-", f"{t_stage:.1f}", f"{t_tube:.1f}"],
+        "Kriging training time, all data (s)": ["-", f"{t_stage:.1f}", f"{t_tube:.1f}"],
         "Reusable for other stage designs": ["-", "No", "Yes"],
     }
     return pd.DataFrame(rows, index=[hf, stage, chain]).T
@@ -141,11 +152,11 @@ def save_table(table):
             f.write(f"| {name} | " + " | ".join(row) + " |\n")
         f.write(
             "\nTest set: 18 held-out high-fidelity stage conditions (6 per cation). "
-            "Solve time of the HF stage is a continuation move (several solves). "
+            "Solve times are per evaluation point (one operating condition), medians over the comparison conditions; the HF stage is a continuation move (several solves). Training rows are totals for generating and fitting the all-data models. "
             "HF size counts unit models only.\n"
         )
 
-    fig, ax = plt.subplots(figsize=(11, 4.2))
+    fig, ax = plt.subplots(figsize=(11, 3.2))
     ax.axis("off")
     t = ax.table(
         cellText=table.values,
