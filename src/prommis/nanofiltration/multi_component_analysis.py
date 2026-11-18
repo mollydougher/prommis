@@ -30,6 +30,7 @@ from idaes.models.unit_models import Feed, Product
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import json
 
 from prommis.nanofiltration.multi_component_diafiltration_stream_properties import (
     MultiComponentDiafiltrationStreamParameter,
@@ -51,9 +52,11 @@ def main():
         run_two_salt=run_two_salt,
     )
 
+    # save_figure_data()
+
     flux_plots_equimolar(save_figure=True)
 
-    plot_flux_contributions(save_figure=True)
+    # plot_flux_contributions(save_figure=True)
 
 
 def build_model(
@@ -764,10 +767,7 @@ def get_model_averages_flux(model, solute):
     return info_dict
 
 
-def flux_plots_equimolar(save_figure=True):
-    markersize = 10
-    fontsize = 14
-
+def save_figure_data():
     anion_list = ["Cl"]
     inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
     include_boundary_layer = True
@@ -777,6 +777,129 @@ def flux_plots_equimolar(save_figure=True):
 
     default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
     NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
+
+    model_folder_1 = Path("multi_component_case_studies/single_salt/CONC")
+    # 46 characters (0-45) make up folder name before model name
+    # multi_component_case_studies/single_salt/CONC/
+    model_folder_2 = Path("multi_component_case_studies/two_salt/CONC")
+    # 43 characters (0-42) make up folder name before model name
+    # multi_component_case_studies/two_salt/CONC/
+
+    case_study_list_1 = [file for file in model_folder_1.iterdir()]
+    case_study_list_1.sort()
+    case_study_list_2 = [file for file in model_folder_2.iterdir()]
+    case_study_list_2.sort()
+    case_studies = {
+        "single": case_study_list_1,
+        "two": case_study_list_2,
+    }
+
+    single_salt_data_dict = {
+        "Na": {"x": [], "y": [], "y_err": []},
+        "Ca": {"x": [], "y": [], "y_err": []},
+        "La": {"x": [], "y": [], "y_err": []},
+    }
+    two_salt_data_dict = {
+        "Na_Ca": {
+            "Na": {"x": [], "y": [], "y_err": []},
+            "Ca": {"x": [], "y": [], "y_err": []},
+        },
+        "Na_La": {
+            "Na": {"x": [], "y": [], "y_err": []},
+            "La": {"x": [], "y": [], "y_err": []},
+        },
+        "Ca_La": {
+            "Ca": {"x": [], "y": [], "y_err": []},
+            "La": {"x": [], "y": [], "y_err": []},
+        },
+    }
+
+    for type, case_study_files in case_studies.items():
+        for case_study in case_study_files:
+            if type == "single":
+                cation = str(case_study)[54:56]
+                chloride_multiplier = float(str(case_study)[58])
+                concentration = float(50)  # mM
+                cation_list = [cation]
+                inlet_concentration = {
+                    "feed": {
+                        cation: concentration,
+                        "Cl": chloride_multiplier * concentration,
+                    },
+                    "diafiltrate": {
+                        cation: 1e-10,
+                        "Cl": 1e-10,
+                    },
+                }
+
+            elif type == "two":
+                cation_1 = str(case_study)[51:53]
+                cation_2 = str(case_study)[53:55]
+                chloride_multiplier = float(str(case_study)[57])
+                concentration = float(50)  # mM
+                cation_list = [cation_1, cation_2]
+                inlet_concentration = {
+                    "feed": {
+                        cation_1: concentration,
+                        cation_2: concentration,
+                        "Cl": chloride_multiplier * concentration,
+                    },
+                    "diafiltrate": {
+                        cation_1: 1e-10,
+                        cation_2: 1e-10,
+                        "Cl": 1e-10,
+                    },
+                }
+
+                if cation_1 == "Na" and cation_2 == "Ca":
+                    salt_key = "Na_Ca"
+                elif cation_1 == "Na" and cation_2 == "La":
+                    salt_key = "Na_La"
+                elif cation_1 == "Ca" and cation_2 == "La":
+                    salt_key = "Ca_La"
+
+            model = build_model(
+                cation_list=cation_list,
+                inlet_concentration=inlet_concentration,
+                default_args=default_args,
+                NFE_args=NFE_args,
+                initialize_and_solve=False,
+            )
+            from_json(model, fname=case_study)
+
+            for solute in model.fs.membrane.cations:
+                average_variable_dict = get_model_averages(model, solute)
+
+                x_value = value(model.fs.membrane.retentate_conc_mol_comp[0, 0, solute])
+                y_data = average_variable_dict["local_flux"]["avg"]
+                y_err = average_variable_dict["local_flux"]["spread"]
+                y_err = y_err.tolist()
+
+                if type == "single":
+                    single_salt_data_dict[solute]["x"].append(x_value)
+                    single_salt_data_dict[solute]["y"].append(y_data)
+                    single_salt_data_dict[solute]["y_err"].append(y_err)
+                elif type == "two":
+                    two_salt_data_dict[salt_key][solute]["x"].append(x_value)
+                    two_salt_data_dict[salt_key][solute]["y"].append(y_data)
+                    two_salt_data_dict[salt_key][solute]["y_err"].append(y_err)
+
+    with open(
+        "figure_data/flux_versus_cation_concentration_single_salt_data.json", "w"
+    ) as file:
+        json.dump(single_salt_data_dict, file)
+    with open(
+        "figure_data/flux_versus_cation_concentration_two_salt_data.json", "w"
+    ) as file:
+        json.dump(two_salt_data_dict, file)
+
+
+def flux_plots_equimolar(save_figure=True):
+    markersize = 10
+    fontsize = 14
+    alpha = 0.6
+    linestyle = "--"
+    linewidth = 1
 
     fig1, (ax1a, ax1b, ax1c) = plt.subplots(
         1, 3, dpi=100, figsize=(12, 4), constrained_layout=True
@@ -886,150 +1009,96 @@ def flux_plots_equimolar(save_figure=True):
     for ax in fig1.axes:
         ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
 
-    model_folder_1 = Path("multi_component_case_studies/single_salt/CONC")
-    # 46 characters (0-45) make up folder name before model name
-    # multi_component_case_studies/single_salt/CONC/
-    model_folder_2 = Path("multi_component_case_studies/two_salt/CONC")
-    # 43 characters (0-42) make up folder name before model name
-    # multi_component_case_studies/two_salt/CONC/
+    with open(
+        "figure_data/flux_versus_cation_concentration_single_salt_data.json", "r"
+    ) as file:
+        single_salt_data_dict = json.load(file)
+    with open(
+        "figure_data/flux_versus_cation_concentration_two_salt_data.json", "r"
+    ) as file:
+        two_salt_data_dict = json.load(file)
 
-    case_study_list_1 = [file for file in model_folder_1.iterdir()]
-    case_study_list_1.sort()
-    case_study_list_2 = [file for file in model_folder_2.iterdir()]
-    case_study_list_2.sort()
-    case_studies = {
-        "single": case_study_list_1,
-        "two": case_study_list_2,
+    case_study_data = {
+        "single": single_salt_data_dict,
+        "two": two_salt_data_dict,
     }
 
-    for type, case_study_files in case_studies.items():
-        for case_study in case_study_files:
-            if type == "single":
-                cation = str(case_study)[54:56]
-                chloride_multiplier = float(str(case_study)[58])
-                concentration = float(50)  # mM
-                cation_list = [cation]
-                inlet_concentration = {
-                    "feed": {
-                        cation: concentration,
-                        "Cl": chloride_multiplier * concentration,
-                    },
-                    "diafiltrate": {
-                        cation: 1e-10,
-                        "Cl": 1e-10,
-                    },
-                }
-
-            elif type == "two":
-                cation_1 = str(case_study)[51:53]
-                cation_2 = str(case_study)[53:55]
-                chloride_multiplier = float(str(case_study)[57])
-                concentration = float(50)  # mM
-                cation_list = [cation_1, cation_2]
-                inlet_concentration = {
-                    "feed": {
-                        cation_1: concentration,
-                        cation_2: concentration,
-                        "Cl": chloride_multiplier * concentration,
-                    },
-                    "diafiltrate": {
-                        cation_1: 1e-10,
-                        cation_2: 1e-10,
-                        "Cl": 1e-10,
-                    },
-                }
-
-            model = build_model(
-                cation_list=cation_list,
-                inlet_concentration=inlet_concentration,
-                default_args=default_args,
-                NFE_args=NFE_args,
-                initialize_and_solve=False,
-            )
-            from_json(model, fname=case_study)
-
-            for solute in model.fs.membrane.cations:
-                average_variable_dict = get_model_averages(model, solute)
-
-                alpha = 0.6
-
-                if solute == "Na":
+    for type, data_dict in case_study_data.items():
+        if type == "single":
+            for cation in data_dict.keys():
+                if cation == "Na":
                     marker = "o"
                     ax_flux = ax1a
-                    if type == "single":
-                        color = na_color
-                    elif type == "two":
-                        if cation_2 == "Ca":
-                            color = na_ca_color
-                        elif cation_2 == "La":
-                            color = na_la_color
-                    x_value = value(
-                        model.fs.membrane.retentate_conc_mol_comp[0, 0, solute]
-                    )
-
-                elif solute == "Ca":
+                    color = na_color
+                elif cation == "Ca":
                     marker = "v"
                     ax_flux = ax1b
-                    if type == "single":
-                        color = ca_color
-                    elif type == "two":
-                        if cation_1 == "Na":
-                            color = na_ca_color
-                        elif cation_2 == "La":
-                            color = ca_la_color
-                    x_value = value(
-                        model.fs.membrane.retentate_conc_mol_comp[0, 0, solute]
-                    )
-
-                elif solute == "La":
+                    color = ca_color
+                elif cation == "La":
                     marker = "^"
                     ax_flux = ax1c
-                    if type == "single":
-                        color = la_color
-                    elif type == "two":
-                        if cation_1 == "Na":
-                            color = na_la_color
-                        elif cation_1 == "Ca":
-                            color = ca_la_color
-                    x_value = value(
-                        model.fs.membrane.retentate_conc_mol_comp[0, 0, solute]
-                    )
+                    color = la_color
 
-                y_data = average_variable_dict["local_flux"]["avg"]
-                y_err = average_variable_dict["local_flux"]["spread"]
+                y_err = [np.array(i) for i in data_dict[cation]["y_err"]]
 
-                if isinstance(ax_flux, list):
-                    for ax in ax_flux:
-                        ax.plot(
-                            x_value[ax_flux.index(ax)],
-                            y_data,
-                            color=color,
-                            marker=marker,
-                            alpha=alpha,
-                            markersize=markersize,
-                        )
-                        ax.errorbar(
-                            x_value[ax_flux.index(ax)],
-                            y_data,
-                            yerr=y_err,
-                            ecolor=color,
-                            capsize=3,
-                        )
-                else:
+                ax_flux.plot(
+                    data_dict[cation]["x"],
+                    data_dict[cation]["y"],
+                    marker=marker,
+                    linestyle=linestyle,
+                    linewidth=linewidth,
+                    color=color,
+                    alpha=alpha,
+                    markersize=markersize,
+                )
+                ax_flux.errorbar(
+                    data_dict[cation]["x"],
+                    data_dict[cation]["y"],
+                    yerr=np.squeeze(y_err).T,
+                    ecolor=color,
+                    capsize=3,
+                    linestyle="None",
+                )
+
+        elif type == "two":
+            for salt, salt_data in data_dict.items():
+                for cation in salt_data.keys():
+                    if salt == "Na_Ca":
+                        color = na_ca_color
+                    elif salt == "Na_La":
+                        color = na_la_color
+                    elif salt == "Ca_La":
+                        color = ca_la_color
+
+                    if cation == "Na":
+                        marker = "o"
+                        ax_flux = ax1a
+                    elif cation == "Ca":
+                        marker = "v"
+                        ax_flux = ax1b
+                    elif cation == "La":
+                        marker = "^"
+                        ax_flux = ax1c
+
+                    y_err = [np.array(i) for i in salt_data[cation]["y_err"]]
+
                     ax_flux.plot(
-                        x_value,
-                        y_data,
-                        color=color,
+                        salt_data[cation]["x"],
+                        salt_data[cation]["y"],
                         marker=marker,
+                        linestyle=linestyle,
+                        linewidth=linewidth,
+                        color=color,
                         alpha=alpha,
                         markersize=markersize,
                     )
                     ax_flux.errorbar(
-                        x_value,
-                        y_data,
-                        yerr=y_err,
+                        salt_data[cation]["x"],
+                        salt_data[cation]["y"],
+                        yerr=np.squeeze(y_err).T,
                         ecolor=color,
                         capsize=3,
+                        linestyle="None",
                     )
 
     if save_figure:
