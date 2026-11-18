@@ -52,11 +52,11 @@ def main():
         run_two_salt=run_two_salt,
     )
 
-    # save_figure_data()
+    save_figure_data(flux_values=False, flux_contrib=False)
 
     flux_plots_equimolar(save_figure=True)
 
-    # plot_flux_contributions(save_figure=True)
+    plot_flux_contributions(save_figure=True)
 
 
 def build_model(
@@ -767,7 +767,7 @@ def get_model_averages_flux(model, solute):
     return info_dict
 
 
-def save_figure_data():
+def save_figure_data(flux_values=True, flux_contrib=True):
     anion_list = ["Cl"]
     inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
     include_boundary_layer = True
@@ -789,109 +789,278 @@ def save_figure_data():
     case_study_list_1.sort()
     case_study_list_2 = [file for file in model_folder_2.iterdir()]
     case_study_list_2.sort()
-    case_studies = {
-        "single": case_study_list_1,
-        "two": case_study_list_2,
-    }
 
-    single_salt_data_dict = {
-        "Na": {"x": [], "y": [], "y_err": []},
-        "Ca": {"x": [], "y": [], "y_err": []},
-        "La": {"x": [], "y": [], "y_err": []},
-    }
-    two_salt_data_dict = {
-        "Na_Ca": {
+    if flux_values:
+        case_studies = {
+            "single": case_study_list_1,
+            "two": case_study_list_2,
+        }
+
+        single_salt_data_dict = {
             "Na": {"x": [], "y": [], "y_err": []},
             "Ca": {"x": [], "y": [], "y_err": []},
-        },
-        "Na_La": {
-            "Na": {"x": [], "y": [], "y_err": []},
             "La": {"x": [], "y": [], "y_err": []},
-        },
-        "Ca_La": {
-            "Ca": {"x": [], "y": [], "y_err": []},
-            "La": {"x": [], "y": [], "y_err": []},
-        },
-    }
+        }
+        two_salt_data_dict = {
+            "Na_Ca": {
+                "Na": {"x": [], "y": [], "y_err": []},
+                "Ca": {"x": [], "y": [], "y_err": []},
+            },
+            "Na_La": {
+                "Na": {"x": [], "y": [], "y_err": []},
+                "La": {"x": [], "y": [], "y_err": []},
+            },
+            "Ca_La": {
+                "Ca": {"x": [], "y": [], "y_err": []},
+                "La": {"x": [], "y": [], "y_err": []},
+            },
+        }
 
-    for type, case_study_files in case_studies.items():
-        for case_study in case_study_files:
-            if type == "single":
-                cation = str(case_study)[54:56]
-                chloride_multiplier = float(str(case_study)[58])
-                concentration = float(50)  # mM
-                cation_list = [cation]
-                inlet_concentration = {
-                    "feed": {
-                        cation: concentration,
-                        "Cl": chloride_multiplier * concentration,
-                    },
-                    "diafiltrate": {
-                        cation: 1e-10,
-                        "Cl": 1e-10,
-                    },
-                }
-
-            elif type == "two":
-                cation_1 = str(case_study)[51:53]
-                cation_2 = str(case_study)[53:55]
-                chloride_multiplier = float(str(case_study)[57])
-                concentration = float(50)  # mM
-                cation_list = [cation_1, cation_2]
-                inlet_concentration = {
-                    "feed": {
-                        cation_1: concentration,
-                        cation_2: concentration,
-                        "Cl": chloride_multiplier * concentration,
-                    },
-                    "diafiltrate": {
-                        cation_1: 1e-10,
-                        cation_2: 1e-10,
-                        "Cl": 1e-10,
-                    },
-                }
-
-                if cation_1 == "Na" and cation_2 == "Ca":
-                    salt_key = "Na_Ca"
-                elif cation_1 == "Na" and cation_2 == "La":
-                    salt_key = "Na_La"
-                elif cation_1 == "Ca" and cation_2 == "La":
-                    salt_key = "Ca_La"
-
-            model = build_model(
-                cation_list=cation_list,
-                inlet_concentration=inlet_concentration,
-                default_args=default_args,
-                NFE_args=NFE_args,
-                initialize_and_solve=False,
-            )
-            from_json(model, fname=case_study)
-
-            for solute in model.fs.membrane.cations:
-                average_variable_dict = get_model_averages(model, solute)
-
-                x_value = value(model.fs.membrane.retentate_conc_mol_comp[0, 0, solute])
-                y_data = average_variable_dict["local_flux"]["avg"]
-                y_err = average_variable_dict["local_flux"]["spread"]
-                y_err = y_err.tolist()
-
+        for type, case_study_files in case_studies.items():
+            for case_study in case_study_files:
                 if type == "single":
-                    single_salt_data_dict[solute]["x"].append(x_value)
-                    single_salt_data_dict[solute]["y"].append(y_data)
-                    single_salt_data_dict[solute]["y_err"].append(y_err)
-                elif type == "two":
-                    two_salt_data_dict[salt_key][solute]["x"].append(x_value)
-                    two_salt_data_dict[salt_key][solute]["y"].append(y_data)
-                    two_salt_data_dict[salt_key][solute]["y_err"].append(y_err)
+                    cation = str(case_study)[54:56]
+                    chloride_multiplier = float(str(case_study)[58])
+                    concentration = float(50)  # mM
+                    cation_list = [cation]
+                    inlet_concentration = {
+                        "feed": {
+                            cation: concentration,
+                            "Cl": chloride_multiplier * concentration,
+                        },
+                        "diafiltrate": {
+                            cation: 1e-10,
+                            "Cl": 1e-10,
+                        },
+                    }
 
-    with open(
-        "figure_data/flux_versus_cation_concentration_single_salt_data.json", "w"
-    ) as file:
-        json.dump(single_salt_data_dict, file)
-    with open(
-        "figure_data/flux_versus_cation_concentration_two_salt_data.json", "w"
-    ) as file:
-        json.dump(two_salt_data_dict, file)
+                elif type == "two":
+                    cation_1 = str(case_study)[51:53]
+                    cation_2 = str(case_study)[53:55]
+                    chloride_multiplier = float(str(case_study)[57])
+                    concentration = float(50)  # mM
+                    cation_list = [cation_1, cation_2]
+                    inlet_concentration = {
+                        "feed": {
+                            cation_1: concentration,
+                            cation_2: concentration,
+                            "Cl": chloride_multiplier * concentration,
+                        },
+                        "diafiltrate": {
+                            cation_1: 1e-10,
+                            cation_2: 1e-10,
+                            "Cl": 1e-10,
+                        },
+                    }
+
+                    if cation_1 == "Na" and cation_2 == "Ca":
+                        salt_key = "Na_Ca"
+                    elif cation_1 == "Na" and cation_2 == "La":
+                        salt_key = "Na_La"
+                    elif cation_1 == "Ca" and cation_2 == "La":
+                        salt_key = "Ca_La"
+
+                model = build_model(
+                    cation_list=cation_list,
+                    inlet_concentration=inlet_concentration,
+                    default_args=default_args,
+                    NFE_args=NFE_args,
+                    initialize_and_solve=False,
+                )
+                from_json(model, fname=case_study)
+
+                for solute in model.fs.membrane.cations:
+                    average_variable_dict = get_model_averages(model, solute)
+
+                    x_value = value(
+                        model.fs.membrane.retentate_conc_mol_comp[0, 0, solute]
+                    )
+                    y_data = average_variable_dict["local_flux"]["avg"]
+                    y_err = average_variable_dict["local_flux"]["spread"]
+                    y_err = y_err.tolist()
+
+                    if type == "single":
+                        single_salt_data_dict[solute]["x"].append(x_value)
+                        single_salt_data_dict[solute]["y"].append(y_data)
+                        single_salt_data_dict[solute]["y_err"].append(y_err)
+                    elif type == "two":
+                        two_salt_data_dict[salt_key][solute]["x"].append(x_value)
+                        two_salt_data_dict[salt_key][solute]["y"].append(y_data)
+                        two_salt_data_dict[salt_key][solute]["y_err"].append(y_err)
+
+        with open(
+            "figure_data/flux_versus_cation_concentration_single_salt_data.json", "w"
+        ) as file:
+            json.dump(single_salt_data_dict, file)
+        with open(
+            "figure_data/flux_versus_cation_concentration_two_salt_data.json", "w"
+        ) as file:
+            json.dump(two_salt_data_dict, file)
+
+    if flux_contrib:
+        case_studies = {
+            "single": case_study_list_1,
+        }
+
+        sodium_bl_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
+        cl_sodium_bl_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
+        calcium_bl_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
+        cl_calcium_bl_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
+        lanthanum_bl_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
+        cl_lanthanum_bl_avg = {
+            "Convection": [],
+            "Diffusion": [],
+            "Electromigration": [],
+        }
+
+        sodium_mem_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
+        cl_sodium_mem_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
+        calcium_mem_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
+        cl_calcium_mem_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
+        lanthanum_mem_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
+        cl_lanthanum_mem_avg = {
+            "Convection": [],
+            "Diffusion": [],
+            "Electromigration": [],
+        }
+
+        concentrations = [
+            "10",
+            "20",
+            "30",
+            "40",
+            "50",
+            "75",
+            "100",
+            "125",
+            "150",
+            "175",
+            "200",
+        ]
+
+        x_values = concentrations
+
+        for type, case_study_files in case_studies.items():
+            for case_study in case_study_files:
+                if type == "single":
+                    cation = str(case_study)[54:56]
+                    chloride_multiplier = float(str(case_study)[58])
+                    concentration = float(50)  # mM
+                    cation_list = [cation]
+                    inlet_concentration = {
+                        "feed": {
+                            cation: concentration,
+                            "Cl": chloride_multiplier * concentration,
+                        },
+                        "diafiltrate": {
+                            cation: 1e-10,
+                            "Cl": 1e-10,
+                        },
+                    }
+
+                model = build_model(
+                    cation_list=cation_list,
+                    inlet_concentration=inlet_concentration,
+                    default_args=default_args,
+                    NFE_args=NFE_args,
+                    initialize_and_solve=False,
+                )
+                from_json(model, fname=case_study)
+
+                for solute in model.fs.membrane.solutes:
+                    bl_dict_avg = {
+                        "Convection": [],
+                        "Diffusion": [],
+                        "Electromigration": [],
+                    }
+                    mem_dict_avg = {
+                        "Convection": [],
+                        "Diffusion": [],
+                        "Electromigration": [],
+                    }
+
+                    average_variable_dict = get_model_averages_flux(model, solute)
+
+                    avg_bl_convection = average_variable_dict["bl_convection"]["avg"]
+                    avg_bl_diffusion = average_variable_dict["bl_diffusion"]["avg"]
+                    avg_bl_electromigration = average_variable_dict[
+                        "bl_electromigration"
+                    ]["avg"]
+                    avg_mem_convection = average_variable_dict["mem_convection"]["avg"]
+                    avg_mem_diffusion = average_variable_dict["mem_diffusion"]["avg"]
+                    avg_mem_electromigration = average_variable_dict[
+                        "mem_electromigration"
+                    ]["avg"]
+
+                    if solute == "Na":
+                        bl_dict_avg = sodium_bl_avg
+                        mem_dict_avg = sodium_mem_avg
+                    elif solute == "Ca":
+                        bl_dict_avg = calcium_bl_avg
+                        mem_dict_avg = calcium_mem_avg
+                    elif solute == "La":
+                        bl_dict_avg = lanthanum_bl_avg
+                        mem_dict_avg = lanthanum_mem_avg
+                    elif solute == "Cl":
+                        if model.fs.membrane.cations.at(1) == "Na":
+                            bl_dict_avg = cl_sodium_bl_avg
+                            mem_dict_avg = cl_sodium_mem_avg
+                        elif model.fs.membrane.cations.at(1) == "Ca":
+                            bl_dict_avg = cl_calcium_bl_avg
+                            mem_dict_avg = cl_calcium_mem_avg
+                        elif model.fs.membrane.cations.at(1) == "La":
+                            bl_dict_avg = cl_lanthanum_bl_avg
+                            mem_dict_avg = cl_lanthanum_mem_avg
+
+                    bl_dict_avg["Convection"].append(avg_bl_convection)
+                    bl_dict_avg["Diffusion"].append(avg_bl_diffusion)
+                    bl_dict_avg["Electromigration"].append(avg_bl_electromigration)
+
+                    mem_dict_avg["Convection"].append(avg_mem_convection)
+                    mem_dict_avg["Diffusion"].append(avg_mem_diffusion)
+                    mem_dict_avg["Electromigration"].append(avg_mem_electromigration)
+
+        sodium_bl_data = sodium_bl_avg
+        cl_sodium_bl_data = cl_sodium_bl_avg
+        # calcium_bl_data = calcium_bl_avg
+        # cl_calcium_bl_data = cl_calcium_bl_avg
+        # lanthanum_bl_data = lanthanum_bl_avg
+        # cl_lanthanum_bl_data = cl_lanthanum_bl_avg
+
+        sodium_mem_data = sodium_mem_avg
+        cl_sodium_mem_data = cl_sodium_mem_avg
+        # calcium_mem_data = calcium_mem_avg
+        # cl_calcium_mem_data = cl_calcium_mem_avg
+        # lanthanum_mem_data = lanthanum_mem_avg
+        # cl_lanthanum_mem_data = cl_lanthanum_mem_avg
+
+        sodium_bl_df = pd.DataFrame(sodium_bl_data, index=x_values)
+        cl_sodium_bl_df = pd.DataFrame(cl_sodium_bl_data, index=x_values)
+        # calcium_bl_df = pd.DataFrame(calcium_bl_data, index=x_values)
+        # cl_calcium_bl_df = pd.DataFrame(cl_calcium_bl_data, index=x_values)
+        # lanthanum_bl_df = pd.DataFrame(lanthanum_bl_data, index=x_values)
+        # cl_lanthanum_bl_df = pd.DataFrame(cl_lanthanum_bl_data, index=x_values)
+
+        sodium_mem_df = pd.DataFrame(sodium_mem_data, index=x_values)
+        cl_sodium_mem_df = pd.DataFrame(cl_sodium_mem_data, index=x_values)
+        # calcium_mem_df = pd.DataFrame(calcium_mem_data, index=x_values)
+        # cl_calcium_mem_df = pd.DataFrame(cl_calcium_mem_data, index=x_values)
+        # lanthanum_mem_df = pd.DataFrame(lanthanum_mem_data, index=x_values)
+        # cl_lanthanum_mem_df = pd.DataFrame(cl_lanthanum_mem_data, index=x_values)
+
+        sodium_bl_df.to_json(
+            f"figure_data/total_flux_breakdown_single_salt_cation_Na_bl"
+        )
+        cl_sodium_bl_df.to_json(
+            f"figure_data/total_flux_breakdown_single_salt_anion_NaCl_bl"
+        )
+
+        sodium_mem_df.to_json(
+            f"figure_data/total_flux_breakdown_single_salt_cation_Na_mem"
+        )
+        cl_sodium_mem_df.to_json(
+            f"figure_data/total_flux_breakdown_single_salt_anion_NaCl_mem"
+        )
 
 
 def flux_plots_equimolar(save_figure=True):
@@ -1112,16 +1281,6 @@ def plot_flux_contributions(save_figure=True):
     markersize = 10
     fontsize = 14
 
-    anion_list = ["Cl"]
-    inlet_flow_volume = {"feed": 12.5 + 3.75, "diafiltrate": 1e-10}
-    include_boundary_layer = True
-    NFE_module_length = 10
-    NFE_boundary_layer_thickness = 10
-    NFE_membrane_thickness = 10
-
-    default_args = (anion_list, inlet_flow_volume, include_boundary_layer)
-    NFE_args = [NFE_module_length, NFE_boundary_layer_thickness, NFE_membrane_thickness]
-
     # fig1, ((ax1a, ax1b), (ax2a, ax2b), (ax3a, ax3b)) = plt.subplots(
     #     3, 2, figsize=(12, 12), dpi=100, constrained_layout=True
     # )
@@ -1148,174 +1307,6 @@ def plot_flux_contributions(save_figure=True):
     diff_color = tol_bright_hex[1]
     elec_color = tol_bright_hex[2]
 
-    model_folder_1 = Path("multi_component_case_studies/single_salt/CONC")
-    # 46 characters (0-45) make up folder name before model name
-    # multi_component_case_studies/single_salt/CONC/
-    model_folder_2 = Path("multi_component_case_studies/two_salt/CONC")
-    # 43 characters (0-42) make up folder name before model name
-    # multi_component_case_studies/two_salt/CONC/
-    model_folder_3 = Path("multi_component_case_studies/three_salt/CONC")
-    # 45 characters (0-44) make up folder name before model name
-    # multi_component_case_studies/three_salt/CONC/
-
-    case_study_list_1 = []
-    for file in model_folder_1.iterdir():
-        case_study_list_1.append(file)
-    case_study_list_1.sort()
-    # case_study_list_2 = [file for file in model_folder_2.iterdir()]
-    # case_study_list_3 = [file for file in model_folder_3.iterdir()]
-    case_studies = {
-        "single": case_study_list_1,
-        # "two": case_study_list_2.sort(),
-        # "three": case_study_list_3.sort(),
-    }
-
-    sodium_bl_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
-    cl_sodium_bl_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
-    calcium_bl_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
-    cl_calcium_bl_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
-    lanthanum_bl_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
-    cl_lanthanum_bl_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
-
-    sodium_mem_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
-    cl_sodium_mem_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
-    calcium_mem_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
-    cl_calcium_mem_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
-    lanthanum_mem_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
-    cl_lanthanum_mem_avg = {"Convection": [], "Diffusion": [], "Electromigration": []}
-
-    for type, case_study_files in case_studies.items():
-        for case_study in case_study_files:
-            if type == "single":
-                cation = str(case_study)[54:56]
-                chloride_multiplier = float(str(case_study)[58])
-                concentration = float(50)  # mM
-                cation_list = [cation]
-                inlet_concentration = {
-                    "feed": {
-                        cation: concentration,
-                        "Cl": chloride_multiplier * concentration,
-                    },
-                    "diafiltrate": {
-                        cation: 1e-10,
-                        "Cl": 1e-10,
-                    },
-                }
-            # elif type == "two":
-            #     if x_axis == "ionic_strength":
-            #         cation_1 = str(case_study)[41:43]
-            #         cation_2 = str(case_study)[43:45]
-            #         chloride_multiplier = float(str(case_study)[47])
-            #     else:
-            #         cation_1 = str(case_study)[43:45]
-            #         cation_2 = str(case_study)[45:47]
-            #         chloride_multiplier = float(str(case_study)[49])
-            #     concentration = float(50)  # mM
-            #     cation_list = [cation_1, cation_2]
-            #     inlet_concentration = {
-            #         "feed": {
-            #             cation_1: concentration,
-            #             cation_2: concentration,
-            #             "Cl": chloride_multiplier * concentration,
-            #         },
-            #         "diafiltrate": {
-            #             cation_1: 1e-10,
-            #             cation_2: 1e-10,
-            #             "Cl": 1e-10,
-            #         },
-            #     }
-            # elif type == "three":
-            #     if x_axis == "ionic_strength":
-            #         cation_1 = str(case_study)[43:45]
-            #         cation_2 = str(case_study)[45:47]
-            #         cation_3 = str(case_study)[47:49]
-            #         chloride_multiplier = float(str(case_study)[51])
-            #     else:
-            #         cation_1 = str(case_study)[45:47]
-            #         cation_2 = str(case_study)[47:49]
-            #         cation_3 = str(case_study)[49:51]
-            #         chloride_multiplier = float(str(case_study)[53])
-            #     concentration = float(50)  # mM
-            #     cation_list = [cation_1, cation_2, cation_3]
-            #     inlet_concentration = {
-            #         "feed": {
-            #             cation_1: concentration,
-            #             cation_2: concentration,
-            #             cation_3: concentration,
-            #             "Cl": chloride_multiplier * concentration,
-            #         },
-            #         "diafiltrate": {
-            #             cation_1: 1e-10,
-            #             cation_2: 1e-10,
-            #             cation_3: 1e-10,
-            #             "Cl": 1e-10,
-            #         },
-            #     }
-
-            model = build_model(
-                cation_list=cation_list,
-                inlet_concentration=inlet_concentration,
-                default_args=default_args,
-                NFE_args=NFE_args,
-                initialize_and_solve=False,
-            )
-            from_json(model, fname=case_study)
-
-            for solute in model.fs.membrane.solutes:
-                average_variable_dict = get_model_averages_flux(model, solute)
-
-                avg_bl_convection = average_variable_dict["bl_convection"]["avg"]
-                avg_bl_diffusion = average_variable_dict["bl_diffusion"]["avg"]
-                avg_bl_electromigration = average_variable_dict["bl_electromigration"][
-                    "avg"
-                ]
-                avg_mem_convection = average_variable_dict["mem_convection"]["avg"]
-                avg_mem_diffusion = average_variable_dict["mem_diffusion"]["avg"]
-                avg_mem_electromigration = average_variable_dict[
-                    "mem_electromigration"
-                ]["avg"]
-
-                spread_bl_convection = average_variable_dict["bl_convection"]["spread"]
-                spread_bl_diffusion = average_variable_dict["bl_diffusion"]["spread"]
-                spread_bl_electromigration = average_variable_dict[
-                    "bl_electromigration"
-                ]["spread"]
-                spread_mem_convection = average_variable_dict["mem_convection"][
-                    "spread"
-                ]
-                spread_mem_diffusion = average_variable_dict["mem_diffusion"]["spread"]
-                spread_mem_electromigration = average_variable_dict[
-                    "mem_electromigration"
-                ]["spread"]
-
-                if solute == "Na":
-                    bl_dict_avg = sodium_bl_avg
-                    mem_dict_avg = sodium_mem_avg
-                elif solute == "Ca":
-                    bl_dict_avg = calcium_bl_avg
-                    mem_dict_avg = calcium_mem_avg
-                elif solute == "La":
-                    bl_dict_avg = lanthanum_bl_avg
-                    mem_dict_avg = lanthanum_mem_avg
-                elif solute == "Cl":
-                    if model.fs.membrane.cations.at(1) == "Na":
-                        bl_dict_avg = cl_sodium_bl_avg
-                        mem_dict_avg = cl_sodium_mem_avg
-                    elif model.fs.membrane.cations.at(1) == "Ca":
-                        bl_dict_avg = cl_calcium_bl_avg
-                        mem_dict_avg = cl_calcium_mem_avg
-                    elif model.fs.membrane.cations.at(1) == "La":
-                        bl_dict_avg = cl_lanthanum_bl_avg
-                        mem_dict_avg = cl_lanthanum_mem_avg
-
-                bl_dict_avg["Convection"].append(avg_bl_convection)
-                bl_dict_avg["Diffusion"].append(avg_bl_diffusion)
-                bl_dict_avg["Electromigration"].append(avg_bl_electromigration)
-
-                mem_dict_avg["Convection"].append(avg_mem_convection)
-                mem_dict_avg["Diffusion"].append(avg_mem_diffusion)
-                mem_dict_avg["Electromigration"].append(avg_mem_electromigration)
-
     # concentrations = ["30", "40", "50", "75", "100", "125", "150", "175", "200"]
     concentrations = [
         "10",
@@ -1337,47 +1328,18 @@ def plot_flux_contributions(save_figure=True):
     color_list = [conv_color, diff_color, elec_color]
     x = np.arange(len(x_values))
 
-    lanthanum_bl_avg["Convection"].insert(0, 0)
-    lanthanum_bl_avg["Diffusion"].insert(0, 0)
-    lanthanum_bl_avg["Electromigration"].insert(0, 0)
-    cl_lanthanum_bl_avg["Convection"].insert(0, 0)
-    cl_lanthanum_bl_avg["Diffusion"].insert(0, 0)
-    cl_lanthanum_bl_avg["Electromigration"].insert(0, 0)
-
-    lanthanum_mem_avg["Convection"].insert(0, 0)
-    lanthanum_mem_avg["Diffusion"].insert(0, 0)
-    lanthanum_mem_avg["Electromigration"].insert(0, 0)
-    cl_lanthanum_mem_avg["Convection"].insert(0, 0)
-    cl_lanthanum_mem_avg["Diffusion"].insert(0, 0)
-    cl_lanthanum_mem_avg["Electromigration"].insert(0, 0)
-
-    sodium_bl_data = sodium_bl_avg
-    cl_sodium_bl_data = cl_sodium_bl_avg
-    # calcium_bl_data = calcium_bl_avg
-    # cl_calcium_bl_data = cl_calcium_bl_avg
-    # lanthanum_bl_data = lanthanum_bl_avg
-    # cl_lanthanum_bl_data = cl_lanthanum_bl_avg
-
-    sodium_mem_data = sodium_mem_avg
-    cl_sodium_mem_data = cl_sodium_mem_avg
-    # calcium_mem_data = calcium_mem_avg
-    # cl_calcium_mem_data = cl_calcium_mem_avg
-    # lanthanum_mem_data = lanthanum_mem_avg
-    # cl_lanthanum_mem_data = cl_lanthanum_mem_avg
-
-    sodium_bl_df = pd.DataFrame(sodium_bl_data, index=x_values)
-    cl_sodium_bl_df = pd.DataFrame(cl_sodium_bl_data, index=x_values)
-    # calcium_bl_df = pd.DataFrame(calcium_bl_data, index=x_values)
-    # cl_calcium_bl_df = pd.DataFrame(cl_calcium_bl_data, index=x_values)
-    # lanthanum_bl_df = pd.DataFrame(lanthanum_bl_data, index=x_values)
-    # cl_lanthanum_bl_df = pd.DataFrame(cl_lanthanum_bl_data, index=x_values)
-
-    sodium_mem_df = pd.DataFrame(sodium_mem_data, index=x_values)
-    cl_sodium_mem_df = pd.DataFrame(cl_sodium_mem_data, index=x_values)
-    # calcium_mem_df = pd.DataFrame(calcium_mem_data, index=x_values)
-    # cl_calcium_mem_df = pd.DataFrame(cl_calcium_mem_data, index=x_values)
-    # lanthanum_mem_df = pd.DataFrame(lanthanum_mem_data, index=x_values)
-    # cl_lanthanum_mem_df = pd.DataFrame(cl_lanthanum_mem_data, index=x_values)
+    sodium_bl_df = pd.read_json(
+        "figure_data/total_flux_breakdown_single_salt_cation_Na_bl"
+    )
+    cl_sodium_bl_df = pd.read_json(
+        "figure_data/total_flux_breakdown_single_salt_anion_NaCl_bl"
+    )
+    sodium_mem_df = pd.read_json(
+        "figure_data/total_flux_breakdown_single_salt_cation_Na_mem"
+    )
+    cl_sodium_mem_df = pd.read_json(
+        "figure_data/total_flux_breakdown_single_salt_anion_NaCl_mem"
+    )
 
     sodium_bl_df.plot(
         ax=ax1a, kind="bar", stacked=True, color=color_list, rot=0, legend=False
