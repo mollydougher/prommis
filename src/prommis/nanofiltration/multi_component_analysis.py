@@ -47,19 +47,21 @@ def main():
     run_single_salt = False
     run_two_salt = False
     run_two_salt_ratios = False
+    one_to_two = False
     solve_and_save_models(
         water_flux=0.02,
         run_single_salt=run_single_salt,
         run_two_salt=run_two_salt,
         run_two_salt_ratios=run_two_salt_ratios,
+        one_to_two=one_to_two,
     )
 
     save_figure_data(flux_values=False, flux_contrib=False, ratio=False)
 
-    flux_plots_equimolar(save_figure=True)
+    # flux_plots_equimolar(save_figure=True)
     flux_plots_ratios(save_figure=True)
 
-    plot_flux_contributions(save_figure=True)
+    # plot_flux_contributions(save_figure=True)
 
 
 def build_model(
@@ -70,6 +72,7 @@ def build_model(
     run_single_salt=False,
     run_two_salt=False,
     run_two_salt_ratio=False,
+    one_to_two=False,
     initialize_and_solve=True,
     fudge_factor_H_feed=1,
     fudge_factor_H_perm=1,
@@ -215,7 +218,13 @@ def build_model(
             elif two_salt:
                 fname = f"multi_component_case_studies/two_salt/{key_name}/{key_name}{key}_{cation_list[0]}{cation_list[1]}Cl{chloride_multiplier}_{inlet_concentration['feed'][cation_list[0]]}mM_{inlet_concentration['feed'][cation_list[1]]}mM"
             elif two_salt_ratio:
-                fname = f"multi_component_case_studies/two_salt_ratio/RATIO{key}_{cation_list[0]}{cation_list[1]}Cl{chloride_multiplier}_{inlet_concentration['feed'][cation_list[0]]}mM_{inlet_concentration['feed'][cation_list[1]]}mM"
+                if one_to_two:
+                    folder = "Na_to_Ca"
+                    fname = f"multi_component_case_studies/two_salt_ratio/{folder}/RATIO{key}_{cation_list[0]}{cation_list[1]}Cl{chloride_multiplier}_{round(inlet_concentration['feed'][cation_list[0]])}mM_{round(inlet_concentration['feed'][cation_list[1]])}mM"
+                else:
+                    folder = "Ca_to_Na"
+                    fname = f"multi_component_case_studies/two_salt_ratio/{folder}/RATIO{key}_{cation_list[1]}{cation_list[0]}Cl{chloride_multiplier}_{round(inlet_concentration['feed'][cation_list[1]])}mM_{round(inlet_concentration['feed'][cation_list[0]])}mM"
+
             to_json(m, fname=fname)
 
     return m
@@ -262,6 +271,7 @@ def solve_and_save_models(
     run_single_salt=True,
     run_two_salt=True,
     run_two_salt_ratios=True,
+    one_to_two=True,
 ):
     # global variables
     anion_list = ["Cl"]
@@ -462,9 +472,12 @@ def solve_and_save_models(
                     to_json(model, fname=fname)
 
     if run_two_salt_ratios:
-        cation_1_conc = [10, 20, 30]
-        RATIO_key = ["001", "005", "010", "015", "020"]
-        ratios = [0.1, 0.5, 1, 1.5, 2]
+        if one_to_two:
+            RATIO_key = ["001", "005", "010", "015", "020"]
+            ratios = [0.1, 0.5, 1, 1.5, 2]
+        else:
+            RATIO_key = ["020", "015", "010", "005", "001"]
+            ratios = [2, 1.5, 1, 0.5, 0.1]
 
         Dm_Cl = 2.03  # um2/s
         Dm_over_l_value = 60  # um/s
@@ -485,25 +498,31 @@ def solve_and_save_models(
         cation_1_phi_star_value = monovalent_phi_star_value
         cation_2_phi_star_value = divalent_phi_star_value
 
-        for cation_1_concentration in cation_1_conc:
+        set_cation_conc = [10, 20, 30]
+
+        for cation_concentration in set_cation_conc:
+            if one_to_two:
+                cation_1_conc = cation_concentration
+                initial_ratio = 0.1
+            else:
+                cation_2_conc = cation_concentration
+                initial_ratio = 2
             for ratio in ratios:
-                if ratio == 0.1:
+                if one_to_two:
+                    cation_2_conc = ratio * cation_concentration
+                else:
+                    cation_1_conc = ratio * cation_concentration
+
+                if ratio == initial_ratio:
                     model = build_model(
                         cation_list=[cation_1, cation_2],
                         inlet_concentration={
                             "feed": {
-                                cation_1: cation_1_concentration,
-                                cation_2: ratio * cation_1_concentration,
+                                cation_1: cation_1_conc,
+                                cation_2: cation_2_conc,
                                 "Cl": (
-                                    (
-                                        cation_1_chloride_multiplier
-                                        * cation_1_concentration
-                                    )
-                                    + (
-                                        cation_2_chloride_multiplier
-                                        * ratio
-                                        * cation_1_concentration
-                                    )
+                                    (cation_1_chloride_multiplier * cation_1_conc)
+                                    + (cation_2_chloride_multiplier * cation_2_conc)
                                 ),
                             },
                             "diafiltrate": {
@@ -515,6 +534,7 @@ def solve_and_save_models(
                         default_args=default_args,
                         NFE_args=NFE_args,
                         run_two_salt_ratio=True,
+                        one_to_two=one_to_two,
                         initialize_and_solve=True,
                         fudge_factor_H_feed=1.2,
                         fudge_factor_H_perm=1,
@@ -531,17 +551,16 @@ def solve_and_save_models(
                     )
                 else:
                     for t in model.fs.membrane.time:
+                        model.fs.membrane.feed_conc_mol_comp[t, cation_1].fix(
+                            cation_1_conc
+                        )
                         model.fs.membrane.feed_conc_mol_comp[t, cation_2].fix(
-                            ratio * cation_1_concentration
+                            cation_2_conc
                         )
                         model.fs.membrane.feed_conc_mol_comp[t, "Cl"].fix(
                             (
-                                (cation_1_chloride_multiplier * cation_1_concentration)
-                                + (
-                                    cation_2_chloride_multiplier
-                                    * ratio
-                                    * cation_1_concentration
-                                )
+                                (cation_1_chloride_multiplier * cation_1_conc)
+                                + (cation_2_chloride_multiplier * cation_2_conc)
                             )
                         )
 
@@ -554,7 +573,13 @@ def solve_and_save_models(
                     key_name = "RATIO"
                     key = RATIO_key[ratios.index(ratio)]
 
-                    fname = f"multi_component_case_studies/two_salt_ratio/RATIO{key}_{cation_1}{cation_2}Cl{total_chloride_multiplier}_{cation_1_concentration}mM_{ratio * cation_1_concentration}mM"
+                    if one_to_two:
+                        folder = "Na_to_Ca"
+                        fname = f"multi_component_case_studies/two_salt_ratio/{folder}/RATIO{key}_{cation_1}{cation_2}Cl{total_chloride_multiplier}_{round(cation_1_conc)}mM_{round(cation_2_conc)}mM"
+                    else:
+                        folder = "Ca_to_Na"
+                        fname = f"multi_component_case_studies/two_salt_ratio/{folder}/RATIO{key}_{cation_2}{cation_1}Cl{total_chloride_multiplier}_{round(cation_2_conc)}mM_{round(cation_1_conc)}mM"
+
                     to_json(model, fname=fname)
 
 
@@ -1167,15 +1192,25 @@ def save_figure_data(flux_values=True, flux_contrib=True, ratio=True):
         )
 
     if ratio:
-        RATIO_key = ["001", "005", "010", "015", "020"]
-        ratios = [0.1, 0.5, 1, 1.5, 2]
+        RATIO_key_Na_to_Ca = ["001", "005", "010", "015", "020"]
+        ratios_Na_to_Ca = [0.1, 0.5, 1, 1.5, 2]
 
-        model_folder_2 = Path("multi_component_case_studies/two_salt_ratio")
-        # 44 characters (0-43) make up folder name before model name
-        # multi_component_case_studies/two_salt_ratio/
+        RATIO_key_Ca_to_Na = ["020", "015", "010", "005", "001"]
+        ratios_Ca_to_Na = [2, 1.5, 1, 0.5, 0.1]
 
-        case_study_list_2 = [file for file in model_folder_2.iterdir()]
-        case_study_list_2.sort()
+        model_folder_Na_Ca = Path(
+            "multi_component_case_studies/two_salt_ratio/Na_to_Ca"
+        )
+        model_folder_Ca_Na = Path(
+            "multi_component_case_studies/two_salt_ratio/Ca_to_Na"
+        )
+        # 53 characters (0-52) make up folder name before model name
+        # multi_component_case_studies/two_salt_ratio/Na_to_Ca/
+
+        case_study_list_Na_Ca = [file for file in model_folder_Na_Ca.iterdir()]
+        case_study_list_Na_Ca.sort()
+        case_study_list_Ca_Na = [file for file in model_folder_Ca_Na.iterdir()]
+        case_study_list_Ca_Na.sort()
 
         Na_Ca_data_dict = {
             "Na_10mM": {
@@ -1191,13 +1226,27 @@ def save_figure_data(flux_values=True, flux_contrib=True, ratio=True):
                 "Ca": {"x": [], "y": [], "y_err": []},
             },
         }
+        Ca_Na_data_dict = {
+            "Ca_10mM": {
+                "Na": {"x": [], "y": [], "y_err": []},
+                "Ca": {"x": [], "y": [], "y_err": []},
+            },
+            "Ca_20mM": {
+                "Na": {"x": [], "y": [], "y_err": []},
+                "Ca": {"x": [], "y": [], "y_err": []},
+            },
+            "Ca_30mM": {
+                "Na": {"x": [], "y": [], "y_err": []},
+                "Ca": {"x": [], "y": [], "y_err": []},
+            },
+        }
 
-        for case_study in case_study_list_2:
-            ratio_key = str(case_study)[49:52]
-            ratio = ratios[RATIO_key.index(ratio_key)]
-            cation_1 = str(case_study)[53:55]
-            cation_2 = str(case_study)[55:57]
-            cation_1_conc = str(case_study)[61:63]
+        for case_study in case_study_list_Na_Ca:
+            ratio_key = str(case_study)[58:61]
+            ratio = ratios_Na_to_Ca[RATIO_key_Na_to_Ca.index(ratio_key)]
+            cation_1 = str(case_study)[62:64]
+            cation_2 = str(case_study)[64:66]
+            cation_1_conc = str(case_study)[70:72]
 
             concentration = float(50)  # mM
             cation_list = [cation_1, cation_2]
@@ -1213,13 +1262,6 @@ def save_figure_data(flux_values=True, flux_contrib=True, ratio=True):
                     "Cl": 1e-10,
                 },
             }
-
-            # if cation_1 == "Na" and cation_2 == "Ca":
-            #     salt_key = "Na_Ca"
-            # elif cation_1 == "Na" and cation_2 == "La":
-            #     salt_key = "Na_La"
-            # elif cation_1 == "Ca" and cation_2 == "La":
-            #     salt_key = "Ca_La"
 
             model = build_model(
                 cation_list=cation_list,
@@ -1243,9 +1285,59 @@ def save_figure_data(flux_values=True, flux_contrib=True, ratio=True):
                 Na_Ca_data_dict[f"Na_{cation_1_conc}mM"][solute]["y_err"].append(y_err)
 
         with open(
-            "figure_data/flux_versus_cation_concentration_two_salt_ratio_data.json", "w"
+            "figure_data/flux_versus_cation_concentration_two_salt_Na_to_Ca_ratio_data.json",
+            "w",
         ) as file:
             json.dump(Na_Ca_data_dict, file)
+
+        for case_study in case_study_list_Ca_Na:
+            ratio_key = str(case_study)[58:61]
+            ratio = ratios_Ca_to_Na[RATIO_key_Ca_to_Na.index(ratio_key)]
+            cation_2 = str(case_study)[62:64]
+            cation_1 = str(case_study)[64:66]
+            cation_2_conc = str(case_study)[70:72]
+
+            concentration = float(50)  # mM
+            cation_list = [cation_1, cation_2]
+            inlet_concentration = {
+                "feed": {
+                    cation_1: concentration,
+                    cation_2: concentration,
+                    "Cl": concentration,
+                },
+                "diafiltrate": {
+                    cation_1: 1e-10,
+                    cation_2: 1e-10,
+                    "Cl": 1e-10,
+                },
+            }
+
+            model = build_model(
+                cation_list=cation_list,
+                inlet_concentration=inlet_concentration,
+                default_args=default_args,
+                NFE_args=NFE_args,
+                initialize_and_solve=False,
+            )
+            from_json(model, fname=case_study)
+
+            for solute in model.fs.membrane.cations:
+                average_variable_dict = get_model_averages(model, solute)
+
+                x_value = ratio
+                y_data = average_variable_dict["local_flux"]["avg"]
+                y_err = average_variable_dict["local_flux"]["spread"]
+                y_err = y_err.tolist()
+
+                Ca_Na_data_dict[f"Ca_{cation_2_conc}mM"][solute]["x"].append(x_value)
+                Ca_Na_data_dict[f"Ca_{cation_2_conc}mM"][solute]["y"].append(y_data)
+                Ca_Na_data_dict[f"Ca_{cation_2_conc}mM"][solute]["y_err"].append(y_err)
+
+        with open(
+            "figure_data/flux_versus_cation_concentration_two_salt_Ca_to_Na_ratio_data.json",
+            "w",
+        ) as file:
+            json.dump(Ca_Na_data_dict, file)
 
 
 def flux_plots_equimolar(save_figure=True):
@@ -1470,11 +1562,16 @@ def flux_plots_ratios(save_figure=True):
     linewidth = 1
 
     fig1, (ax1a, ax1b) = plt.subplots(
-        2, 1, dpi=100, figsize=(4, 9), constrained_layout=True
+        1, 2, dpi=100, figsize=(9, 4), constrained_layout=True
     )
 
-    ax1b.set_xlabel(
+    ax1a.set_xlabel(
         "Na:Ca Feed Conc. Ratio",
+        fontsize=fontsize,
+        fontweight="bold",
+    )
+    ax1b.set_xlabel(
+        "Ca:Na Feed Conc. Ratio",
         fontsize=fontsize,
         fontweight="bold",
     )
@@ -1503,36 +1600,59 @@ def flux_plots_ratios(save_figure=True):
     na_10mM_color = tol_bright_hex[0]
     na_20mM_color = tol_bright_hex[1]
     na_30mM_color = tol_bright_hex[2]
-    # na_ca_color = tol_bright_hex[3]
-    # na_la_color = tol_bright_hex[4]
-    # ca_la_color = tol_bright_hex[5]
+    ca_10mM_color = tol_bright_hex[3]
+    ca_20mM_color = tol_bright_hex[4]
+    ca_30mM_color = tol_bright_hex[5]
 
-    legend_dict = {
+    legend_dict_1a = {
         "marker": "o",
-        "ax": ax1b,
         "salt_colors": {
             "10 mM": na_10mM_color,
             "20 mM": na_20mM_color,
             "30 mM": na_30mM_color,
         },
     }
+    legend_dict_1b = {
+        "marker": "v",
+        "salt_colors": {
+            "10 mM": ca_10mM_color,
+            "20 mM": ca_20mM_color,
+            "30 mM": ca_30mM_color,
+        },
+    }
 
-    for salt, color in legend_dict["salt_colors"].items():
-        legend_dict["ax"].plot(
+    for salt, color in legend_dict_1a["salt_colors"].items():
+        ax1a.plot(
             [],
             [],
             color=color,
-            marker=legend_dict["marker"],
+            marker=legend_dict_1a["marker"],
+            markersize=markersize,
+            linestyle="None",
+            label=salt,
+        )
+    for salt, color in legend_dict_1b["salt_colors"].items():
+        ax1b.plot(
+            [],
+            [],
+            color=color,
+            marker=legend_dict_1b["marker"],
             markersize=markersize,
             linestyle="None",
             label=salt,
         )
 
     # for ax in fig1.axes:
+    ax1a.legend(
+        loc="best",
+        fontsize=fontsize - 2,
+        title="Fixed Na Conc.:",
+        title_fontsize=fontsize - 2,
+    )
     ax1b.legend(
         loc="best",
         fontsize=fontsize - 2,
-        title="Na Conc.:",
+        title="Fixed Ca Conc.:",
         title_fontsize=fontsize - 2,
     )
 
@@ -1540,9 +1660,15 @@ def flux_plots_ratios(save_figure=True):
         ax.tick_params(direction="in", top=True, right=True, labelsize=fontsize)
 
     with open(
-        "figure_data/flux_versus_cation_concentration_two_salt_ratio_data.json", "r"
+        "figure_data/flux_versus_cation_concentration_two_salt_Na_to_Ca_ratio_data.json",
+        "r",
     ) as file:
         Na_Ca_data_dict = json.load(file)
+    with open(
+        "figure_data/flux_versus_cation_concentration_two_salt_Ca_to_Na_ratio_data.json",
+        "r",
+    ) as file:
+        Ca_Na_data_dict = json.load(file)
 
     for conc_1_info, salt_data in Na_Ca_data_dict.items():
         for cation in salt_data.keys():
@@ -1558,7 +1684,43 @@ def flux_plots_ratios(save_figure=True):
             if cation == "Na":
                 ax_flux = ax1a
             elif cation == "Ca":
+                continue
+
+            y_err = [np.array(i) for i in salt_data[cation]["y_err"]]
+
+            ax_flux.plot(
+                salt_data[cation]["x"],
+                salt_data[cation]["y"],
+                marker=marker,
+                linestyle=linestyle,
+                linewidth=linewidth,
+                color=color,
+                alpha=alpha,
+                markersize=markersize,
+            )
+            ax_flux.errorbar(
+                salt_data[cation]["x"],
+                salt_data[cation]["y"],
+                yerr=np.squeeze(y_err).T,
+                ecolor=color,
+                capsize=3,
+                linestyle="None",
+            )
+    for conc_2_info, salt_data in Ca_Na_data_dict.items():
+        for cation in salt_data.keys():
+            marker = "v"
+
+            if conc_2_info == "Ca_10mM":
+                color = ca_10mM_color
+            elif conc_2_info == "Ca_20mM":
+                color = ca_20mM_color
+            elif conc_2_info == "Ca_30mM":
+                color = ca_30mM_color
+
+            if cation == "Ca":
                 ax_flux = ax1b
+            elif cation == "Na":
+                continue
 
             y_err = [np.array(i) for i in salt_data[cation]["y_err"]]
 
@@ -1582,7 +1744,7 @@ def flux_plots_ratios(save_figure=True):
             )
 
     if save_figure:
-        plt.savefig(f"figures/flux_versus_cation_ratio.png", dpi=600)
+        plt.savefig(f"figures/flux_versus_cation_ratio_Na_and_Ca.png", dpi=600)
 
 
 def plot_flux_contributions(save_figure=True):
