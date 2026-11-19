@@ -155,12 +155,12 @@ def build_model(
             value(m.fs.membrane.feed_ionic_strength[0]) < 199
         ):
             m.fs.membrane.applied_pressure.fix(10)
-        elif (value(m.fs.membrane.feed_ionic_strength[0]) >= 99) and (
-            value(m.fs.membrane.feed_ionic_strength[0]) < 299
-        ):
+        elif value(m.fs.membrane.feed_ionic_strength[0]) >= 199:  # and (
+            # value(m.fs.membrane.feed_ionic_strength[0]) < 299
+            # ):
             m.fs.membrane.applied_pressure.fix(15)
-        elif value(m.fs.membrane.feed_ionic_strength[0]) >= 299:
-            m.fs.membrane.applied_pressure.fix(20)
+        # elif value(m.fs.membrane.feed_ionic_strength[0]) >= 299:
+        # m.fs.membrane.applied_pressure.fix(20)
 
     # add and connect flowsheet streams
     m.fs.feed_stream = Arc(
@@ -197,6 +197,20 @@ def build_model(
             multiplier_H_perm=fudge_factor_H_perm,
         )
         initialized_membrane_model.initialize(m.fs.membrane)
+
+        if (inlet_concentration["feed"][cation_list[0]] == 130) and (
+            inlet_concentration["feed"][cation_list[1]] == 65
+        ):
+            m.fs.membrane.scaling_factor[m.fs.membrane.membrane_D_tilde_calculation] = (
+                1e1
+            )
+        if (inlet_concentration["feed"][cation_list[0]] == 160) and (
+            inlet_concentration["feed"][cation_list[1]] == 80
+        ):
+            m.fs.membrane.scaling_factor[m.fs.membrane.membrane_D_tilde_calculation] = (
+                1e1
+            )
+            m.fs.membrane.scaling_factor[m.fs.membrane.cation_bulk_flux_equation] = 1e1
 
         solve_model(m)
         unfix_pressure(m, water_flux=water_flux)
@@ -472,12 +486,8 @@ def solve_and_save_models(
                     to_json(model, fname=fname)
 
     if run_two_salt_ratios:
-        if one_to_two:
-            RATIO_key = ["001", "005", "010", "015", "020"]
-            ratios = [0.1, 0.5, 1, 1.5, 2]
-        else:
-            RATIO_key = ["020", "015", "010", "005", "001"]
-            ratios = [2, 1.5, 1, 0.5, 0.1]
+        RATIO_key = ["001", "005", "010", "015", "020"]
+        ratios = [0.1, 0.5, 1, 1.5, 2]
 
         Dm_Cl = 2.03  # um2/s
         Dm_over_l_value = 60  # um/s
@@ -498,15 +508,21 @@ def solve_and_save_models(
         cation_1_phi_star_value = monovalent_phi_star_value
         cation_2_phi_star_value = divalent_phi_star_value
 
-        set_cation_conc = [10, 20, 30]
+        set_cation_conc = [10, 25, 40, 65, 80]
 
         for cation_concentration in set_cation_conc:
-            if one_to_two:
-                cation_1_conc = cation_concentration
+            if cation_concentration == 10:
                 initial_ratio = 0.1
             else:
-                cation_2_conc = cation_concentration
+                RATIO_key.reverse()
+                ratios.reverse()
                 initial_ratio = 2
+
+            if one_to_two:
+                cation_1_conc = cation_concentration
+            else:
+                cation_2_conc = cation_concentration
+
             for ratio in ratios:
                 if one_to_two:
                     cation_2_conc = ratio * cation_concentration
@@ -1192,11 +1208,8 @@ def save_figure_data(flux_values=True, flux_contrib=True, ratio=True):
         )
 
     if ratio:
-        RATIO_key_Na_to_Ca = ["001", "005", "010", "015", "020"]
-        ratios_Na_to_Ca = [0.1, 0.5, 1, 1.5, 2]
-
-        RATIO_key_Ca_to_Na = ["020", "015", "010", "005", "001"]
-        ratios_Ca_to_Na = [2, 1.5, 1, 0.5, 0.1]
+        RATIO_key = ["001", "005", "010", "015", "020"]
+        ratios = [0.1, 0.5, 1, 1.5, 2]
 
         model_folder_Na_Ca = Path(
             "multi_component_case_studies/two_salt_ratio/Na_to_Ca"
@@ -1217,11 +1230,19 @@ def save_figure_data(flux_values=True, flux_contrib=True, ratio=True):
                 "Na": {"x": [], "y": [], "y_err": []},
                 "Ca": {"x": [], "y": [], "y_err": []},
             },
-            "Na_20mM": {
+            "Na_25mM": {
                 "Na": {"x": [], "y": [], "y_err": []},
                 "Ca": {"x": [], "y": [], "y_err": []},
             },
-            "Na_30mM": {
+            "Na_40mM": {
+                "Na": {"x": [], "y": [], "y_err": []},
+                "Ca": {"x": [], "y": [], "y_err": []},
+            },
+            "Na_65mM": {
+                "Na": {"x": [], "y": [], "y_err": []},
+                "Ca": {"x": [], "y": [], "y_err": []},
+            },
+            "Na_80mM": {
                 "Na": {"x": [], "y": [], "y_err": []},
                 "Ca": {"x": [], "y": [], "y_err": []},
             },
@@ -1231,11 +1252,19 @@ def save_figure_data(flux_values=True, flux_contrib=True, ratio=True):
                 "Na": {"x": [], "y": [], "y_err": []},
                 "Ca": {"x": [], "y": [], "y_err": []},
             },
-            "Ca_20mM": {
+            "Ca_25mM": {
                 "Na": {"x": [], "y": [], "y_err": []},
                 "Ca": {"x": [], "y": [], "y_err": []},
             },
-            "Ca_30mM": {
+            "Ca_40mM": {
+                "Na": {"x": [], "y": [], "y_err": []},
+                "Ca": {"x": [], "y": [], "y_err": []},
+            },
+            "Ca_65mM": {
+                "Na": {"x": [], "y": [], "y_err": []},
+                "Ca": {"x": [], "y": [], "y_err": []},
+            },
+            "Ca_80mM": {
                 "Na": {"x": [], "y": [], "y_err": []},
                 "Ca": {"x": [], "y": [], "y_err": []},
             },
@@ -1243,7 +1272,7 @@ def save_figure_data(flux_values=True, flux_contrib=True, ratio=True):
 
         for case_study in case_study_list_Na_Ca:
             ratio_key = str(case_study)[58:61]
-            ratio = ratios_Na_to_Ca[RATIO_key_Na_to_Ca.index(ratio_key)]
+            ratio = ratios[RATIO_key.index(ratio_key)]
             cation_1 = str(case_study)[62:64]
             cation_2 = str(case_study)[64:66]
             cation_1_conc = str(case_study)[70:72]
@@ -1292,7 +1321,7 @@ def save_figure_data(flux_values=True, flux_contrib=True, ratio=True):
 
         for case_study in case_study_list_Ca_Na:
             ratio_key = str(case_study)[58:61]
-            ratio = ratios_Ca_to_Na[RATIO_key_Ca_to_Na.index(ratio_key)]
+            ratio = ratios[RATIO_key.index(ratio_key)]
             cation_2 = str(case_study)[62:64]
             cation_1 = str(case_study)[64:66]
             cation_2_conc = str(case_study)[70:72]
@@ -1562,7 +1591,7 @@ def flux_plots_ratios(save_figure=True):
     linewidth = 1
 
     fig1, (ax1a, ax1b) = plt.subplots(
-        1, 2, dpi=100, figsize=(9, 4), constrained_layout=True
+        1, 2, dpi=100, figsize=(9, 5), constrained_layout=True
     )
 
     ax1a.set_xlabel(
@@ -1597,27 +1626,31 @@ def flux_plots_ratios(save_figure=True):
         "#AA3377",
         "#BBBBBB",
     ]
-    na_10mM_color = tol_bright_hex[0]
-    na_20mM_color = tol_bright_hex[1]
-    na_30mM_color = tol_bright_hex[2]
-    ca_10mM_color = tol_bright_hex[3]
-    ca_20mM_color = tol_bright_hex[4]
-    ca_30mM_color = tol_bright_hex[5]
+    _10mM_color = tol_bright_hex[0]
+    _25mM_color = tol_bright_hex[1]
+    _40mM_color = tol_bright_hex[2]
+    _65mM_color = tol_bright_hex[3]
+    _80mM_color = tol_bright_hex[4]
+    # ca_40mM_color = tol_bright_hex[5]
 
     legend_dict_1a = {
         "marker": "o",
         "salt_colors": {
-            "10 mM": na_10mM_color,
-            "20 mM": na_20mM_color,
-            "30 mM": na_30mM_color,
+            "10 mM": _10mM_color,
+            "25 mM": _25mM_color,
+            "40 mM": _40mM_color,
+            "65 mM": _65mM_color,
+            "80 mM": _80mM_color,
         },
     }
     legend_dict_1b = {
         "marker": "v",
         "salt_colors": {
-            "10 mM": ca_10mM_color,
-            "20 mM": ca_20mM_color,
-            "30 mM": ca_30mM_color,
+            "10 mM": _10mM_color,
+            "25 mM": _25mM_color,
+            "40 mM": _40mM_color,
+            "65 mM": _65mM_color,
+            "80 mM": _80mM_color,
         },
     }
 
@@ -1642,15 +1675,22 @@ def flux_plots_ratios(save_figure=True):
             label=salt,
         )
 
-    # for ax in fig1.axes:
     ax1a.legend(
-        loc="best",
+        # loc="best",
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.15),
+        ncols=2,
+        frameon=False,
         fontsize=fontsize - 2,
         title="Fixed Na Conc.:",
         title_fontsize=fontsize - 2,
     )
     ax1b.legend(
-        loc="best",
+        # loc="best",
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.15),
+        ncols=2,
+        frameon=False,
         fontsize=fontsize - 2,
         title="Fixed Ca Conc.:",
         title_fontsize=fontsize - 2,
@@ -1675,11 +1715,15 @@ def flux_plots_ratios(save_figure=True):
             marker = "o"
 
             if conc_1_info == "Na_10mM":
-                color = na_10mM_color
-            elif conc_1_info == "Na_20mM":
-                color = na_20mM_color
-            elif conc_1_info == "Na_30mM":
-                color = na_30mM_color
+                color = _10mM_color
+            elif conc_1_info == "Na_25mM":
+                color = _25mM_color
+            elif conc_1_info == "Na_40mM":
+                color = _40mM_color
+            elif conc_1_info == "Na_65mM":
+                color = _65mM_color
+            elif conc_1_info == "Na_80mM":
+                color = _80mM_color
 
             if cation == "Na":
                 ax_flux = ax1a
@@ -1711,11 +1755,15 @@ def flux_plots_ratios(save_figure=True):
             marker = "v"
 
             if conc_2_info == "Ca_10mM":
-                color = ca_10mM_color
-            elif conc_2_info == "Ca_20mM":
-                color = ca_20mM_color
-            elif conc_2_info == "Ca_30mM":
-                color = ca_30mM_color
+                color = _10mM_color
+            elif conc_2_info == "Ca_25mM":
+                color = _25mM_color
+            elif conc_2_info == "Ca_40mM":
+                color = _40mM_color
+            elif conc_2_info == "Ca_65mM":
+                color = _65mM_color
+            elif conc_2_info == "Ca_80mM":
+                color = _80mM_color
 
             if cation == "Ca":
                 ax_flux = ax1b
